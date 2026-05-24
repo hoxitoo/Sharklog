@@ -29,13 +29,14 @@ export interface DashboardStats {
 }
 
 function calcSlice(bets: Bet[], label: string): SliceStats {
-  const settled = bets.filter((b) => b.status !== 'pending' && b.status !== 'refund');
+  const settled = bets.filter((b) => b.status === 'won' || b.status === 'lost');
   const won = bets.filter((b) => b.status === 'won').length;
   const lost = bets.filter((b) => b.status === 'lost').length;
   const refund = bets.filter((b) => b.status === 'refund').length;
   const pending = bets.filter((b) => b.status === 'pending').length;
 
-  const totalStaked = settled.reduce((sum, b) => sum + b.stake, 0);
+  // Include refund stakes in totalStaked — capital was wagered even if returned
+  const totalStaked = bets.filter((b) => b.status !== 'pending').reduce((sum, b) => sum + b.stake, 0);
   const pnl = bets.reduce((sum, b) => {
     if (b.status === 'won') return sum + Math.round(b.stake * b.odds) - b.stake;
     if (b.status === 'lost') return sum - b.stake;

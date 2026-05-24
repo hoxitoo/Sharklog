@@ -17,6 +17,7 @@ import { useBetsStore } from '../../store/betsStore';
 import { ProGate } from '../../components/ProGate';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { colors } from '../../theme/colors';
+import { FONTS } from '../../theme/typography';
 
 // ── Kelly Calculator ──────────────────────────────────────────────────────────
 
@@ -400,8 +401,8 @@ const bk = StyleSheet.create({
     backgroundColor: colors.bgCard, borderRadius: 14, padding: 18,
     marginHorizontal: 16, marginBottom: 14, borderWidth: 1, borderColor: colors.border,
   },
-  bankLabel: { fontSize: 12, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
-  bankValue: { fontSize: 36, fontWeight: '700', marginTop: 4, marginBottom: 16 },
+  bankLabel: { fontSize: 12, fontFamily: FONTS.sans, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
+  bankValue: { fontSize: 36, fontFamily: FONTS.monoMedium, marginTop: 4, marginBottom: 16 },
   metaRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
   metaCell: {},
   metaLabel: { fontSize: 11, color: colors.textMuted },

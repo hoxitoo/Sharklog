@@ -22,7 +22,7 @@ const PERIOD_OPTIONS: Array<{ key: PeriodFilter; label: string }> = [
 ];
 
 function WLStrip({ bets }: { bets: Bet[] }) {
-  const last7 = bets.filter((b) => b.status !== 'pending').slice(0, 7);
+  const last7 = bets.filter((b) => b.status !== 'pending').slice(0, 7).reverse();
   if (last7.length === 0) return null;
 
   return (
@@ -182,7 +182,7 @@ export function DashboardScreen() {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - days);
     const cutoffStr = cutoff.toISOString().split('T')[0] ?? '';
-    return bets.filter((b) => b.date >= cutoffStr);
+    return bets.filter((b) => b.date > cutoffStr);
   }, [bets, period]);
 
   const stats = calcDashboard(filteredBets);

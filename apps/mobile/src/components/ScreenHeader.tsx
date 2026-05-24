@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../theme/colors';
+import { FONTS } from '../theme/typography';
 
 interface Props {
   title: string;
@@ -37,8 +38,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bg,
   },
   left: { flex: 1 },
-  title: { fontSize: 28, fontWeight: '700', color: colors.textPrimary, letterSpacing: -0.5 },
-  subtitle: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
+  title: { fontSize: 28, fontFamily: FONTS.sansBold, color: colors.textPrimary, letterSpacing: -0.5 },
+  subtitle: { fontSize: 13, fontFamily: FONTS.sans, color: colors.textSecondary, marginTop: 2 },
   action: {
     backgroundColor: colors.purple,
     paddingHorizontal: 16,

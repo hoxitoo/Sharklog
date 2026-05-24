@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { colors } from '../../theme/colors';
+import { FONTS } from '../../theme/typography';
 
 interface Props {
   label: string;
@@ -39,7 +40,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     minWidth: '45%',
   },
-  label: { fontSize: 11, color: colors.textMuted, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
-  value: { fontSize: 22, fontWeight: '700' },
-  sub: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
+  label: { fontSize: 11, fontFamily: FONTS.sans, color: colors.textMuted, marginBottom: 4, textTransform: 'uppercase', letterSpacing: 0.5 },
+  value: { fontSize: 22, fontFamily: FONTS.monoMedium },
+  sub: { fontSize: 12, fontFamily: FONTS.sans, color: colors.textSecondary, marginTop: 2 },
 });
