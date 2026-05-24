@@ -21,6 +21,15 @@ export function App() {
   function openEdit(bet: Bet) { setModalBet(bet); }
   function closeModal() { setModalBet(null); }
 
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape' && modalBet !== null) closeModal();
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n') { e.preventDefault(); openAdd(); }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [modalBet]);
+
   return (
     <>
       <AppLayout page={page} onNavigate={setPage}>

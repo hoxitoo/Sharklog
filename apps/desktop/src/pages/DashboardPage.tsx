@@ -53,6 +53,70 @@ function WLStrip({ bets }: { bets: Bet[] }) {
   );
 }
 
+function Heatmap({ bets }: { bets: Bet[] }) {
+  const today = new Date();
+  const weeks = 12;
+  const totalDays = weeks * 7;
+
+  const pnlByDate: Record<string, number> = {};
+  const countByDate: Record<string, number> = {};
+  for (const bet of bets) {
+    if (bet.status === 'pending') continue;
+    const profit = bet.status === 'won'
+      ? Math.round(bet.stake * (bet.odds - 1))
+      : bet.status === 'lost' ? -bet.stake : 0;
+    pnlByDate[bet.date] = (pnlByDate[bet.date] ?? 0) + profit;
+    countByDate[bet.date] = (countByDate[bet.date] ?? 0) + 1;
+  }
+
+  if (Object.keys(countByDate).length === 0) return null;
+
+  const days: Array<{ dateStr: string; pnl: number; count: number }> = [];
+  for (let i = totalDays - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const dateStr = d.toISOString().split('T')[0] ?? '';
+    days.push({ dateStr, pnl: pnlByDate[dateStr] ?? 0, count: countByDate[dateStr] ?? 0 });
+  }
+
+  const columns: typeof days[] = [];
+  for (let w = 0; w < weeks; w++) columns.push(days.slice(w * 7, w * 7 + 7));
+
+  function cellBg(day: { pnl: number; count: number }) {
+    if (day.count === 0) return colors.bgElevated;
+    if (day.pnl > 0) return colors.won + (day.pnl > 50000 ? 'cc' : day.pnl > 10000 ? '88' : '44');
+    if (day.pnl < 0) return colors.lost + (day.pnl < -50000 ? 'cc' : day.pnl < -10000 ? '88' : '44');
+    return colors.textMuted + '44';
+  }
+
+  return (
+    <div style={s.card}>
+      <div style={s.cardTitle}>Активность за 12 недель</div>
+      <div style={{ display: 'flex', gap: 3 }}>
+        {columns.map((col, wi) => (
+          <div key={wi} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {col.map((day, di) => (
+              <div
+                key={di}
+                title={day.count > 0 ? `${day.dateStr}: ${day.count} ставок, ${day.pnl >= 0 ? '+' : ''}${(day.pnl / 100).toFixed(0)} ₽` : day.dateStr}
+                style={{ width: 14, height: 14, borderRadius: 2, backgroundColor: cellBg(day) }}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
+        <div style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: colors.lost + '88' }} />
+        <span style={{ fontSize: 11, color: colors.textMuted }}>−</span>
+        <div style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: colors.bgElevated }} />
+        <span style={{ fontSize: 11, color: colors.textMuted }}>0</span>
+        <div style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: colors.won + '88' }} />
+        <span style={{ fontSize: 11, color: colors.textMuted }}>+</span>
+      </div>
+    </div>
+  );
+}
+
 export function DashboardPage() {
   const { bets, settings, bankroll } = useBetsStore();
   const [period, setPeriod] = useState<PeriodFilter>('all');
@@ -171,6 +235,8 @@ export function DashboardPage() {
           <WLStrip bets={filteredBets} />
         </div>
       )}
+
+      <Heatmap bets={filteredBets} />
 
       {/* P&L Chart */}
       {chartData.length > 1 && (

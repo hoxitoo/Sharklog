@@ -143,16 +143,11 @@ export function BetsPage({ onAdd, onEdit }: Props) {
                     <td style={s.td}>
                       <div style={s.actions}>
                         {bet.status === 'pending' && (
-                          <select
-                            style={s.closeSelect}
-                            value=""
-                            onChange={(e) => handleClose(bet, e.target.value as BetStatus)}
-                          >
-                            <option value="" disabled>Закрыть</option>
-                            <option value="won">Победа</option>
-                            <option value="lost">Проигрыш</option>
-                            <option value="refund">Возврат</option>
-                          </select>
+                          <>
+                            <button style={{ ...s.chip, color: colors.won, borderColor: colors.won + '55', backgroundColor: colors.won + '18' }} onClick={() => handleClose(bet, 'won')}>W</button>
+                            <button style={{ ...s.chip, color: colors.lost, borderColor: colors.lost + '55', backgroundColor: colors.lost + '18' }} onClick={() => handleClose(bet, 'lost')}>L</button>
+                            <button style={{ ...s.chip, color: colors.refund, borderColor: colors.refund + '55', backgroundColor: colors.refund + '18' }} onClick={() => handleClose(bet, 'refund')}>R</button>
+                          </>
                         )}
                         <button style={s.editBtn} onClick={() => onEdit(bet)}>✏️</button>
                         <button style={s.delBtn} onClick={() => handleDelete(bet)}>🗑</button>
@@ -214,9 +209,9 @@ const s: Record<string, React.CSSProperties> = {
   noteText: { fontSize: 11, color: colors.textMuted, marginTop: 2, fontStyle: 'italic' },
   badge: { padding: '3px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600 },
   actions: { display: 'flex', gap: 4, alignItems: 'center' },
-  closeSelect: {
-    backgroundColor: colors.bgElevated, border: `1px solid ${colors.border}`,
-    borderRadius: 6, padding: '4px 8px', color: colors.textPrimary, fontSize: 12, cursor: 'pointer',
+  chip: {
+    border: '1px solid', borderRadius: 6, padding: '3px 7px',
+    fontSize: 11, fontWeight: 700, cursor: 'pointer',
   },
   editBtn: {
     background: 'none', border: 'none', cursor: 'pointer',

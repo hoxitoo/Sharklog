@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import type { Sport, BetType, Strategy, BetStatus, EsportsDiscipline, Team } from '@sharklog/core';
 import {
   SPORTS, BET_TYPES, STRATEGIES, ESPORTS_DISCIPLINES,
@@ -143,11 +143,15 @@ const ac: Record<string, React.CSSProperties> = {
 export function AddBetModal({ editBet, onClose }: Props) {
   const { addBet, updateBet, settings } = useBetsStore();
   const now = new Date();
+  const defaultDate = now.toISOString().split('T')[0] ?? '';
+  const defaultTime = now.toTimeString().slice(0, 5);
 
   const [event, setEvent] = useState(editBet?.event ?? '');
   const [pick, setPick] = useState(editBet?.pick ?? '');
   const [odds, setOdds] = useState(editBet ? String(editBet.odds) : '');
   const [stake, setStake] = useState(editBet ? String(editBet.stake / 100) : '');
+  const [date, setDate] = useState(editBet?.date ?? defaultDate);
+  const [time, setTime] = useState(editBet?.time ?? defaultTime);
   const [sport, setSport] = useState<Sport>(editBet?.sport ?? 'football');
   const [discipline, setDiscipline] = useState<EsportsDiscipline>(editBet?.discipline ?? 'csgo');
   const [betType, setBetType] = useState<BetType>(editBet?.betType ?? '1X2');
@@ -181,14 +185,14 @@ export function AddBetModal({ editBet, onClose }: Props) {
       ...(notes ? { notes } : {}),
     };
     if (editBet) {
-      updateBet(editBet.id, { event, pick, odds: oddsNum, stake: stakeKopecks, sport, betType, strategy, status, bookmaker, ...extras });
+      updateBet(editBet.id, { event, pick, odds: oddsNum, stake: stakeKopecks, sport, betType, strategy, status, bookmaker, date: date || defaultDate, time: time || defaultTime, ...extras });
     } else {
       addBet({
         id: uuid(),
         createdAt: now.toISOString(),
         updatedAt: now.toISOString(),
-        date: now.toISOString().split('T')[0] ?? '',
-        time: now.toTimeString().slice(0, 5),
+        date: date || defaultDate,
+        time: time || defaultTime,
         event, pick, odds: oddsNum, stake: stakeKopecks, sport,
         betType, strategy, status, bookmaker, schemaVersion: CURRENT_SCHEMA_VERSION,
         ...extras,
@@ -234,6 +238,15 @@ export function AddBetModal({ editBet, onClose }: Props) {
               <span style={{ color: colors.accent, fontWeight: 700, fontSize: 16 }}>{potentialWin}</span>
             </div>
           )}
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 0 }}>
+            <Field label="Дата">
+              <input style={inputStyle} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            </Field>
+            <Field label="Время">
+              <input style={inputStyle} type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+            </Field>
+          </div>
 
           <Field label="Вид спорта">
             <SegmentRow options={sportOptions} value={sport} onChange={setSport} />

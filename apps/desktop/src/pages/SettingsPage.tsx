@@ -89,12 +89,34 @@ export function SettingsPage() {
       <div style={s.card}>
         <div style={s.cardTitle}>Тилт-контроль</div>
         <div style={s.row}>
-          <span style={s.rowLabel}>Порог тилт-алерта</span>
-          <span style={s.rowValue}>
-            {settings.isPro
-              ? `${settings.tiltThreshold} поражений`
-              : `${FREE_LIMITS.TILT_ALERT_THRESHOLD} (Free, не настраивается)`}
-          </span>
+          <div>
+            <span style={s.rowLabel}>Порог тилт-алерта</span>
+            {!settings.isPro && <div style={{ fontSize: 11, color: colors.textMuted, marginTop: 2 }}>PRO — настраивается</div>}
+          </div>
+          {settings.isPro ? (
+            <div style={s.stepper}>
+              <button style={s.stepBtn} onClick={() => updateSettings({ tiltThreshold: Math.max(2, settings.tiltThreshold - 1) })}>−</button>
+              <span style={s.stepVal}>{settings.tiltThreshold} поражений</span>
+              <button style={s.stepBtn} onClick={() => updateSettings({ tiltThreshold: Math.min(10, settings.tiltThreshold + 1) })}>+</button>
+            </div>
+          ) : (
+            <span style={s.rowValue}>{FREE_LIMITS.TILT_ALERT_THRESHOLD} (фикс.)</span>
+          )}
+        </div>
+        <div style={{ ...s.row, borderBottom: 'none' }}>
+          <div>
+            <span style={s.rowLabel}>Дневной лимит ставок</span>
+            {!settings.isPro && <div style={{ fontSize: 11, color: colors.textMuted, marginTop: 2 }}>PRO — настраивается</div>}
+          </div>
+          {settings.isPro ? (
+            <div style={s.stepper}>
+              <button style={s.stepBtn} onClick={() => updateSettings({ dailyBetLimit: Math.max(0, settings.dailyBetLimit - 1) })}>−</button>
+              <span style={s.stepVal}>{settings.dailyBetLimit === 0 ? '∞ без лимита' : `${settings.dailyBetLimit} в день`}</span>
+              <button style={s.stepBtn} onClick={() => updateSettings({ dailyBetLimit: Math.min(20, settings.dailyBetLimit + 1) })}>+</button>
+            </div>
+          ) : (
+            <span style={s.rowValue}>—</span>
+          )}
         </div>
       </div>
 
@@ -162,6 +184,9 @@ const s: Record<string, React.CSSProperties> = {
   removeBtn: { background: 'none', border: 'none', color: colors.lost, cursor: 'pointer', fontSize: 13, fontWeight: 600 },
   input: { backgroundColor: colors.bgElevated, border: `1px solid ${colors.border}`, borderRadius: 8, padding: '8px 12px', color: colors.textPrimary, fontSize: 14, outline: 'none' },
   addBtn: { backgroundColor: colors.purple, color: '#fff', border: 'none', borderRadius: 8, width: 40, fontSize: 20, cursor: 'pointer', fontWeight: 700 },
+  stepper: { display: 'flex', alignItems: 'center', gap: 8 },
+  stepBtn: { background: 'none', border: `1px solid ${colors.border}`, borderRadius: 6, width: 28, height: 28, fontSize: 16, color: colors.textPrimary, cursor: 'pointer' },
+  stepVal: { fontSize: 14, fontWeight: 600, color: colors.textPrimary, minWidth: 120, textAlign: 'center' as const },
   proBtn: { backgroundColor: colors.gold, color: '#000', border: 'none', padding: '8px 16px', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer' },
   exportBtn: { borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' },
   dangerBtn: { background: 'none', border: 'none', color: colors.lost, cursor: 'pointer', fontSize: 15, fontWeight: 600, padding: '4px 0' },

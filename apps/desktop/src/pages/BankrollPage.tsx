@@ -142,8 +142,22 @@ export function BankrollPage() {
               </div>
             </div>
             <div>
-              <div style={s.metaLabel}>1 юнит ({bankroll.unitPercent}%)</div>
-              <div style={{ ...s.metaValue, color: colors.accent }}>{formatMoney(unit)}</div>
+              <div style={s.metaLabel}>1 юнит</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
+                <button
+                  style={{ ...s.stepBtn, opacity: bankroll.unitPercent <= 0.5 ? 0.4 : 1 }}
+                  onClick={() => updateBankroll({ unitPercent: Math.max(0.5, Math.round((bankroll.unitPercent - 0.5) * 10) / 10) })}
+                  disabled={bankroll.unitPercent <= 0.5}
+                >−</button>
+                <span style={{ fontSize: 13, fontWeight: 600, color: colors.accent, minWidth: 44, textAlign: 'center' }}>
+                  {bankroll.unitPercent}% · {formatMoney(unit)}
+                </span>
+                <button
+                  style={{ ...s.stepBtn, opacity: bankroll.unitPercent >= 10 ? 0.4 : 1 }}
+                  onClick={() => updateBankroll({ unitPercent: Math.min(10, Math.round((bankroll.unitPercent + 0.5) * 10) / 10) })}
+                  disabled={bankroll.unitPercent >= 10}
+                >+</button>
+              </div>
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
@@ -233,6 +247,7 @@ const s: Record<string, React.CSSProperties> = {
     borderRadius: 8, padding: '8px 12px', color: colors.textPrimary, fontSize: 14, outline: 'none',
   },
   actionBtn: { color: '#000', border: 'none', borderRadius: 8, padding: '8px 14px', fontSize: 13, fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap' as const },
+  stepBtn: { background: 'none', border: `1px solid ${colors.border}`, borderRadius: 6, width: 26, height: 26, fontSize: 16, color: colors.textPrimary, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' },
   gate: { textAlign: 'center' as const, paddingTop: 80 },
   proBtn: { backgroundColor: colors.purple, color: '#fff', border: 'none', padding: '12px 24px', borderRadius: 10, fontSize: 15, fontWeight: 700, cursor: 'pointer' },
 };
