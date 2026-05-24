@@ -43,21 +43,3 @@ jobs:
           cd apps/desktop
           npx tsc --noEmit
 
-  eas-build-preview:
-    name: EAS preview build (APK)
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    needs: [test, type-check]
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-      - run: npm ci
-      - uses: expo/expo-github-action@v8
-        with:
-          eas-version: latest
-          token: ${{ secrets.EXPO_TOKEN }}
-      - name: Build preview APK
-        run: cd apps/mobile && eas build --platform android --profile preview --non-interactive
