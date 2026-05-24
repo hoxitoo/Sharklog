@@ -15,7 +15,11 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "app.sharklog.mobile",
-      "buildNumber": "1"
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSUserNotificationUsageDescription": "SharkLog отправляет ежедневные напоминания о ведении журнала ставок и оповещения о тилте.",
+        "NSUserTrackingUsageDescription": "Данные используются только для аналитики ставок внутри приложения."
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -24,10 +28,11 @@
       },
       "package": "app.sharklog.mobile",
       "versionCode": 1,
-      "permissions": []
+      "permissions": ["android.permission.POST_NOTIFICATIONS", "android.permission.RECEIVE_BOOT_COMPLETED"]
     },
     "plugins": [
-      "expo-notifications"
+      "expo-notifications",
+      "react-native-purchases"
     ],
     "extra": {
       "eas": {

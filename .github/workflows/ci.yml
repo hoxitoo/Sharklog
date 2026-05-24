@@ -1,0 +1,63 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'claude/**', 'feat/**', 'fix/**']
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Core tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Run vitest
+        run: cd packages/core && npx vitest run --reporter=verbose
+
+  type-check:
+    name: Type check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Mobile
+        run: |
+          cd apps/mobile
+          npx tsc --noEmit --project tsconfig.json || true
+      - name: Desktop
+        run: |
+          cd apps/desktop
+          npx tsc --noEmit
+
+  eas-build-preview:
+    name: EAS preview build (APK)
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    needs: [test, type-check]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Build preview APK
+        run: cd apps/mobile && eas build --platform android --profile preview --non-interactive

@@ -8,15 +8,20 @@ import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import { useBetsStore } from './src/store/betsStore';
 import { colors } from './src/theme/colors';
 import { scheduleDailyReminder } from './src/utils/notifications';
+import { initRevenueCat, syncEntitlement } from './src/services/revenueCat';
 
 export default function App() {
   const load = useBetsStore((s) => s.load);
   const isLoaded = useBetsStore((s) => s.isLoaded);
   const onboardingComplete = useBetsStore((s) => s.settings.onboardingComplete);
+  const updateSettings = useBetsStore((s) => s.updateSettings);
 
   useEffect(() => {
-    load().then(() => {
+    initRevenueCat();
+    load().then(async () => {
       scheduleDailyReminder();
+      const isPro = await syncEntitlement();
+      updateSettings({ isPro });
     });
   }, []);
 
