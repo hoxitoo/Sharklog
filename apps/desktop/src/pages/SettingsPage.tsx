@@ -48,6 +48,37 @@ export function SettingsPage() {
     URL.revokeObjectURL(url);
   }
 
+  function handleImportJSON() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const parsed = JSON.parse(reader.result as string);
+          if (!parsed || typeof parsed !== 'object') throw new Error('Bad format');
+          const store = useBetsStore.getState();
+          useBetsStore.setState({
+            ...(parsed.bets ? { bets: parsed.bets } : {}),
+            ...(parsed.settings ? { settings: { ...store.settings, ...parsed.settings } } : {}),
+            ...(parsed.bankroll ? { bankroll: parsed.bankroll } : {}),
+            ...(parsed.diary ? { diary: parsed.diary } : {}),
+            ...(parsed.teams ? { teams: parsed.teams } : {}),
+          });
+          store.persist();
+          alert('Данные восстановлены успешно!');
+        } catch {
+          alert('Ошибка: файл повреждён или имеет неверный формат.');
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  }
+
   function handleClearData() {
     if (window.confirm('Очистить все данные? Это действие нельзя отменить.')) {
       clearAll();
@@ -152,12 +183,15 @@ export function SettingsPage() {
           <span style={s.rowLabel}>Хранилище</span>
           <span style={s.rowValue}>localStorage</span>
         </div>
-        <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
+        <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
           <button style={{ ...s.exportBtn, backgroundColor: colors.accent + '22', color: colors.accent, border: `1px solid ${colors.accent}44` }} onClick={handleExportCSV}>
             📥 Экспорт CSV
           </button>
           <button style={{ ...s.exportBtn, backgroundColor: colors.purple + '22', color: colors.purple, border: `1px solid ${colors.purple}44` }} onClick={handleExportJSON}>
             💾 Резервная копия JSON
+          </button>
+          <button style={{ ...s.exportBtn, backgroundColor: colors.pending + '22', color: colors.pending, border: `1px solid ${colors.pending}44` }} onClick={handleImportJSON}>
+            📂 Восстановить из JSON
           </button>
         </div>
       </div>

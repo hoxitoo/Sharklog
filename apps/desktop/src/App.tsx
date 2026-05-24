@@ -32,7 +32,7 @@ export function App() {
 
   return (
     <>
-      <AppLayout page={page} onNavigate={setPage}>
+      <AppLayout page={page} onNavigate={setPage} onAddBet={openAdd}>
         {page === 'dashboard' && <DashboardPage />}
         {page === 'bets' && <BetsPage onAdd={openAdd} onEdit={openEdit} />}
         {page === 'analytics' && <AnalyticsPage />}

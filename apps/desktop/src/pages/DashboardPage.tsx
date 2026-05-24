@@ -152,6 +152,26 @@ export function DashboardPage() {
     ? settledWithPnl.reduce((a, b) => b.pnl < a.pnl ? b : a)
     : null;
 
+  if (bets.length === 0) {
+    return (
+      <div style={s.page}>
+        <div style={s.header}>
+          <div>
+            <h1 style={s.title}>Дашборд</h1>
+            <div style={s.subtitle}>
+              {new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' })}
+            </div>
+          </div>
+        </div>
+        <div style={s.emptyWrap}>
+          <div style={{ fontSize: 64, marginBottom: 20 }}>🦈</div>
+          <div style={s.emptyTitle}>Ставок пока нет</div>
+          <div style={s.emptySub}>Добавь первую ставку, чтобы начать отслеживать результаты</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div style={s.page}>
       <div style={s.header}>
@@ -408,4 +428,7 @@ const s: Record<string, React.CSSProperties> = {
   td: { padding: '12px 0', fontSize: 14, color: colors.textPrimary, paddingRight: 16 },
   eventCell: { fontWeight: 600, maxWidth: 240, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   statusBadge: { padding: '3px 8px', borderRadius: 6, fontSize: 12, fontWeight: 600 },
+  emptyWrap: { textAlign: 'center', paddingTop: 100 },
+  emptyTitle: { fontSize: 22, fontWeight: 700, color: colors.textPrimary, marginBottom: 10 },
+  emptySub: { fontSize: 15, color: colors.textSecondary, maxWidth: 380, margin: '0 auto' },
 };

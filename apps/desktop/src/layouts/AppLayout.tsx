@@ -16,10 +16,11 @@ const NAV: Array<{ id: Page; icon: string; label: string }> = [
 interface Props {
   page: Page;
   onNavigate: (p: Page) => void;
+  onAddBet: () => void;
   children: React.ReactNode;
 }
 
-export function AppLayout({ page, onNavigate, children }: Props) {
+export function AppLayout({ page, onNavigate, onAddBet, children }: Props) {
   const betsCount = useBetsStore((s) => s.bets.length);
   const isPro = useBetsStore((s) => s.settings.isPro);
 
@@ -48,6 +49,11 @@ export function AppLayout({ page, onNavigate, children }: Props) {
             </button>
           ))}
         </nav>
+
+        {/* Add bet button */}
+        <button style={s.addBetBtn} onClick={onAddBet}>
+          + Новая ставка
+        </button>
 
         {/* Bottom info */}
         <div style={s.sidebarBottom}>
@@ -102,7 +108,12 @@ const s: Record<string, React.CSSProperties> = {
     color: colors.textPrimary,
     letterSpacing: -0.5,
   },
-  nav: { display: 'flex', flexDirection: 'column', gap: 2 },
+  nav: { display: 'flex', flexDirection: 'column', gap: 2, marginBottom: 16 },
+  addBetBtn: {
+    backgroundColor: colors.purple, color: '#fff', border: 'none',
+    borderRadius: 10, padding: '10px 0', fontSize: 13, fontWeight: 700,
+    cursor: 'pointer', width: '100%', marginBottom: 20,
+  },
   navItem: {
     display: 'flex',
     alignItems: 'center',
