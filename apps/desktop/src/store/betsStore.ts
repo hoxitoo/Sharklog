@@ -61,6 +61,7 @@ interface BetsStore {
   addDiaryEntry: (entry: DiaryEntry) => void;
   deleteTeam: (id: string) => void;
   canAddBet: () => boolean;
+  clearAll: () => void;
 }
 
 const defaultSettings: AppSettings = {
@@ -157,5 +158,16 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
     const { bets, settings } = get();
     if (settings.isPro) return true;
     return bets.length < FREE_LIMITS.MAX_BETS;
+  },
+
+  clearAll: () => {
+    set({
+      bets: [],
+      diary: [],
+      teams: [],
+      bankroll: { ...defaultBankroll, createdAt: new Date().toISOString() },
+      settings: { ...defaultSettings, onboardingComplete: true },
+    });
+    get().persist();
   },
 }));

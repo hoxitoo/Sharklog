@@ -4,7 +4,7 @@ import { useBetsStore } from '../store/betsStore';
 import { colors } from '../theme/colors';
 
 export function SettingsPage() {
-  const { settings, updateSettings, bets } = useBetsStore();
+  const { settings, updateSettings, bets, clearAll } = useBetsStore();
   const [newBk, setNewBk] = useState('');
 
   function addBookmaker() {
@@ -18,9 +18,39 @@ export function SettingsPage() {
     updateSettings({ bookmakers: settings.bookmakers.filter((b) => b !== bk) });
   }
 
+  function handleExportJSON() {
+    const { bets: b, settings: s, bankroll, diary, teams } = useBetsStore.getState();
+    const blob = new Blob([JSON.stringify({ bets: b, settings: s, bankroll, diary, teams }, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `sharklog-backup-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function handleExportCSV() {
+    const { bets: allBets } = useBetsStore.getState();
+    const rows = [
+      ['Дата', 'Событие', 'Выбор', 'Коэф.', 'Ставка', 'Статус', 'P&L', 'Букмекер', 'Стратегия'],
+      ...allBets.map((b) => {
+        const pnl = b.status === 'won' ? Math.round(b.stake * b.odds) - b.stake : b.status === 'lost' ? -b.stake : 0;
+        return [b.date, b.event, b.pick, b.odds, (b.stake / 100).toFixed(2), b.status, (pnl / 100).toFixed(2), b.bookmaker, b.strategy];
+      }),
+    ];
+    const csv = '﻿' + rows.map((r) => r.map((v) => `"${v}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `sharklog-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   function handleClearData() {
     if (window.confirm('Очистить все данные? Это действие нельзя отменить.')) {
-      updateSettings({ bookmakers: ['1xBet', 'Parimatch', 'Fonbet'] });
+      clearAll();
     }
   }
 
@@ -89,9 +119,9 @@ export function SettingsPage() {
         </div>
       </div>
 
-      {/* Data */}
+      {/* Data & Export */}
       <div style={s.card}>
-        <div style={s.cardTitle}>Данные</div>
+        <div style={s.cardTitle}>Данные и экспорт</div>
         <div style={s.row}>
           <span style={s.rowLabel}>Всего ставок</span>
           <span style={s.rowValue}>{bets.length}</span>
@@ -99,6 +129,14 @@ export function SettingsPage() {
         <div style={s.row}>
           <span style={s.rowLabel}>Хранилище</span>
           <span style={s.rowValue}>localStorage</span>
+        </div>
+        <div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
+          <button style={{ ...s.exportBtn, backgroundColor: colors.accent + '22', color: colors.accent, border: `1px solid ${colors.accent}44` }} onClick={handleExportCSV}>
+            📥 Экспорт CSV
+          </button>
+          <button style={{ ...s.exportBtn, backgroundColor: colors.purple + '22', color: colors.purple, border: `1px solid ${colors.purple}44` }} onClick={handleExportJSON}>
+            💾 Резервная копия JSON
+          </button>
         </div>
       </div>
 
@@ -125,5 +163,6 @@ const s: Record<string, React.CSSProperties> = {
   input: { backgroundColor: colors.bgElevated, border: `1px solid ${colors.border}`, borderRadius: 8, padding: '8px 12px', color: colors.textPrimary, fontSize: 14, outline: 'none' },
   addBtn: { backgroundColor: colors.purple, color: '#fff', border: 'none', borderRadius: 8, width: 40, fontSize: 20, cursor: 'pointer', fontWeight: 700 },
   proBtn: { backgroundColor: colors.gold, color: '#000', border: 'none', padding: '8px 16px', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer' },
+  exportBtn: { borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' },
   dangerBtn: { background: 'none', border: 'none', color: colors.lost, cursor: 'pointer', fontSize: 15, fontWeight: 600, padding: '4px 0' },
 };

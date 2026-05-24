@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import type { Sport, BetType, Strategy, BetStatus, EsportsDiscipline, Team } from '@sharklog/core';
 import {
   SPORTS, BET_TYPES, STRATEGIES, ESPORTS_DISCIPLINES,
-  parseMoneyInput, formatMoney,
+  parseMoneyInput, formatMoney, CURRENT_SCHEMA_VERSION,
 } from '@sharklog/core';
 import type { Bet } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
@@ -190,7 +190,7 @@ export function AddBetModal({ editBet, onClose }: Props) {
         date: now.toISOString().split('T')[0] ?? '',
         time: now.toTimeString().slice(0, 5),
         event, pick, odds: oddsNum, stake: stakeKopecks, sport,
-        betType, strategy, status, bookmaker, schemaVersion: 1,
+        betType, strategy, status, bookmaker, schemaVersion: CURRENT_SCHEMA_VERSION,
         ...extras,
       });
     }

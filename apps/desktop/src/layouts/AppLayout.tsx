@@ -2,13 +2,14 @@ import React from 'react';
 import { colors } from '../theme/colors';
 import { useBetsStore } from '../store/betsStore';
 
-export type Page = 'dashboard' | 'bets' | 'analytics' | 'bankroll' | 'settings';
+export type Page = 'dashboard' | 'bets' | 'analytics' | 'bankroll' | 'diary' | 'settings';
 
 const NAV: Array<{ id: Page; icon: string; label: string }> = [
   { id: 'dashboard', icon: '📊', label: 'Дашборд' },
   { id: 'bets', icon: '📋', label: 'Ставки' },
   { id: 'analytics', icon: '🔬', label: 'Аналитика' },
   { id: 'bankroll', icon: '💰', label: 'Банкролл' },
+  { id: 'diary', icon: '🧘', label: 'Дисциплина' },
   { id: 'settings', icon: '⚙️', label: 'Настройки' },
 ];
 

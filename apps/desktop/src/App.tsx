@@ -6,6 +6,7 @@ import { BetsPage } from './pages/BetsPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { BankrollPage } from './pages/BankrollPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { DiaryPage } from './pages/DiaryPage';
 import { AddBetModal } from './pages/AddBetModal';
 import { useBetsStore } from './store/betsStore';
 
@@ -27,6 +28,7 @@ export function App() {
         {page === 'bets' && <BetsPage onAdd={openAdd} onEdit={openEdit} />}
         {page === 'analytics' && <AnalyticsPage />}
         {page === 'bankroll' && <BankrollPage />}
+        {page === 'diary' && <DiaryPage />}
         {page === 'settings' && <SettingsPage />}
       </AppLayout>
 
