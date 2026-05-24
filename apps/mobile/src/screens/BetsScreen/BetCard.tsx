@@ -5,6 +5,7 @@ import { SPORTS, BET_TYPES, formatMoney, formatOdds } from '@sharklog/core';
 import { colors } from '../../theme/colors';
 import { StatusBadge } from '../../components/StatusBadge';
 import { useBetsStore } from '../../store/betsStore';
+import { haptic } from '../../utils/haptics';
 
 interface Props {
   bet: Bet;
@@ -22,17 +23,19 @@ export function BetCard({ bet, onEdit }: Props) {
     : null;
 
   function handleStatusChange() {
+    haptic.light();
     Alert.alert('Результат ставки', 'Выбери исход:', [
-      { text: 'Победа 🏆', onPress: () => updateBet(bet.id, { status: 'won' }) },
-      { text: 'Проигрыш 💸', onPress: () => updateBet(bet.id, { status: 'lost' }) },
-      { text: 'Возврат ↩️', onPress: () => updateBet(bet.id, { status: 'refund' }) },
+      { text: 'Победа 🏆', onPress: () => { haptic.success(); updateBet(bet.id, { status: 'won' }); } },
+      { text: 'Проигрыш 💸', onPress: () => { haptic.error(); updateBet(bet.id, { status: 'lost' }); } },
+      { text: 'Возврат ↩️', onPress: () => { haptic.warning(); updateBet(bet.id, { status: 'refund' }); } },
       { text: 'Отмена', style: 'cancel' },
     ]);
   }
 
   function handleDelete() {
+    haptic.medium();
     Alert.alert('Удалить ставку?', `${bet.event}`, [
-      { text: 'Удалить', style: 'destructive', onPress: () => deleteBet(bet.id) },
+      { text: 'Удалить', style: 'destructive', onPress: () => { haptic.error(); deleteBet(bet.id); } },
       { text: 'Отмена', style: 'cancel' },
     ]);
   }

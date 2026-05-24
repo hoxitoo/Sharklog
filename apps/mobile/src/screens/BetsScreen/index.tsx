@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import {
-  View, FlatList, StyleSheet, TouchableOpacity, Text, TextInput,
+  View, FlatList, StyleSheet, TouchableOpacity, Text, TextInput, ScrollView,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -10,6 +10,7 @@ import { colors } from '../../theme/colors';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ChecklistModal } from '../../components/ChecklistModal';
 import { BetCard } from './BetCard';
+import { haptic } from '../../utils/haptics';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -22,11 +23,21 @@ const STATUS_FILTERS: Array<{ key: BetStatus | 'all'; label: string }> = [
   { key: 'refund', label: 'Возвраты' },
 ];
 
+type SortKey = 'date_desc' | 'date_asc' | 'odds_desc' | 'stake_desc';
+
+const SORT_OPTIONS: Array<{ key: SortKey; label: string }> = [
+  { key: 'date_desc', label: 'Новые' },
+  { key: 'date_asc', label: 'Старые' },
+  { key: 'odds_desc', label: 'Кэф ↓' },
+  { key: 'stake_desc', label: 'Сумма ↓' },
+];
+
 export function BetsScreen() {
   const navigation = useNavigation<Nav>();
   const { bets, settings, canAddBet } = useBetsStore();
   const [statusFilter, setStatusFilter] = useState<BetStatus | 'all'>('all');
   const [search, setSearch] = useState('');
+  const [sort, setSort] = useState<SortKey>('date_desc');
   const [showChecklist, setShowChecklist] = useState(false);
 
   const filtered = useMemo(() => {
@@ -38,8 +49,16 @@ export function BetsScreen() {
         (b) => b.event.toLowerCase().includes(q) || b.pick.toLowerCase().includes(q),
       );
     }
+    result.sort((a, b) => {
+      switch (sort) {
+        case 'date_asc': return a.date.localeCompare(b.date) || (a.time ?? '').localeCompare(b.time ?? '');
+        case 'odds_desc': return b.odds - a.odds;
+        case 'stake_desc': return b.stake - a.stake;
+        default: return b.date.localeCompare(a.date) || (b.time ?? '').localeCompare(a.time ?? '');
+      }
+    });
     return result;
-  }, [bets, statusFilter, search]);
+  }, [bets, statusFilter, search, sort]);
 
   const freeLeft = Math.max(0, 50 - bets.length);
 
@@ -78,15 +97,29 @@ export function BetsScreen() {
         onChangeText={setSearch}
       />
 
-      <View style={styles.filters}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll} contentContainerStyle={styles.filters}>
         {STATUS_FILTERS.map((f) => (
           <TouchableOpacity
             key={f.key}
             style={[styles.filterBtn, statusFilter === f.key && styles.filterBtnActive]}
-            onPress={() => setStatusFilter(f.key)}
+            onPress={() => { haptic.selection(); setStatusFilter(f.key); }}
           >
             <Text style={[styles.filterText, statusFilter === f.key && styles.filterTextActive]}>
               {f.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      <View style={styles.sortRow}>
+        {SORT_OPTIONS.map((s) => (
+          <TouchableOpacity
+            key={s.key}
+            style={[styles.sortBtn, sort === s.key && styles.sortBtnActive]}
+            onPress={() => { haptic.selection(); setSort(s.key); }}
+          >
+            <Text style={[styles.sortText, sort === s.key && styles.sortTextActive]}>
+              {s.label}
             </Text>
           </TouchableOpacity>
         ))}
@@ -136,11 +169,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
+  filtersScroll: { marginBottom: 8 },
   filters: {
     flexDirection: 'row',
     paddingHorizontal: 16,
     gap: 6,
-    marginBottom: 12,
+    paddingBottom: 2,
   },
   filterBtn: {
     paddingHorizontal: 10,
@@ -155,7 +189,28 @@ const styles = StyleSheet.create({
     borderColor: colors.purple,
   },
   filterText: { fontSize: 12, color: colors.textSecondary },
-  filterTextActive: { color: '#000', fontWeight: '700' },
+  filterTextActive: { color: '#fff', fontWeight: '700' },
+  sortRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    gap: 6,
+    marginBottom: 10,
+    alignItems: 'center',
+  },
+  sortBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: colors.bgElevated,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  sortBtnActive: {
+    borderColor: colors.accent,
+    backgroundColor: colors.accentDim,
+  },
+  sortText: { fontSize: 11, color: colors.textMuted },
+  sortTextActive: { color: colors.accent, fontWeight: '600' },
   list: { paddingBottom: 20 },
   empty: { alignItems: 'center', paddingTop: 80 },
   emptyIcon: { fontSize: 48, marginBottom: 12 },

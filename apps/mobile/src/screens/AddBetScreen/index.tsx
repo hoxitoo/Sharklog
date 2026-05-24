@@ -13,6 +13,7 @@ import {
 } from '@sharklog/core';
 import { colors } from '../../theme/colors';
 import { useBetsStore } from '../../store/betsStore';
+import { haptic } from '../../utils/haptics';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'AddBet'>;
@@ -304,6 +305,7 @@ export function AddBetScreen() {
         ...extras,
       });
     }
+    haptic.success();
     navigation.goBack();
   }
 

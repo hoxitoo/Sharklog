@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import {
-  calcByField, calcByOddsRange, calcByDayOfWeek,
+  calcByField, calcByOddsRange, calcByDayOfWeek, calcDashboard,
   SPORTS, BET_TYPES, STRATEGIES, formatMoney, formatPercent,
 } from '@sharklog/core';
 import type { SliceStats } from '@sharklog/core';
@@ -81,6 +81,79 @@ const sec = StyleSheet.create({
   empty: { fontSize: 13, color: colors.textMuted },
 });
 
+function SummaryCard({ bets }: { bets: Parameters<typeof calcDashboard>[0] }) {
+  const stats = calcDashboard(bets);
+  const pnlColor = stats.pnl > 0 ? colors.won : stats.pnl < 0 ? colors.lost : colors.textPrimary;
+
+  const bestSport = calcByField(bets, 'sport', (v) => SPORTS[v] ?? String(v))
+    .filter((s) => s.count >= 3)
+    .sort((a, b) => b.roi - a.roi)[0];
+
+  return (
+    <View style={summary.card}>
+      <Text style={summary.title}>Общая статистика</Text>
+      <View style={summary.grid}>
+        <View style={summary.cell}>
+          <Text style={summary.value}>{stats.totalBets}</Text>
+          <Text style={summary.label}>Ставок</Text>
+        </View>
+        <View style={summary.cell}>
+          <Text style={[summary.value, { color: stats.winRate > 50 ? colors.won : colors.textPrimary }]}>
+            {stats.winRate.toFixed(1)}%
+          </Text>
+          <Text style={summary.label}>Выигрышей</Text>
+        </View>
+        <View style={summary.cell}>
+          <Text style={[summary.value, { color: pnlColor }]}>
+            {stats.pnl >= 0 ? '+' : ''}{formatMoney(stats.pnl)}
+          </Text>
+          <Text style={summary.label}>P&L</Text>
+        </View>
+        <View style={summary.cell}>
+          <Text style={[summary.value, { color: pnlColor }]}>
+            {stats.roi >= 0 ? '+' : ''}{formatPercent(stats.roi)}
+          </Text>
+          <Text style={summary.label}>ROI</Text>
+        </View>
+      </View>
+      {bestSport && (
+        <View style={summary.best}>
+          <Text style={summary.bestLabel}>Лучший вид спорта</Text>
+          <Text style={summary.bestValue}>{bestSport.label} · ROI {formatPercent(bestSport.roi)}</Text>
+        </View>
+      )}
+    </View>
+  );
+}
+
+const summary = StyleSheet.create({
+  card: {
+    backgroundColor: colors.bgCard,
+    borderRadius: 14,
+    padding: 16,
+    marginHorizontal: 16,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  title: { fontSize: 15, fontWeight: '700', color: colors.textPrimary, marginBottom: 14 },
+  grid: { flexDirection: 'row', justifyContent: 'space-between' },
+  cell: { alignItems: 'center', flex: 1 },
+  value: { fontSize: 20, fontWeight: '700', color: colors.textPrimary },
+  label: { fontSize: 11, color: colors.textMuted, marginTop: 3 },
+  best: {
+    marginTop: 14,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  bestLabel: { fontSize: 12, color: colors.textMuted },
+  bestValue: { fontSize: 13, fontWeight: '600', color: colors.accent },
+});
+
 function AnalyticsContent() {
   const { bets } = useBetsStore();
 
@@ -93,6 +166,7 @@ function AnalyticsContent() {
 
   return (
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
+      <SummaryCard bets={bets} />
       <Section title="По виду спорта" stats={bySport} />
       <Section title="По типу ставки" stats={byBetType} />
       <Section title="По букмекеру" stats={byBookmaker} />

@@ -7,6 +7,7 @@ import { calcDashboard, isInTilt } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { colors } from '../../theme/colors';
+import { haptic } from '../../utils/haptics';
 import type { DiaryEntry } from '@sharklog/core';
 
 const MOODS: Array<{ value: 1 | 2 | 3 | 4 | 5; emoji: string; label: string }> = [
@@ -52,7 +53,7 @@ function MoodPicker({
         <TouchableOpacity
           key={m.value}
           style={[mp.btn, selected === m.value && mp.btnActive]}
-          onPress={() => onSelect(m.value)}
+          onPress={() => { haptic.selection(); onSelect(m.value); }}
           activeOpacity={0.7}
         >
           <Text style={mp.emoji}>{m.emoji}</Text>
@@ -125,6 +126,7 @@ export function DisciplineScreen() {
     const entryBase = { id: todayEntry?.id ?? uuid(), date: today, mood };
     const entry: DiaryEntry = note.trim() ? { ...entryBase, text: note.trim() } : entryBase;
     addDiaryEntry(entry);
+    haptic.success();
     setSaved(true);
   }
 
