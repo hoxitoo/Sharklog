@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import {
-  View, FlatList, StyleSheet, TouchableOpacity, Text, TextInput, ScrollView, Alert,
+  View, FlatList, StyleSheet, TouchableOpacity, Text, TextInput, ScrollView, Alert, RefreshControl,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -39,6 +39,17 @@ export function BetsScreen() {
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortKey>('date_desc');
   const [showChecklist, setShowChecklist] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = useCallback(() => {
+    setRefreshing(true);
+    haptic.selection();
+    // Reset filters to show all bets fresh
+    setSearch('');
+    setStatusFilter('all');
+    setSort('date_desc');
+    setTimeout(() => setRefreshing(false), 400);
+  }, []);
 
   const filtered = useMemo(() => {
     let result = [...bets];
@@ -141,6 +152,14 @@ export function BetsScreen() {
         renderItem={({ item }) => <BetCard bet={item} onEdit={handleEdit} />}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={colors.purple}
+            colors={[colors.purple]}
+          />
+        }
         ListEmptyComponent={
           <View style={styles.empty}>
             <Text style={styles.emptyIcon}>🦈</Text>

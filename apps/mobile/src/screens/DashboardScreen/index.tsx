@@ -222,6 +222,17 @@ export function DashboardScreen() {
           value={formatMoney(bankTotal)}
           sub="текущий баланс"
         />
+        <StatCard
+          label="Поставлено"
+          value={formatMoney(stats.totalStaked)}
+          sub={`ср. кэф ${stats.avgOdds > 0 ? stats.avgOdds.toFixed(2) : '—'}`}
+        />
+        <StatCard
+          label="В ожидании"
+          value={String(stats.pendingCount)}
+          sub={stats.pendingCount === 0 ? 'открытых ставок нет' : 'ставок не закрыто'}
+          {...(stats.pendingCount > 0 ? { accent: true } : {})}
+        />
       </View>
 
       <WLStrip bets={bets} />

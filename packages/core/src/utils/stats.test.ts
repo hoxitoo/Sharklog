@@ -28,6 +28,9 @@ describe('calcDashboard', () => {
     expect(stats.pnl).toBe(0);
     expect(stats.roi).toBe(0);
     expect(stats.winRate).toBe(0);
+    expect(stats.pendingCount).toBe(0);
+    expect(stats.totalStaked).toBe(0);
+    expect(stats.avgOdds).toBe(0);
   });
 
   it('calculates P&L correctly for won bet at 2.0', () => {
@@ -50,6 +53,37 @@ describe('calcDashboard', () => {
     ];
     const stats = calcDashboard(bets);
     expect(stats.currentStreak).toEqual({ type: 'loss', count: 3 });
+  });
+
+  it('counts pending bets correctly', () => {
+    const bets = [
+      makeBet({ status: 'pending' }),
+      makeBet({ status: 'pending' }),
+      makeBet({ status: 'won' }),
+    ];
+    const stats = calcDashboard(bets);
+    expect(stats.pendingCount).toBe(2);
+    expect(stats.totalBets).toBe(3);
+  });
+
+  it('calculates avgOdds across settled bets', () => {
+    const bets = [
+      makeBet({ status: 'won', odds: 2.0 }),
+      makeBet({ status: 'lost', odds: 3.0 }),
+      makeBet({ status: 'pending', odds: 5.0 }), // excluded from avgOdds
+    ];
+    const stats = calcDashboard(bets);
+    expect(stats.avgOdds).toBe(2.5);
+  });
+
+  it('calculates totalStaked from settled bets', () => {
+    const bets = [
+      makeBet({ status: 'won', stake: 100_00 }),
+      makeBet({ status: 'lost', stake: 200_00 }),
+      makeBet({ status: 'pending', stake: 999_00 }), // excluded
+    ];
+    const stats = calcDashboard(bets);
+    expect(stats.totalStaked).toBe(300_00);
   });
 });
 

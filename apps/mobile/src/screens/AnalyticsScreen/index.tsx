@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet, ScrollView } from 'react-native';
 import {
-  calcByField, calcByOddsRange, calcByDayOfWeek, calcDashboard,
+  calcByField, calcByOddsRange, calcByDayOfWeek, calcByHour, calcDashboard,
   SPORTS, BET_TYPES, STRATEGIES, formatMoney, formatPercent,
 } from '@sharklog/core';
 import type { SliceStats } from '@sharklog/core';
@@ -163,6 +163,7 @@ function AnalyticsContent() {
   const byStrategy = calcByField(bets, 'strategy', (v) => STRATEGIES[v] ?? String(v));
   const byOdds = calcByOddsRange(bets);
   const byDay = calcByDayOfWeek(bets);
+  const byHour = calcByHour(bets);
 
   return (
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
@@ -173,6 +174,7 @@ function AnalyticsContent() {
       <Section title="По стратегии" stats={byStrategy} />
       <Section title="По коэффициенту" stats={byOdds} />
       <Section title="По дню недели" stats={byDay} />
+      <Section title="По часам дня" stats={byHour} />
     </ScrollView>
   );
 }
@@ -180,7 +182,7 @@ function AnalyticsContent() {
 export function AnalyticsScreen() {
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Аналитика" subtitle="7 срезов статистики" />
+      <ScreenHeader title="Аналитика" subtitle="8 срезов статистики" />
       <ProGate feature="Полная аналитика по 7 срезам">
         <AnalyticsContent />
       </ProGate>
