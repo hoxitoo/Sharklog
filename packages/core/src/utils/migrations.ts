@@ -6,6 +6,13 @@ type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 const migrations: Record<number, MigrationFn> = {
   // v0 → v1: initial schema, no-op
   1: (data) => ({ ...data, version: 1 }),
+  // v1 → v2: add reminderHour to settings
+  2: (data) => {
+    const settings = (typeof data['settings'] === 'object' && data['settings'] !== null)
+      ? (data['settings'] as Record<string, unknown>)
+      : {};
+    return { ...data, settings: { reminderHour: 20, ...settings }, version: 2 };
+  },
 };
 
 export function migrate(raw: unknown): StorageSchema {

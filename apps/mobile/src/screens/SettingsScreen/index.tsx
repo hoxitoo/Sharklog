@@ -9,6 +9,8 @@ import { useBetsStore } from '../../store/betsStore';
 import { colors } from '../../theme/colors';
 import { exportBetsCSV } from '../../utils/exportCSV';
 import { requestNotificationPermission, scheduleDailyReminder } from '../../utils/notifications';
+import * as FileSystem from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
 import { ProGate } from '../../components/ProGate';
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
@@ -105,10 +107,30 @@ export function SettingsScreen() {
   async function handleEnableNotifications() {
     const granted = await requestNotificationPermission();
     if (granted) {
-      await scheduleDailyReminder();
-      Alert.alert('Готово', 'Ежедневное напоминание в 20:00 включено');
+      await scheduleDailyReminder(settings.reminderHour);
+      Alert.alert('Готово', `Ежедневное напоминание в ${String(settings.reminderHour).padStart(2, '0')}:00 включено`);
     } else {
       Alert.alert('Нет разрешения', 'Разреши уведомления в настройках телефона');
+    }
+  }
+
+  async function handleBackupJSON() {
+    const { bets: allBets, bankroll, diary, teams } = useBetsStore.getState();
+    const backup = JSON.stringify({
+      version: 1,
+      exportedAt: new Date().toISOString(),
+      bets: allBets,
+      settings,
+      bankroll,
+      diary,
+      teams,
+    }, null, 2);
+    const path = (FileSystem.cacheDirectory ?? FileSystem.documentDirectory ?? '') + 'sharklog_backup.json';
+    try {
+      await FileSystem.writeAsStringAsync(path, backup, { encoding: FileSystem.EncodingType.UTF8 });
+      await Sharing.shareAsync(path, { mimeType: 'application/json', dialogTitle: 'Резервная копия SharkLog' });
+    } catch {
+      Alert.alert('Ошибка', 'Не удалось создать резервную копию');
     }
   }
 
@@ -243,14 +265,38 @@ export function SettingsScreen() {
           </Row>
         </Section>
 
-        <Section title="Экспорт и уведомления">
+        <Section title="Уведомления">
+          <Row label="Время напоминания">
+            {settings.isPro ? (
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <Stepper
+                  value={settings.reminderHour}
+                  min={6}
+                  max={23}
+                  onChangeValue={async (v) => {
+                    updateSettings({ reminderHour: v });
+                    await scheduleDailyReminder(v);
+                  }}
+                />
+                <Text style={styles.hint}>{String(settings.reminderHour).padStart(2, '0')}:00</Text>
+              </View>
+            ) : (
+              <Text style={styles.value}>20:00 (Free)</Text>
+            )}
+          </Row>
+          <TouchableOpacity style={styles.actionBtn} onPress={handleEnableNotifications}>
+            <Text style={styles.actionBtnText}>🔔  Включить / обновить напоминание</Text>
+          </TouchableOpacity>
+        </Section>
+
+        <Section title="Экспорт">
           <TouchableOpacity style={styles.actionBtn} onPress={handleExport} disabled={exporting}>
             <Text style={styles.actionBtnText}>
-              {exporting ? 'Экспортируется...' : '📤  Экспорт в CSV'}
+              {exporting ? 'Экспортируется...' : '📤  Экспорт ставок в CSV'}
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionBtn} onPress={handleEnableNotifications}>
-            <Text style={styles.actionBtnText}>🔔  Включить напоминания</Text>
+          <TouchableOpacity style={styles.actionBtn} onPress={handleBackupJSON}>
+            <Text style={styles.actionBtnText}>💾  Резервная копия (JSON)</Text>
           </TouchableOpacity>
         </Section>
 

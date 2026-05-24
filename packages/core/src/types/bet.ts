@@ -99,6 +99,7 @@ export interface AppSettings {
   isPro: boolean;
   proExpiresAt?: string;   // ISO-8601, undefined = lifetime
   onboardingComplete: boolean;
+  reminderHour: number;    // 0-23, daily reminder hour (default 20)
   schemaVersion: number;
 }
 
