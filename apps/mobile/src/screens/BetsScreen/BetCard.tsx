@@ -55,6 +55,11 @@ export function BetCard({ bet, onEdit }: Props) {
       <View style={styles.footer}>
         <StatusBadge status={bet.status} />
         <Text style={styles.date}>{bet.date} {bet.time}</Text>
+        {bet.bookmaker ? (
+          <View style={styles.bkBadge}>
+            <Text style={styles.bkText}>{bet.bookmaker}</Text>
+          </View>
+        ) : null}
       </View>
 
       {bet.status === 'pending' && (
@@ -112,6 +117,15 @@ const styles = StyleSheet.create({
   pnl: { fontSize: 13, fontWeight: '600', marginTop: 2 },
   footer: { flexDirection: 'row', alignItems: 'center', marginTop: 10, gap: 8 },
   date: { fontSize: 11, color: colors.textMuted, flex: 1 },
+  bkBadge: {
+    backgroundColor: colors.bgElevated,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  bkText: { fontSize: 10, color: colors.textMuted },
   quickResultRow: {
     flexDirection: 'row',
     alignItems: 'center',

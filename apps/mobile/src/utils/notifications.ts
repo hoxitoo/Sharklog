@@ -13,14 +13,18 @@ export async function requestNotificationPermission(): Promise<boolean> {
   return status === 'granted';
 }
 
-export async function scheduleDailyReminder(): Promise<void> {
+export async function scheduleDailyReminder(hour = 20): Promise<void> {
   try {
     const { status } = await Notifications.getPermissionsAsync();
     if (status !== 'granted') return;
 
+    // Cancel any existing daily reminder before scheduling new one
     const existing = await Notifications.getAllScheduledNotificationsAsync();
-    const alreadySet = existing.some((n) => n.content.data?.['type'] === 'daily_reminder');
-    if (alreadySet) return;
+    for (const n of existing) {
+      if (n.content.data?.['type'] === 'daily_reminder') {
+        await Notifications.cancelScheduledNotificationAsync(n.identifier);
+      }
+    }
 
     await Notifications.scheduleNotificationAsync({
       content: {
@@ -28,7 +32,7 @@ export async function scheduleDailyReminder(): Promise<void> {
         body: 'Не забудь записать сегодняшние ставки',
         data: { type: 'daily_reminder' },
       },
-      trigger: { hour: 20, minute: 0, repeats: true } as Notifications.DailyTriggerInput,
+      trigger: { hour, minute: 0, repeats: true } as Notifications.DailyTriggerInput,
     });
   } catch {
     // permissions not granted or scheduling unavailable — silently skip

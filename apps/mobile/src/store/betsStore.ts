@@ -76,6 +76,7 @@ const defaultSettings: AppSettings = {
   bookmakers: ['1xBet', 'Parimatch', 'Fonbet'],
   isPro: false,
   onboardingComplete: false,
+  reminderHour: 20,
   schemaVersion: CURRENT_SCHEMA_VERSION,
 };
 

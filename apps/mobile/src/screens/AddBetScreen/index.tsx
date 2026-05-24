@@ -32,6 +32,8 @@ interface FormData {
   status: BetStatus;
   notes: string;
   bookmaker: string;
+  date: string;
+  time: string;
 }
 
 function uuid(): string {
@@ -360,6 +362,8 @@ export function AddBetScreen() {
       status: editBet?.status ?? 'pending',
       notes: editBet?.notes ?? '',
       bookmaker: editBet?.bookmaker ?? (settings.bookmakers[0] ?? ''),
+      date: editBet?.date ?? defaultDate,
+      time: editBet?.time ?? defaultTime,
     },
   });
 
@@ -405,18 +409,22 @@ export function AddBetScreen() {
       ...(data.notes ? { notes: data.notes } : {}),
     };
 
+    const dateVal = data.date.trim() || defaultDate;
+    const timeVal = data.time.trim() || defaultTime;
+
     if (editBet) {
       updateBet(editBet.id, {
         event: data.event, pick: data.pick, odds: oddsVal, stake: stakeVal,
         sport: data.sport, betType: data.betType, strategy: data.strategy,
-        status: data.status, bookmaker: data.bookmaker, ...extras,
+        status: data.status, bookmaker: data.bookmaker,
+        date: dateVal, time: timeVal, ...extras,
       });
     } else {
       addBet({
         id: uuid(),
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        date: defaultDate, time: defaultTime,
+        date: dateVal, time: timeVal,
         event: data.event, pick: data.pick, odds: oddsVal, stake: stakeVal,
         sport: data.sport, betType: data.betType, strategy: data.strategy,
         status: data.status, bookmaker: data.bookmaker, schemaVersion: 1,
@@ -594,6 +602,41 @@ export function AddBetScreen() {
             )}
           />
         </Field>
+
+        <View style={styles.row2}>
+          <Field label="Дата">
+            <Controller
+              control={control}
+              name="date"
+              render={({ field: { onChange, value } }) => (
+                <TextInput
+                  style={[inputStyle, styles.halfInput]}
+                  placeholder="ГГГГ-ММ-ДД"
+                  placeholderTextColor={colors.textMuted}
+                  value={value}
+                  onChangeText={onChange}
+                  keyboardType="numbers-and-punctuation"
+                />
+              )}
+            />
+          </Field>
+          <Field label="Время">
+            <Controller
+              control={control}
+              name="time"
+              render={({ field: { onChange, value } }) => (
+                <TextInput
+                  style={[inputStyle, styles.halfInput]}
+                  placeholder="ЧЧ:ММ"
+                  placeholderTextColor={colors.textMuted}
+                  value={value}
+                  onChangeText={onChange}
+                  keyboardType="numbers-and-punctuation"
+                />
+              )}
+            />
+          </Field>
+        </View>
 
         {editBet && (
           <Controller
