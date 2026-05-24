@@ -1,5 +1,24 @@
 export type BetStatus = 'pending' | 'won' | 'lost' | 'refund';
 
+export type EsportsDiscipline =
+  | 'dota2'
+  | 'csgo'
+  | 'lol'
+  | 'valorant'
+  | 'pubg'
+  | 'r6'
+  | 'apex'
+  | 'other_esports';
+
+export interface Team {
+  id: string;
+  name: string;
+  sport: Sport;
+  discipline?: EsportsDiscipline;
+  usageCount: number;
+  lastUsed: string; // ISO-8601
+}
+
 export type Sport =
   | 'football'
   | 'hockey'
@@ -45,6 +64,7 @@ export interface Bet {
   status: BetStatus;
   strategy: Strategy;
   notes?: string;
+  discipline?: EsportsDiscipline; // only when sport === 'esports'
   schemaVersion: number;   // for migrations
 }
 
@@ -87,5 +107,6 @@ export interface StorageSchema {
   bankroll: Bankroll;
   diary: DiaryEntry[];
   settings: AppSettings;
+  teams: Team[];
   version: number;
 }

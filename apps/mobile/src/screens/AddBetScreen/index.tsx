@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, Alert, KeyboardAvoidingView, Platform,
@@ -6,9 +6,9 @@ import {
 import { useForm, Controller } from 'react-hook-form';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { NativeStackNavigationProp, RouteProp } from '@react-navigation/native-stack';
-import type { Sport, BetType, Strategy, BetStatus } from '@sharklog/core';
+import type { Sport, BetType, Strategy, BetStatus, EsportsDiscipline, Team } from '@sharklog/core';
 import {
-  SPORTS, BET_TYPES, STRATEGIES, parseMoneyInput, formatMoney,
+  SPORTS, BET_TYPES, STRATEGIES, ESPORTS_DISCIPLINES, parseMoneyInput, formatMoney,
 } from '@sharklog/core';
 import { colors } from '../../theme/colors';
 import { useBetsStore } from '../../store/betsStore';
@@ -23,6 +23,7 @@ interface FormData {
   odds: string;
   stake: string;
   sport: Sport;
+  discipline: EsportsDiscipline;
   betType: BetType;
   strategy: Strategy;
   status: BetStatus;
@@ -81,11 +82,7 @@ const sc = StyleSheet.create({
   textActive: { color: '#fff', fontWeight: '700' },
 });
 
-function Field({
-  label, error, children,
-}: {
-  label: string; error?: string; children: React.ReactNode;
-}) {
+function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
     <View style={field.container}>
       <Text style={field.label}>{label}</Text>
@@ -112,6 +109,123 @@ const inputStyle = {
   borderColor: colors.border,
 };
 
+// ── Team Autocomplete ──────────────────────────────────────────────────────────
+
+function TeamAutocompleteInput({
+  value,
+  onChange,
+  sport,
+  discipline,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  sport: Sport;
+  discipline: EsportsDiscipline;
+}) {
+  const teams = useBetsStore((s) => s.teams);
+  const [focused, setFocused] = useState(false);
+
+  // Determine which portion is being actively typed (before or after " vs ")
+  const vsParts = value.split(' vs ');
+  const hasVs = vsParts.length >= 2;
+  const activePart = (vsParts[vsParts.length - 1] ?? '').trimStart();
+  const prefix = hasVs ? vsParts.slice(0, -1).join(' vs ') + ' vs ' : '';
+
+  const suggestions = useMemo<Team[]>(() => {
+    if (!focused || activePart.length < 1) return [];
+    return teams
+      .filter((t) => {
+        if (t.sport !== sport) return false;
+        if (sport === 'esports' && t.discipline && t.discipline !== discipline) return false;
+        return t.name.toLowerCase().includes(activePart.toLowerCase());
+      })
+      .sort((a, b) => b.usageCount - a.usageCount)
+      .slice(0, 6);
+  }, [teams, activePart, sport, discipline, focused]);
+
+  function handleSelect(team: Team) {
+    const filled = prefix + team.name;
+    // After first team, add " vs " automatically so user can start second team
+    onChange(hasVs ? filled : filled + ' vs ');
+  }
+
+  return (
+    <View style={ac.wrapper}>
+      <TextInput
+        style={inputStyle}
+        placeholder="NaVi vs Virtus.pro"
+        placeholderTextColor={colors.textMuted}
+        value={value}
+        onChangeText={onChange}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setTimeout(() => setFocused(false), 180)}
+      />
+      {focused && suggestions.length > 0 && (
+        <View style={ac.dropdown}>
+          {suggestions.map((team) => (
+            <TouchableOpacity
+              key={team.id}
+              style={ac.item}
+              onPress={() => handleSelect(team)}
+              activeOpacity={0.7}
+            >
+              <Text style={ac.name}>{team.name}</Text>
+              <View style={ac.right}>
+                {sport === 'esports' && team.discipline ? (
+                  <View style={ac.badge}>
+                    <Text style={ac.badgeText}>{ESPORTS_DISCIPLINES[team.discipline]}</Text>
+                  </View>
+                ) : null}
+                <Text style={ac.count}>{team.usageCount}×</Text>
+              </View>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
+
+const ac = StyleSheet.create({
+  wrapper: { position: 'relative' },
+  dropdown: {
+    position: 'absolute',
+    top: '100%',
+    left: 0,
+    right: 0,
+    zIndex: 100,
+    backgroundColor: colors.bgElevated,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginTop: 4,
+    overflow: 'hidden',
+  },
+  item: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  name: { fontSize: 14, color: colors.textPrimary, flex: 1 },
+  right: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  badge: {
+    backgroundColor: colors.purpleDim,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.purple + '44',
+  },
+  badgeText: { fontSize: 10, color: colors.purple, fontWeight: '600' },
+  count: { fontSize: 11, color: colors.textMuted },
+});
+
+// ── Main Screen ────────────────────────────────────────────────────────────────
+
 export function AddBetScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
@@ -125,13 +239,14 @@ export function AddBetScreen() {
   const defaultDate = now.toISOString().split('T')[0] ?? '';
   const defaultTime = now.toTimeString().slice(0, 5);
 
-  const { control, handleSubmit, watch, setValue, formState: { errors } } = useForm<FormData>({
+  const { control, handleSubmit, watch, formState: { errors } } = useForm<FormData>({
     defaultValues: {
       event: editBet?.event ?? '',
       pick: editBet?.pick ?? '',
       odds: editBet ? String(editBet.odds) : '',
       stake: editBet ? String(editBet.stake / 100) : '',
       sport: editBet?.sport ?? 'football',
+      discipline: editBet?.discipline ?? 'csgo',
       betType: editBet?.betType ?? '1X2',
       strategy: editBet?.strategy ?? 'value',
       status: editBet?.status ?? 'pending',
@@ -140,11 +255,13 @@ export function AddBetScreen() {
     },
   });
 
-  const odds = parseFloat(watch('odds') || '0');
+  const watchedOdds = parseFloat(watch('odds') || '0');
   const stakeRaw = watch('stake');
+  const watchedSport = watch('sport');
+  const watchedDiscipline = watch('discipline');
   const stakeKopecks = parseMoneyInput(stakeRaw);
-  const potentialWin = odds > 0 && stakeKopecks > 0
-    ? formatMoney(Math.round(stakeKopecks * odds))
+  const potentialWin = watchedOdds > 0 && stakeKopecks > 0
+    ? formatMoney(Math.round(stakeKopecks * watchedOdds))
     : null;
 
   useEffect(() => {
@@ -163,6 +280,8 @@ export function AddBetScreen() {
       return;
     }
 
+    const discipline = data.sport === 'esports' ? data.discipline : undefined;
+
     if (editBet) {
       updateBet(editBet.id, {
         event: data.event,
@@ -170,6 +289,7 @@ export function AddBetScreen() {
         odds: oddsVal,
         stake: stakeVal,
         sport: data.sport,
+        discipline,
         betType: data.betType,
         strategy: data.strategy,
         status: data.status,
@@ -188,6 +308,7 @@ export function AddBetScreen() {
         odds: oddsVal,
         stake: stakeVal,
         sport: data.sport,
+        discipline,
         betType: data.betType,
         strategy: data.strategy,
         status: data.status,
@@ -202,6 +323,7 @@ export function AddBetScreen() {
   const sportOptions = Object.entries(SPORTS).map(([k, v]) => ({ key: k as Sport, label: v }));
   const betTypeOptions = Object.entries(BET_TYPES).map(([k, v]) => ({ key: k as BetType, label: v }));
   const strategyOptions = Object.entries(STRATEGIES).map(([k, v]) => ({ key: k as Strategy, label: v }));
+  const disciplineOptions = Object.entries(ESPORTS_DISCIPLINES).map(([k, v]) => ({ key: k as EsportsDiscipline, label: v }));
 
   return (
     <KeyboardAvoidingView
@@ -220,12 +342,11 @@ export function AddBetScreen() {
             name="event"
             rules={{ required: 'Введи название события' }}
             render={({ field: { onChange, value } }) => (
-              <TextInput
-                style={inputStyle}
-                placeholder="Команда А vs Команда Б"
-                placeholderTextColor={colors.textMuted}
+              <TeamAutocompleteInput
                 value={value}
-                onChangeText={onChange}
+                onChange={onChange}
+                sport={watchedSport}
+                discipline={watchedDiscipline}
               />
             )}
           />
@@ -300,6 +421,16 @@ export function AddBetScreen() {
             <SegmentedControl label="Вид спорта" options={sportOptions} value={value} onChange={onChange} />
           )}
         />
+
+        {watchedSport === 'esports' && (
+          <Controller
+            control={control}
+            name="discipline"
+            render={({ field: { onChange, value } }) => (
+              <SegmentedControl label="Дисциплина" options={disciplineOptions} value={value} onChange={onChange} />
+            )}
+          />
+        )}
 
         <Controller
           control={control}

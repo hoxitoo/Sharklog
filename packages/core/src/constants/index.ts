@@ -1,4 +1,4 @@
-import type { Sport, BetType, Strategy } from '../types/bet.js';
+import type { Sport, BetType, Strategy, EsportsDiscipline } from '../types/bet.js';
 
 export const SPORTS: Record<Sport, string> = {
   football: 'Футбол',
@@ -30,6 +30,17 @@ export const STRATEGIES: Record<Strategy, string> = {
   intuition: 'Интуиция',
   system: 'Система',
   other: 'Другое',
+};
+
+export const ESPORTS_DISCIPLINES: Record<EsportsDiscipline, string> = {
+  dota2: 'Dota 2',
+  csgo: 'CS2',
+  lol: 'League of Legends',
+  valorant: 'Valorant',
+  pubg: 'PUBG',
+  r6: 'Rainbow Six',
+  apex: 'Apex Legends',
+  other_esports: 'Другая дисциплина',
 };
 
 export const DEFAULT_BOOKMAKERS = [

@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { LineChart } from 'react-native-gifted-charts';
 import { calcDashboard, formatMoney, formatPercent, isInTilt } from '@sharklog/core';
 import type { Bet } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
@@ -163,6 +164,7 @@ const hm = StyleSheet.create({
 
 export function DashboardScreen() {
   const navigation = useNavigation<Nav>();
+  const { width } = useWindowDimensions();
   const { bets, settings, bankroll } = useBetsStore();
   const stats = calcDashboard(bets);
   const inTilt = isInTilt(bets, settings.tiltThreshold);
@@ -249,16 +251,42 @@ export function DashboardScreen() {
 
       <Heatmap bets={bets} />
 
-      {stats.pnlCurve.length > 0 && (
+      {stats.pnlCurve.length > 1 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>P&L кривая</Text>
-          <View style={styles.chartPlaceholder}>
-            <Text style={styles.chartNote}>
-              📈 График (gifted-charts — Week 2)
+          <View style={styles.sectionRow}>
+            <Text style={styles.sectionTitle}>P&L кривая</Text>
+            <Text style={[
+              styles.pnlChipText,
+              { color: stats.pnl >= 0 ? colors.won : colors.lost },
+            ]}>
+              {stats.pnl >= 0 ? '+' : ''}{formatMoney(stats.pnlCurve[stats.pnlCurve.length - 1]?.pnl ?? 0)}
             </Text>
-            <Text style={styles.chartNote}>
-              Последний: {formatMoney(stats.pnlCurve[stats.pnlCurve.length - 1]?.pnl ?? 0)}
-            </Text>
+          </View>
+          <View style={styles.chartCard}>
+            <LineChart
+              data={stats.pnlCurve.map((p) => ({ value: p.pnl / 100 }))}
+              width={width - 64}
+              height={110}
+              color={stats.pnl >= 0 ? colors.won : colors.lost}
+              thickness={2}
+              hideDataPoints
+              areaChart
+              startFillColor={stats.pnl >= 0 ? colors.won : colors.lost}
+              endFillColor={colors.bgCard}
+              startOpacity={0.25}
+              endOpacity={0}
+              backgroundColor={colors.bgCard}
+              xAxisColor={colors.border}
+              yAxisColor="transparent"
+              rulesType="solid"
+              rulesColor={colors.border + '66'}
+              noOfSections={3}
+              yAxisTextStyle={{ color: colors.textMuted, fontSize: 9 }}
+              xAxisLabelTextStyle={{ color: colors.textMuted, fontSize: 9 }}
+              hideXAxisText
+              adjustToWidth
+              curved
+            />
           </View>
         </View>
       )}
@@ -347,17 +375,19 @@ const styles = StyleSheet.create({
     borderColor: colors.purple + '44',
   },
   section: { paddingHorizontal: 16, marginBottom: 20 },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.textPrimary, marginBottom: 10 },
-  chartPlaceholder: {
+  sectionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.textPrimary },
+  pnlChipText: { fontSize: 14, fontWeight: '700' },
+  chartCard: {
     backgroundColor: colors.bgCard,
     borderRadius: 12,
-    padding: 20,
-    alignItems: 'center',
+    paddingTop: 12,
+    paddingBottom: 4,
+    paddingLeft: 4,
     borderWidth: 1,
     borderColor: colors.border,
-    borderStyle: 'dashed',
+    overflow: 'hidden',
   },
-  chartNote: { fontSize: 13, color: colors.textSecondary, textAlign: 'center', marginBottom: 4 },
   emptyText: { fontSize: 14, color: colors.textMuted },
   recentBet: {
     flexDirection: 'row',
