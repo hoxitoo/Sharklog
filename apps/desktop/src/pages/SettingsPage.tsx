@@ -1,11 +1,15 @@
 import React, { useState } from 'react';
 import { DEFAULT_BOOKMAKERS, FREE_LIMITS } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
+import { useToastStore } from '../store/toastStore';
+import { ConfirmModal } from '../components/ConfirmModal';
 import { colors } from '../theme/colors';
 
 export function SettingsPage() {
   const { settings, updateSettings, bets, clearAll } = useBetsStore();
+  const toast = useToastStore((s) => s.show);
   const [newBk, setNewBk] = useState('');
+  const [confirmClear, setConfirmClear] = useState(false);
 
   function addBookmaker() {
     const t = newBk.trim();
@@ -69,9 +73,9 @@ export function SettingsPage() {
             ...(parsed.teams ? { teams: parsed.teams } : {}),
           });
           store.persist();
-          alert('Данные восстановлены успешно!');
+          toast('Данные восстановлены успешно!', 'success');
         } catch {
-          alert('Ошибка: файл повреждён или имеет неверный формат.');
+          toast('Ошибка: файл повреждён или неверный формат.', 'error');
         }
       };
       reader.readAsText(file);
@@ -80,13 +84,20 @@ export function SettingsPage() {
   }
 
   function handleClearData() {
-    if (window.confirm('Очистить все данные? Это действие нельзя отменить.')) {
-      clearAll();
-    }
+    setConfirmClear(true);
   }
 
   return (
     <div style={s.page}>
+      {confirmClear && (
+        <ConfirmModal
+          message="Очистить все данные? Это действие нельзя отменить."
+          confirmLabel="Очистить"
+          onConfirm={() => { clearAll(); setConfirmClear(false); toast('Данные очищены', 'info'); }}
+          onCancel={() => setConfirmClear(false)}
+        />
+      )}
+
       <h1 style={s.title}>Настройки</h1>
 
       {/* Subscription */}
