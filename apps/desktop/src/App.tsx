@@ -32,7 +32,7 @@ export function App() {
 
       {modalBet !== null && (
         <AddBetModal
-          editBet={modalBet === 'new' ? undefined : modalBet}
+          {...(modalBet !== 'new' ? { editBet: modalBet } : {})}
           onClose={closeModal}
         />
       )}

@@ -36,7 +36,7 @@ function upsertTeams(
     if (idx >= 0) {
       result[idx] = { ...result[idx]!, usageCount: result[idx]!.usageCount + 1, lastUsed: now };
     } else {
-      result.push({ id: uuid(), name, sport, discipline, usageCount: 1, lastUsed: now });
+      result.push({ id: uuid(), name, sport, ...(discipline !== undefined ? { discipline } : {}), usageCount: 1, lastUsed: now });
     }
   }
   return result;

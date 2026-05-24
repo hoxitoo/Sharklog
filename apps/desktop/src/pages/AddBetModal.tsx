@@ -176,9 +176,12 @@ export function AddBetModal({ editBet, onClose }: Props) {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!validate()) return;
-    const betDiscipline = sport === 'esports' ? discipline : undefined;
+    const extras = {
+      ...(sport === 'esports' ? { discipline } : {}),
+      ...(notes ? { notes } : {}),
+    };
     if (editBet) {
-      updateBet(editBet.id, { event, pick, odds: oddsNum, stake: stakeKopecks, sport, discipline: betDiscipline, betType, strategy, status, notes: notes || undefined, bookmaker });
+      updateBet(editBet.id, { event, pick, odds: oddsNum, stake: stakeKopecks, sport, betType, strategy, status, bookmaker, ...extras });
     } else {
       addBet({
         id: uuid(),
@@ -186,8 +189,9 @@ export function AddBetModal({ editBet, onClose }: Props) {
         updatedAt: now.toISOString(),
         date: now.toISOString().split('T')[0] ?? '',
         time: now.toTimeString().slice(0, 5),
-        event, pick, odds: oddsNum, stake: stakeKopecks, sport, discipline: betDiscipline,
-        betType, strategy, status, notes: notes || undefined, bookmaker, schemaVersion: 1,
+        event, pick, odds: oddsNum, stake: stakeKopecks, sport,
+        betType, strategy, status, bookmaker, schemaVersion: 1,
+        ...extras,
       });
     }
     onClose();
@@ -207,19 +211,19 @@ export function AddBetModal({ editBet, onClose }: Props) {
         </div>
 
         <form onSubmit={handleSubmit} style={m.body}>
-          <Field label="Событие *" error={errors['event']}>
+          <Field label="Событие *" {...(errors['event'] ? { error: errors['event'] } : {})}>
             <TeamAutocomplete value={event} onChange={setEvent} sport={sport} discipline={discipline} />
           </Field>
 
-          <Field label="Выбор *" error={errors['pick']}>
+          <Field label="Выбор *" {...(errors['pick'] ? { error: errors['pick'] } : {})}>
             <input style={inputStyle} placeholder="П1, ТБ 2.5, Ф1(-1.5)..." value={pick} onChange={(e) => setPick(e.target.value)} />
           </Field>
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <Field label="Коэффициент *" error={errors['odds']}>
+            <Field label="Коэффициент *" {...(errors['odds'] ? { error: errors['odds'] } : {})}>
               <input style={inputStyle} placeholder="1.85" type="number" step="0.01" value={odds} onChange={(e) => setOdds(e.target.value)} />
             </Field>
-            <Field label="Сумма (₽) *" error={errors['stake']}>
+            <Field label="Сумма (₽) *" {...(errors['stake'] ? { error: errors['stake'] } : {})}>
               <input style={inputStyle} placeholder="1000" type="number" value={stake} onChange={(e) => setStake(e.target.value)} />
             </Field>
           </div>

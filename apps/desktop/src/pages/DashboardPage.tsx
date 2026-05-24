@@ -2,6 +2,7 @@ import React from 'react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
+import type { Bet } from '@sharklog/core';
 import { calcDashboard, formatMoney, formatPercent, isInTilt } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
 import { colors } from '../theme/colors';
@@ -18,7 +19,7 @@ function StatCard({
   );
 }
 
-function WLStrip({ bets }: { bets: ReturnType<typeof useBetsStore>['bets'] }) {
+function WLStrip({ bets }: { bets: Bet[] }) {
   const settled = bets.filter((b) => b.status !== 'pending').slice(0, 10);
   if (settled.length === 0) return null;
   return (
@@ -86,13 +87,13 @@ export function DashboardPage() {
           label="P&L"
           value={formatMoney(stats.pnl)}
           sub="чистая прибыль"
-          color={stats.pnl > 0 ? colors.won : stats.pnl < 0 ? colors.lost : undefined}
+          {...(stats.pnl !== 0 ? { color: stats.pnl > 0 ? colors.won : colors.lost } : {})}
         />
         <StatCard
           label="ROI"
           value={formatPercent(stats.roi)}
           sub="возврат инвестиций"
-          color={stats.roi > 0 ? colors.won : stats.roi < 0 ? colors.lost : undefined}
+          {...(stats.roi !== 0 ? { color: stats.roi > 0 ? colors.won : colors.lost } : {})}
         />
         <StatCard
           label="Винрейт"
@@ -117,7 +118,7 @@ export function DashboardPage() {
             : `${stats.currentStreak.count} ${stats.currentStreak.type === 'win' ? '🏆' : '💸'}`
           }
           sub={stats.currentStreak.type === 'win' ? 'побед подряд' : stats.currentStreak.type === 'loss' ? 'поражений подряд' : ''}
-          color={stats.currentStreak.type === 'win' ? colors.won : stats.currentStreak.type === 'loss' ? colors.lost : undefined}
+          {...(stats.currentStreak.type !== 'none' ? { color: stats.currentStreak.type === 'win' ? colors.won : colors.lost } : {})}
         />
       </div>
 
