@@ -156,8 +156,13 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
 
   canAddBet: () => {
     const { bets, settings } = get();
-    if (settings.isPro) return true;
-    return bets.length < FREE_LIMITS.MAX_BETS;
+    if (!settings.isPro) return bets.length < FREE_LIMITS.MAX_BETS;
+    if (settings.dailyBetLimit > 0) {
+      const today = new Date().toISOString().split('T')[0] ?? '';
+      const todayCount = bets.filter((b) => b.date === today).length;
+      return todayCount < settings.dailyBetLimit;
+    }
+    return true;
   },
 
   clearAll: () => {

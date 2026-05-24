@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import type { Bet, BetStatus } from '@sharklog/core';
-import { SPORTS, BET_TYPES, formatMoney, formatOdds, FREE_LIMITS } from '@sharklog/core';
+import { SPORTS, BET_TYPES, formatMoney, formatOdds, FREE_LIMITS, isInTilt } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
+import { useToastStore } from '../store/toastStore';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { colors } from '../theme/colors';
 
@@ -43,6 +44,7 @@ function formatDateTitle(dateStr: string): string {
 
 export function BetsPage({ onAdd, onEdit }: Props) {
   const { bets, deleteBet, updateBet, settings } = useBetsStore();
+  const toast = useToastStore((s) => s.show);
   const [filter, setFilter] = useState<BetStatus | 'all'>('all');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortKey>('date_desc');
@@ -95,6 +97,12 @@ export function BetsPage({ onAdd, onEdit }: Props) {
 
   function handleClose(bet: Bet, status: BetStatus) {
     updateBet(bet.id, { status });
+    if (status === 'lost') {
+      const updated = bets.map((b) => b.id === bet.id ? { ...b, status } : b);
+      if (isInTilt(updated, settings.tiltThreshold)) {
+        toast(`🚨 Тилт! ${settings.tiltThreshold} поражений подряд — сделай перерыв`, 'error');
+      }
+    }
   }
 
   function handleDelete(bet: Bet) {
