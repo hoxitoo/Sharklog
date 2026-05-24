@@ -3,6 +3,7 @@ import type { Sport, BetType, Strategy, BetStatus, EsportsDiscipline, Team } fro
 import {
   SPORTS, BET_TYPES, STRATEGIES, ESPORTS_DISCIPLINES,
   parseMoneyInput, formatMoney, CURRENT_SCHEMA_VERSION, FREE_LIMITS,
+  impliedProbability, expectedValue, halfKelly, recommendedStake,
 } from '@sharklog/core';
 import type { Bet } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
@@ -140,8 +141,90 @@ const ac: Record<string, React.CSSProperties> = {
   count: { fontSize: 11, color: colors.textMuted },
 };
 
+function KellyHelper({ odds, bankKopecks, onApply }: {
+  odds: number;
+  bankKopecks: number;
+  onApply: (roubles: string) => void;
+}) {
+  const [prob, setProb] = useState(0.5);
+  const implied = impliedProbability(odds);
+  const ev = expectedValue(odds, prob);
+  const kellyPct = halfKelly(odds, prob) * 100;
+  const stake = bankKopecks > 0 ? recommendedStake(bankKopecks, odds, prob) : 0;
+
+  function step(dir: 1 | -1) {
+    setProb((p) => Math.min(0.95, Math.max(0.05, Math.round((p + dir * 0.05) * 100) / 100)));
+  }
+
+  return (
+    <div style={kl.container}>
+      <div style={kl.impliedRow}>
+        <span style={kl.impliedLabel}>Имплицитная вероятность букмекера</span>
+        <span style={kl.impliedValue}>{(implied * 100).toFixed(1)}%</span>
+      </div>
+      <div style={kl.stepRow}>
+        <span style={kl.stepLabel}>Моя оценка</span>
+        <div style={kl.stepper}>
+          <button type="button" style={kl.stepBtn} onClick={() => step(-1)}>−</button>
+          <span style={kl.stepValue}>{(prob * 100).toFixed(0)}%</span>
+          <button type="button" style={kl.stepBtn} onClick={() => step(1)}>+</button>
+        </div>
+      </div>
+      <div style={kl.resultsRow}>
+        <div style={kl.resultCell}>
+          <span style={{ ...kl.resultValue, color: ev > 0 ? colors.won : colors.lost }}>
+            {ev >= 0 ? '+' : ''}{(ev * 100).toFixed(1)}%
+          </span>
+          <span style={kl.resultLabel}>EV</span>
+        </div>
+        <div style={kl.resultCell}>
+          <span style={kl.resultValue}>{kellyPct.toFixed(1)}%</span>
+          <span style={kl.resultLabel}>Half-Kelly</span>
+        </div>
+        <div style={kl.resultCell}>
+          <span style={{ ...kl.resultValue, color: stake > 0 ? colors.accent : colors.textMuted }}>
+            {stake > 0 ? formatMoney(stake) : '—'}
+          </span>
+          <span style={kl.resultLabel}>Рек. ставка</span>
+        </div>
+      </div>
+      {stake > 0 && (
+        <button type="button" style={kl.applyBtn} onClick={() => onApply(String(stake / 100))}>
+          Применить {formatMoney(stake)}
+        </button>
+      )}
+    </div>
+  );
+}
+
+const kl: Record<string, React.CSSProperties> = {
+  container: {
+    backgroundColor: colors.bgElevated, borderRadius: 10, padding: 14,
+    marginBottom: 14, border: `1px solid ${colors.border}`,
+  },
+  impliedRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  impliedLabel: { fontSize: 12, color: colors.textMuted },
+  impliedValue: { fontSize: 13, fontWeight: 600, color: colors.textSecondary },
+  stepRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  stepLabel: { fontSize: 13, color: colors.textPrimary, fontWeight: 500 },
+  stepper: { display: 'flex', alignItems: 'center', gap: 10 },
+  stepBtn: {
+    width: 30, height: 30, borderRadius: 7, backgroundColor: colors.bgCard,
+    border: `1px solid ${colors.border}`, fontSize: 16, color: colors.textPrimary, cursor: 'pointer',
+  },
+  stepValue: { fontSize: 16, fontWeight: 700, color: colors.textPrimary, minWidth: 44, textAlign: 'center' as const },
+  resultsRow: { display: 'flex', justifyContent: 'space-around', marginBottom: 10 },
+  resultCell: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3 },
+  resultValue: { fontSize: 16, fontWeight: 700, color: colors.textPrimary },
+  resultLabel: { fontSize: 10, color: colors.textMuted },
+  applyBtn: {
+    width: '100%', backgroundColor: colors.accentDim, border: `1px solid ${colors.accent}66`,
+    borderRadius: 8, padding: '9px 0', fontSize: 13, fontWeight: 700, color: colors.accent, cursor: 'pointer',
+  },
+};
+
 export function AddBetModal({ editBet, onClose }: Props) {
-  const { addBet, updateBet, settings, canAddBet } = useBetsStore();
+  const { addBet, updateBet, settings, bankroll, canAddBet } = useBetsStore();
   const now = new Date();
   const defaultDate = now.toISOString().split('T')[0] ?? '';
   const defaultTime = now.toTimeString().slice(0, 5);
@@ -160,6 +243,7 @@ export function AddBetModal({ editBet, onClose }: Props) {
   const [bookmaker, setBookmaker] = useState(editBet?.bookmaker ?? (settings.bookmakers[0] ?? ''));
   const [notes, setNotes] = useState(editBet?.notes ?? '');
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [kellyOpen, setKellyOpen] = useState(false);
 
   const oddsNum = parseFloat(odds);
   const stakeKopecks = parseMoneyInput(stake);
@@ -237,6 +321,27 @@ export function AddBetModal({ editBet, onClose }: Props) {
               <input style={inputStyle} placeholder="1000" type="number" value={stake} onChange={(e) => setStake(e.target.value)} />
             </Field>
           </div>
+
+          {oddsNum > 1 && (
+            <button
+              type="button"
+              onClick={() => setKellyOpen((v) => !v)}
+              style={{
+                ...m.kellyToggle,
+                ...(kellyOpen ? m.kellyToggleActive : {}),
+              }}
+            >
+              📊 Калькулятор Келли {kellyOpen ? '▲' : '▼'}
+            </button>
+          )}
+
+          {kellyOpen && oddsNum > 1 && (
+            <KellyHelper
+              odds={oddsNum}
+              bankKopecks={bankroll.transactions.reduce((sum, t) => sum + (t.type === 'deposit' ? t.amount : -t.amount), 0)}
+              onApply={(roubles) => setStake(roubles)}
+            />
+          )}
 
           {potentialWin && (
             <div style={m.winPreview}>
@@ -347,6 +452,12 @@ const m: Record<string, React.CSSProperties> = {
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
     backgroundColor: colors.accentDim, borderRadius: 8, padding: '10px 14px', marginBottom: 14,
   },
+  kellyToggle: {
+    width: '100%', backgroundColor: 'transparent', border: `1px solid ${colors.border}`,
+    borderRadius: 8, padding: '8px 0', fontSize: 13, color: colors.textSecondary,
+    cursor: 'pointer', marginBottom: 10, textAlign: 'center' as const,
+  },
+  kellyToggleActive: { borderColor: colors.accent + '66', backgroundColor: colors.accentDim, color: colors.accent },
   submitBtn: {
     width: '100%', backgroundColor: colors.purple, color: '#fff', border: 'none',
     borderRadius: 10, padding: '14px 0', fontSize: 15, fontWeight: 700, cursor: 'pointer', marginTop: 4,
