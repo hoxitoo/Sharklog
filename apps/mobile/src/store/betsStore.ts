@@ -65,6 +65,7 @@ interface BetsStore {
   updateBankroll: (updates: Partial<Bankroll>) => void;
   addDiaryEntry: (entry: DiaryEntry) => void;
   deleteTeam: (id: string) => void;
+  clearAll: () => void;
 
   canAddBet: () => boolean;
 }
@@ -177,6 +178,17 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
 
   deleteTeam: (id) => {
     set((s) => ({ teams: s.teams.filter((t) => t.id !== id) }));
+    get().persist();
+  },
+
+  clearAll: () => {
+    set({
+      bets: [],
+      diary: [],
+      teams: [],
+      bankroll: { ...defaultBankroll, createdAt: new Date().toISOString() },
+      settings: { ...defaultSettings, onboardingComplete: true },
+    });
     get().persist();
   },
 

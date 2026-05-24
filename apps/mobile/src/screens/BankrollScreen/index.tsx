@@ -124,6 +124,8 @@ const kc = StyleSheet.create({
 function BankrollContent() {
   const { bets, bankroll, updateBankroll } = useBetsStore();
   const stats = calcDashboard(bets);
+  const [depositInput, setDepositInput] = useState('');
+  const [showDepositForm, setShowDepositForm] = useState(false);
 
   const deposited = bankroll.transactions
     .filter((t) => t.type === 'deposit')
@@ -135,17 +137,19 @@ function BankrollContent() {
   const unitAmount = Math.round(currentBank * bankroll.unitPercent / 100);
 
   function handleAddDeposit() {
-    Alert.prompt('Пополнение', 'Введи сумму в рублях:', (text) => {
-      if (!text) return;
-      const amount = parseMoneyInput(text);
-      if (amount <= 0) return;
-      updateBankroll({
-        transactions: [
-          ...bankroll.transactions,
-          { id: Date.now().toString(), type: 'deposit', amount, date: new Date().toISOString() },
-        ],
-      });
+    const amount = parseMoneyInput(depositInput);
+    if (amount <= 0) {
+      Alert.alert('Ошибка', 'Введи корректную сумму');
+      return;
+    }
+    updateBankroll({
+      transactions: [
+        ...bankroll.transactions,
+        { id: Date.now().toString(), type: 'deposit', amount, date: new Date().toISOString() },
+      ],
     });
+    setDepositInput('');
+    setShowDepositForm(false);
   }
 
   return (
@@ -169,9 +173,34 @@ function BankrollContent() {
             <Text style={[bk.metaValue, { color: colors.accent }]}>{formatMoney(unitAmount)}</Text>
           </View>
         </View>
-        <TouchableOpacity style={bk.depositBtn} onPress={handleAddDeposit}>
-          <Text style={bk.depositBtnText}>+ Пополнить</Text>
-        </TouchableOpacity>
+
+        {showDepositForm ? (
+          <View style={bk.depositForm}>
+            <TextInput
+              style={bk.depositInput}
+              placeholder="Сумма в рублях"
+              placeholderTextColor={colors.textMuted}
+              value={depositInput}
+              onChangeText={setDepositInput}
+              keyboardType="numeric"
+              autoFocus
+              returnKeyType="done"
+              onSubmitEditing={handleAddDeposit}
+            />
+            <View style={bk.depositActions}>
+              <TouchableOpacity style={bk.depositCancelBtn} onPress={() => { setShowDepositForm(false); setDepositInput(''); }}>
+                <Text style={bk.depositCancelText}>Отмена</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={bk.depositBtn} onPress={handleAddDeposit}>
+                <Text style={bk.depositBtnText}>Пополнить</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : (
+          <TouchableOpacity style={bk.depositBtn} onPress={() => setShowDepositForm(true)}>
+            <Text style={bk.depositBtnText}>+ Пополнить</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
       <KellyCalculator bankroll={currentBank} />
@@ -212,11 +241,23 @@ const bk = StyleSheet.create({
   row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
   metaLabel: { fontSize: 11, color: colors.textMuted },
   metaValue: { fontSize: 15, fontWeight: '600', color: colors.textPrimary, marginTop: 2 },
+  depositForm: { gap: 8 },
+  depositInput: {
+    backgroundColor: colors.bgElevated, borderRadius: 10,
+    paddingHorizontal: 14, paddingVertical: 12,
+    color: colors.textPrimary, fontSize: 16,
+    borderWidth: 1, borderColor: colors.purple,
+  },
+  depositActions: { flexDirection: 'row', gap: 8 },
+  depositCancelBtn: {
+    flex: 1, backgroundColor: colors.bgElevated, borderRadius: 10,
+    paddingVertical: 12, alignItems: 'center',
+    borderWidth: 1, borderColor: colors.border,
+  },
+  depositCancelText: { fontSize: 15, fontWeight: '600', color: colors.textSecondary },
   depositBtn: {
-    backgroundColor: colors.purple,
-    borderRadius: 10,
-    paddingVertical: 12,
-    alignItems: 'center',
+    flex: 1, backgroundColor: colors.purple,
+    borderRadius: 10, paddingVertical: 12, alignItems: 'center',
   },
   depositBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
   history: { paddingHorizontal: 16 },
