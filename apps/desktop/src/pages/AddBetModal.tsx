@@ -20,7 +20,7 @@ interface Props {
   onClose: () => void;
 }
 
-function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+function Field({ label, error, children }: { label: string; error?: string | undefined; children: React.ReactNode }) {
   return (
     <div style={f.container}>
       <label style={f.label}>{label}</label>

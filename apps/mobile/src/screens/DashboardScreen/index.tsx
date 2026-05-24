@@ -283,7 +283,7 @@ export function DashboardScreen() {
               noOfSections={3}
               yAxisTextStyle={{ color: colors.textMuted, fontSize: 9 }}
               xAxisLabelTextStyle={{ color: colors.textMuted, fontSize: 9 }}
-              hideXAxisText
+              hideYAxisText
               adjustToWidth
               curved
             />

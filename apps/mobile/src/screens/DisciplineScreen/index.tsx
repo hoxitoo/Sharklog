@@ -122,12 +122,8 @@ export function DisciplineScreen() {
       Alert.alert('Выбери настроение', 'Отметь, как себя чувствуешь сегодня');
       return;
     }
-    const entry: DiaryEntry = {
-      id: todayEntry?.id ?? uuid(),
-      date: today,
-      mood,
-      text: note.trim() || undefined,
-    };
+    const entryBase = { id: todayEntry?.id ?? uuid(), date: today, mood };
+    const entry: DiaryEntry = note.trim() ? { ...entryBase, text: note.trim() } : entryBase;
     addDiaryEntry(entry);
     setSaved(true);
   }

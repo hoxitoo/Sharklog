@@ -5,7 +5,8 @@ import {
 } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import type { NativeStackNavigationProp, RouteProp } from '@react-navigation/native-stack';
+import type { RouteProp } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { Sport, BetType, Strategy, BetStatus, EsportsDiscipline, Team } from '@sharklog/core';
 import {
   SPORTS, BET_TYPES, STRATEGIES, ESPORTS_DISCIPLINES, parseMoneyInput, formatMoney,
@@ -82,7 +83,7 @@ const sc = StyleSheet.create({
   textActive: { color: '#fff', fontWeight: '700' },
 });
 
-function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+function Field({ label, error, children }: { label: string; error?: string | undefined; children: React.ReactNode }) {
   return (
     <View style={field.container}>
       <Text style={field.label}>{label}</Text>
@@ -280,41 +281,27 @@ export function AddBetScreen() {
       return;
     }
 
-    const discipline = data.sport === 'esports' ? data.discipline : undefined;
+    const extras = {
+      ...(data.sport === 'esports' ? { discipline: data.discipline } : {}),
+      ...(data.notes ? { notes: data.notes } : {}),
+    };
 
     if (editBet) {
       updateBet(editBet.id, {
-        event: data.event,
-        pick: data.pick,
-        odds: oddsVal,
-        stake: stakeVal,
-        sport: data.sport,
-        discipline,
-        betType: data.betType,
-        strategy: data.strategy,
-        status: data.status,
-        notes: data.notes || undefined,
-        bookmaker: data.bookmaker,
+        event: data.event, pick: data.pick, odds: oddsVal, stake: stakeVal,
+        sport: data.sport, betType: data.betType, strategy: data.strategy,
+        status: data.status, bookmaker: data.bookmaker, ...extras,
       });
     } else {
       addBet({
         id: uuid(),
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
-        date: defaultDate,
-        time: defaultTime,
-        event: data.event,
-        pick: data.pick,
-        odds: oddsVal,
-        stake: stakeVal,
-        sport: data.sport,
-        discipline,
-        betType: data.betType,
-        strategy: data.strategy,
-        status: data.status,
-        notes: data.notes || undefined,
-        bookmaker: data.bookmaker,
-        schemaVersion: 1,
+        date: defaultDate, time: defaultTime,
+        event: data.event, pick: data.pick, odds: oddsVal, stake: stakeVal,
+        sport: data.sport, betType: data.betType, strategy: data.strategy,
+        status: data.status, bookmaker: data.bookmaker, schemaVersion: 1,
+        ...extras,
       });
     }
     navigation.goBack();
