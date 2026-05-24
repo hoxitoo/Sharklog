@@ -1,10 +1,11 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import {
-  View, FlatList, StyleSheet, TouchableOpacity, Text, TextInput, ScrollView, Alert, RefreshControl,
+  View, SectionList, StyleSheet, TouchableOpacity, Text, TextInput, ScrollView, Alert, RefreshControl,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { Bet, BetStatus } from '@sharklog/core';
+import { formatMoney } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { colors } from '../../theme/colors';
 import { ScreenHeader } from '../../components/ScreenHeader';
@@ -15,6 +16,18 @@ import { haptic } from '../../utils/haptics';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
+
+function formatDateTitle(dateStr: string): string {
+  const todayStr = new Date().toISOString().split('T')[0] ?? '';
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStr = yesterday.toISOString().split('T')[0] ?? '';
+  if (dateStr === todayStr) return 'Сегодня';
+  if (dateStr === yesterdayStr) return 'Вчера';
+  const parts = dateStr.split('-').map(Number);
+  const d = new Date(parts[0] ?? 0, (parts[1] ?? 1) - 1, parts[2] ?? 1);
+  return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+}
 
 const STATUS_FILTERS: Array<{ key: BetStatus | 'all'; label: string }> = [
   { key: 'all', label: 'Все' },
@@ -52,7 +65,7 @@ export function BetsScreen() {
     setTimeout(() => setRefreshing(false), 400);
   }, []);
 
-  const filtered = useMemo(() => {
+  const sections = useMemo(() => {
     let result = [...bets];
     if (statusFilter !== 'all') result = result.filter((b) => b.status === statusFilter);
     if (search.trim()) {
@@ -61,15 +74,34 @@ export function BetsScreen() {
         (b) => b.event.toLowerCase().includes(q) || b.pick.toLowerCase().includes(q),
       );
     }
-    result.sort((a, b) => {
-      switch (sort) {
-        case 'date_asc': return a.date.localeCompare(b.date) || (a.time ?? '').localeCompare(b.time ?? '');
-        case 'odds_desc': return b.odds - a.odds;
-        case 'stake_desc': return b.stake - a.stake;
-        default: return b.date.localeCompare(a.date) || (b.time ?? '').localeCompare(a.time ?? '');
-      }
+    // Group by date
+    const map = new Map<string, Bet[]>();
+    for (const bet of result) {
+      const arr = map.get(bet.date) ?? [];
+      arr.push(bet);
+      map.set(bet.date, arr);
+    }
+    // Sort section dates
+    const sortedDates = [...map.keys()].sort((a, b) =>
+      sort === 'date_asc' ? a.localeCompare(b) : b.localeCompare(a),
+    );
+    return sortedDates.map((date) => {
+      const data = [...(map.get(date) ?? [])];
+      data.sort((a, b) => {
+        switch (sort) {
+          case 'date_asc': return (a.time ?? '').localeCompare(b.time ?? '');
+          case 'odds_desc': return b.odds - a.odds;
+          case 'stake_desc': return b.stake - a.stake;
+          default: return (b.time ?? '').localeCompare(a.time ?? '');
+        }
+      });
+      const dailyPnl = data.reduce((sum, b) => {
+        if (b.status === 'won') return sum + Math.round(b.stake * b.odds) - b.stake;
+        if (b.status === 'lost') return sum - b.stake;
+        return sum;
+      }, 0);
+      return { title: formatDateTitle(date), date, dailyPnl, data };
     });
-    return result;
   }, [bets, statusFilter, search, sort]);
 
   const freeLeft = Math.max(0, 50 - bets.length);
@@ -147,14 +179,25 @@ export function BetsScreen() {
         ))}
       </View>
 
-      <FlatList
-        data={filtered}
+      <SectionList
+        sections={sections}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
           <SwipeableRow onDelete={() => { haptic.error(); deleteBet(item.id); }}>
             <BetCard bet={item} onEdit={handleEdit} />
           </SwipeableRow>
         )}
+        renderSectionHeader={({ section }) => (
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionDate}>{section.title}</Text>
+            {section.dailyPnl !== 0 && (
+              <Text style={[styles.sectionPnl, { color: section.dailyPnl > 0 ? colors.won : colors.lost }]}>
+                {section.dailyPnl > 0 ? '+' : ''}{formatMoney(section.dailyPnl)}
+              </Text>
+            )}
+          </View>
+        )}
+        stickySectionHeadersEnabled={false}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -246,6 +289,16 @@ const styles = StyleSheet.create({
   sortText: { fontSize: 11, color: colors.textMuted },
   sortTextActive: { color: colors.accent, fontWeight: '600' },
   list: { paddingBottom: 20 },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 4,
+  },
+  sectionDate: { fontSize: 11, color: colors.textMuted, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+  sectionPnl: { fontSize: 12, fontWeight: '700' },
   empty: { alignItems: 'center', paddingTop: 80 },
   emptyIcon: { fontSize: 48, marginBottom: 12 },
   emptyTitle: { fontSize: 18, fontWeight: '600', color: colors.textPrimary, marginBottom: 6 },

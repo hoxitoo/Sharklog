@@ -1,6 +1,6 @@
 # SharkLog — Roadmap
 
-_Обновлено: 2026-05-24_
+_Обновлено: 2026-05-24 (batch 4)_
 
 ---
 
@@ -63,8 +63,14 @@ _Обновлено: 2026-05-24_
 ### Приоритет 2: UX шлифовка
 - [ ] DM Sans + DM Mono fonts (`expo-google-fonts`)
 - [ ] Empty state иллюстрации (вместо emoji)
-- [ ] Swipe-to-delete для ставок (вместо long-press)
-- [ ] Pull-to-refresh для списка ставок
+- [x] Swipe-to-delete (SwipeableRow — PanResponder, без external deps)
+- [x] Pull-to-refresh для списка ставок (сбрасывает фильтры)
+- [x] W/L/R chips на pending ставках (прямое закрытие без long-press)
+- [x] Фильтр периода 7д/30д/Всё на Dashboard + Analytics
+- [x] BetsScreen: SectionList с заголовками дат + daily P&L на секцию
+- [x] Dashboard: лучшая/худшая ставка за период
+- [x] BankrollScreen: кривая банкролла (LineChart equity curve)
+- [x] DisciplineScreen: счётчик X/N для дневного лимита PRO
 
 ### Приоритет 3: Crash reporting
 - [ ] Sentry DSN настроить в `eas.json` production env
@@ -88,6 +94,6 @@ _Обновлено: 2026-05-24_
 |------|----------|-------|
 | DM Sans fonts | low | Phase 2 |
 | Real icon design | medium | До App Store |
-| Swipe-to-delete | low | Phase 2 |
+| ~~Swipe-to-delete~~ | ~~low~~ | ~~Phase 2~~ |
 | Desktop Tauri backend | high | Phase 3 |
 | E2E тесты (Detox) | low | Phase 3 |

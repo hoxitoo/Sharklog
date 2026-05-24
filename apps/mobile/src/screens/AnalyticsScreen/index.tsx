@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView } from 'react-native';
+import React, { useState, useMemo } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import {
   calcByField, calcByOddsRange, calcByDayOfWeek, calcByHour, calcDashboard,
   SPORTS, BET_TYPES, STRATEGIES, formatMoney, formatPercent,
@@ -8,6 +8,7 @@ import type { SliceStats } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { ProGate } from '../../components/ProGate';
 import { ScreenHeader } from '../../components/ScreenHeader';
+import { haptic } from '../../utils/haptics';
 import { colors } from '../../theme/colors';
 
 function SliceRow({ stat, maxPnl }: { stat: SliceStats; maxPnl: number }) {
@@ -154,20 +155,50 @@ const summary = StyleSheet.create({
   bestValue: { fontSize: 13, fontWeight: '600', color: colors.accent },
 });
 
+type APeriodFilter = '7d' | '30d' | 'all';
+const A_PERIOD_OPTIONS: Array<{ key: APeriodFilter; label: string }> = [
+  { key: '7d', label: '7 дней' },
+  { key: '30d', label: '30 дней' },
+  { key: 'all', label: 'Всё время' },
+];
+
 function AnalyticsContent() {
   const { bets } = useBetsStore();
+  const [period, setPeriod] = useState<APeriodFilter>('all');
 
-  const bySport = calcByField(bets, 'sport', (v) => SPORTS[v] ?? String(v));
-  const byBetType = calcByField(bets, 'betType', (v) => BET_TYPES[v] ?? String(v));
-  const byBookmaker = calcByField(bets, 'bookmaker');
-  const byStrategy = calcByField(bets, 'strategy', (v) => STRATEGIES[v] ?? String(v));
-  const byOdds = calcByOddsRange(bets);
-  const byDay = calcByDayOfWeek(bets);
-  const byHour = calcByHour(bets);
+  const filteredBets = useMemo(() => {
+    if (period === 'all') return bets;
+    const days = period === '7d' ? 7 : 30;
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
+    const cutoffStr = cutoff.toISOString().split('T')[0] ?? '';
+    return bets.filter((b) => b.date >= cutoffStr);
+  }, [bets, period]);
+
+  const bySport = calcByField(filteredBets, 'sport', (v) => SPORTS[v] ?? String(v));
+  const byBetType = calcByField(filteredBets, 'betType', (v) => BET_TYPES[v] ?? String(v));
+  const byBookmaker = calcByField(filteredBets, 'bookmaker');
+  const byStrategy = calcByField(filteredBets, 'strategy', (v) => STRATEGIES[v] ?? String(v));
+  const byOdds = calcByOddsRange(filteredBets);
+  const byDay = calcByDayOfWeek(filteredBets);
+  const byHour = calcByHour(filteredBets);
 
   return (
     <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 24 }}>
-      <SummaryCard bets={bets} />
+      <View style={styles.periodRow}>
+        {A_PERIOD_OPTIONS.map((p) => (
+          <TouchableOpacity
+            key={p.key}
+            style={[styles.periodBtn, period === p.key && styles.periodBtnActive]}
+            onPress={() => { haptic.selection(); setPeriod(p.key); }}
+          >
+            <Text style={[styles.periodText, period === p.key && styles.periodTextActive]}>
+              {p.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+      <SummaryCard bets={filteredBets} />
       <Section title="По виду спорта" stats={bySport} />
       <Section title="По типу ставки" stats={byBetType} />
       <Section title="По букмекеру" stats={byBookmaker} />
@@ -192,4 +223,26 @@ export function AnalyticsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
+  periodRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    gap: 8,
+    marginTop: 10,
+    marginBottom: 14,
+  },
+  periodBtn: {
+    flex: 1,
+    paddingVertical: 7,
+    borderRadius: 8,
+    backgroundColor: colors.bgCard,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  periodBtnActive: {
+    backgroundColor: colors.purple,
+    borderColor: colors.purple,
+  },
+  periodText: { fontSize: 12, fontWeight: '600', color: colors.textSecondary },
+  periodTextActive: { color: '#fff' },
 });

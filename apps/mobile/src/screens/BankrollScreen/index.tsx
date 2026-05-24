@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Alert,
+  TextInput, Alert, useWindowDimensions,
 } from 'react-native';
+import { LineChart } from 'react-native-gifted-charts';
 import { calcDashboard, formatMoney, parseMoneyInput, kellyFraction, expectedValue, impliedProbability } from '@sharklog/core';
 
 function uuid(): string {
@@ -215,8 +216,32 @@ const tx_ = StyleSheet.create({
 
 function BankrollContent() {
   const { bets, bankroll, updateBankroll } = useBetsStore();
+  const { width } = useWindowDimensions();
   const stats = calcDashboard(bets);
   const [activeTxForm, setActiveTxForm] = useState<TxType | null>(null);
+
+  const equityCurve = useMemo(() => {
+    const events: Array<{ date: string; delta: number }> = [];
+    for (const tx of bankroll.transactions) {
+      const date = (tx.date.split('T')[0]) ?? tx.date;
+      events.push({ date, delta: tx.type === 'deposit' ? tx.amount : -tx.amount });
+    }
+    for (const bet of bets) {
+      if (bet.status === 'pending') continue;
+      const pnl = bet.status === 'won' ? Math.round(bet.stake * bet.odds) - bet.stake : bet.status === 'lost' ? -bet.stake : 0;
+      events.push({ date: bet.date, delta: pnl });
+    }
+    if (events.length < 2) return [];
+    const byDate = new Map<string, number>();
+    for (const e of events) {
+      byDate.set(e.date, (byDate.get(e.date) ?? 0) + e.delta);
+    }
+    let balance = 0;
+    return [...byDate.keys()].sort().map((date) => {
+      balance += byDate.get(date) ?? 0;
+      return { date, value: balance };
+    });
+  }, [bets, bankroll.transactions]);
 
   const deposited = bankroll.transactions.filter((t) => t.type === 'deposit').reduce((s, t) => s + t.amount, 0);
   const withdrawn = bankroll.transactions.filter((t) => t.type === 'withdrawal').reduce((s, t) => s + t.amount, 0);
@@ -322,6 +347,35 @@ function BankrollContent() {
         )}
       </View>
 
+      {/* Equity curve */}
+      {equityCurve.length >= 2 && (
+        <View style={bk.chartCard}>
+          <Text style={bk.chartTitle}>Кривая банкролла</Text>
+          <LineChart
+            data={equityCurve.map((p) => ({ value: p.value / 100 }))}
+            width={width - 64}
+            height={100}
+            color={currentBank >= 0 ? colors.won : colors.lost}
+            thickness={2}
+            hideDataPoints
+            areaChart
+            startFillColor={currentBank >= 0 ? colors.won : colors.lost}
+            endFillColor={colors.bgCard}
+            startOpacity={0.2}
+            endOpacity={0}
+            backgroundColor={colors.bgCard}
+            xAxisColor={colors.border}
+            yAxisColor="transparent"
+            rulesType="solid"
+            rulesColor={colors.border + '55'}
+            noOfSections={3}
+            hideYAxisText
+            adjustToWidth
+            curved
+          />
+        </View>
+      )}
+
       {/* Kelly Calculator */}
       <KellyCalculator bankroll={currentBank} />
 
@@ -373,6 +427,12 @@ const bk = StyleSheet.create({
     borderWidth: 1, borderColor: colors.lost,
   },
   withdrawBtnText: { fontSize: 15, fontWeight: '700', color: colors.lost },
+  chartCard: {
+    backgroundColor: colors.bgCard, borderRadius: 14, padding: 16,
+    marginHorizontal: 16, marginBottom: 14, borderWidth: 1, borderColor: colors.border,
+    overflow: 'hidden',
+  },
+  chartTitle: { fontSize: 13, fontWeight: '700', color: colors.textPrimary, marginBottom: 10 },
   history: { paddingHorizontal: 16 },
   historyTitle: { fontSize: 16, fontWeight: '700', color: colors.textPrimary, marginBottom: 2 },
   historyHint: { fontSize: 11, color: colors.textMuted, marginBottom: 10 },
