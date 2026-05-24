@@ -6,6 +6,7 @@ import { colors } from '../theme/colors';
 import { BetsScreen } from '../screens/BetsScreen';
 import { DashboardScreen } from '../screens/DashboardScreen';
 import { AnalyticsScreen } from '../screens/AnalyticsScreen';
+import { DisciplineScreen } from '../screens/DisciplineScreen';
 import { BankrollScreen } from '../screens/BankrollScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { AddBetScreen } from '../screens/AddBetScreen';
@@ -13,13 +14,14 @@ import { AddBetScreen } from '../screens/AddBetScreen';
 export type RootStackParamList = {
   Tabs: undefined;
   AddBet: { betId?: string };
+  Bankroll: undefined;
 };
 
 export type TabParamList = {
   Bets: undefined;
   Dashboard: undefined;
+  Discipline: undefined;
   Analytics: undefined;
-  Bankroll: undefined;
   Settings: undefined;
 };
 
@@ -30,8 +32,8 @@ function TabIcon({ name, focused }: { name: string; focused: boolean }) {
   const icons: Record<string, string> = {
     Bets: '📋',
     Dashboard: '📊',
+    Discipline: '🧘',
     Analytics: '🔬',
-    Bankroll: '💰',
     Settings: '⚙️',
   };
   return (
@@ -53,7 +55,7 @@ function Tabs() {
           paddingBottom: 4,
           height: 60,
         },
-        tabBarActiveTintColor: colors.accent,
+        tabBarActiveTintColor: colors.purple,
         tabBarInactiveTintColor: colors.textMuted,
         tabBarLabelStyle: { fontSize: 10, marginTop: -2 },
         tabBarIcon: ({ focused }) => (
@@ -63,8 +65,8 @@ function Tabs() {
     >
       <Tab.Screen name="Bets" component={BetsScreen} options={{ tabBarLabel: 'Ставки' }} />
       <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ tabBarLabel: 'Дашборд' }} />
+      <Tab.Screen name="Discipline" component={DisciplineScreen} options={{ tabBarLabel: 'Дисциплина' }} />
       <Tab.Screen name="Analytics" component={AnalyticsScreen} options={{ tabBarLabel: 'Аналитика' }} />
-      <Tab.Screen name="Bankroll" component={BankrollScreen} options={{ tabBarLabel: 'Банкролл' }} />
       <Tab.Screen name="Settings" component={SettingsScreen} options={{ tabBarLabel: 'Настройки' }} />
     </Tab.Navigator>
   );
@@ -83,6 +85,17 @@ export function RootNavigator() {
           headerStyle: { backgroundColor: colors.bgCard },
           headerTintColor: colors.textPrimary,
           headerTitleStyle: { color: colors.textPrimary, fontWeight: '700' },
+        }}
+      />
+      <Stack.Screen
+        name="Bankroll"
+        component={BankrollScreen}
+        options={{
+          headerShown: true,
+          headerStyle: { backgroundColor: colors.bgCard },
+          headerTintColor: colors.textPrimary,
+          headerTitleStyle: { color: colors.textPrimary, fontWeight: '700' },
+          title: 'Банкролл',
         }}
       />
     </Stack.Navigator>

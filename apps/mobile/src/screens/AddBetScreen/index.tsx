@@ -76,9 +76,9 @@ const sc = StyleSheet.create({
     borderRadius: 8, backgroundColor: colors.bgCard,
     borderWidth: 1, borderColor: colors.border,
   },
-  itemActive: { backgroundColor: colors.accent, borderColor: colors.accent },
+  itemActive: { backgroundColor: colors.purple, borderColor: colors.purple },
   text: { fontSize: 13, color: colors.textSecondary },
-  textActive: { color: '#000', fontWeight: '700' },
+  textActive: { color: '#fff', fontWeight: '700' },
 });
 
 function Field({
@@ -409,16 +409,16 @@ const styles = StyleSheet.create({
     borderRadius: 8, backgroundColor: colors.bgCard,
     borderWidth: 1, borderColor: colors.border,
   },
-  bkBtnActive: { backgroundColor: colors.accent, borderColor: colors.accent },
+  bkBtnActive: { backgroundColor: colors.purple, borderColor: colors.purple },
   bkText: { fontSize: 13, color: colors.textSecondary },
-  bkTextActive: { color: '#000', fontWeight: '700' },
+  bkTextActive: { color: '#fff', fontWeight: '700' },
   notes: { height: 80 },
   submitBtn: {
-    backgroundColor: colors.accent,
+    backgroundColor: colors.purple,
     borderRadius: 14,
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 8,
   },
-  submitText: { fontSize: 16, fontWeight: '700', color: '#000' },
+  submitText: { fontSize: 16, fontWeight: '700', color: '#fff' },
 });

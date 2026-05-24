@@ -1,24 +1,26 @@
 export const colors = {
-  bg: '#0A0A0A',
-  bgCard: '#141414',
-  bgElevated: '#1E1E1E',
-  border: '#2A2A2A',
+  bg: '#080810',
+  bgCard: '#0E0E1C',
+  bgElevated: '#12121E',
+  border: '#1C1C30',
 
-  accent: '#00D4AA',      // shark teal — primary CTA
-  accentDim: '#00D4AA22',
-  gold: '#F5C842',        // pro badge
-  red: '#FF4757',
-  green: '#2ED573',
-  yellow: '#FFA502',
+  // Two-accent palette matching web prototype
+  accent: '#22D3A0',      // teal — win/positive
+  accentDim: '#22D3A022',
+  purple: '#5B6AF0',      // purple — primary CTA / interactive
+  purpleDim: '#5B6AF022',
+  gold: '#F59E0B',        // pro badge / pending
+  red: '#F4455A',
+  violet: '#A78BFA',      // secondary stats
 
-  textPrimary: '#FFFFFF',
-  textSecondary: '#8A8A8A',
-  textMuted: '#4A4A4A',
+  textPrimary: '#E2E2EF',
+  textSecondary: '#555568',
+  textMuted: '#333345',
 
-  won: '#2ED573',
-  lost: '#FF4757',
-  pending: '#FFA502',
-  refund: '#8A8A8A',
+  won: '#22D3A0',
+  lost: '#F4455A',
+  pending: '#F59E0B',
+  refund: '#A78BFA',
 } as const;
 
 export type Colors = typeof colors;

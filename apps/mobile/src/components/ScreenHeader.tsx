@@ -40,10 +40,10 @@ const styles = StyleSheet.create({
   title: { fontSize: 28, fontWeight: '700', color: colors.textPrimary, letterSpacing: -0.5 },
   subtitle: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
   action: {
-    backgroundColor: colors.accent,
+    backgroundColor: colors.purple,
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
   },
-  actionText: { fontSize: 14, fontWeight: '700', color: '#000' },
+  actionText: { fontSize: 14, fontWeight: '700', color: '#fff' },
 });

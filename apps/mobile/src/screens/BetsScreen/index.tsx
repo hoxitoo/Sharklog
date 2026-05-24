@@ -141,8 +141,8 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   filterBtnActive: {
-    backgroundColor: colors.accent,
-    borderColor: colors.accent,
+    backgroundColor: colors.purple,
+    borderColor: colors.purple,
   },
   filterText: { fontSize: 12, color: colors.textSecondary },
   filterTextActive: { color: '#000', fontWeight: '700' },

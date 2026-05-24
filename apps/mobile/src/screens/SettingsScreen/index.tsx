@@ -210,14 +210,14 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   addBkBtn: {
-    backgroundColor: colors.accent,
+    backgroundColor: colors.purple,
     width: 38,
     height: 38,
     borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  addBkBtnText: { fontSize: 22, color: '#000', fontWeight: '700', lineHeight: 26 },
+  addBkBtnText: { fontSize: 22, color: '#fff', fontWeight: '700', lineHeight: 26 },
   dangerBtn: {
     paddingVertical: 14,
     alignItems: 'center',
