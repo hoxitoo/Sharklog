@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Bet, AppSettings, Bankroll, DiaryEntry, Team, Sport, EsportsDiscipline } from '@sharklog/core';
-import { migrate, CURRENT_SCHEMA_VERSION, FREE_LIMITS, isInTilt } from '@sharklog/core';
+import { migrate, CURRENT_SCHEMA_VERSION, FREE_LIMITS, isInTilt, calcDashboard } from '@sharklog/core';
 import { sendTiltNotification } from '../utils/notifications';
 
 const STORAGE_KEY = '@sharklog/data';
@@ -141,16 +141,15 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
       const teams = updated
         ? upsertTeams(s.teams, extractTeamNames(updated.event), updated.sport, updated.discipline)
         : s.teams;
-      // Fire tilt notification when a bet is closed as a loss
-      if (updates.status === 'lost') {
-        const { tiltThreshold } = s.settings;
-        if (isInTilt(bets, tiltThreshold)) {
-          const streak = bets.filter((b) => b.status === 'lost').length; // approximate
-          sendTiltNotification(tiltThreshold);
-        }
-      }
       return { bets, teams };
     });
+    // Fire tilt notification after state update so we work with final bets array
+    if (updates.status === 'lost') {
+      const { bets, settings } = get();
+      if (isInTilt(bets, settings.tiltThreshold)) {
+        sendTiltNotification(calcDashboard(bets).currentStreak.count);
+      }
+    }
     get().persist();
   },
 

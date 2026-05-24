@@ -23,7 +23,8 @@ export default function App() {
     load().then(async () => {
       scheduleDailyReminder();
       const isPro = await syncEntitlement();
-      updateSettings({ isPro });
+      // Only upgrade to pro — never downgrade on network failure
+      if (isPro) updateSettings({ isPro: true });
     });
   }, []);
 

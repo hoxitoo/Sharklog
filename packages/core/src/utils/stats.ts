@@ -1,4 +1,4 @@
-import type { Bet, BetStatus } from '../types/bet.js';
+import type { Bet } from '../types/bet.js';
 import { ODDS_RANGES } from '../constants/index.js';
 
 export interface SliceStats {

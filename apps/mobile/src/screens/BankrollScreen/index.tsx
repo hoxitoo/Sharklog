@@ -4,6 +4,13 @@ import {
   TextInput, Alert,
 } from 'react-native';
 import { calcDashboard, formatMoney, parseMoneyInput, kellyFraction, expectedValue, impliedProbability } from '@sharklog/core';
+
+function uuid(): string {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
+  });
+}
 import type { BankrollTransaction } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { ProGate } from '../../components/ProGate';
@@ -222,7 +229,7 @@ function BankrollContent() {
       return;
     }
     const newTx: BankrollTransaction = {
-      id: Date.now().toString(),
+      id: uuid(),
       type,
       amount,
       date: new Date().toISOString(),

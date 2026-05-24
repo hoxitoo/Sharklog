@@ -368,8 +368,8 @@ export function AddBetScreen() {
   const watchedSport = watch('sport');
   const watchedDiscipline = watch('discipline');
   const stakeKopecks = parseMoneyInput(stakeRaw);
-  const potentialWin = watchedOdds > 0 && stakeKopecks > 0
-    ? formatMoney(Math.round(stakeKopecks * watchedOdds))
+  const potentialProfit = watchedOdds > 0 && stakeKopecks > 0
+    ? formatMoney(Math.round(stakeKopecks * watchedOdds) - stakeKopecks)
     : null;
 
   const bankKopecks = useMemo(() => {
@@ -514,10 +514,10 @@ export function AddBetScreen() {
           </Field>
         </View>
 
-        {potentialWin && (
+        {potentialProfit && (
           <View style={styles.winPreview}>
-            <Text style={styles.winLabel}>Потенциальный выигрыш</Text>
-            <Text style={styles.winAmount}>{potentialWin}</Text>
+            <Text style={styles.winLabel}>Прибыль при победе</Text>
+            <Text style={styles.winAmount}>{potentialProfit}</Text>
           </View>
         )}
 

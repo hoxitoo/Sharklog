@@ -9,11 +9,11 @@ Read this at the start of every session. Always develop on `claude/busy-shannon-
 ```
 apps/mobile/src/
   screens/
-    BetsScreen/         — FlatList, search, status filter, ChecklistModal (PRO)
-    AddBetScreen/       — react-hook-form, TeamAutocomplete, esports discipline selector
+    BetsScreen/         — FlatList, search, status filter (scroll), sort row (date/odds/stake), haptics, ChecklistModal (PRO)
+    AddBetScreen/       — react-hook-form, TeamAutocomplete, Kelly calculator (collapsible, запускается при odds > 1)
     DashboardScreen/    — stats grid, W/L strip, 12-week heatmap, P&L LineChart (gifted-charts)
-    AnalyticsScreen/    — 6 slices с горизонтальными барами (PRO via ProGate)
-    BankrollScreen/     — сводка банкролла, inline deposit form, Kelly calculator (PRO)
+    AnalyticsScreen/    — SummaryCard (total/winrate/P&L/ROI) + 6 срезов с барами (PRO via ProGate)
+    BankrollScreen/     — сводка банкролла, inline deposit/withdrawal form, Kelly calculator (PRO)
     DisciplineScreen/   — mood picker (1-5), тилт-стата, 8 правил, diary
     SettingsScreen/     — Stepper для PRO настроек, paywall modal, clearAll, export, notifications
     OnboardingScreen/   — 3 шага: welcome → стартовый банкролл → букмекеры
@@ -27,12 +27,14 @@ apps/mobile/src/
                           Tabs: Ставки | Дашборд | Дисциплина | Аналитика | Настройки
   services/
     revenueCat.ts       — initRevenueCat, getOfferings, purchasePackage, restorePurchases, syncEntitlement
+    sentry.ts           — initSentry, captureException, setUserContext, clearUserContext
   store/
     betsStore.ts        — Zustand + AsyncStorage; addBet, updateBet, deleteBet,
-                          updateSettings, updateBankroll, addDiaryEntry, deleteTeam, clearAll
+                          updateSettings, updateBankroll, addDiaryEntry, deleteTeam, clearAll, canAddBet
   theme/
-    colors.ts           — two-accent palette
+    colors.ts           — two-accent palette (accent=teal, purple=CTA)
   utils/
+    haptics.ts          — haptic.selection/light/medium/heavy/success/warning/error
     notifications.ts    — scheduleDailyReminder (20:00), sendTiltNotification, requestNotificationPermission
     exportCSV.ts        — CSV с UTF-8 BOM, expo-file-system + expo-sharing
 
@@ -41,7 +43,7 @@ packages/core/src/
   constants/index.ts    — SPORTS, BET_TYPES, STRATEGIES, ESPORTS_DISCIPLINES, FREE_LIMITS, ODDS_RANGES
   utils/
     stats.ts            — calcDashboard, calcByField, calcByOddsRange, calcByDayOfWeek, isInTilt
-    kelly.ts            — kellyFraction, halfKelly, expectedValue, impliedProbability
+    kelly.ts            — kellyFraction, halfKelly, expectedValue, impliedProbability, recommendedStake
     formatters.ts       — formatMoney, parseMoneyInput, formatOdds, formatPercent
     migrations.ts       — migrate(raw)
 
@@ -74,15 +76,9 @@ interface Bet {
   schemaVersion: number;
 }
 
-interface Team {
-  id: string; name: string; sport: Sport;
-  discipline?: EsportsDiscipline; // NaVi CS2 ≠ NaVi Dota 2 — разные записи
-  usageCount: number; lastUsed: string;
-}
-
 interface AppSettings {
   tiltThreshold: number;   // Free: фикс 3 / PRO: stepper 2–10
-  dailyBetLimit: number;   // 0 = нет лимита (только PRO)
+  dailyBetLimit: number;   // 0 = нет лимита (только PRO); enforced в canAddBet()
   bookmakers: string[];
   isPro: boolean;
   onboardingComplete: boolean;
@@ -95,6 +91,14 @@ interface Bankroll {
   transactions: BankrollTransaction[];
   createdAt: string;
 }
+
+interface BankrollTransaction {
+  id: string;              // UUID v4 — никогда не Date.now()
+  type: 'deposit' | 'withdrawal';
+  amount: number;          // kopecks
+  date: string;            // ISO-8601
+  note?: string;
+}
 ```
 
 ---
@@ -102,11 +106,13 @@ interface Bankroll {
 ## Key Invariants
 
 1. **Money = kopecks integer**: `1000 ₽ → 100_000`. `formatMoney()` / `parseMoneyInput()`.
-2. **Team memory**: `upsertTeams()` в store вызывается при каждом addBet/updateBet.
-3. **Esports discipline**: `sport === 'esports'` → discipline обязателен. Compound key: `name+sport+discipline`.
-4. **exactOptionalPropertyTypes: true**: `prop={undefined}` → ошибка. Используй `{...(x ? { prop: x } : {})}`.
-5. **PRO gate**: любой PRO-контент через `<ProGate feature="...">`.
-6. **clearAll()**: сбрасывает bets/diary/teams/bankroll, сохраняет `onboardingComplete: true`.
+2. **IDs = UUID v4**: все сущности (Bet, Team, BankrollTransaction, DiaryEntry) — UUID v4, не Date.now().
+3. **Team memory**: `upsertTeams()` в store вызывается при каждом addBet/updateBet.
+4. **Esports discipline**: `sport === 'esports'` → discipline обязателен. Compound key: `name+sport+discipline`.
+5. **exactOptionalPropertyTypes: true**: `prop={undefined}` → ошибка. Используй `{...(x ? { prop: x } : {})}`.
+6. **PRO gate**: любой PRO-контент через `<ProGate feature="...">`.
+7. **clearAll()**: сбрасывает bets/diary/teams/bankroll, сохраняет `onboardingComplete: true`.
+8. **syncEntitlement()**: только устанавливает `isPro: true`, никогда не downgrade (на случай network failure).
 
 ---
 
@@ -119,8 +125,8 @@ interface BetsStore {
 
   load(): Promise<void>;
   persist(): Promise<void>;
-  addBet(bet: Bet): void;                    // + upsertTeams, + tilt check
-  updateBet(id: string, updates: Partial<Bet>): void;
+  addBet(bet: Bet): void;                    // + upsertTeams, tilt check after update
+  updateBet(id: string, updates: Partial<Bet>): void;  // side effects OUTSIDE set()
   deleteBet(id: string): void;
   updateSettings(updates: Partial<AppSettings>): void;
   updateBankroll(updates: Partial<Bankroll>): void;
@@ -128,6 +134,7 @@ interface BetsStore {
   deleteTeam(id: string): void;
   clearAll(): void;                          // полный сброс пользовательских данных
   canAddBet(): boolean;                      // false если Free && bets >= 50
+                                             // false если Pro && dailyBetLimit > 0 && todayBets >= limit
 }
 ```
 
@@ -142,34 +149,30 @@ interface BetsStore {
 
 ---
 
-## Что сделано (Phase 1 complete)
+## Что сделано
 
 - [x] Все 7 мобильных экранов + OnboardingScreen
 - [x] Zustand store с полным CRUD + persistence
 - [x] RevenueCat paywall (real offerings, purchase, restore)
-- [x] Push notifications (daily reminder, tilt alert)
+- [x] Push notifications (daily reminder, tilt alert с правильным streak count)
 - [x] CSV export (expo-sharing, UTF-8 BOM)
 - [x] Team autocomplete с esports discipline
 - [x] Pre-bet checklist modal (PRO)
 - [x] CI: tests + type-check (все зелёные)
 - [x] EAS: development/preview/production profiles
 - [x] Placeholder assets (icon/splash/adaptive-icon)
-- [x] `clearAll()`, редактируемые PRO-настройки (stepper), inline deposit form
+- [x] `clearAll()`, редактируемые PRO-настройки (stepper), inline deposit/withdrawal form
 - [x] Desktop frontend scaffold (TypeScript чистый, без Tauri backend)
-
----
-
-## Следующие шаги (Phase 2)
-
-### Текущий спринт
-- [ ] **Bankroll: withdrawal + unit% config** — функциональный пробел
-- [ ] **Sentry** — crash reporting перед первым реальным тестом
-
-### После
-- [ ] Финальные иконки (заменить placeholder)
-- [ ] Скриншоты для App Store / Google Play
-- [ ] Заполнить EAS projectId и Apple ID
-- [ ] Задеплоить Privacy Policy
+- [x] Haptic feedback: haptics.ts, wired в AddBet + BetCard + DisciplineScreen
+- [x] BetsScreen: sort (date/odds/stake) + status filter scroll + haptics
+- [x] AnalyticsScreen: SummaryCard с total/winrate/P&L/ROI/best sport
+- [x] AddBetScreen: Kelly calculator (collapsible, implied prob, EV, half-kelly, "Применить")
+- [x] canAddBet() enforces dailyBetLimit для PRO, contextual Alert
+- [x] Bugfix: тилт-нотификация отправляла tiltThreshold вместо streak count
+- [x] Bugfix: syncEntitlement не делает downgrade при network failure
+- [x] Bugfix: все ID — UUID v4 (убраны Date.now() в Onboarding и Bankroll)
+- [x] Bugfix: "Прибыль при победе" = stake*(odds-1), а не stake*odds
+- [x] Bugfix: неиспользуемый импорт BetStatus удалён из stats.ts
 
 ---
 
