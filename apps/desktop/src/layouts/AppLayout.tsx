@@ -1,4 +1,5 @@
 import React from 'react';
+import { FREE_LIMITS } from '@sharklog/core';
 import { colors } from '../theme/colors';
 import { useBetsStore } from '../store/betsStore';
 
@@ -62,10 +63,10 @@ export function AppLayout({ page, onNavigate, onAddBet, children }: Props) {
           ) : (
             <div style={s.freeInfo}>
               <span style={{ color: colors.textMuted, fontSize: 11 }}>
-                {betsCount} / 50 ставок
+                {betsCount} / {FREE_LIMITS.MAX_BETS} ставок
               </span>
               <div style={s.freeBar}>
-                <div style={{ ...s.freeBarFill, width: `${Math.min(100, (betsCount / 50) * 100)}%` }} />
+                <div style={{ ...s.freeBarFill, width: `${Math.min(100, (betsCount / FREE_LIMITS.MAX_BETS) * 100)}%` }} />
               </div>
             </div>
           )}
