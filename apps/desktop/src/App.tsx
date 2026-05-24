@@ -6,6 +6,7 @@ import { BetsPage } from './pages/BetsPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
 import { BankrollPage } from './pages/BankrollPage';
 import { SettingsPage } from './pages/SettingsPage';
+import { DiaryPage } from './pages/DiaryPage';
 import { AddBetModal } from './pages/AddBetModal';
 import { useBetsStore } from './store/betsStore';
 
@@ -20,13 +21,23 @@ export function App() {
   function openEdit(bet: Bet) { setModalBet(bet); }
   function closeModal() { setModalBet(null); }
 
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape' && modalBet !== null) closeModal();
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n') { e.preventDefault(); openAdd(); }
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [modalBet]);
+
   return (
     <>
-      <AppLayout page={page} onNavigate={setPage}>
+      <AppLayout page={page} onNavigate={setPage} onAddBet={openAdd}>
         {page === 'dashboard' && <DashboardPage />}
         {page === 'bets' && <BetsPage onAdd={openAdd} onEdit={openEdit} />}
         {page === 'analytics' && <AnalyticsPage />}
         {page === 'bankroll' && <BankrollPage />}
+        {page === 'diary' && <DiaryPage />}
         {page === 'settings' && <SettingsPage />}
       </AppLayout>
 

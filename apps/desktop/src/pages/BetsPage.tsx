@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import type { Bet, BetStatus } from '@sharklog/core';
-import { SPORTS, BET_TYPES, formatMoney, formatOdds } from '@sharklog/core';
+import { SPORTS, BET_TYPES, formatMoney, formatOdds, FREE_LIMITS } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
 import { colors } from '../theme/colors';
 
@@ -24,15 +24,32 @@ const FILTERS: Array<{ key: BetStatus | 'all'; label: string }> = [
   { key: 'refund', label: 'Возвраты' },
 ];
 
+type SortKey = 'date_desc' | 'date_asc' | 'odds_desc' | 'stake_desc';
+const SORT_OPTIONS: Array<{ key: SortKey; label: string }> = [
+  { key: 'date_desc', label: 'Новые ↓' },
+  { key: 'date_asc', label: 'Старые ↑' },
+  { key: 'odds_desc', label: 'Коэф. ↓' },
+  { key: 'stake_desc', label: 'Ставка ↓' },
+];
+
+function formatDateTitle(dateStr: string): string {
+  const today = new Date().toISOString().split('T')[0] ?? '';
+  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0] ?? '';
+  if (dateStr === today) return 'Сегодня';
+  if (dateStr === yesterday) return 'Вчера';
+  return new Date(dateStr + 'T12:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+}
+
 export function BetsPage({ onAdd, onEdit }: Props) {
   const { bets, deleteBet, updateBet, settings } = useBetsStore();
   const [filter, setFilter] = useState<BetStatus | 'all'>('all');
   const [search, setSearch] = useState('');
+  const [sort, setSort] = useState<SortKey>('date_desc');
   const [hovered, setHovered] = useState<string | null>(null);
 
-  const freeLeft = Math.max(0, 50 - bets.length);
+  const freeLeft = Math.max(0, FREE_LIMITS.MAX_BETS - bets.length);
 
-  const filtered = useMemo(() => {
+  const sections = useMemo(() => {
     let result = [...bets];
     if (filter !== 'all') result = result.filter((b) => b.status === filter);
     if (search.trim()) {
@@ -41,8 +58,38 @@ export function BetsPage({ onAdd, onEdit }: Props) {
         b.event.toLowerCase().includes(q) || b.pick.toLowerCase().includes(q),
       );
     }
-    return result;
-  }, [bets, filter, search]);
+
+    // Group by date
+    const map = new Map<string, Bet[]>();
+    for (const bet of result) {
+      const arr = map.get(bet.date) ?? [];
+      arr.push(bet);
+      map.set(bet.date, arr);
+    }
+
+    // Sort date keys
+    const sortedDates = [...map.keys()].sort((a, b) =>
+      sort === 'date_asc' ? a.localeCompare(b) : b.localeCompare(a),
+    );
+
+    return sortedDates.map((date) => {
+      const data = [...(map.get(date) ?? [])];
+      if (sort === 'odds_desc') data.sort((a, b) => b.odds - a.odds);
+      else if (sort === 'stake_desc') data.sort((a, b) => b.stake - a.stake);
+      else if (sort === 'date_asc') data.sort((a, b) => a.time.localeCompare(b.time));
+      else data.sort((a, b) => b.time.localeCompare(a.time));
+
+      const dailyPnl = data.reduce((sum, b) => {
+        if (b.status === 'won') return sum + Math.round(b.stake * b.odds) - b.stake;
+        if (b.status === 'lost') return sum - b.stake;
+        return sum;
+      }, 0);
+
+      return { date, title: formatDateTitle(date), dailyPnl, data };
+    });
+  }, [bets, filter, search, sort]);
+
+  const totalFiltered = sections.reduce((n, s) => n + s.data.length, 0);
 
   function handleClose(bet: Bet, status: BetStatus) {
     updateBet(bet.id, { status });
@@ -52,22 +99,24 @@ export function BetsPage({ onAdd, onEdit }: Props) {
     if (window.confirm(`Удалить ставку?\n${bet.event}`)) deleteBet(bet.id);
   }
 
+  const COLS = ['Событие', 'Выбор', 'Спорт', 'Тип', 'Коэф.', 'Ставка', 'P&L', 'Статус', ''];
+
   return (
     <div style={s.page}>
       <div style={s.header}>
         <div>
           <h1 style={s.title}>Ставки</h1>
           <div style={s.subtitle}>
-            {settings.isPro ? `${bets.length} ставок` : `${freeLeft} из 50 осталось`}
+            {settings.isPro ? `${bets.length} ставок` : `${freeLeft} из ${FREE_LIMITS.MAX_BETS} осталось`}
           </div>
         </div>
         <button style={s.addBtn} onClick={onAdd}>+ Добавить ставку</button>
       </div>
 
-      {!settings.isPro && bets.length >= 40 && (
+      {!settings.isPro && bets.length >= FREE_LIMITS.MAX_BETS - 10 && (
         <div style={s.limitBanner}>
           {freeLeft <= 0
-            ? '🔒 Лимит 50 ставок достигнут — перейди на Pro'
+            ? `🔒 Лимит ${FREE_LIMITS.MAX_BETS} ставок достигнут — перейди на Pro`
             : `⚠️ Осталось ${freeLeft} бесплатных ставок`}
         </div>
       )}
@@ -91,10 +140,21 @@ export function BetsPage({ onAdd, onEdit }: Props) {
             </button>
           ))}
         </div>
+        <div style={{ display: 'flex', gap: 4, marginLeft: 8, borderLeft: `1px solid ${colors.border}`, paddingLeft: 12 }}>
+          {SORT_OPTIONS.map((o) => (
+            <button
+              key={o.key}
+              style={{ ...s.sortBtn, ...(sort === o.key ? s.sortBtnActive : {}) }}
+              onClick={() => setSort(o.key)}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Table */}
-      {filtered.length === 0 ? (
+      {/* Content */}
+      {totalFiltered === 0 ? (
         <div style={s.empty}>
           <div style={{ fontSize: 48, marginBottom: 12 }}>🦈</div>
           <div style={s.emptyTitle}>{search ? 'Ничего не найдено' : 'Ставок пока нет'}</div>
@@ -105,63 +165,77 @@ export function BetsPage({ onAdd, onEdit }: Props) {
           <table style={s.table}>
             <thead>
               <tr>
-                {['Дата', 'Событие', 'Выбор', 'Спорт', 'Тип', 'Коэф.', 'Ставка', 'P&L', 'Статус', ''].map((h) => (
-                  <th key={h} style={s.th}>{h}</th>
-                ))}
+                {COLS.map((h) => <th key={h} style={s.th}>{h}</th>)}
               </tr>
             </thead>
-            <tbody>
-              {filtered.map((bet) => {
-                const pnl = bet.status === 'won' ? Math.round(bet.stake * (bet.odds - 1))
-                  : bet.status === 'lost' ? -bet.stake : null;
-                const isHov = hovered === bet.id;
-                return (
-                  <tr
-                    key={bet.id}
-                    style={{ ...s.tr, ...(isHov ? s.trHover : {}) }}
-                    onMouseEnter={() => setHovered(bet.id)}
-                    onMouseLeave={() => setHovered(null)}
-                  >
-                    <td style={{ ...s.td, color: colors.textMuted }}>{bet.date}</td>
-                    <td style={s.td}>
-                      <div style={s.eventName}>{bet.event}</div>
-                      {bet.notes && <div style={s.noteText}>{bet.notes}</div>}
-                    </td>
-                    <td style={{ ...s.td, color: colors.accent, fontWeight: 600 }}>{bet.pick}</td>
-                    <td style={{ ...s.td, color: colors.textSecondary }}>{SPORTS[bet.sport]}</td>
-                    <td style={{ ...s.td, color: colors.textSecondary }}>{BET_TYPES[bet.betType]}</td>
-                    <td style={{ ...s.td, fontWeight: 700 }}>×{formatOdds(bet.odds)}</td>
-                    <td style={s.td}>{formatMoney(bet.stake)}</td>
-                    <td style={{ ...s.td, fontWeight: 700, color: pnl === null ? colors.textMuted : pnl >= 0 ? colors.won : colors.lost }}>
-                      {pnl !== null ? (pnl >= 0 ? '+' : '') + formatMoney(pnl) : '—'}
-                    </td>
-                    <td style={s.td}>
-                      <span style={{ ...s.badge, color: STATUS_COLORS[bet.status], backgroundColor: STATUS_COLORS[bet.status] + '22' }}>
-                        {STATUS_LABELS[bet.status]}
+            {sections.map((section) => (
+              <tbody key={section.date}>
+                {/* Date section header */}
+                <tr style={s.sectionHeader}>
+                  <td colSpan={4} style={s.sectionDate}>{section.title}</td>
+                  <td colSpan={5} style={{ ...s.sectionDate, textAlign: 'right' }}>
+                    {section.dailyPnl !== 0 && (
+                      <span style={{
+                        fontSize: 12, fontWeight: 700,
+                        color: section.dailyPnl > 0 ? colors.won : colors.lost,
+                      }}>
+                        {section.dailyPnl > 0 ? '+' : ''}{formatMoney(section.dailyPnl)}
                       </span>
-                    </td>
-                    <td style={s.td}>
-                      <div style={s.actions}>
-                        {bet.status === 'pending' && (
-                          <select
-                            style={s.closeSelect}
-                            value=""
-                            onChange={(e) => handleClose(bet, e.target.value as BetStatus)}
-                          >
-                            <option value="" disabled>Закрыть</option>
-                            <option value="won">Победа</option>
-                            <option value="lost">Проигрыш</option>
-                            <option value="refund">Возврат</option>
-                          </select>
-                        )}
-                        <button style={s.editBtn} onClick={() => onEdit(bet)}>✏️</button>
-                        <button style={s.delBtn} onClick={() => handleDelete(bet)}>🗑</button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
+                    )}
+                    <span style={{ fontSize: 11, color: colors.textMuted, marginLeft: 8 }}>
+                      {section.data.length} ставок
+                    </span>
+                  </td>
+                </tr>
+
+                {/* Bet rows */}
+                {section.data.map((bet) => {
+                  const pnl = bet.status === 'won' ? Math.round(bet.stake * (bet.odds - 1))
+                    : bet.status === 'lost' ? -bet.stake : null;
+                  const isHov = hovered === bet.id;
+                  return (
+                    <tr
+                      key={bet.id}
+                      style={{ ...s.tr, ...(isHov ? s.trHover : {}) }}
+                      onMouseEnter={() => setHovered(bet.id)}
+                      onMouseLeave={() => setHovered(null)}
+                    >
+                      <td style={s.td}>
+                        <div style={s.eventName}>{bet.event}</div>
+                        {bet.notes && <div style={s.noteText}>{bet.notes}</div>}
+                        {bet.bookmaker && <div style={s.bkBadge}>{bet.bookmaker}</div>}
+                      </td>
+                      <td style={{ ...s.td, color: colors.accent, fontWeight: 600 }}>{bet.pick}</td>
+                      <td style={{ ...s.td, color: colors.textSecondary }}>{SPORTS[bet.sport]}</td>
+                      <td style={{ ...s.td, color: colors.textSecondary }}>{BET_TYPES[bet.betType]}</td>
+                      <td style={{ ...s.td, fontWeight: 700, fontFamily: "'DM Mono', monospace" }}>×{formatOdds(bet.odds)}</td>
+                      <td style={{ ...s.td, fontFamily: "'DM Mono', monospace" }}>{formatMoney(bet.stake)}</td>
+                      <td style={{ ...s.td, fontWeight: 700, fontFamily: "'DM Mono', monospace", color: pnl === null ? colors.textMuted : pnl >= 0 ? colors.won : colors.lost }}>
+                        {pnl !== null ? (pnl >= 0 ? '+' : '') + formatMoney(pnl) : '—'}
+                      </td>
+                      <td style={s.td}>
+                        <span style={{ ...s.badge, color: STATUS_COLORS[bet.status], backgroundColor: STATUS_COLORS[bet.status] + '22' }}>
+                          {STATUS_LABELS[bet.status]}
+                        </span>
+                      </td>
+                      <td style={s.td}>
+                        <div style={s.actions}>
+                          {bet.status === 'pending' && (
+                            <>
+                              <button style={{ ...s.chip, color: colors.won, borderColor: colors.won + '55', backgroundColor: colors.won + '18' }} onClick={() => handleClose(bet, 'won')}>W</button>
+                              <button style={{ ...s.chip, color: colors.lost, borderColor: colors.lost + '55', backgroundColor: colors.lost + '18' }} onClick={() => handleClose(bet, 'lost')}>L</button>
+                              <button style={{ ...s.chip, color: colors.refund, borderColor: colors.refund + '55', backgroundColor: colors.refund + '18' }} onClick={() => handleClose(bet, 'refund')}>R</button>
+                            </>
+                          )}
+                          <button style={s.editBtn} onClick={() => onEdit(bet)}>✏️</button>
+                          <button style={s.delBtn} onClick={() => handleDelete(bet)}>🗑</button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            ))}
           </table>
         </div>
       )}
@@ -183,20 +257,24 @@ const s: Record<string, React.CSSProperties> = {
     borderRadius: 10, padding: '10px 16px', marginBottom: 16,
     color: colors.lost, fontSize: 13, fontWeight: 600,
   },
-  toolbar: { display: 'flex', gap: 12, marginBottom: 16, alignItems: 'center' },
+  toolbar: { display: 'flex', gap: 8, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' },
   search: {
-    flex: 1, backgroundColor: colors.bgCard, border: `1px solid ${colors.border}`,
-    borderRadius: 8, padding: '8px 14px', color: colors.textPrimary, fontSize: 14,
-    outline: 'none',
+    flex: 1, minWidth: 180, backgroundColor: colors.bgCard, border: `1px solid ${colors.border}`,
+    borderRadius: 8, padding: '8px 14px', color: colors.textPrimary, fontSize: 14, outline: 'none',
   },
-  filters: { display: 'flex', gap: 6 },
+  filters: { display: 'flex', gap: 4 },
   filterBtn: {
-    padding: '7px 12px', borderRadius: 8, border: `1px solid ${colors.border}`,
-    backgroundColor: colors.bgCard, color: colors.textSecondary, fontSize: 13, cursor: 'pointer',
+    padding: '7px 11px', borderRadius: 8, border: `1px solid ${colors.border}`,
+    backgroundColor: colors.bgCard, color: colors.textSecondary, fontSize: 12, cursor: 'pointer',
   },
   filterBtnActive: {
     backgroundColor: colors.purple, borderColor: colors.purple, color: '#fff', fontWeight: 700,
   },
+  sortBtn: {
+    padding: '6px 10px', borderRadius: 7, border: `1px solid ${colors.border}`,
+    backgroundColor: 'transparent', color: colors.textMuted, fontSize: 11, cursor: 'pointer',
+  },
+  sortBtnActive: { color: colors.accent, borderColor: colors.accent + '66', backgroundColor: colors.accent + '12', fontWeight: 700 },
   empty: { textAlign: 'center', paddingTop: 80 },
   emptyTitle: { fontSize: 18, fontWeight: 600, color: colors.textPrimary, marginBottom: 6 },
   emptySub: { fontSize: 14, color: colors.textSecondary },
@@ -204,26 +282,24 @@ const s: Record<string, React.CSSProperties> = {
   table: { width: '100%', borderCollapse: 'collapse' },
   th: {
     fontSize: 11, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5,
-    padding: '12px 14px', textAlign: 'left', borderBottom: `1px solid ${colors.border}`,
+    padding: '11px 14px', textAlign: 'left', borderBottom: `1px solid ${colors.border}`,
     backgroundColor: colors.bgElevated,
+  },
+  sectionHeader: { backgroundColor: colors.bgElevated + 'aa' },
+  sectionDate: {
+    padding: '7px 14px', fontSize: 11, color: colors.textSecondary,
+    fontWeight: 600, borderBottom: `1px solid ${colors.border}`,
+    borderTop: `1px solid ${colors.border}`,
   },
   tr: { borderBottom: `1px solid ${colors.border}`, transition: 'background 0.1s' },
   trHover: { backgroundColor: colors.bgElevated },
-  td: { padding: '12px 14px', fontSize: 13, color: colors.textPrimary },
+  td: { padding: '11px 14px', fontSize: 13, color: colors.textPrimary },
   eventName: { fontWeight: 600, maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
-  noteText: { fontSize: 11, color: colors.textMuted, marginTop: 2, fontStyle: 'italic' },
+  noteText: { fontSize: 11, color: colors.textMuted, marginTop: 2, fontStyle: 'italic', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 200 },
+  bkBadge: { display: 'inline-block', marginTop: 3, fontSize: 10, color: colors.textMuted, backgroundColor: colors.bgElevated, borderRadius: 4, padding: '1px 5px', border: `1px solid ${colors.border}` },
   badge: { padding: '3px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600 },
   actions: { display: 'flex', gap: 4, alignItems: 'center' },
-  closeSelect: {
-    backgroundColor: colors.bgElevated, border: `1px solid ${colors.border}`,
-    borderRadius: 6, padding: '4px 8px', color: colors.textPrimary, fontSize: 12, cursor: 'pointer',
-  },
-  editBtn: {
-    background: 'none', border: 'none', cursor: 'pointer',
-    padding: '4px 6px', borderRadius: 6, fontSize: 14,
-  },
-  delBtn: {
-    background: 'none', border: 'none', cursor: 'pointer',
-    padding: '4px 6px', borderRadius: 6, fontSize: 14,
-  },
+  chip: { border: '1px solid', borderRadius: 6, padding: '3px 7px', fontSize: 11, fontWeight: 700, cursor: 'pointer' },
+  editBtn: { background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', borderRadius: 6, fontSize: 14 },
+  delBtn: { background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', borderRadius: 6, fontSize: 14 },
 };

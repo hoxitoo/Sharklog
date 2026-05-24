@@ -4,7 +4,7 @@ import { useBetsStore } from '../store/betsStore';
 import { colors } from '../theme/colors';
 
 export function SettingsPage() {
-  const { settings, updateSettings, bets } = useBetsStore();
+  const { settings, updateSettings, bets, clearAll } = useBetsStore();
   const [newBk, setNewBk] = useState('');
 
   function addBookmaker() {
@@ -18,9 +18,70 @@ export function SettingsPage() {
     updateSettings({ bookmakers: settings.bookmakers.filter((b) => b !== bk) });
   }
 
+  function handleExportJSON() {
+    const { bets: b, settings: s, bankroll, diary, teams } = useBetsStore.getState();
+    const blob = new Blob([JSON.stringify({ bets: b, settings: s, bankroll, diary, teams }, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `sharklog-backup-${new Date().toISOString().split('T')[0]}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function handleExportCSV() {
+    const { bets: allBets } = useBetsStore.getState();
+    const rows = [
+      ['Дата', 'Событие', 'Выбор', 'Коэф.', 'Ставка', 'Статус', 'P&L', 'Букмекер', 'Стратегия'],
+      ...allBets.map((b) => {
+        const pnl = b.status === 'won' ? Math.round(b.stake * b.odds) - b.stake : b.status === 'lost' ? -b.stake : 0;
+        return [b.date, b.event, b.pick, b.odds, (b.stake / 100).toFixed(2), b.status, (pnl / 100).toFixed(2), b.bookmaker, b.strategy];
+      }),
+    ];
+    const csv = '﻿' + rows.map((r) => r.map((v) => `"${v}"`).join(',')).join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `sharklog-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function handleImportJSON() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json';
+    input.onchange = () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const parsed = JSON.parse(reader.result as string);
+          if (!parsed || typeof parsed !== 'object') throw new Error('Bad format');
+          const store = useBetsStore.getState();
+          useBetsStore.setState({
+            ...(parsed.bets ? { bets: parsed.bets } : {}),
+            ...(parsed.settings ? { settings: { ...store.settings, ...parsed.settings } } : {}),
+            ...(parsed.bankroll ? { bankroll: parsed.bankroll } : {}),
+            ...(parsed.diary ? { diary: parsed.diary } : {}),
+            ...(parsed.teams ? { teams: parsed.teams } : {}),
+          });
+          store.persist();
+          alert('Данные восстановлены успешно!');
+        } catch {
+          alert('Ошибка: файл повреждён или имеет неверный формат.');
+        }
+      };
+      reader.readAsText(file);
+    };
+    input.click();
+  }
+
   function handleClearData() {
     if (window.confirm('Очистить все данные? Это действие нельзя отменить.')) {
-      updateSettings({ bookmakers: ['1xBet', 'Parimatch', 'Fonbet'] });
+      clearAll();
     }
   }
 
@@ -59,12 +120,34 @@ export function SettingsPage() {
       <div style={s.card}>
         <div style={s.cardTitle}>Тилт-контроль</div>
         <div style={s.row}>
-          <span style={s.rowLabel}>Порог тилт-алерта</span>
-          <span style={s.rowValue}>
-            {settings.isPro
-              ? `${settings.tiltThreshold} поражений`
-              : `${FREE_LIMITS.TILT_ALERT_THRESHOLD} (Free, не настраивается)`}
-          </span>
+          <div>
+            <span style={s.rowLabel}>Порог тилт-алерта</span>
+            {!settings.isPro && <div style={{ fontSize: 11, color: colors.textMuted, marginTop: 2 }}>PRO — настраивается</div>}
+          </div>
+          {settings.isPro ? (
+            <div style={s.stepper}>
+              <button style={s.stepBtn} onClick={() => updateSettings({ tiltThreshold: Math.max(2, settings.tiltThreshold - 1) })}>−</button>
+              <span style={s.stepVal}>{settings.tiltThreshold} поражений</span>
+              <button style={s.stepBtn} onClick={() => updateSettings({ tiltThreshold: Math.min(10, settings.tiltThreshold + 1) })}>+</button>
+            </div>
+          ) : (
+            <span style={s.rowValue}>{FREE_LIMITS.TILT_ALERT_THRESHOLD} (фикс.)</span>
+          )}
+        </div>
+        <div style={{ ...s.row, borderBottom: 'none' }}>
+          <div>
+            <span style={s.rowLabel}>Дневной лимит ставок</span>
+            {!settings.isPro && <div style={{ fontSize: 11, color: colors.textMuted, marginTop: 2 }}>PRO — настраивается</div>}
+          </div>
+          {settings.isPro ? (
+            <div style={s.stepper}>
+              <button style={s.stepBtn} onClick={() => updateSettings({ dailyBetLimit: Math.max(0, settings.dailyBetLimit - 1) })}>−</button>
+              <span style={s.stepVal}>{settings.dailyBetLimit === 0 ? '∞ без лимита' : `${settings.dailyBetLimit} в день`}</span>
+              <button style={s.stepBtn} onClick={() => updateSettings({ dailyBetLimit: Math.min(20, settings.dailyBetLimit + 1) })}>+</button>
+            </div>
+          ) : (
+            <span style={s.rowValue}>—</span>
+          )}
         </div>
       </div>
 
@@ -89,9 +172,9 @@ export function SettingsPage() {
         </div>
       </div>
 
-      {/* Data */}
+      {/* Data & Export */}
       <div style={s.card}>
-        <div style={s.cardTitle}>Данные</div>
+        <div style={s.cardTitle}>Данные и экспорт</div>
         <div style={s.row}>
           <span style={s.rowLabel}>Всего ставок</span>
           <span style={s.rowValue}>{bets.length}</span>
@@ -99,6 +182,17 @@ export function SettingsPage() {
         <div style={s.row}>
           <span style={s.rowLabel}>Хранилище</span>
           <span style={s.rowValue}>localStorage</span>
+        </div>
+        <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
+          <button style={{ ...s.exportBtn, backgroundColor: colors.accent + '22', color: colors.accent, border: `1px solid ${colors.accent}44` }} onClick={handleExportCSV}>
+            📥 Экспорт CSV
+          </button>
+          <button style={{ ...s.exportBtn, backgroundColor: colors.purple + '22', color: colors.purple, border: `1px solid ${colors.purple}44` }} onClick={handleExportJSON}>
+            💾 Резервная копия JSON
+          </button>
+          <button style={{ ...s.exportBtn, backgroundColor: colors.pending + '22', color: colors.pending, border: `1px solid ${colors.pending}44` }} onClick={handleImportJSON}>
+            📂 Восстановить из JSON
+          </button>
         </div>
       </div>
 
@@ -124,6 +218,10 @@ const s: Record<string, React.CSSProperties> = {
   removeBtn: { background: 'none', border: 'none', color: colors.lost, cursor: 'pointer', fontSize: 13, fontWeight: 600 },
   input: { backgroundColor: colors.bgElevated, border: `1px solid ${colors.border}`, borderRadius: 8, padding: '8px 12px', color: colors.textPrimary, fontSize: 14, outline: 'none' },
   addBtn: { backgroundColor: colors.purple, color: '#fff', border: 'none', borderRadius: 8, width: 40, fontSize: 20, cursor: 'pointer', fontWeight: 700 },
+  stepper: { display: 'flex', alignItems: 'center', gap: 8 },
+  stepBtn: { background: 'none', border: `1px solid ${colors.border}`, borderRadius: 6, width: 28, height: 28, fontSize: 16, color: colors.textPrimary, cursor: 'pointer' },
+  stepVal: { fontSize: 14, fontWeight: 600, color: colors.textPrimary, minWidth: 120, textAlign: 'center' as const },
   proBtn: { backgroundColor: colors.gold, color: '#000', border: 'none', padding: '8px 16px', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer' },
+  exportBtn: { borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' },
   dangerBtn: { background: 'none', border: 'none', color: colors.lost, cursor: 'pointer', fontSize: 15, fontWeight: 600, padding: '4px 0' },
 };

@@ -172,7 +172,7 @@ function AnalyticsContent() {
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - days);
     const cutoffStr = cutoff.toISOString().split('T')[0] ?? '';
-    return bets.filter((b) => b.date >= cutoffStr);
+    return bets.filter((b) => b.date > cutoffStr);
   }, [bets, period]);
 
   const bySport = calcByField(filteredBets, 'sport', (v) => SPORTS[v] ?? String(v));

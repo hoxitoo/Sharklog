@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
@@ -6,6 +6,13 @@ import type { Bet } from '@sharklog/core';
 import { calcDashboard, formatMoney, formatPercent, isInTilt } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
 import { colors } from '../theme/colors';
+
+type PeriodFilter = '7d' | '30d' | 'all';
+const PERIOD_OPTIONS: Array<{ key: PeriodFilter; label: string }> = [
+  { key: '7d', label: '7 дней' },
+  { key: '30d', label: '30 дней' },
+  { key: 'all', label: 'Всё время' },
+];
 
 function StatCard({
   label, value, sub, color,
@@ -20,7 +27,7 @@ function StatCard({
 }
 
 function WLStrip({ bets }: { bets: Bet[] }) {
-  const settled = bets.filter((b) => b.status !== 'pending').slice(0, 10);
+  const settled = bets.filter((b) => b.status !== 'pending').slice(0, 10).reverse();
   if (settled.length === 0) return null;
   return (
     <div style={s.wlRow}>
@@ -46,18 +53,124 @@ function WLStrip({ bets }: { bets: Bet[] }) {
   );
 }
 
+function Heatmap({ bets }: { bets: Bet[] }) {
+  const today = new Date();
+  const weeks = 12;
+  const totalDays = weeks * 7;
+
+  const pnlByDate: Record<string, number> = {};
+  const countByDate: Record<string, number> = {};
+  for (const bet of bets) {
+    if (bet.status === 'pending') continue;
+    const profit = bet.status === 'won'
+      ? Math.round(bet.stake * (bet.odds - 1))
+      : bet.status === 'lost' ? -bet.stake : 0;
+    pnlByDate[bet.date] = (pnlByDate[bet.date] ?? 0) + profit;
+    countByDate[bet.date] = (countByDate[bet.date] ?? 0) + 1;
+  }
+
+  if (Object.keys(countByDate).length === 0) return null;
+
+  const days: Array<{ dateStr: string; pnl: number; count: number }> = [];
+  for (let i = totalDays - 1; i >= 0; i--) {
+    const d = new Date(today);
+    d.setDate(today.getDate() - i);
+    const dateStr = d.toISOString().split('T')[0] ?? '';
+    days.push({ dateStr, pnl: pnlByDate[dateStr] ?? 0, count: countByDate[dateStr] ?? 0 });
+  }
+
+  const columns: typeof days[] = [];
+  for (let w = 0; w < weeks; w++) columns.push(days.slice(w * 7, w * 7 + 7));
+
+  function cellBg(day: { pnl: number; count: number }) {
+    if (day.count === 0) return colors.bgElevated;
+    if (day.pnl > 0) return colors.won + (day.pnl > 50000 ? 'cc' : day.pnl > 10000 ? '88' : '44');
+    if (day.pnl < 0) return colors.lost + (day.pnl < -50000 ? 'cc' : day.pnl < -10000 ? '88' : '44');
+    return colors.textMuted + '44';
+  }
+
+  return (
+    <div style={s.card}>
+      <div style={s.cardTitle}>Активность за 12 недель</div>
+      <div style={{ display: 'flex', gap: 3 }}>
+        {columns.map((col, wi) => (
+          <div key={wi} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+            {col.map((day, di) => (
+              <div
+                key={di}
+                title={day.count > 0 ? `${day.dateStr}: ${day.count} ставок, ${day.pnl >= 0 ? '+' : ''}${(day.pnl / 100).toFixed(0)} ₽` : day.dateStr}
+                style={{ width: 14, height: 14, borderRadius: 2, backgroundColor: cellBg(day) }}
+              />
+            ))}
+          </div>
+        ))}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 10 }}>
+        <div style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: colors.lost + '88' }} />
+        <span style={{ fontSize: 11, color: colors.textMuted }}>−</span>
+        <div style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: colors.bgElevated }} />
+        <span style={{ fontSize: 11, color: colors.textMuted }}>0</span>
+        <div style={{ width: 10, height: 10, borderRadius: 2, backgroundColor: colors.won + '88' }} />
+        <span style={{ fontSize: 11, color: colors.textMuted }}>+</span>
+      </div>
+    </div>
+  );
+}
+
 export function DashboardPage() {
   const { bets, settings, bankroll } = useBetsStore();
-  const stats = calcDashboard(bets);
-  const inTilt = isInTilt(bets, settings.tiltThreshold);
+  const [period, setPeriod] = useState<PeriodFilter>('all');
 
+  const filteredBets = useMemo(() => {
+    if (period === 'all') return bets;
+    const days = period === '7d' ? 7 : 30;
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
+    const cutoffStr = cutoff.toISOString().split('T')[0] ?? '';
+    return bets.filter((b) => b.date > cutoffStr);
+  }, [bets, period]);
+
+  const stats = calcDashboard(filteredBets);
+  const inTilt = isInTilt(filteredBets, settings.tiltThreshold);
+
+  const allTimePnl = period === 'all' ? stats.pnl : calcDashboard(bets).pnl;
   const bankTotal =
     bankroll.transactions.reduce(
       (sum, t) => (t.type === 'deposit' ? sum + t.amount : sum - t.amount), 0,
-    ) + stats.pnl;
+    ) + allTimePnl;
 
   const chartData = stats.pnlCurve.map((p) => ({ index: p.index, pnl: p.pnl / 100 }));
   const pnlPositive = stats.pnl >= 0;
+
+  const settledWithPnl = filteredBets
+    .filter((b) => b.status === 'won' || b.status === 'lost')
+    .map((b) => ({ ...b, pnl: b.status === 'won' ? Math.round(b.stake * b.odds) - b.stake : -b.stake }));
+  const bestBet = settledWithPnl.length > 0
+    ? settledWithPnl.reduce((a, b) => b.pnl > a.pnl ? b : a)
+    : null;
+  const worstBet = settledWithPnl.length > 1
+    ? settledWithPnl.reduce((a, b) => b.pnl < a.pnl ? b : a)
+    : null;
+
+  if (bets.length === 0) {
+    return (
+      <div style={s.page}>
+        <div style={s.header}>
+          <div>
+            <h1 style={s.title}>Дашборд</h1>
+            <div style={s.subtitle}>
+              {new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' })}
+            </div>
+          </div>
+        </div>
+        <div style={s.emptyWrap}>
+          <div style={{ fontSize: 64, marginBottom: 20 }}>🦈</div>
+          <div style={s.emptyTitle}>Ставок пока нет</div>
+          <div style={s.emptySub}>Добавь первую ставку, чтобы начать отслеживать результаты</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={s.page}>
@@ -68,7 +181,21 @@ export function DashboardPage() {
             {new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' })}
           </div>
         </div>
-        {settings.isPro && <div style={s.proBadge}>👑 PRO</div>}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {/* Period filter */}
+          <div style={s.periodRow}>
+            {PERIOD_OPTIONS.map((p) => (
+              <button
+                key={p.key}
+                style={{ ...s.periodBtn, ...(period === p.key ? s.periodBtnActive : {}) }}
+                onClick={() => setPeriod(p.key)}
+              >
+                {p.label}
+              </button>
+            ))}
+          </div>
+          {settings.isPro && <div style={s.proBadge}>👑 PRO</div>}
+        </div>
       </div>
 
       {inTilt && (
@@ -81,7 +208,6 @@ export function DashboardPage() {
         </div>
       )}
 
-      {/* Stats grid */}
       <div style={s.statsGrid}>
         <StatCard
           label="P&L"
@@ -109,7 +235,7 @@ export function DashboardPage() {
         <StatCard
           label="Ставок всего"
           value={String(stats.totalBets)}
-          sub={`${bets.filter((b) => b.status === 'pending').length} в ожидании`}
+          sub={`${filteredBets.filter((b) => b.status === 'pending').length} в ожидании`}
         />
         <StatCard
           label="Серия"
@@ -123,12 +249,14 @@ export function DashboardPage() {
       </div>
 
       {/* W/L strip */}
-      {bets.length > 0 && (
+      {filteredBets.length > 0 && (
         <div style={s.card}>
           <div style={s.cardTitle}>Последние результаты</div>
-          <WLStrip bets={bets} />
+          <WLStrip bets={filteredBets} />
         </div>
       )}
+
+      <Heatmap bets={filteredBets} />
 
       {/* P&L Chart */}
       {chartData.length > 1 && (
@@ -172,8 +300,33 @@ export function DashboardPage() {
         </div>
       )}
 
+      {/* Best / Worst bet */}
+      {(bestBet || worstBet) && (
+        <div style={s.card}>
+          <div style={s.cardTitle}>Лучшая / Худшая ставка</div>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginTop: 14 }}>
+            {bestBet && (
+              <div style={{ ...s.extremeBet, borderColor: colors.won + '44' }}>
+                <div style={{ fontSize: 11, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Лучшая</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: colors.textPrimary, marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bestBet.event}</div>
+                <div style={{ fontSize: 12, color: colors.textSecondary }}>{bestBet.pick} · ×{bestBet.odds}</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: colors.won, marginTop: 8 }}>+{formatMoney(bestBet.pnl)}</div>
+              </div>
+            )}
+            {worstBet && (
+              <div style={{ ...s.extremeBet, borderColor: colors.lost + '44' }}>
+                <div style={{ fontSize: 11, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Худшая</div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: colors.textPrimary, marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{worstBet.event}</div>
+                <div style={{ fontSize: 12, color: colors.textSecondary }}>{worstBet.pick} · ×{worstBet.odds}</div>
+                <div style={{ fontSize: 18, fontWeight: 700, color: colors.lost, marginTop: 8 }}>{formatMoney(worstBet.pnl)}</div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Recent bets */}
-      {bets.length > 0 && (
+      {filteredBets.length > 0 && (
         <div style={s.card}>
           <div style={s.cardTitle}>Последние 5 ставок</div>
           <table style={s.table}>
@@ -185,7 +338,7 @@ export function DashboardPage() {
               </tr>
             </thead>
             <tbody>
-              {bets.slice(0, 5).map((bet) => {
+              {filteredBets.slice(0, 5).map((bet) => {
                 const pnl = bet.status === 'won' ? Math.round(bet.stake * (bet.odds - 1))
                   : bet.status === 'lost' ? -bet.stake : null;
                 const statusColors: Record<string, string> = {
@@ -217,10 +370,18 @@ export function DashboardPage() {
 }
 
 const s: Record<string, React.CSSProperties> = {
-  page: { padding: '28px 32px', flex: 1 },
+  page: { padding: '28px 32px', flex: 1, overflow: 'auto' },
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 },
   title: { fontSize: 28, fontWeight: 700, color: colors.textPrimary, letterSpacing: -0.5 },
   subtitle: { fontSize: 13, color: colors.textSecondary, marginTop: 4 },
+  periodRow: { display: 'flex', gap: 4 },
+  periodBtn: {
+    padding: '6px 14px', borderRadius: 8, border: `1px solid ${colors.border}`,
+    backgroundColor: colors.bgCard, color: colors.textSecondary, fontSize: 13, cursor: 'pointer',
+  },
+  periodBtnActive: {
+    backgroundColor: colors.purple, borderColor: colors.purple, color: '#fff', fontWeight: 700,
+  },
   proBadge: {
     backgroundColor: colors.gold + '22', color: colors.gold,
     padding: '6px 14px', borderRadius: 20, fontSize: 13, fontWeight: 700,
@@ -241,7 +402,7 @@ const s: Record<string, React.CSSProperties> = {
     border: `1px solid ${colors.border}`,
   },
   statLabel: { fontSize: 11, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 },
-  statValue: { fontSize: 26, fontWeight: 700 },
+  statValue: { fontSize: 26, fontWeight: 700, fontFamily: "'DM Mono', monospace" },
   statSub: { fontSize: 12, color: colors.textSecondary, marginTop: 4 },
   wlRow: { display: 'flex', gap: 6, flexWrap: 'wrap' },
   wlSquare: {
@@ -254,6 +415,10 @@ const s: Record<string, React.CSSProperties> = {
     border: `1px solid ${colors.border}`, marginBottom: 20,
   },
   cardTitle: { fontSize: 15, fontWeight: 700, color: colors.textPrimary, marginBottom: 14 },
+  extremeBet: {
+    backgroundColor: colors.bgElevated, borderRadius: 10, padding: 14,
+    border: '1px solid',
+  },
   table: { width: '100%', borderCollapse: 'collapse' },
   th: {
     fontSize: 11, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5,
@@ -263,4 +428,7 @@ const s: Record<string, React.CSSProperties> = {
   td: { padding: '12px 0', fontSize: 14, color: colors.textPrimary, paddingRight: 16 },
   eventCell: { fontWeight: 600, maxWidth: 240, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   statusBadge: { padding: '3px 8px', borderRadius: 6, fontSize: 12, fontWeight: 600 },
+  emptyWrap: { textAlign: 'center', paddingTop: 100 },
+  emptyTitle: { fontSize: 22, fontWeight: 700, color: colors.textPrimary, marginBottom: 10 },
+  emptySub: { fontSize: 15, color: colors.textSecondary, maxWidth: 380, margin: '0 auto' },
 };

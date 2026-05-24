@@ -1,8 +1,8 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import type { Sport, BetType, Strategy, BetStatus, EsportsDiscipline, Team } from '@sharklog/core';
 import {
   SPORTS, BET_TYPES, STRATEGIES, ESPORTS_DISCIPLINES,
-  parseMoneyInput, formatMoney,
+  parseMoneyInput, formatMoney, CURRENT_SCHEMA_VERSION, FREE_LIMITS,
 } from '@sharklog/core';
 import type { Bet } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
@@ -141,13 +141,17 @@ const ac: Record<string, React.CSSProperties> = {
 };
 
 export function AddBetModal({ editBet, onClose }: Props) {
-  const { addBet, updateBet, settings } = useBetsStore();
+  const { addBet, updateBet, settings, canAddBet } = useBetsStore();
   const now = new Date();
+  const defaultDate = now.toISOString().split('T')[0] ?? '';
+  const defaultTime = now.toTimeString().slice(0, 5);
 
   const [event, setEvent] = useState(editBet?.event ?? '');
   const [pick, setPick] = useState(editBet?.pick ?? '');
   const [odds, setOdds] = useState(editBet ? String(editBet.odds) : '');
   const [stake, setStake] = useState(editBet ? String(editBet.stake / 100) : '');
+  const [date, setDate] = useState(editBet?.date ?? defaultDate);
+  const [time, setTime] = useState(editBet?.time ?? defaultTime);
   const [sport, setSport] = useState<Sport>(editBet?.sport ?? 'football');
   const [discipline, setDiscipline] = useState<EsportsDiscipline>(editBet?.discipline ?? 'csgo');
   const [betType, setBetType] = useState<BetType>(editBet?.betType ?? '1X2');
@@ -175,22 +179,23 @@ export function AddBetModal({ editBet, onClose }: Props) {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!editBet && !canAddBet()) return;
     if (!validate()) return;
     const extras = {
       ...(sport === 'esports' ? { discipline } : {}),
       ...(notes ? { notes } : {}),
     };
     if (editBet) {
-      updateBet(editBet.id, { event, pick, odds: oddsNum, stake: stakeKopecks, sport, betType, strategy, status, bookmaker, ...extras });
+      updateBet(editBet.id, { event, pick, odds: oddsNum, stake: stakeKopecks, sport, betType, strategy, status, bookmaker, date: date || defaultDate, time: time || defaultTime, ...extras });
     } else {
       addBet({
         id: uuid(),
         createdAt: now.toISOString(),
         updatedAt: now.toISOString(),
-        date: now.toISOString().split('T')[0] ?? '',
-        time: now.toTimeString().slice(0, 5),
+        date: date || defaultDate,
+        time: time || defaultTime,
         event, pick, odds: oddsNum, stake: stakeKopecks, sport,
-        betType, strategy, status, bookmaker, schemaVersion: 1,
+        betType, strategy, status, bookmaker, schemaVersion: CURRENT_SCHEMA_VERSION,
         ...extras,
       });
     }
@@ -211,6 +216,11 @@ export function AddBetModal({ editBet, onClose }: Props) {
         </div>
 
         <form onSubmit={handleSubmit} style={m.body}>
+          {!editBet && !canAddBet() && (
+            <div style={m.limitBanner}>
+              🔒 Лимит {FREE_LIMITS.MAX_BETS} ставок достигнут. Перейди на Pro для безлимитного трекинга.
+            </div>
+          )}
           <Field label="Событие *" {...(errors['event'] ? { error: errors['event'] } : {})}>
             <TeamAutocomplete value={event} onChange={setEvent} sport={sport} discipline={discipline} />
           </Field>
@@ -234,6 +244,15 @@ export function AddBetModal({ editBet, onClose }: Props) {
               <span style={{ color: colors.accent, fontWeight: 700, fontSize: 16 }}>{potentialWin}</span>
             </div>
           )}
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 0 }}>
+            <Field label="Дата">
+              <input style={inputStyle} type="date" value={date} onChange={(e) => setDate(e.target.value)} />
+            </Field>
+            <Field label="Время">
+              <input style={inputStyle} type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+            </Field>
+          </div>
 
           <Field label="Вид спорта">
             <SegmentRow options={sportOptions} value={sport} onChange={setSport} />
@@ -319,6 +338,11 @@ const m: Record<string, React.CSSProperties> = {
   modalTitle: { fontSize: 18, fontWeight: 700, color: colors.textPrimary },
   closeBtn: { background: 'none', border: 'none', color: colors.textMuted, fontSize: 18, cursor: 'pointer' },
   body: { padding: 24 },
+  limitBanner: {
+    backgroundColor: colors.lost + '15', border: `1px solid ${colors.lost}44`,
+    borderRadius: 8, padding: '10px 14px', marginBottom: 14,
+    color: colors.lost, fontSize: 13, fontWeight: 600,
+  },
   winPreview: {
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
     backgroundColor: colors.accentDim, borderRadius: 8, padding: '10px 14px', marginBottom: 14,
