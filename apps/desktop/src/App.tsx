@@ -8,7 +8,10 @@ import { BankrollPage } from './pages/BankrollPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { DiaryPage } from './pages/DiaryPage';
 import { AddBetModal } from './pages/AddBetModal';
+import { Toaster } from './components/Toaster';
 import { useBetsStore } from './store/betsStore';
+
+const PAGE_ORDER: Page[] = ['dashboard', 'bets', 'analytics', 'bankroll', 'diary', 'settings'];
 
 export function App() {
   const load = useBetsStore((s) => s.load);
@@ -23,8 +26,14 @@ export function App() {
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape' && modalBet !== null) closeModal();
-      if ((e.ctrlKey || e.metaKey) && e.key === 'n') { e.preventDefault(); openAdd(); }
+      if (e.key === 'Escape' && modalBet !== null) { closeModal(); return; }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n') { e.preventDefault(); openAdd(); return; }
+      // Ctrl+1–6: navigate pages
+      if ((e.ctrlKey || e.metaKey) && e.key >= '1' && e.key <= '6') {
+        const idx = parseInt(e.key, 10) - 1;
+        const target = PAGE_ORDER[idx];
+        if (target) { e.preventDefault(); setPage(target); }
+      }
     }
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -47,6 +56,8 @@ export function App() {
           onClose={closeModal}
         />
       )}
+
+      <Toaster />
     </>
   );
 }

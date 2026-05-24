@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import type { Bet, BetStatus } from '@sharklog/core';
 import { SPORTS, BET_TYPES, formatMoney, formatOdds, FREE_LIMITS } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
+import { ConfirmModal } from '../components/ConfirmModal';
 import { colors } from '../theme/colors';
 
 interface Props {
@@ -46,6 +47,7 @@ export function BetsPage({ onAdd, onEdit }: Props) {
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortKey>('date_desc');
   const [hovered, setHovered] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState<Bet | null>(null);
 
   const freeLeft = Math.max(0, FREE_LIMITS.MAX_BETS - bets.length);
 
@@ -96,13 +98,20 @@ export function BetsPage({ onAdd, onEdit }: Props) {
   }
 
   function handleDelete(bet: Bet) {
-    if (window.confirm(`Удалить ставку?\n${bet.event}`)) deleteBet(bet.id);
+    setConfirmDelete(bet);
   }
 
   const COLS = ['Событие', 'Выбор', 'Спорт', 'Тип', 'Коэф.', 'Ставка', 'P&L', 'Статус', ''];
 
   return (
     <div style={s.page}>
+      {confirmDelete && (
+        <ConfirmModal
+          message={`Удалить ставку?\n«${confirmDelete.event}»`}
+          onConfirm={() => { deleteBet(confirmDelete.id); setConfirmDelete(null); }}
+          onCancel={() => setConfirmDelete(null)}
+        />
+      )}
       <div style={s.header}>
         <div>
           <h1 style={s.title}>Ставки</h1>
