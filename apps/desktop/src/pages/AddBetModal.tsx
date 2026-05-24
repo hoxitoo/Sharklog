@@ -7,6 +7,7 @@ import {
 } from '@sharklog/core';
 import type { Bet } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
+import { ChecklistModal } from '../components/ChecklistModal';
 import { colors } from '../theme/colors';
 
 function uuid(): string {
@@ -244,6 +245,7 @@ export function AddBetModal({ editBet, onClose }: Props) {
   const [notes, setNotes] = useState(editBet?.notes ?? '');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [kellyOpen, setKellyOpen] = useState(false);
+  const [showChecklist, setShowChecklist] = useState(false);
 
   const oddsNum = parseFloat(odds);
   const stakeKopecks = parseMoneyInput(stake);
@@ -265,6 +267,14 @@ export function AddBetModal({ editBet, onClose }: Props) {
     e.preventDefault();
     if (!editBet && !canAddBet()) return;
     if (!validate()) return;
+    if (!editBet && settings.isPro) {
+      setShowChecklist(true);
+      return;
+    }
+    doSave();
+  }
+
+  function doSave() {
     const extras = {
       ...(sport === 'esports' ? { discipline } : {}),
       ...(notes ? { notes } : {}),
@@ -292,6 +302,13 @@ export function AddBetModal({ editBet, onClose }: Props) {
   const strategyOptions = Object.entries(STRATEGIES).map(([k, v]) => ({ key: k as Strategy, label: v }));
 
   return (
+    <>
+      {showChecklist && (
+        <ChecklistModal
+          onConfirm={() => { setShowChecklist(false); doSave(); }}
+          onCancel={() => setShowChecklist(false)}
+        />
+      )}
     <div style={m.overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
       <div style={m.modal}>
         <div style={m.modalHeader}>
@@ -423,6 +440,7 @@ export function AddBetModal({ editBet, onClose }: Props) {
         </form>
       </div>
     </div>
+    </>
   );
 }
 
