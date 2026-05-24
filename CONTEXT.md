@@ -38,18 +38,35 @@ apps/mobile/src/
     notifications.ts    — scheduleDailyReminder (20:00), sendTiltNotification, requestNotificationPermission
     exportCSV.ts        — CSV с UTF-8 BOM, expo-file-system + expo-sharing
 
+apps/desktop/src/       — React+Vite frontend (TypeScript strict), Tauri v2 backend (src-tauri/)
+  App.tsx               — routing, modal state, Cmd+N hotkey, Esc to close
+  layouts/
+    AppLayout.tsx       — sidebar (logo, nav, "+ Новая ставка" btn, free progress bar)
+  store/
+    betsStore.ts        — Zustand + localStorage; same interface as mobile store
+  pages/
+    DashboardPage.tsx   — period filter, 6-stat grid, W/L strip, 12-week heatmap, P&L chart, best/worst, empty state
+    BetsPage.tsx        — date-grouped sections (tbody), daily P&L per section, search, status filter, sort (4 modes)
+    AddBetModal.tsx     — full form with TeamAutocomplete, canAddBet() guard, limit banner, potential win preview
+    AnalyticsPage.tsx   — 7 срезов: sport/betType/bookmaker/strategy/oddsRange/dayOfWeek/hour (PRO)
+    BankrollPage.tsx    — equity curve, unit stepper, deposit/withdrawal, Kelly calc (PRO)
+    DiaryPage.tsx       — mood picker, tilt stats, 8 правил, diary history
+    SettingsPage.tsx    — subscription, tilt stepper, daily limit stepper, bookmakers, CSV+JSON export, JSON import
+  theme/
+    colors.ts           — same palette as mobile
+  apps/desktop/src-tauri/  — Tauri v2 Rust backend
+    tauri.conf.json     — productName, identifier, window config, bundle targets
+    Cargo.toml          — tauri 2.x, tauri-plugin-opener, tauri-plugin-shell
+    src/main.rs + lib.rs — entry point
+
 packages/core/src/
   types/bet.ts          — Bet, Team, EsportsDiscipline, Bankroll, DiaryEntry, AppSettings, StorageSchema
   constants/index.ts    — SPORTS, BET_TYPES, STRATEGIES, ESPORTS_DISCIPLINES, FREE_LIMITS, ODDS_RANGES
   utils/
-    stats.ts            — calcDashboard, calcByField, calcByOddsRange, calcByDayOfWeek, isInTilt
+    stats.ts            — calcDashboard, calcByField, calcByOddsRange, calcByDayOfWeek, calcByHour, isInTilt
     kelly.ts            — kellyFraction, halfKelly, expectedValue, impliedProbability, recommendedStake
     formatters.ts       — formatMoney, parseMoneyInput, formatOdds, formatPercent
     migrations.ts       — migrate(raw)
-
-apps/desktop/src/       — React+Vite frontend (TypeScript чистый), Tauri backend НЕ создан
-  App.tsx, store/betsStore.ts (localStorage)
-  pages/: Dashboard, Bets+AddBetModal, Analytics, Bankroll, Settings
 ```
 
 ---
@@ -110,31 +127,31 @@ interface BankrollTransaction {
 3. **Team memory**: `upsertTeams()` в store вызывается при каждом addBet/updateBet.
 4. **Esports discipline**: `sport === 'esports'` → discipline обязателен. Compound key: `name+sport+discipline`.
 5. **exactOptionalPropertyTypes: true**: `prop={undefined}` → ошибка. Используй `{...(x ? { prop: x } : {})}`.
-6. **PRO gate**: любой PRO-контент через `<ProGate feature="...">`.
+6. **PRO gate (mobile)**: любой PRO-контент через `<ProGate feature="...">`.
 7. **clearAll()**: сбрасывает bets/diary/teams/bankroll, сохраняет `onboardingComplete: true`.
-8. **syncEntitlement()**: только устанавливает `isPro: true`, никогда не downgrade (на случай network failure).
+8. **canAddBet()**: false если Free && bets >= FREE_LIMITS.MAX_BETS; false если Pro && dailyBetLimit > 0 && todayBets >= limit.
+9. **Period filter**: `b.date > cutoffStr` (НЕ `>=`) — иначе off-by-one (8 дней вместо 7).
 
 ---
 
-## Store Interface
+## Desktop Store Interface (localStorage)
 
 ```typescript
 interface BetsStore {
   bets: Bet[]; settings: AppSettings; bankroll: Bankroll;
   diary: DiaryEntry[]; teams: Team[]; isLoaded: boolean;
 
-  load(): Promise<void>;
-  persist(): Promise<void>;
-  addBet(bet: Bet): void;                    // + upsertTeams, tilt check after update
-  updateBet(id: string, updates: Partial<Bet>): void;  // side effects OUTSIDE set()
+  load(): void;
+  persist(): void;
+  addBet(bet: Bet): void;
+  updateBet(id: string, updates: Partial<Bet>): void;
   deleteBet(id: string): void;
   updateSettings(updates: Partial<AppSettings>): void;
   updateBankroll(updates: Partial<Bankroll>): void;
   addDiaryEntry(entry: DiaryEntry): void;
   deleteTeam(id: string): void;
-  clearAll(): void;                          // полный сброс пользовательских данных
-  canAddBet(): boolean;                      // false если Free && bets >= 50
-                                             // false если Pro && dailyBetLimit > 0 && todayBets >= limit
+  clearAll(): void;
+  canAddBet(): boolean;
 }
 ```
 
@@ -146,13 +163,19 @@ interface BetsStore {
 - **EAS Build**: `.github/workflows/eas-build.yml` — ручной `workflow_dispatch`
   - Требует: `EXPO_TOKEN` secret + реальный `projectId` в `app.json`
 - **EAS профили**: development / preview (APK) / production (autoIncrement)
+- **Tauri Build** (desktop): `cd apps/desktop && npx tauri build` → платформенные инсталляторы
+  - Windows: `.msi` + `.exe` (NSIS)
+  - macOS: `.dmg` + `.app`
+  - Linux: `.deb` + `.AppImage`
+  - Требует: Rust + платформенные зависимости (см. README)
 
 ---
 
 ## Что сделано
 
+### Mobile (Phase 2 — complete)
 - [x] Все 7 мобильных экранов + OnboardingScreen
-- [x] Zustand store с полным CRUD + persistence
+- [x] Zustand store с полным CRUD + AsyncStorage persistence
 - [x] RevenueCat paywall (real offerings, purchase, restore)
 - [x] Push notifications (daily reminder, tilt alert с правильным streak count)
 - [x] CSV export (expo-sharing, UTF-8 BOM)
@@ -160,32 +183,51 @@ interface BetsStore {
 - [x] Pre-bet checklist modal (PRO)
 - [x] CI: tests + type-check (все зелёные)
 - [x] EAS: development/preview/production profiles
-- [x] Placeholder assets (icon/splash/adaptive-icon)
-- [x] `clearAll()`, редактируемые PRO-настройки (stepper), inline deposit/withdrawal form
-- [x] Desktop frontend scaffold (TypeScript чистый, без Tauri backend)
+- [x] DM Sans + DM Mono fonts (useFonts hook, 6 variants)
 - [x] Haptic feedback: haptics.ts, wired в AddBet + BetCard + DisciplineScreen
-- [x] BetsScreen: sort (date/odds/stake) + status filter scroll + haptics
-- [x] AnalyticsScreen: SummaryCard с total/winrate/P&L/ROI/best sport
-- [x] AddBetScreen: Kelly calculator (collapsible, implied prob, EV, half-kelly, "Применить")
-- [x] canAddBet() enforces dailyBetLimit для PRO, contextual Alert
-- [x] Bugfix: тилт-нотификация отправляла tiltThreshold вместо streak count
-- [x] Bugfix: syncEntitlement не делает downgrade при network failure
-- [x] Bugfix: все ID — UUID v4 (убраны Date.now() в Onboarding и Bankroll)
-- [x] Bugfix: "Прибыль при победе" = stake*(odds-1), а не stake*odds
-- [x] Bugfix: неиспользуемый импорт BetStatus удалён из stats.ts
-- [x] Period filter (7д/30д/Всё) на Dashboard и Analytics
-- [x] BetsScreen: SectionList с заголовками дат и daily P&L per section
-- [x] BankrollScreen: кривая банкролла (equity curve LineChart)
-- [x] Dashboard: секция лучшей/худшей ставки за период
+- [x] BetsScreen: sort (date/odds/stake) + status filter scroll + date sections с daily P&L
+- [x] AnalyticsScreen: SummaryCard + 8 срезов, period filter
+- [x] AddBetScreen: Kelly calculator (collapsible, implied prob, EV, half-kelly)
+- [x] canAddBet() enforces dailyBetLimit для PRO + free limit
+- [x] BankrollScreen: equity curve LineChart
+- [x] Dashboard: best/worst bet, W/L strip (oldest-first), heatmap
+
+### Desktop (Phase 3 — frontend complete, Tauri backend added)
+- [x] DashboardPage: period filter, 6 stat cards, W/L strip, 12-week heatmap, P&L chart, best/worst, empty state
+- [x] BetsPage: date-grouped sections, daily P&L headers, search+filter, 4 sort modes, DM Mono for numbers
+- [x] AddBetModal: TeamAutocomplete, canAddBet() guard + limit banner, potential win preview, date+time fields
+- [x] AnalyticsPage: 7 срезов + bar charts + table, period filter, PRO gate с рабочей кнопкой
+- [x] BankrollPage: equity curve AreaChart, unit stepper, Kelly calc, deposit/withdrawal, PRO gate
+- [x] DiaryPage: mood picker, tilt stats, 8 правил, diary history
+- [x] SettingsPage: tilt+daily-limit steppers (PRO), bookmakers, CSV+JSON export, JSON import/restore
+- [x] AppLayout: sidebar nav + "+ Новая ставка" button + free progress bar
+- [x] Keyboard shortcuts: Cmd/Ctrl+N (new bet), Esc (close modal)
+- [x] DM Sans + DM Mono (Google Fonts CDN в index.html)
+- [x] Tauri v2 backend scaffold: tauri.conf.json, Cargo.toml, main.rs, capabilities
+
+### Core (packages/core)
+- [x] calcByHour() — статистика по часам дня
+- [x] Bugfix: totalStaked включает refund-ставки (ROI был завышен)
+- [x] Bugfix: period filter off-by-one (>= → >)
 
 ---
 
 ## Команды
 
 ```bash
-cd packages/core && npx vitest run
-cd apps/mobile && npx tsc --noEmit
-cd apps/desktop && npx tsc --noEmit
-cd apps/mobile && npx expo start
+cd packages/core && npx vitest run          # тесты (12 штук)
+cd apps/mobile && npx tsc --noEmit          # type-check мобилки
+cd apps/desktop && npx tsc --noEmit         # type-check десктопа
+cd apps/mobile && npx expo start            # запуск мобилки
+
+# Desktop dev (браузер):
+cd apps/desktop && npx vite dev
+
+# Desktop dev (Tauri window):
+cd apps/desktop && npx tauri dev
+
+# Desktop production build (инсталлятор):
+cd apps/desktop && npx tauri build
+
 git push -u origin claude/busy-shannon-jQgRK
 ```
