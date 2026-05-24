@@ -177,6 +177,16 @@ export function DashboardScreen() {
 
   const last5 = bets.slice(0, 5);
 
+  const settledWithPnl = bets
+    .filter((b) => b.status === 'won' || b.status === 'lost')
+    .map((b) => ({ ...b, pnl: b.status === 'won' ? Math.round(b.stake * b.odds) - b.stake : -b.stake }));
+  const bestBet = settledWithPnl.length > 0
+    ? settledWithPnl.reduce((a, b) => b.pnl > a.pnl ? b : a)
+    : null;
+  const worstBet = settledWithPnl.length > 1
+    ? settledWithPnl.reduce((a, b) => b.pnl < a.pnl ? b : a)
+    : null;
+
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <ScreenHeader
@@ -302,6 +312,32 @@ export function DashboardScreen() {
         </View>
       )}
 
+      {(bestBet || worstBet) && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Лучшая / Худшая ставка</Text>
+          {bestBet && (
+            <View style={styles.extremeBet}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.extremeLabel}>Лучшая</Text>
+                <Text style={styles.recentEvent} numberOfLines={1}>{bestBet.event}</Text>
+                <Text style={styles.recentPick}>{bestBet.pick} · ×{bestBet.odds}</Text>
+              </View>
+              <Text style={[styles.extremePnl, { color: colors.won }]}>+{formatMoney(bestBet.pnl)}</Text>
+            </View>
+          )}
+          {worstBet && (
+            <View style={[styles.extremeBet, { marginTop: 6 }]}>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.extremeLabel}>Худшая</Text>
+                <Text style={styles.recentEvent} numberOfLines={1}>{worstBet.event}</Text>
+                <Text style={styles.recentPick}>{worstBet.pick} · ×{worstBet.odds}</Text>
+              </View>
+              <Text style={[styles.extremePnl, { color: colors.lost }]}>{formatMoney(worstBet.pnl)}</Text>
+            </View>
+          )}
+        </View>
+      )}
+
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Последние ставки</Text>
         {last5.length === 0 ? (
@@ -416,4 +452,15 @@ const styles = StyleSheet.create({
     width: 28, height: 28, borderRadius: 8,
     alignItems: 'center', justifyContent: 'center',
   },
+  extremeBet: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.bgCard,
+    borderRadius: 10,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  extremeLabel: { fontSize: 10, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 },
+  extremePnl: { fontSize: 16, fontWeight: '700' },
 });

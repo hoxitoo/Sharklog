@@ -10,6 +10,7 @@ import { colors } from '../../theme/colors';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ChecklistModal } from '../../components/ChecklistModal';
 import { BetCard } from './BetCard';
+import { SwipeableRow } from './SwipeableRow';
 import { haptic } from '../../utils/haptics';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 
@@ -34,7 +35,7 @@ const SORT_OPTIONS: Array<{ key: SortKey; label: string }> = [
 
 export function BetsScreen() {
   const navigation = useNavigation<Nav>();
-  const { bets, settings, canAddBet } = useBetsStore();
+  const { bets, settings, canAddBet, deleteBet } = useBetsStore();
   const [statusFilter, setStatusFilter] = useState<BetStatus | 'all'>('all');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortKey>('date_desc');
@@ -149,7 +150,11 @@ export function BetsScreen() {
       <FlatList
         data={filtered}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <BetCard bet={item} onEdit={handleEdit} />}
+        renderItem={({ item }) => (
+          <SwipeableRow onDelete={() => { haptic.error(); deleteBet(item.id); }}>
+            <BetCard bet={item} onEdit={handleEdit} />
+          </SwipeableRow>
+        )}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
         refreshControl={

@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import type { Bet } from '@sharklog/core';
 import { SPORTS, BET_TYPES, formatMoney, formatOdds } from '@sharklog/core';
 import { colors } from '../../theme/colors';
@@ -13,7 +13,7 @@ interface Props {
 }
 
 export function BetCard({ bet, onEdit }: Props) {
-  const { updateBet, deleteBet } = useBetsStore();
+  const { updateBet } = useBetsStore();
 
   const potentialWin = Math.round(bet.stake * bet.odds);
   const pnl = bet.status === 'won'
@@ -29,19 +29,10 @@ export function BetCard({ bet, onEdit }: Props) {
     updateBet(bet.id, { status });
   }
 
-  function handleDelete() {
-    haptic.medium();
-    Alert.alert('Удалить ставку?', bet.event, [
-      { text: 'Удалить', style: 'destructive', onPress: () => { haptic.error(); deleteBet(bet.id); } },
-      { text: 'Отмена', style: 'cancel' },
-    ]);
-  }
-
   return (
     <TouchableOpacity
       style={styles.card}
       onPress={() => onEdit(bet)}
-      onLongPress={handleDelete}
       activeOpacity={0.8}
     >
       <View style={styles.row}>

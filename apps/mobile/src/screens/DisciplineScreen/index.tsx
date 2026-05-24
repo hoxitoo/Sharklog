@@ -186,7 +186,16 @@ export function DisciplineScreen() {
               <Text style={styles.tiltStatLabel}>Серия поражений</Text>
             </View>
             <View style={styles.tiltStat}>
-              <Text style={styles.tiltStatValue}>{todayBets.length}</Text>
+              <Text style={[
+                styles.tiltStatValue,
+                settings.isPro && settings.dailyBetLimit > 0 && todayBets.length >= settings.dailyBetLimit
+                  ? { color: colors.lost }
+                  : settings.isPro && settings.dailyBetLimit > 0 && todayBets.length >= Math.ceil(settings.dailyBetLimit * 0.8)
+                  ? { color: colors.pending }
+                  : {},
+              ]}>
+                {todayBets.length}{settings.isPro && settings.dailyBetLimit > 0 ? `/${settings.dailyBetLimit}` : ''}
+              </Text>
               <Text style={styles.tiltStatLabel}>Ставок сегодня</Text>
             </View>
             <View style={styles.tiltStat}>
