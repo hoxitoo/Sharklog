@@ -22,19 +22,16 @@ export function BetCard({ bet, onEdit }: Props) {
     ? -bet.stake
     : null;
 
-  function handleStatusChange() {
-    haptic.light();
-    Alert.alert('Результат ставки', 'Выбери исход:', [
-      { text: 'Победа 🏆', onPress: () => { haptic.success(); updateBet(bet.id, { status: 'won' }); } },
-      { text: 'Проигрыш 💸', onPress: () => { haptic.error(); updateBet(bet.id, { status: 'lost' }); } },
-      { text: 'Возврат ↩️', onPress: () => { haptic.warning(); updateBet(bet.id, { status: 'refund' }); } },
-      { text: 'Отмена', style: 'cancel' },
-    ]);
+  function handleQuickResult(status: 'won' | 'lost' | 'refund') {
+    if (status === 'won') haptic.success();
+    else if (status === 'lost') haptic.error();
+    else haptic.warning();
+    updateBet(bet.id, { status });
   }
 
   function handleDelete() {
     haptic.medium();
-    Alert.alert('Удалить ставку?', `${bet.event}`, [
+    Alert.alert('Удалить ставку?', bet.event, [
       { text: 'Удалить', style: 'destructive', onPress: () => { haptic.error(); deleteBet(bet.id); } },
       { text: 'Отмена', style: 'cancel' },
     ]);
@@ -67,12 +64,34 @@ export function BetCard({ bet, onEdit }: Props) {
       <View style={styles.footer}>
         <StatusBadge status={bet.status} />
         <Text style={styles.date}>{bet.date} {bet.time}</Text>
-        {bet.status === 'pending' && (
-          <TouchableOpacity style={styles.closeBtn} onPress={handleStatusChange}>
-            <Text style={styles.closeBtnText}>Закрыть</Text>
-          </TouchableOpacity>
-        )}
       </View>
+
+      {bet.status === 'pending' && (
+        <View style={styles.quickResultRow}>
+          <TouchableOpacity
+            style={[styles.resultChip, styles.chipWon]}
+            onPress={() => handleQuickResult('won')}
+            activeOpacity={0.75}
+          >
+            <Text style={[styles.chipText, { color: colors.won }]}>W</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.resultChip, styles.chipLost]}
+            onPress={() => handleQuickResult('lost')}
+            activeOpacity={0.75}
+          >
+            <Text style={[styles.chipText, { color: colors.lost }]}>L</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.resultChip, styles.chipRefund]}
+            onPress={() => handleQuickResult('refund')}
+            activeOpacity={0.75}
+          >
+            <Text style={[styles.chipText, { color: colors.refund }]}>R</Text>
+          </TouchableOpacity>
+          <Text style={styles.quickResultHint}>Нажми для закрытия</Text>
+        </View>
+      )}
 
       {bet.notes ? (
         <Text style={styles.notes} numberOfLines={1}>{bet.notes}</Text>
@@ -102,12 +121,27 @@ const styles = StyleSheet.create({
   pnl: { fontSize: 13, fontWeight: '600', marginTop: 2 },
   footer: { flexDirection: 'row', alignItems: 'center', marginTop: 10, gap: 8 },
   date: { fontSize: 11, color: colors.textMuted, flex: 1 },
-  closeBtn: {
-    backgroundColor: colors.accentDim,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 6,
+  quickResultRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
   },
-  closeBtnText: { fontSize: 12, color: colors.accent, fontWeight: '600' },
+  resultChip: {
+    width: 36,
+    height: 28,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  chipWon: { backgroundColor: colors.won + '18', borderColor: colors.won + '55' },
+  chipLost: { backgroundColor: colors.lost + '18', borderColor: colors.lost + '55' },
+  chipRefund: { backgroundColor: colors.refund + '18', borderColor: colors.refund + '55' },
+  chipText: { fontSize: 13, fontWeight: '700' },
+  quickResultHint: { fontSize: 11, color: colors.textMuted, marginLeft: 4 },
   notes: { fontSize: 12, color: colors.textMuted, marginTop: 6, fontStyle: 'italic' },
 });

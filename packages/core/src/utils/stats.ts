@@ -21,6 +21,9 @@ export interface DashboardStats {
   totalBets: number;
   wonBets: number;
   lostBets: number;
+  pendingCount: number;
+  totalStaked: number;    // kopecks, settled bets only
+  avgOdds: number;        // average decimal odds across settled bets
   currentStreak: { type: 'win' | 'loss' | 'none'; count: number };
   pnlCurve: Array<{ index: number; pnl: number }>;
 }
@@ -62,6 +65,12 @@ export function calcDashboard(bets: Bet[]): DashboardStats {
     .filter((b) => b.status === 'won' || b.status === 'lost')
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 
+  const pendingCount = bets.filter((b) => b.status === 'pending').length;
+  const totalStaked = stats.totalStaked;
+  const avgOdds = settled.length > 0
+    ? Math.round((settled.reduce((sum, b) => sum + b.odds, 0) / settled.length) * 100) / 100
+    : 0;
+
   let running = 0;
   const pnlCurve = settled.map((b, i) => {
     if (b.status === 'won') running += Math.round(b.stake * b.odds) - b.stake;
@@ -78,6 +87,9 @@ export function calcDashboard(bets: Bet[]): DashboardStats {
     totalBets: stats.count,
     wonBets: stats.won,
     lostBets: stats.lost,
+    pendingCount,
+    totalStaked,
+    avgOdds,
     currentStreak: streak,
     pnlCurve,
   };
