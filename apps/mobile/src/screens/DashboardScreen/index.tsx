@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -9,9 +9,17 @@ import { useBetsStore } from '../../store/betsStore';
 import { colors } from '../../theme/colors';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { StatCard } from './StatCard';
+import { haptic } from '../../utils/haptics';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
+
+type PeriodFilter = '7d' | '30d' | 'all';
+const PERIOD_OPTIONS: Array<{ key: PeriodFilter; label: string }> = [
+  { key: '7d', label: '7 дней' },
+  { key: '30d', label: '30 дней' },
+  { key: 'all', label: 'Всё время' },
+];
 
 function WLStrip({ bets }: { bets: Bet[] }) {
   const last7 = bets.filter((b) => b.status !== 'pending').slice(0, 7);
@@ -166,18 +174,31 @@ export function DashboardScreen() {
   const navigation = useNavigation<Nav>();
   const { width } = useWindowDimensions();
   const { bets, settings, bankroll } = useBetsStore();
-  const stats = calcDashboard(bets);
-  const inTilt = isInTilt(bets, settings.tiltThreshold);
+  const [period, setPeriod] = useState<PeriodFilter>('all');
 
+  const filteredBets = useMemo(() => {
+    if (period === 'all') return bets;
+    const days = period === '7d' ? 7 : 30;
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - days);
+    const cutoffStr = cutoff.toISOString().split('T')[0] ?? '';
+    return bets.filter((b) => b.date >= cutoffStr);
+  }, [bets, period]);
+
+  const stats = calcDashboard(filteredBets);
+  const inTilt = isInTilt(filteredBets, settings.tiltThreshold);
+
+  // Bank total always reflects all-time P&L + transactions
+  const allTimePnl = period === 'all' ? stats.pnl : calcDashboard(bets).pnl;
   const bankTotal =
     bankroll.transactions.reduce(
       (sum, t) => (t.type === 'deposit' ? sum + t.amount : sum - t.amount),
       0,
-    ) + stats.pnl;
+    ) + allTimePnl;
 
-  const last5 = bets.slice(0, 5);
+  const last5 = filteredBets.slice(0, 5);
 
-  const settledWithPnl = bets
+  const settledWithPnl = filteredBets
     .filter((b) => b.status === 'won' || b.status === 'lost')
     .map((b) => ({ ...b, pnl: b.status === 'won' ? Math.round(b.stake * b.odds) - b.stake : -b.stake }));
   const bestBet = settledWithPnl.length > 0
@@ -193,6 +214,20 @@ export function DashboardScreen() {
         title="Дашборд"
         subtitle={new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}
       />
+
+      <View style={styles.periodRow}>
+        {PERIOD_OPTIONS.map((p) => (
+          <TouchableOpacity
+            key={p.key}
+            style={[styles.periodBtn, period === p.key && styles.periodBtnActive]}
+            onPress={() => { haptic.selection(); setPeriod(p.key); }}
+          >
+            <Text style={[styles.periodText, period === p.key && styles.periodTextActive]}>
+              {p.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
       {inTilt && (
         <View style={styles.tiltAlert}>
@@ -245,7 +280,7 @@ export function DashboardScreen() {
         />
       </View>
 
-      <WLStrip bets={bets} />
+      <WLStrip bets={filteredBets} />
 
       <View style={styles.streakRow}>
         <View style={[
@@ -270,7 +305,7 @@ export function DashboardScreen() {
         </TouchableOpacity>
       </View>
 
-      <Heatmap bets={bets} />
+      <Heatmap bets={filteredBets} />
 
       {stats.pnlCurve.length > 1 && (
         <View style={styles.section}>
@@ -378,6 +413,27 @@ export function DashboardScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
+  periodRow: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    gap: 8,
+    marginBottom: 14,
+  },
+  periodBtn: {
+    flex: 1,
+    paddingVertical: 7,
+    borderRadius: 8,
+    backgroundColor: colors.bgCard,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  periodBtnActive: {
+    backgroundColor: colors.purple,
+    borderColor: colors.purple,
+  },
+  periodText: { fontSize: 12, fontWeight: '600', color: colors.textSecondary },
+  periodTextActive: { color: '#fff' },
   tiltAlert: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -9,12 +9,12 @@ Read this at the start of every session. Always develop on `claude/busy-shannon-
 ```
 apps/mobile/src/
   screens/
-    BetsScreen/         — FlatList, search, status filter (scroll), sort row (date/odds/stake), haptics, ChecklistModal (PRO)
+    BetsScreen/         — SectionList с датами + daily P&L, search, status filter (scroll), sort row, swipe-to-delete, haptics
     AddBetScreen/       — react-hook-form, TeamAutocomplete, Kelly calculator (collapsible, запускается при odds > 1)
-    DashboardScreen/    — stats grid, W/L strip, 12-week heatmap, P&L LineChart (gifted-charts)
-    AnalyticsScreen/    — SummaryCard (total/winrate/P&L/ROI) + 6 срезов с барами (PRO via ProGate)
-    BankrollScreen/     — сводка банкролла, inline deposit/withdrawal form, Kelly calculator (PRO)
-    DisciplineScreen/   — mood picker (1-5), тилт-стата, 8 правил, diary
+    DashboardScreen/    — period filter (7д/30д/Всё), stats grid, W/L strip, heatmap, P&L chart, best/worst bet
+    AnalyticsScreen/    — period filter (7д/30д/Всё), SummaryCard + 8 срезов с барами (PRO via ProGate)
+    BankrollScreen/     — equity curve LineChart, сводка банкролла, inline deposit/withdrawal, Kelly (PRO)
+    DisciplineScreen/   — mood picker (1-5), тилт-стата (X/N лимит для PRO), 8 правил, diary
     SettingsScreen/     — Stepper для PRO настроек, paywall modal, clearAll, export, notifications
     OnboardingScreen/   — 3 шага: welcome → стартовый банкролл → букмекеры
   components/
@@ -173,6 +173,10 @@ interface BetsStore {
 - [x] Bugfix: все ID — UUID v4 (убраны Date.now() в Onboarding и Bankroll)
 - [x] Bugfix: "Прибыль при победе" = stake*(odds-1), а не stake*odds
 - [x] Bugfix: неиспользуемый импорт BetStatus удалён из stats.ts
+- [x] Period filter (7д/30д/Всё) на Dashboard и Analytics
+- [x] BetsScreen: SectionList с заголовками дат и daily P&L per section
+- [x] BankrollScreen: кривая банкролла (equity curve LineChart)
+- [x] Dashboard: секция лучшей/худшей ставки за период
 
 ---
 
