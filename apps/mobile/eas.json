@@ -23,7 +23,8 @@
     "production": {
       "autoIncrement": true,
       "env": {
-        "EXPO_PUBLIC_ENV": "production"
+        "EXPO_PUBLIC_ENV": "production",
+        "EXPO_PUBLIC_SENTRY_DSN": "REPLACE_WITH_SENTRY_DSN"
       }
     }
   },

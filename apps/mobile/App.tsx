@@ -9,6 +9,7 @@ import { useBetsStore } from './src/store/betsStore';
 import { colors } from './src/theme/colors';
 import { scheduleDailyReminder } from './src/utils/notifications';
 import { initRevenueCat, syncEntitlement } from './src/services/revenueCat';
+import { initSentry } from './src/services/sentry';
 
 export default function App() {
   const load = useBetsStore((s) => s.load);
@@ -17,6 +18,7 @@ export default function App() {
   const updateSettings = useBetsStore((s) => s.updateSettings);
 
   useEffect(() => {
+    initSentry();
     initRevenueCat();
     load().then(async () => {
       scheduleDailyReminder();
