@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import type { Sport, BetType, Strategy, BetStatus, EsportsDiscipline, Team } from '@sharklog/core';
 import {
   SPORTS, BET_TYPES, STRATEGIES, ESPORTS_DISCIPLINES,
-  parseMoneyInput, formatMoney, CURRENT_SCHEMA_VERSION,
+  parseMoneyInput, formatMoney, CURRENT_SCHEMA_VERSION, FREE_LIMITS,
 } from '@sharklog/core';
 import type { Bet } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
@@ -141,7 +141,7 @@ const ac: Record<string, React.CSSProperties> = {
 };
 
 export function AddBetModal({ editBet, onClose }: Props) {
-  const { addBet, updateBet, settings } = useBetsStore();
+  const { addBet, updateBet, settings, canAddBet } = useBetsStore();
   const now = new Date();
   const defaultDate = now.toISOString().split('T')[0] ?? '';
   const defaultTime = now.toTimeString().slice(0, 5);
@@ -179,6 +179,7 @@ export function AddBetModal({ editBet, onClose }: Props) {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!editBet && !canAddBet()) return;
     if (!validate()) return;
     const extras = {
       ...(sport === 'esports' ? { discipline } : {}),
@@ -215,6 +216,11 @@ export function AddBetModal({ editBet, onClose }: Props) {
         </div>
 
         <form onSubmit={handleSubmit} style={m.body}>
+          {!editBet && !canAddBet() && (
+            <div style={m.limitBanner}>
+              🔒 Лимит {FREE_LIMITS.MAX_BETS} ставок достигнут. Перейди на Pro для безлимитного трекинга.
+            </div>
+          )}
           <Field label="Событие *" {...(errors['event'] ? { error: errors['event'] } : {})}>
             <TeamAutocomplete value={event} onChange={setEvent} sport={sport} discipline={discipline} />
           </Field>
@@ -332,6 +338,11 @@ const m: Record<string, React.CSSProperties> = {
   modalTitle: { fontSize: 18, fontWeight: 700, color: colors.textPrimary },
   closeBtn: { background: 'none', border: 'none', color: colors.textMuted, fontSize: 18, cursor: 'pointer' },
   body: { padding: 24 },
+  limitBanner: {
+    backgroundColor: colors.lost + '15', border: `1px solid ${colors.lost}44`,
+    borderRadius: 8, padding: '10px 14px', marginBottom: 14,
+    color: colors.lost, fontSize: 13, fontWeight: 600,
+  },
   winPreview: {
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
     backgroundColor: colors.accentDim, borderRadius: 8, padding: '10px 14px', marginBottom: 14,

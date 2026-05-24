@@ -18,10 +18,10 @@ const PERIOD_OPTIONS: Array<{ key: PeriodFilter; label: string }> = [
 ];
 
 function Section({ title, stats }: { title: string; stats: SliceStats[] }) {
-  const withData = stats.filter((s) => s.count > 0);
+  const withData = stats.filter((st) => st.count > 0);
   if (withData.length === 0) return null;
 
-  const chartData = withData.map((s) => ({ name: s.label, roi: parseFloat(s.roi.toFixed(1)), pnl: s.pnl / 100 }));
+  const chartData = withData.map((st) => ({ name: st.label, roi: parseFloat(st.roi.toFixed(1)), pnl: st.pnl / 100 }));
 
   return (
     <div style={s.card}>
@@ -108,7 +108,7 @@ function SummaryCard({ bets }: { bets: Parameters<typeof calcDashboard>[0] }) {
 }
 
 export function AnalyticsPage() {
-  const { bets, settings } = useBetsStore();
+  const { bets, settings, updateSettings } = useBetsStore();
   const [period, setPeriod] = useState<PeriodFilter>('all');
 
   const filteredBets = useMemo(() => {
@@ -128,7 +128,7 @@ export function AnalyticsPage() {
           <div style={{ fontSize: 48, marginBottom: 16 }}>👑</div>
           <div style={{ fontSize: 20, fontWeight: 700, color: colors.gold, marginBottom: 8 }}>Функция PRO</div>
           <div style={{ color: colors.textSecondary, marginBottom: 24 }}>Полная аналитика по 7 срезам доступна в подписке SharkLog Pro</div>
-          <button style={s.proBtn}>Попробовать Pro — 7 дней бесплатно</button>
+          <button style={s.proBtn} onClick={() => updateSettings({ isPro: true })}>Попробовать Pro — 7 дней бесплатно</button>
         </div>
       </div>
     );

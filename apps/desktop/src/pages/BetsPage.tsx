@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import type { Bet, BetStatus } from '@sharklog/core';
-import { SPORTS, BET_TYPES, formatMoney, formatOdds } from '@sharklog/core';
+import { SPORTS, BET_TYPES, formatMoney, formatOdds, FREE_LIMITS } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
 import { colors } from '../theme/colors';
 
@@ -47,7 +47,7 @@ export function BetsPage({ onAdd, onEdit }: Props) {
   const [sort, setSort] = useState<SortKey>('date_desc');
   const [hovered, setHovered] = useState<string | null>(null);
 
-  const freeLeft = Math.max(0, 50 - bets.length);
+  const freeLeft = Math.max(0, FREE_LIMITS.MAX_BETS - bets.length);
 
   const sections = useMemo(() => {
     let result = [...bets];
@@ -107,16 +107,16 @@ export function BetsPage({ onAdd, onEdit }: Props) {
         <div>
           <h1 style={s.title}>Ставки</h1>
           <div style={s.subtitle}>
-            {settings.isPro ? `${bets.length} ставок` : `${freeLeft} из 50 осталось`}
+            {settings.isPro ? `${bets.length} ставок` : `${freeLeft} из ${FREE_LIMITS.MAX_BETS} осталось`}
           </div>
         </div>
         <button style={s.addBtn} onClick={onAdd}>+ Добавить ставку</button>
       </div>
 
-      {!settings.isPro && bets.length >= 40 && (
+      {!settings.isPro && bets.length >= FREE_LIMITS.MAX_BETS - 10 && (
         <div style={s.limitBanner}>
           {freeLeft <= 0
-            ? '🔒 Лимит 50 ставок достигнут — перейди на Pro'
+            ? `🔒 Лимит ${FREE_LIMITS.MAX_BETS} ставок достигнут — перейди на Pro`
             : `⚠️ Осталось ${freeLeft} бесплатных ставок`}
         </div>
       )}

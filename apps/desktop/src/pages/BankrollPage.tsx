@@ -58,7 +58,7 @@ function Row({ label, value, color }: { label: string; value: string; color?: st
 }
 
 export function BankrollPage() {
-  const { bets, bankroll, updateBankroll, settings } = useBetsStore();
+  const { bets, bankroll, updateBankroll, updateSettings, settings } = useBetsStore();
   const stats = calcDashboard(bets);
   const [depositInput, setDepositInput] = useState('');
   const [withdrawInput, setWithdrawInput] = useState('');
@@ -98,7 +98,7 @@ export function BankrollPage() {
           <div style={{ fontSize: 48, marginBottom: 16 }}>👑</div>
           <div style={{ fontSize: 20, fontWeight: 700, color: colors.gold, marginBottom: 8 }}>Функция PRO</div>
           <div style={{ color: colors.textSecondary, marginBottom: 24 }}>Банкролл-трекер и калькулятор Келли доступны в подписке</div>
-          <button style={s.proBtn}>Попробовать Pro — 7 дней бесплатно</button>
+          <button style={s.proBtn} onClick={() => updateSettings({ isPro: true })}>Попробовать Pro — 7 дней бесплатно</button>
         </div>
       </div>
     );

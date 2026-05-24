@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { isInTilt } from '@sharklog/core';
+import { isInTilt, formatMoney } from '@sharklog/core';
 import type { DiaryEntry } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
 import { colors } from '../theme/colors';
@@ -172,7 +172,7 @@ export function DiaryPage() {
               <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${colors.border}`, display: 'flex', justifyContent: 'space-between' }}>
                 <span style={{ fontSize: 13, color: colors.textMuted }}>P&L сегодня</span>
                 <span style={{ fontSize: 14, fontWeight: 700, color: todayPnl >= 0 ? colors.won : colors.lost }}>
-                  {todayPnl >= 0 ? '+' : ''}{(todayPnl / 100).toFixed(0)} ₽
+                  {todayPnl >= 0 ? '+' : ''}{formatMoney(todayPnl)}
                 </span>
               </div>
             )}
