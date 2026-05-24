@@ -7,6 +7,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FREE_LIMITS } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { colors } from '../../theme/colors';
+import { exportBetsCSV } from '../../utils/exportCSV';
+import { requestNotificationPermission, scheduleDailyReminder } from '../../utils/notifications';
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -55,6 +57,32 @@ export function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const { settings, updateSettings, bets } = useBetsStore();
   const [newBookmaker, setNewBookmaker] = useState('');
+  const [exporting, setExporting] = useState(false);
+
+  async function handleExport() {
+    if (bets.length === 0) {
+      Alert.alert('Нет ставок', 'Добавь хотя бы одну ставку для экспорта');
+      return;
+    }
+    setExporting(true);
+    try {
+      await exportBetsCSV(bets);
+    } catch {
+      Alert.alert('Ошибка', 'Не удалось экспортировать данные');
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  async function handleEnableNotifications() {
+    const granted = await requestNotificationPermission();
+    if (granted) {
+      await scheduleDailyReminder();
+      Alert.alert('Готово', 'Ежедневное напоминание в 20:00 включено');
+    } else {
+      Alert.alert('Нет разрешения', 'Разреши уведомления в настройках телефона');
+    }
+  }
 
   function handleClearData() {
     Alert.alert(
@@ -160,6 +188,17 @@ export function SettingsScreen() {
         </Row>
       </Section>
 
+      <Section title="Экспорт и уведомления">
+        <TouchableOpacity style={styles.actionBtn} onPress={handleExport} disabled={exporting}>
+          <Text style={styles.actionBtnText}>
+            {exporting ? 'Экспортируется...' : '📤  Экспорт в CSV'}
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.actionBtn} onPress={handleEnableNotifications}>
+          <Text style={styles.actionBtnText}>🔔  Включить напоминания</Text>
+        </TouchableOpacity>
+      </Section>
+
       <Section title="Опасная зона">
         <TouchableOpacity style={styles.dangerBtn} onPress={handleClearData}>
           <Text style={styles.dangerBtnText}>Очистить все данные</Text>
@@ -218,6 +257,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   addBkBtnText: { fontSize: 22, color: '#fff', fontWeight: '700', lineHeight: 26 },
+  actionBtn: {
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  actionBtnText: { fontSize: 15, color: colors.purple, fontWeight: '600' },
   dangerBtn: {
     paddingVertical: 14,
     alignItems: 'center',

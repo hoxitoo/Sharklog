@@ -1,16 +1,42 @@
 import React, { useEffect } from 'react';
+import { View, ActivityIndicator } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { RootNavigator } from './src/navigation/RootNavigator';
+import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import { useBetsStore } from './src/store/betsStore';
+import { colors } from './src/theme/colors';
+import { scheduleDailyReminder } from './src/utils/notifications';
 
 export default function App() {
   const load = useBetsStore((s) => s.load);
+  const isLoaded = useBetsStore((s) => s.isLoaded);
+  const onboardingComplete = useBetsStore((s) => s.settings.onboardingComplete);
 
   useEffect(() => {
-    load();
+    load().then(() => {
+      scheduleDailyReminder();
+    });
   }, []);
+
+  if (!isLoaded) {
+    return (
+      <View style={{ flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' }}>
+        <StatusBar style="light" />
+        <ActivityIndicator color={colors.purple} size="large" />
+      </View>
+    );
+  }
+
+  if (!onboardingComplete) {
+    return (
+      <SafeAreaProvider>
+        <StatusBar style="light" />
+        <OnboardingScreen />
+      </SafeAreaProvider>
+    );
+  }
 
   return (
     <SafeAreaProvider>

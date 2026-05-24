@@ -8,6 +8,7 @@ import type { Bet, BetStatus } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { colors } from '../../theme/colors';
 import { ScreenHeader } from '../../components/ScreenHeader';
+import { ChecklistModal } from '../../components/ChecklistModal';
 import { BetCard } from './BetCard';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 
@@ -26,6 +27,7 @@ export function BetsScreen() {
   const { bets, settings, canAddBet } = useBetsStore();
   const [statusFilter, setStatusFilter] = useState<BetStatus | 'all'>('all');
   const [search, setSearch] = useState('');
+  const [showChecklist, setShowChecklist] = useState(false);
 
   const filtered = useMemo(() => {
     let result = [...bets];
@@ -42,10 +44,13 @@ export function BetsScreen() {
   const freeLeft = Math.max(0, 50 - bets.length);
 
   function handleAdd() {
-    if (!canAddBet()) {
-      return;
+    if (!canAddBet()) return;
+    // PRO users get the pre-bet discipline checklist
+    if (settings.isPro) {
+      setShowChecklist(true);
+    } else {
+      navigation.navigate('AddBet', {});
     }
-    navigation.navigate('AddBet', {});
   }
 
   function handleEdit(bet: Bet) {
@@ -54,6 +59,11 @@ export function BetsScreen() {
 
   return (
     <View style={styles.container}>
+      <ChecklistModal
+        visible={showChecklist}
+        onConfirm={() => { setShowChecklist(false); navigation.navigate('AddBet', {}); }}
+        onCancel={() => setShowChecklist(false)}
+      />
       <ScreenHeader
         title="Ставки"
         subtitle={settings.isPro ? `${bets.length} ставок` : `${freeLeft} из 50 осталось`}
