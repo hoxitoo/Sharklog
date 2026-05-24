@@ -10,6 +10,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { Sport, BetType, Strategy, BetStatus, EsportsDiscipline, Team } from '@sharklog/core';
 import {
   SPORTS, BET_TYPES, STRATEGIES, ESPORTS_DISCIPLINES, parseMoneyInput, formatMoney,
+  impliedProbability, halfKelly, expectedValue, recommendedStake,
 } from '@sharklog/core';
 import { colors } from '../../theme/colors';
 import { useBetsStore } from '../../store/betsStore';
@@ -226,12 +227,117 @@ const ac = StyleSheet.create({
   count: { fontSize: 11, color: colors.textMuted },
 });
 
+// ── Kelly Helper ───────────────────────────────────────────────────────────────
+
+function KellyHelper({ odds, bankKopecks, onApply }: {
+  odds: number;
+  bankKopecks: number;
+  onApply: (roubles: string) => void;
+}) {
+  const [prob, setProb] = useState(0.5);
+  const implied = impliedProbability(odds);
+  const ev = expectedValue(odds, prob);
+  const kellyPct = halfKelly(odds, prob) * 100;
+  const stake = bankKopecks > 0 ? recommendedStake(bankKopecks, odds, prob) : 0;
+  const evPositive = ev > 0;
+
+  function step(dir: 1 | -1) {
+    setProb((p) => Math.min(0.95, Math.max(0.05, Math.round((p + dir * 0.05) * 100) / 100)));
+  }
+
+  return (
+    <View style={kl.container}>
+      <View style={kl.impliedRow}>
+        <Text style={kl.impliedLabel}>Имплицитная вероятность букмекера</Text>
+        <Text style={kl.impliedValue}>{(implied * 100).toFixed(1)}%</Text>
+      </View>
+
+      <View style={kl.stepRow}>
+        <Text style={kl.stepLabel}>Моя оценка</Text>
+        <View style={kl.stepper}>
+          <TouchableOpacity style={kl.stepBtn} onPress={() => step(-1)} activeOpacity={0.7}>
+            <Text style={kl.stepBtnText}>−</Text>
+          </TouchableOpacity>
+          <Text style={kl.stepValue}>{(prob * 100).toFixed(0)}%</Text>
+          <TouchableOpacity style={kl.stepBtn} onPress={() => step(1)} activeOpacity={0.7}>
+            <Text style={kl.stepBtnText}>+</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      <View style={kl.resultsRow}>
+        <View style={kl.resultCell}>
+          <Text style={[kl.resultValue, { color: evPositive ? colors.won : colors.lost }]}>
+            {ev >= 0 ? '+' : ''}{(ev * 100).toFixed(1)}%
+          </Text>
+          <Text style={kl.resultLabel}>EV</Text>
+        </View>
+        <View style={kl.resultCell}>
+          <Text style={kl.resultValue}>{kellyPct.toFixed(1)}%</Text>
+          <Text style={kl.resultLabel}>Half-Kelly</Text>
+        </View>
+        <View style={kl.resultCell}>
+          <Text style={[kl.resultValue, { color: stake > 0 ? colors.accent : colors.textMuted }]}>
+            {stake > 0 ? formatMoney(stake) : '—'}
+          </Text>
+          <Text style={kl.resultLabel}>Рек. ставка</Text>
+        </View>
+      </View>
+
+      {stake > 0 && (
+        <TouchableOpacity style={kl.applyBtn} onPress={() => onApply(String(stake / 100))} activeOpacity={0.8}>
+          <Text style={kl.applyText}>Применить {formatMoney(stake)}</Text>
+        </TouchableOpacity>
+      )}
+    </View>
+  );
+}
+
+const kl = StyleSheet.create({
+  container: {
+    backgroundColor: colors.bgElevated,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    gap: 12,
+  },
+  impliedRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  impliedLabel: { fontSize: 12, color: colors.textMuted },
+  impliedValue: { fontSize: 13, fontWeight: '600', color: colors.textSecondary },
+  stepRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  stepLabel: { fontSize: 13, color: colors.textPrimary, fontWeight: '500' },
+  stepper: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  stepBtn: {
+    width: 32, height: 32, borderRadius: 8,
+    backgroundColor: colors.bgCard, borderWidth: 1, borderColor: colors.border,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  stepBtnText: { fontSize: 18, color: colors.textPrimary, lineHeight: 22 },
+  stepValue: { fontSize: 17, fontWeight: '700', color: colors.textPrimary, minWidth: 44, textAlign: 'center' },
+  resultsRow: { flexDirection: 'row', justifyContent: 'space-around' },
+  resultCell: { alignItems: 'center', gap: 3 },
+  resultValue: { fontSize: 16, fontWeight: '700', color: colors.textPrimary },
+  resultLabel: { fontSize: 10, color: colors.textMuted },
+  applyBtn: {
+    backgroundColor: colors.accent + '22',
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.accent + '66',
+  },
+  applyText: { fontSize: 14, fontWeight: '700', color: colors.accent },
+});
+
 // ── Main Screen ────────────────────────────────────────────────────────────────
 
 export function AddBetScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
-  const { bets, addBet, updateBet, settings } = useBetsStore();
+  const { bets, addBet, updateBet, settings, bankroll } = useBetsStore();
+  const [kellyOpen, setKellyOpen] = useState(false);
 
   const editBet = route.params?.betId
     ? bets.find((b) => b.id === route.params?.betId)
@@ -241,7 +347,7 @@ export function AddBetScreen() {
   const defaultDate = now.toISOString().split('T')[0] ?? '';
   const defaultTime = now.toTimeString().slice(0, 5);
 
-  const { control, handleSubmit, watch, formState: { errors } } = useForm<FormData>({
+  const { control, handleSubmit, watch, setValue, formState: { errors } } = useForm<FormData>({
     defaultValues: {
       event: editBet?.event ?? '',
       pick: editBet?.pick ?? '',
@@ -265,6 +371,18 @@ export function AddBetScreen() {
   const potentialWin = watchedOdds > 0 && stakeKopecks > 0
     ? formatMoney(Math.round(stakeKopecks * watchedOdds))
     : null;
+
+  const bankKopecks = useMemo(() => {
+    const deposited = bankroll.transactions.reduce(
+      (sum, t) => (t.type === 'deposit' ? sum + t.amount : sum - t.amount), 0,
+    );
+    const pnl = bets.reduce((sum, b) => {
+      if (b.status === 'won') return sum + Math.round(b.stake * b.odds) - b.stake;
+      if (b.status === 'lost') return sum - b.stake;
+      return sum;
+    }, 0);
+    return deposited + pnl;
+  }, [bankroll.transactions, bets]);
 
   useEffect(() => {
     navigation.setOptions({ title: editBet ? 'Редактировать ставку' : 'Новая ставка' });
@@ -403,6 +521,26 @@ export function AddBetScreen() {
           </View>
         )}
 
+        {watchedOdds > 1 && (
+          <TouchableOpacity
+            style={[styles.kellyToggle, kellyOpen && styles.kellyToggleActive]}
+            onPress={() => { haptic.selection(); setKellyOpen((v) => !v); }}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.kellyToggleText, kellyOpen && styles.kellyToggleTextActive]}>
+              📊 Калькулятор Келли {kellyOpen ? '▲' : '▼'}
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        {kellyOpen && watchedOdds > 1 && (
+          <KellyHelper
+            odds={watchedOdds}
+            bankKopecks={bankKopecks}
+            onApply={(v) => { setValue('stake', v); haptic.success(); }}
+          />
+        )}
+
         <Controller
           control={control}
           name="sport"
@@ -523,6 +661,19 @@ const styles = StyleSheet.create({
   },
   winLabel: { fontSize: 13, color: colors.accent },
   winAmount: { fontSize: 16, fontWeight: '700', color: colors.accent },
+  kellyToggle: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+    backgroundColor: colors.bgCard,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: 12,
+  },
+  kellyToggleActive: { borderColor: colors.accent + '66', backgroundColor: colors.accentDim },
+  kellyToggleText: { fontSize: 13, color: colors.textSecondary },
+  kellyToggleTextActive: { color: colors.accent, fontWeight: '600' },
   bookmakers: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   bkBtn: {
     paddingHorizontal: 12, paddingVertical: 7,

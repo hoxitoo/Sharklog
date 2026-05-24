@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import {
-  View, FlatList, StyleSheet, TouchableOpacity, Text, TextInput, ScrollView,
+  View, FlatList, StyleSheet, TouchableOpacity, Text, TextInput, ScrollView, Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -63,7 +63,17 @@ export function BetsScreen() {
   const freeLeft = Math.max(0, 50 - bets.length);
 
   function handleAdd() {
-    if (!canAddBet()) return;
+    if (!canAddBet()) {
+      haptic.error();
+      if (!settings.isPro) {
+        Alert.alert('Лимит достигнут', 'Бесплатный план — до 50 ставок. Перейди на Pro для безлимитного трекинга.');
+      } else {
+        const today = new Date().toISOString().split('T')[0] ?? '';
+        const todayCount = bets.filter((b) => b.date === today).length;
+        Alert.alert('Дневной лимит', `Сегодня уже ${todayCount} ставок — установленный лимит ${settings.dailyBetLimit}. Измени лимит в Настройках.`);
+      }
+      return;
+    }
     // PRO users get the pre-bet discipline checklist
     if (settings.isPro) {
       setShowChecklist(true);
