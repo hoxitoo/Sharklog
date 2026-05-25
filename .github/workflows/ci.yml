@@ -21,8 +21,10 @@ jobs:
           node-version: '20'
           cache: 'npm'
       - run: npm ci
-      - name: Run vitest
+      - name: Run vitest (core)
         run: cd packages/core && npx vitest run --reporter=verbose
+      - name: Run vitest (desktop)
+        run: cd apps/desktop && npm test
 
   type-check:
     name: Type check
