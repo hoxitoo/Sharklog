@@ -1,8 +1,7 @@
 import { create } from 'zustand';
 import type { Bet, AppSettings, Bankroll, DiaryEntry, Team, Sport, EsportsDiscipline } from '@sharklog/core';
 import { migrate, CURRENT_SCHEMA_VERSION, FREE_LIMITS, isInTilt } from '@sharklog/core';
-
-const STORAGE_KEY = 'sharklog-data';
+import { loadData, saveData } from '../storage/storageService';
 
 function uuid(): string {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -50,7 +49,7 @@ interface BetsStore {
   teams: Team[];
   isLoaded: boolean;
 
-  load: () => void;
+  load: () => Promise<void>;
   persist: () => void;
 
   addBet: (bet: Bet) => void;
@@ -66,7 +65,7 @@ interface BetsStore {
 
 const OWNER_PRO = import.meta.env.VITE_OWNER_PRO === 'true';
 
-const defaultSettings: AppSettings = {
+export const defaultSettings: AppSettings = {
   tiltThreshold: FREE_LIMITS.TILT_ALERT_THRESHOLD,
   dailyBetLimit: 0,
   bookmakers: ['1xBet', 'Parimatch', 'Fonbet'],
@@ -76,7 +75,7 @@ const defaultSettings: AppSettings = {
   schemaVersion: CURRENT_SCHEMA_VERSION,
 };
 
-const defaultBankroll: Bankroll = {
+export const defaultBankroll: Bankroll = {
   id: 'default',
   name: 'Основной банк',
   currency: 'RUB',
@@ -93,11 +92,11 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
   teams: [],
   isLoaded: false,
 
-  load: () => {
+  load: async () => {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw = await loadData();
       if (!raw) { set({ isLoaded: true }); return; }
-      const schema = migrate(JSON.parse(raw));
+      const schema = migrate(raw as Parameters<typeof migrate>[0]);
       set({
         bets: schema.bets ?? [],
         settings: { ...defaultSettings, ...schema.settings, onboardingComplete: schema.settings?.onboardingComplete ?? true, ...(OWNER_PRO ? { isPro: true } : {}) },
@@ -113,9 +112,8 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
 
   persist: () => {
     const { bets, settings, bankroll, diary, teams } = get();
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      bets, settings, bankroll, diary, teams, version: CURRENT_SCHEMA_VERSION,
-    }));
+    saveData({ bets, settings, bankroll, diary, teams, version: CURRENT_SCHEMA_VERSION })
+      .catch(console.error);
   },
 
   addBet: (bet) => {
