@@ -71,7 +71,7 @@ const defaultSettings: AppSettings = {
   dailyBetLimit: 0,
   bookmakers: ['1xBet', 'Parimatch', 'Fonbet'],
   isPro: OWNER_PRO,
-  onboardingComplete: true, // desktop skips mobile onboarding
+  onboardingComplete: false,
   reminderHour: 20,
   schemaVersion: CURRENT_SCHEMA_VERSION,
 };
@@ -100,7 +100,7 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
       const schema = migrate(JSON.parse(raw));
       set({
         bets: schema.bets ?? [],
-        settings: { ...defaultSettings, ...schema.settings, onboardingComplete: true, ...(OWNER_PRO ? { isPro: true } : {}) },
+        settings: { ...defaultSettings, ...schema.settings, onboardingComplete: schema.settings?.onboardingComplete ?? true, ...(OWNER_PRO ? { isPro: true } : {}) },
         bankroll: { ...defaultBankroll, ...schema.bankroll },
         diary: schema.diary ?? [],
         teams: schema.teams ?? [],
