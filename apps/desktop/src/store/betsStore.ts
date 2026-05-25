@@ -64,11 +64,13 @@ interface BetsStore {
   clearAll: () => void;
 }
 
+const OWNER_PRO = import.meta.env.VITE_OWNER_PRO === 'true';
+
 const defaultSettings: AppSettings = {
   tiltThreshold: FREE_LIMITS.TILT_ALERT_THRESHOLD,
   dailyBetLimit: 0,
   bookmakers: ['1xBet', 'Parimatch', 'Fonbet'],
-  isPro: false,
+  isPro: OWNER_PRO,
   onboardingComplete: true, // desktop skips mobile onboarding
   reminderHour: 20,
   schemaVersion: CURRENT_SCHEMA_VERSION,
@@ -98,7 +100,7 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
       const schema = migrate(JSON.parse(raw));
       set({
         bets: schema.bets ?? [],
-        settings: { ...defaultSettings, ...schema.settings, onboardingComplete: true },
+        settings: { ...defaultSettings, ...schema.settings, onboardingComplete: true, ...(OWNER_PRO ? { isPro: true } : {}) },
         bankroll: { ...defaultBankroll, ...schema.bankroll },
         diary: schema.diary ?? [],
         teams: schema.teams ?? [],

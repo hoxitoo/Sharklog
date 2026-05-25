@@ -5,6 +5,7 @@ import { useBetsStore } from '../store/betsStore';
 import { useToastStore } from '../store/toastStore';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { colors } from '../theme/colors';
+import { importFromCSV, importFromXLSX } from '../utils/importBets';
 
 export function SettingsPage() {
   const { settings, updateSettings, bets, teams, deleteTeam, clearAll } = useBetsStore();
@@ -38,13 +39,13 @@ export function SettingsPage() {
   function handleExportCSV() {
     const { bets: allBets } = useBetsStore.getState();
     const rows = [
-      ['Дата', 'Событие', 'Выбор', 'Коэф.', 'Ставка', 'Статус', 'P&L', 'Букмекер', 'Стратегия'],
+      ['Дата', 'Событие', 'Выбор', 'Коэф.', 'Ставка', 'Статус', 'P&L', 'Букмекер', 'Стратегия', 'Спорт', 'Тип ставки', 'Заметка'],
       ...allBets.map((b) => {
         const pnl = b.status === 'won' ? Math.round(b.stake * b.odds) - b.stake : b.status === 'lost' ? -b.stake : 0;
-        return [b.date, b.event, b.pick, b.odds, (b.stake / 100).toFixed(2), b.status, (pnl / 100).toFixed(2), b.bookmaker, b.strategy];
+        return [b.date, b.event, b.pick, b.odds, (b.stake / 100).toFixed(2), b.status, (pnl / 100).toFixed(2), b.bookmaker, b.strategy, b.sport, b.betType, b.notes ?? ''];
       }),
     ];
-    const csv = '﻿' + rows.map((r) => r.map((v) => `"${v}"`).join(',')).join('\n');
+    const csv = '﻿' + rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -82,6 +83,62 @@ export function SettingsPage() {
         }
       };
       reader.readAsText(file);
+    };
+    input.click();
+  }
+
+  function handleImportCSV() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv';
+    input.onchange = () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const result = importFromCSV(reader.result as string);
+          if (result.bets.length === 0) { toast('Не найдено ни одной корректной ставки в файле.', 'error'); return; }
+          const store = useBetsStore.getState();
+          const existingIds = new Set(store.bets.map((b) => b.id));
+          const newBets = result.bets.filter((b) => !existingIds.has(b.id));
+          useBetsStore.setState({ bets: [...store.bets, ...newBets] });
+          store.persist();
+          const skipped = result.skipped + (result.bets.length - newBets.length);
+          toast(`Импортировано ${newBets.length} ставок${skipped > 0 ? `, пропущено ${skipped}` : ''}`, 'success');
+        } catch {
+          toast('Ошибка при чтении CSV файла.', 'error');
+        }
+      };
+      reader.readAsText(file, 'utf-8');
+    };
+    input.click();
+  }
+
+  function handleImportXLSX() {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.xlsx,.xls';
+    input.onchange = () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const result = importFromXLSX(reader.result as ArrayBuffer);
+          if (result.bets.length === 0) { toast('Не найдено ни одной корректной ставки в файле.', 'error'); return; }
+          const store = useBetsStore.getState();
+          const existingIds = new Set(store.bets.map((b) => b.id));
+          const newBets = result.bets.filter((b) => !existingIds.has(b.id));
+          useBetsStore.setState({ bets: [...store.bets, ...newBets] });
+          store.persist();
+          const skipped = result.skipped + (result.bets.length - newBets.length);
+          toast(`Импортировано ${newBets.length} ставок${skipped > 0 ? `, пропущено ${skipped}` : ''}`, 'success');
+        } catch {
+          toast('Ошибка при чтении Excel файла.', 'error');
+        }
+      };
+      reader.readAsArrayBuffer(file);
     };
     input.click();
   }
@@ -222,16 +279,28 @@ export function SettingsPage() {
           <span style={s.rowLabel}>Хранилище</span>
           <span style={s.rowValue}>localStorage</span>
         </div>
-        <div style={{ display: 'flex', gap: 10, marginTop: 14, flexWrap: 'wrap' }}>
-          <button style={{ ...s.exportBtn, backgroundColor: colors.accent + '22', color: colors.accent, border: `1px solid ${colors.accent}44` }} onClick={handleExportCSV}>
-            📥 Экспорт CSV
-          </button>
-          <button style={{ ...s.exportBtn, backgroundColor: colors.purple + '22', color: colors.purple, border: `1px solid ${colors.purple}44` }} onClick={handleExportJSON}>
-            💾 Резервная копия JSON
-          </button>
-          <button style={{ ...s.exportBtn, backgroundColor: colors.pending + '22', color: colors.pending, border: `1px solid ${colors.pending}44` }} onClick={handleImportJSON}>
-            📂 Восстановить из JSON
-          </button>
+        <div style={{ marginTop: 14 }}>
+          <div style={{ fontSize: 11, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Экспорт</div>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
+            <button style={{ ...s.exportBtn, backgroundColor: colors.accent + '22', color: colors.accent, border: `1px solid ${colors.accent}44` }} onClick={handleExportCSV}>
+              📥 Экспорт CSV
+            </button>
+            <button style={{ ...s.exportBtn, backgroundColor: colors.purple + '22', color: colors.purple, border: `1px solid ${colors.purple}44` }} onClick={handleExportJSON}>
+              💾 Резервная копия JSON
+            </button>
+          </div>
+          <div style={{ fontSize: 11, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Импорт</div>
+          <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            <button style={{ ...s.exportBtn, backgroundColor: colors.pending + '22', color: colors.pending, border: `1px solid ${colors.pending}44` }} onClick={handleImportCSV}>
+              📊 Импорт CSV
+            </button>
+            <button style={{ ...s.exportBtn, backgroundColor: '#22c55e22', color: '#22c55e', border: '1px solid #22c55e44' }} onClick={handleImportXLSX}>
+              📗 Импорт Excel (.xlsx)
+            </button>
+            <button style={{ ...s.exportBtn, backgroundColor: colors.pending + '22', color: colors.pending, border: `1px solid ${colors.pending}44` }} onClick={handleImportJSON}>
+              📂 Восстановить из JSON
+            </button>
+          </div>
         </div>
       </div>
 
