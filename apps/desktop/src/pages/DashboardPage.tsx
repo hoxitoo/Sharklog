@@ -2,9 +2,10 @@ import React, { useState, useMemo } from 'react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
-import type { Bet } from '@sharklog/core';
-import { calcDashboard, formatMoney, formatPercent, isInTilt } from '@sharklog/core';
+import type { Bet, BetStatus } from '@sharklog/core';
+import { calcDashboard, formatMoney, formatOdds, formatPercent, isInTilt } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
+import { useToastStore } from '../store/toastStore';
 import { colors } from '../theme/colors';
 
 type PeriodFilter = '7d' | '30d' | 'all';
@@ -118,7 +119,14 @@ function Heatmap({ bets }: { bets: Bet[] }) {
 }
 
 export function DashboardPage() {
-  const { bets, settings, bankroll } = useBetsStore();
+  const { bets, settings, bankroll, updateBet } = useBetsStore();
+  const toast = useToastStore((s) => s.show);
+
+  function closeBet(bet: Bet, status: BetStatus) {
+    updateBet(bet.id, { status });
+    const label = status === 'won' ? 'Победа ✅' : status === 'lost' ? 'Проигрыш ❌' : 'Возврат 🔄';
+    toast(`${bet.event} — ${label}`, status === 'won' ? 'success' : status === 'lost' ? 'error' : 'info');
+  }
   const [period, setPeriod] = useState<PeriodFilter>('all');
 
   const filteredBets = useMemo(() => {
@@ -247,6 +255,48 @@ export function DashboardPage() {
           {...(stats.currentStreak.type !== 'none' ? { color: stats.currentStreak.type === 'win' ? colors.won : colors.lost } : {})}
         />
       </div>
+
+      {/* Pending bets quick-close */}
+      {bets.filter((b) => b.status === 'pending').length > 0 && (
+        <div style={s.card}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <div style={s.cardTitle}>Ожидают результата</div>
+            <span style={{ fontSize: 12, color: colors.pending, fontWeight: 600 }}>
+              {bets.filter((b) => b.status === 'pending').length} ставок
+            </span>
+          </div>
+          <table style={s.table}>
+            <thead>
+              <tr>
+                {['Событие', 'Выбор', 'Коэф.', 'Ставка', 'Потенциал', ''].map((h) => (
+                  <th key={h} style={s.th}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {bets.filter((b) => b.status === 'pending').slice(0, 8).map((bet) => {
+                const potential = formatMoney(Math.round(bet.stake * bet.odds));
+                return (
+                  <tr key={bet.id} style={s.tr}>
+                    <td style={s.td}><span style={s.eventCell}>{bet.event}</span></td>
+                    <td style={{ ...s.td, color: colors.accent, fontWeight: 600 }}>{bet.pick}</td>
+                    <td style={{ ...s.td, fontFamily: "'DM Mono', monospace" }}>×{formatOdds(bet.odds)}</td>
+                    <td style={{ ...s.td, fontFamily: "'DM Mono', monospace" }}>{formatMoney(bet.stake)}</td>
+                    <td style={{ ...s.td, color: colors.accent, fontFamily: "'DM Mono', monospace" }}>{potential}</td>
+                    <td style={s.td}>
+                      <div style={{ display: 'flex', gap: 4 }}>
+                        <button style={{ ...s.chip, color: colors.won, borderColor: colors.won + '55', backgroundColor: colors.won + '18' }} onClick={() => closeBet(bet, 'won')}>W</button>
+                        <button style={{ ...s.chip, color: colors.lost, borderColor: colors.lost + '55', backgroundColor: colors.lost + '18' }} onClick={() => closeBet(bet, 'lost')}>L</button>
+                        <button style={{ ...s.chip, color: colors.refund, borderColor: colors.refund + '55', backgroundColor: colors.refund + '18' }} onClick={() => closeBet(bet, 'refund')}>R</button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* W/L strip */}
       {filteredBets.length > 0 && (
@@ -428,6 +478,7 @@ const s: Record<string, React.CSSProperties> = {
   td: { padding: '12px 0', fontSize: 14, color: colors.textPrimary, paddingRight: 16 },
   eventCell: { fontWeight: 600, maxWidth: 240, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   statusBadge: { padding: '3px 8px', borderRadius: 6, fontSize: 12, fontWeight: 600 },
+  chip: { border: '1px solid', borderRadius: 6, padding: '3px 7px', fontSize: 11, fontWeight: 700, cursor: 'pointer' },
   emptyWrap: { textAlign: 'center', paddingTop: 100 },
   emptyTitle: { fontSize: 22, fontWeight: 700, color: colors.textPrimary, marginBottom: 10 },
   emptySub: { fontSize: 15, color: colors.textSecondary, maxWidth: 380, margin: '0 auto' },
