@@ -35,6 +35,16 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
-    "resources": []
+    "resources": [],
+    "createUpdaterArtifacts": true
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "UPDATER_PUBLIC_KEY_PLACEHOLDER",
+      "endpoints": [
+        "https://github.com/hoxitoo/sharklog/releases/latest/download/latest.json"
+      ],
+      "dialog": false
+    }
   }
 }

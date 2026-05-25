@@ -7,11 +7,14 @@ import { ConfirmModal } from '../components/ConfirmModal';
 import { colors } from '../theme/colors';
 import { importFromCSV, importFromXLSX } from '../utils/importBets';
 
+const IS_TAURI = typeof window !== 'undefined' && !!(window as unknown as Record<string, unknown>).__TAURI_INTERNALS__;
+
 export function SettingsPage() {
   const { settings, updateSettings, bets, teams, deleteTeam, clearAll } = useBetsStore();
   const toast = useToastStore((s) => s.show);
   const [newBk, setNewBk] = useState('');
   const [confirmClear, setConfirmClear] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'available' | 'latest' | 'error'>('idle');
 
   function addBookmaker() {
     const t = newBk.trim();
@@ -141,6 +144,26 @@ export function SettingsPage() {
       reader.readAsArrayBuffer(file);
     };
     input.click();
+  }
+
+  async function handleCheckUpdate() {
+    if (!IS_TAURI) { toast('Проверка обновлений доступна только в Tauri-приложении', 'info'); return; }
+    setUpdateStatus('checking');
+    try {
+      const { check } = await import('@tauri-apps/plugin-updater');
+      const update = await check();
+      if (update?.available) {
+        setUpdateStatus('available');
+        toast(`Доступно обновление v${update.version}! Устанавливаем...`, 'info');
+        await update.downloadAndInstall();
+      } else {
+        setUpdateStatus('latest');
+        toast('У вас последняя версия SharkLog', 'success');
+      }
+    } catch {
+      setUpdateStatus('error');
+      toast('Не удалось проверить обновления', 'error');
+    }
   }
 
   function handleClearData() {
@@ -301,6 +324,25 @@ export function SettingsPage() {
               📂 Восстановить из JSON
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* About / Updates */}
+      <div style={s.card}>
+        <div style={s.cardTitle}>О приложении</div>
+        <div style={s.row}>
+          <span style={s.rowLabel}>Версия</span>
+          <span style={s.rowValue}>0.1.0</span>
+        </div>
+        <div style={{ ...s.row, borderBottom: 'none' }}>
+          <span style={s.rowLabel}>Обновления</span>
+          <button
+            style={{ ...s.exportBtn, backgroundColor: colors.purple + '22', color: colors.purple, border: `1px solid ${colors.purple}44`, opacity: updateStatus === 'checking' ? 0.6 : 1 }}
+            onClick={handleCheckUpdate}
+            disabled={updateStatus === 'checking'}
+          >
+            {updateStatus === 'checking' ? '⏳ Проверяем...' : updateStatus === 'available' ? '⬇️ Устанавливаем...' : updateStatus === 'latest' ? '✅ Актуальная версия' : '🔄 Проверить обновления'}
+          </button>
         </div>
       </div>
 
