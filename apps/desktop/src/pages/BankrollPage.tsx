@@ -211,7 +211,7 @@ export function BankrollPage() {
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
-                {['Дата', 'Тип', 'Сумма'].map((h) => (
+                {['Дата', 'Тип', 'Сумма', ''].map((h) => (
                   <th key={h} style={{ fontSize: 11, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, padding: '0 0 8px', textAlign: 'left', borderBottom: `1px solid ${colors.border}` }}>{h}</th>
                 ))}
               </tr>
@@ -223,6 +223,12 @@ export function BankrollPage() {
                   <td style={{ padding: '10px 0', fontSize: 13, color: colors.textPrimary }}>{t.type === 'deposit' ? '↑ Пополнение' : '↓ Вывод'}</td>
                   <td style={{ padding: '10px 0', fontSize: 14, fontWeight: 700, color: t.type === 'deposit' ? colors.won : colors.lost }}>
                     {t.type === 'deposit' ? '+' : '-'}{formatMoney(t.amount)}
+                  </td>
+                  <td style={{ padding: '10px 0', textAlign: 'right' }}>
+                    <button
+                      style={{ background: 'none', border: 'none', color: colors.lost, cursor: 'pointer', fontSize: 13, opacity: 0.6 }}
+                      onClick={() => updateBankroll({ transactions: bankroll.transactions.filter((tx) => tx.id !== t.id) })}
+                    >✕</button>
                   </td>
                 </tr>
               ))}
