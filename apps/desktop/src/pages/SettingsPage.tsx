@@ -1,12 +1,13 @@
 import React, { useState } from 'react';
-import { DEFAULT_BOOKMAKERS, FREE_LIMITS } from '@sharklog/core';
+import { DEFAULT_BOOKMAKERS, FREE_LIMITS, SPORTS } from '@sharklog/core';
+import type { Sport } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
 import { useToastStore } from '../store/toastStore';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { colors } from '../theme/colors';
 
 export function SettingsPage() {
-  const { settings, updateSettings, bets, clearAll } = useBetsStore();
+  const { settings, updateSettings, bets, teams, deleteTeam, clearAll } = useBetsStore();
   const toast = useToastStore((s) => s.show);
   const [newBk, setNewBk] = useState('');
   const [confirmClear, setConfirmClear] = useState(false);
@@ -23,14 +24,15 @@ export function SettingsPage() {
   }
 
   function handleExportJSON() {
-    const { bets: b, settings: s, bankroll, diary, teams } = useBetsStore.getState();
-    const blob = new Blob([JSON.stringify({ bets: b, settings: s, bankroll, diary, teams }, null, 2)], { type: 'application/json' });
+    const { bets: b, settings: s, bankroll, diary, teams: t } = useBetsStore.getState();
+    const blob = new Blob([JSON.stringify({ bets: b, settings: s, bankroll, diary, teams: t }, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
     a.download = `sharklog-backup-${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
+    toast(`Резервная копия сохранена (${b.length} ставок)`, 'success');
   }
 
   function handleExportCSV() {
@@ -50,6 +52,7 @@ export function SettingsPage() {
     a.download = `sharklog-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+    toast(`CSV экспортирован (${allBets.length} ставок)`, 'success');
   }
 
   function handleImportJSON() {
@@ -182,6 +185,31 @@ export function SettingsPage() {
           <button style={s.addBtn} onClick={addBookmaker}>+</button>
         </div>
       </div>
+
+      {/* Teams */}
+      {teams.length > 0 && (
+        <div style={s.card}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+            <div style={s.cardTitle}>Сохранённые команды</div>
+            <span style={{ fontSize: 12, color: colors.textMuted }}>{teams.length} команд</span>
+          </div>
+          <div style={{ maxHeight: 200, overflowY: 'auto' }}>
+            {[...teams].sort((a, b) => b.usageCount - a.usageCount).map((team) => (
+              <div key={team.id} style={s.row}>
+                <div>
+                  <span style={s.rowLabel}>{team.name}</span>
+                  <span style={{ fontSize: 11, color: colors.textMuted, marginLeft: 8 }}>
+                    {SPORTS[team.sport as Sport] ?? team.sport}
+                    {team.discipline ? ` · ${team.discipline}` : ''}
+                    {' · '}{team.usageCount}×
+                  </span>
+                </div>
+                <button style={s.removeBtn} onClick={() => deleteTeam(team.id)}>Удалить</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Data & Export */}
       <div style={s.card}>
