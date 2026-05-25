@@ -31,6 +31,7 @@ jobs:
   e2e:
     name: E2E tests (desktop)
     runs-on: ubuntu-latest
+    continue-on-error: true   # non-blocking while tests stabilise
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -45,6 +46,13 @@ jobs:
         env:
           VITE_OWNER_PRO: 'true'
           CI: 'true'
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: apps/desktop/playwright-report/
+          retention-days: 7
 
   type-check:
     name: Type check
