@@ -70,7 +70,7 @@ interface BetsStore {
   canAddBet: () => boolean;
 }
 
-const defaultSettings: AppSettings = {
+export const defaultSettings: AppSettings = {
   tiltThreshold: FREE_LIMITS.TILT_ALERT_THRESHOLD,
   dailyBetLimit: 0,
   bookmakers: ['1xBet', 'Parimatch', 'Fonbet'],
@@ -80,7 +80,7 @@ const defaultSettings: AppSettings = {
   schemaVersion: CURRENT_SCHEMA_VERSION,
 };
 
-const defaultBankroll: Bankroll = {
+export const defaultBankroll: Bankroll = {
   id: 'default',
   name: 'Основной банк',
   currency: 'RUB',

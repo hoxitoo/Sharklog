@@ -25,6 +25,8 @@ jobs:
         run: cd packages/core && npx vitest run --reporter=verbose
       - name: Run vitest (desktop)
         run: cd apps/desktop && npm test
+      - name: Run jest (mobile)
+        run: cd apps/mobile && npm test
 
   type-check:
     name: Type check

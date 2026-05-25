@@ -14,5 +14,6 @@
       "@sharklog/core": ["../../packages/core/src/index.ts"]
     }
   },
-  "include": ["src", "App.tsx", "index.ts"]
+  "include": ["src", "App.tsx", "index.ts"],
+  "exclude": ["src/__tests__"]
 }
