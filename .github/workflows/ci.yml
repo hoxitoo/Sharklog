@@ -41,7 +41,10 @@ jobs:
       - name: Install Playwright browsers
         run: cd apps/desktop && npx playwright install --with-deps chromium
       - name: Run E2E tests
-        run: cd apps/desktop && VITE_OWNER_PRO=true npm run test:e2e
+        run: cd apps/desktop && npm run test:e2e
+        env:
+          VITE_OWNER_PRO: 'true'
+          CI: 'true'
 
   type-check:
     name: Type check

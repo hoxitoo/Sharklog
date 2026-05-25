@@ -8,7 +8,7 @@ export default defineConfig({
   workers: process.env.CI ? 1 : undefined,
   reporter: 'list',
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: 'http://localhost:5174',
     trace: 'on-first-retry',
   },
   projects: [
@@ -18,9 +18,11 @@ export default defineConfig({
     },
   ],
   webServer: {
-    command: 'VITE_OWNER_PRO=true npm run dev',
-    url: 'http://localhost:5173',
+    command: 'VITE_OWNER_PRO=true npx vite dev --port 5174 --strictPort',
+    url: 'http://localhost:5174',
     reuseExistingServer: !process.env.CI,
-    timeout: 30_000,
+    timeout: 60_000,
+    stdout: 'pipe',
+    stderr: 'pipe',
   },
 });
