@@ -309,8 +309,8 @@ export function AddBetModal({ editBet, onClose }: Props) {
           onCancel={() => setShowChecklist(false)}
         />
       )}
-    <div style={m.overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div style={m.modal}>
+    <div className="sl-overlay" style={m.overlay} onClick={(e) => e.target === e.currentTarget && onClose()}>
+      <div className="sl-modal" style={m.modal}>
         <div style={m.modalHeader}>
           <h2 style={m.modalTitle}>{editBet ? 'Редактировать ставку' : 'Новая ставка'}</h2>
           <button style={m.closeBtn} onClick={onClose}>✕</button>

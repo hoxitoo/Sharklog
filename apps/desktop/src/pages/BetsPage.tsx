@@ -173,9 +173,17 @@ export function BetsPage({ onAdd, onEdit }: Props) {
       {/* Content */}
       {totalFiltered === 0 ? (
         <div style={s.empty}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>🦈</div>
+          <div style={{ fontSize: 52, marginBottom: 12, animation: search ? 'none' : 'sharkFloat 2.4s ease-in-out infinite' }}>
+            {search ? '🔍' : '🦈'}
+          </div>
           <div style={s.emptyTitle}>{search ? 'Ничего не найдено' : 'Ставок пока нет'}</div>
-          {!search && <div style={s.emptySub}>Нажми «+ Добавить ставку» чтобы начать</div>}
+          {search
+            ? <div style={s.emptySub}>Попробуй другой запрос или очисти фильтр</div>
+            : <>
+                <div style={s.emptySub}>Начни трекать ставки прямо сейчас</div>
+                <button onClick={onAdd} style={s.emptyBtn}>+ Новая ставка</button>
+              </>
+          }
         </div>
       ) : (
         <div style={s.card}>
@@ -292,9 +300,14 @@ const s: Record<string, React.CSSProperties> = {
     backgroundColor: 'transparent', color: colors.textMuted, fontSize: 11, cursor: 'pointer',
   },
   sortBtnActive: { color: colors.accent, borderColor: colors.accent + '66', backgroundColor: colors.accent + '12', fontWeight: 700 },
-  empty: { textAlign: 'center', paddingTop: 80 },
-  emptyTitle: { fontSize: 18, fontWeight: 600, color: colors.textPrimary, marginBottom: 6 },
+  empty: { textAlign: 'center', paddingTop: 80, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 },
+  emptyTitle: { fontSize: 18, fontWeight: 600, color: colors.textPrimary, marginBottom: 2 },
   emptySub: { fontSize: 14, color: colors.textSecondary },
+  emptyBtn: {
+    marginTop: 16, backgroundColor: colors.purple, color: '#fff', border: 'none',
+    borderRadius: 10, padding: '10px 24px', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+    transition: 'transform 0.12s, box-shadow 0.12s',
+  },
   card: { backgroundColor: colors.bgCard, borderRadius: 14, border: `1px solid ${colors.border}`, overflow: 'hidden' },
   table: { width: '100%', borderCollapse: 'collapse' },
   th: {

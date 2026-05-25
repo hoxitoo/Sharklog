@@ -28,6 +28,21 @@ jobs:
       - name: Run jest (mobile)
         run: cd apps/mobile && npm test
 
+  e2e:
+    name: E2E tests (desktop)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: Install Playwright browsers
+        run: cd apps/desktop && npx playwright install --with-deps chromium
+      - name: Run E2E tests
+        run: cd apps/desktop && VITE_OWNER_PRO=true npm run test:e2e
+
   type-check:
     name: Type check
     runs-on: ubuntu-latest

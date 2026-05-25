@@ -44,8 +44,13 @@ export function App() {
 
   if (!isLoaded) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', backgroundColor: colors.bg }}>
-        <div style={{ fontSize: 40 }}>🦈</div>
+      <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        height: '100vh', backgroundColor: colors.bg, gap: 16,
+      }}>
+        <div style={{ fontSize: 56, animation: 'sharkFloat 1.6s ease-in-out infinite' }}>🦈</div>
+        <div style={{ fontSize: 18, fontWeight: 700, color: colors.textPrimary, letterSpacing: -0.5 }}>SharkLog</div>
+        <div style={{ fontSize: 13, color: colors.textMuted }}>Загрузка...</div>
       </div>
     );
   }
@@ -65,12 +70,14 @@ export function App() {
   return (
     <>
       <AppLayout page={page} onNavigate={setPage} onAddBet={openAdd}>
-        {page === 'dashboard' && <DashboardPage />}
-        {page === 'bets' && <BetsPage onAdd={openAdd} onEdit={openEdit} />}
-        {page === 'analytics' && <AnalyticsPage />}
-        {page === 'bankroll' && <BankrollPage />}
-        {page === 'diary' && <DiaryPage />}
-        {page === 'settings' && <SettingsPage />}
+        <div key={page} className="sl-page" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          {page === 'dashboard' && <DashboardPage />}
+          {page === 'bets' && <BetsPage onAdd={openAdd} onEdit={openEdit} />}
+          {page === 'analytics' && <AnalyticsPage />}
+          {page === 'bankroll' && <BankrollPage />}
+          {page === 'diary' && <DiaryPage />}
+          {page === 'settings' && <SettingsPage />}
+        </div>
       </AppLayout>
 
       {modalBet !== null && (
