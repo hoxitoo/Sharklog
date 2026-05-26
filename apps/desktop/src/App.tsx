@@ -7,14 +7,18 @@ import { AnalyticsPage } from './pages/AnalyticsPage';
 import { BankrollPage } from './pages/BankrollPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { DiaryPage } from './pages/DiaryPage';
+import { OnboardingPage } from './pages/OnboardingPage';
 import { AddBetModal } from './pages/AddBetModal';
 import { Toaster } from './components/Toaster';
 import { useBetsStore } from './store/betsStore';
+import { colors } from './theme/colors';
 
 const PAGE_ORDER: Page[] = ['dashboard', 'bets', 'analytics', 'bankroll', 'diary', 'settings'];
 
 export function App() {
   const load = useBetsStore((s) => s.load);
+  const isLoaded = useBetsStore((s) => s.isLoaded);
+  const onboardingComplete = useBetsStore((s) => s.settings.onboardingComplete);
   const [page, setPage] = useState<Page>('dashboard');
   const [modalBet, setModalBet] = useState<Bet | null | 'new'>(null);
 
@@ -28,7 +32,6 @@ export function App() {
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape' && modalBet !== null) { closeModal(); return; }
       if ((e.ctrlKey || e.metaKey) && e.key === 'n') { e.preventDefault(); openAdd(); return; }
-      // Ctrl+1–6: navigate pages
       if ((e.ctrlKey || e.metaKey) && e.key >= '1' && e.key <= '6') {
         const idx = parseInt(e.key, 10) - 1;
         const target = PAGE_ORDER[idx];
@@ -39,20 +42,47 @@ export function App() {
     return () => window.removeEventListener('keydown', onKey);
   }, [modalBet]);
 
+  if (!isLoaded) {
+    return (
+      <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        height: '100vh', backgroundColor: colors.bg, gap: 16,
+      }}>
+        <div style={{ fontSize: 56, animation: 'sharkFloat 1.6s ease-in-out infinite' }}>🦈</div>
+        <div style={{ fontSize: 18, fontWeight: 700, color: colors.textPrimary, letterSpacing: -0.5 }}>SharkLog</div>
+        <div style={{ fontSize: 13, color: colors.textMuted }}>Загрузка...</div>
+      </div>
+    );
+  }
+
+  if (!onboardingComplete) {
+    return (
+      <>
+        <OnboardingPage onFinish={(openBet) => { if (openBet) setModalBet('new'); }} />
+        {modalBet !== null && (
+          <AddBetModal {...(modalBet !== 'new' ? { editBet: modalBet as Bet } : {})} onClose={closeModal} />
+        )}
+        <Toaster />
+      </>
+    );
+  }
+
   return (
     <>
       <AppLayout page={page} onNavigate={setPage} onAddBet={openAdd}>
-        {page === 'dashboard' && <DashboardPage />}
-        {page === 'bets' && <BetsPage onAdd={openAdd} onEdit={openEdit} />}
-        {page === 'analytics' && <AnalyticsPage />}
-        {page === 'bankroll' && <BankrollPage />}
-        {page === 'diary' && <DiaryPage />}
-        {page === 'settings' && <SettingsPage />}
+        <div key={page} className="sl-page" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+          {page === 'dashboard' && <DashboardPage />}
+          {page === 'bets' && <BetsPage onAdd={openAdd} onEdit={openEdit} />}
+          {page === 'analytics' && <AnalyticsPage />}
+          {page === 'bankroll' && <BankrollPage />}
+          {page === 'diary' && <DiaryPage />}
+          {page === 'settings' && <SettingsPage />}
+        </div>
       </AppLayout>
 
       {modalBet !== null && (
         <AddBetModal
-          {...(modalBet !== 'new' ? { editBet: modalBet } : {})}
+          {...(modalBet !== 'new' ? { editBet: modalBet as Bet } : {})}
           onClose={closeModal}
         />
       )}

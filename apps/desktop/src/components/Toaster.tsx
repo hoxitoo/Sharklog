@@ -23,6 +23,7 @@ export function Toaster() {
           <div
             key={t.id}
             onClick={() => dismiss(t.id)}
+            className="sl-toast"
             style={{
               pointerEvents: 'auto', cursor: 'pointer',
               display: 'flex', alignItems: 'center', gap: 10,
@@ -30,7 +31,6 @@ export function Toaster() {
               borderRadius: 10, padding: '12px 16px',
               minWidth: 260, maxWidth: 380,
               boxShadow: '0 4px 20px rgba(0,0,0,0.4)',
-              animation: 'none',
             }}
           >
             <span style={{ fontSize: 16, fontWeight: 700, color: st.color, flexShrink: 0 }}>{st.icon}</span>

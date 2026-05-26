@@ -40,6 +40,7 @@ export function AppLayout({ page, onNavigate, onAddBet, children }: Props) {
             <button
               key={item.id}
               onClick={() => onNavigate(item.id)}
+              className="sl-nav-item"
               style={{
                 ...s.navItem,
                 ...(page === item.id ? s.navItemActive : {}),
@@ -52,7 +53,7 @@ export function AppLayout({ page, onNavigate, onAddBet, children }: Props) {
         </nav>
 
         {/* Add bet button */}
-        <button style={s.addBetBtn} onClick={onAddBet}>
+        <button style={s.addBetBtn} className="sl-add-btn" onClick={onAddBet}>
           + Новая ставка
         </button>
 

@@ -60,7 +60,7 @@ function Section({ title, stats }: { title: string; stats: SliceStats[] }) {
                 <td style={s.td}>{stat.count}</td>
                 <td style={s.td}>{stat.winRate.toFixed(0)}%</td>
                 <td style={{ ...s.td, fontWeight: 700, color: stat.roi >= 0 ? colors.won : colors.lost }}>
-                  {stat.roi >= 0 ? '+' : ''}{formatPercent(stat.roi)}
+                  {formatPercent(stat.roi)}
                 </td>
                 <td style={{ ...s.td, color: stat.pnl >= 0 ? colors.won : colors.lost }}>
                   {stat.pnl >= 0 ? '+' : ''}{formatMoney(stat.pnl)}
@@ -89,7 +89,7 @@ function SummaryCard({ bets }: { bets: Parameters<typeof calcDashboard>[0] }) {
           { label: 'Ставок', value: String(stats.totalBets), color: colors.textPrimary },
           { label: 'Выигрышей', value: `${stats.winRate.toFixed(1)}%`, color: stats.winRate > 50 ? colors.won : colors.textPrimary },
           { label: 'P&L', value: `${stats.pnl >= 0 ? '+' : ''}${formatMoney(stats.pnl)}`, color: pnlColor },
-          { label: 'ROI', value: `${stats.roi >= 0 ? '+' : ''}${formatPercent(stats.roi)}`, color: pnlColor },
+          { label: 'ROI', value: formatPercent(stats.roi), color: pnlColor },
         ].map((item) => (
           <div key={item.label} style={{ textAlign: 'center', padding: '8px 0' }}>
             <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'DM Mono', monospace", color: item.color }}>{item.value}</div>

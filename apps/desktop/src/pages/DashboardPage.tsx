@@ -19,7 +19,7 @@ function StatCard({
   label, value, sub, color,
 }: { label: string; value: string; sub?: string; color?: string }) {
   return (
-    <div style={s.statCard}>
+    <div className="sl-stat-card" style={s.statCard}>
       <div style={s.statLabel}>{label}</div>
       <div style={{ ...s.statValue, color: color ?? colors.textPrimary }}>{value}</div>
       {sub && <div style={s.statSub}>{sub}</div>}
@@ -172,9 +172,13 @@ export function DashboardPage() {
           </div>
         </div>
         <div style={s.emptyWrap}>
-          <div style={{ fontSize: 64, marginBottom: 20 }}>🦈</div>
+          <div style={{ fontSize: 72, marginBottom: 16, animation: 'sharkFloat 2.4s ease-in-out infinite' }}>🦈</div>
           <div style={s.emptyTitle}>Ставок пока нет</div>
           <div style={s.emptySub}>Добавь первую ставку, чтобы начать отслеживать результаты</div>
+          <div style={s.emptyHint}>
+            <span style={{ opacity: 0.5 }}>Ctrl+N</span>
+            <span style={{ color: colors.textMuted }}> — быстрое добавление</span>
+          </div>
         </div>
       </div>
     );
@@ -479,7 +483,8 @@ const s: Record<string, React.CSSProperties> = {
   eventCell: { fontWeight: 600, maxWidth: 240, display: 'block', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
   statusBadge: { padding: '3px 8px', borderRadius: 6, fontSize: 12, fontWeight: 600 },
   chip: { border: '1px solid', borderRadius: 6, padding: '3px 7px', fontSize: 11, fontWeight: 700, cursor: 'pointer' },
-  emptyWrap: { textAlign: 'center', paddingTop: 100 },
+  emptyWrap: { textAlign: 'center', paddingTop: 100, display: 'flex', flexDirection: 'column', alignItems: 'center' },
   emptyTitle: { fontSize: 22, fontWeight: 700, color: colors.textPrimary, marginBottom: 10 },
-  emptySub: { fontSize: 15, color: colors.textSecondary, maxWidth: 380, margin: '0 auto' },
+  emptySub: { fontSize: 15, color: colors.textSecondary, maxWidth: 380, margin: '0 auto', marginBottom: 20 },
+  emptyHint: { fontSize: 13, marginTop: 4, fontFamily: "'DM Mono', monospace" },
 };

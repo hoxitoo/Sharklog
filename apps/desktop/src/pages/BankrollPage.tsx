@@ -149,7 +149,7 @@ export function BankrollPage() {
                   onClick={() => updateBankroll({ unitPercent: Math.max(0.5, Math.round((bankroll.unitPercent - 0.5) * 10) / 10) })}
                   disabled={bankroll.unitPercent <= 0.5}
                 >−</button>
-                <span style={{ fontSize: 13, fontWeight: 600, color: colors.accent, minWidth: 44, textAlign: 'center' }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: colors.accent, minWidth: 44, textAlign: 'center', whiteSpace: 'nowrap' }}>
                   {bankroll.unitPercent}% · {formatMoney(unit)}
                 </span>
                 <button

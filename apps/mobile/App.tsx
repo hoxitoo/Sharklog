@@ -7,6 +7,7 @@ import { useFonts, DMSans_400Regular, DMSans_500Medium, DMSans_600SemiBold, DMSa
 import { DMMono_400Regular, DMMono_500Medium } from '@expo-google-fonts/dm-mono';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { OnboardingScreen } from './src/screens/OnboardingScreen';
+import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { useBetsStore } from './src/store/betsStore';
 import { colors } from './src/theme/colors';
 import { scheduleDailyReminder } from './src/utils/notifications';
@@ -52,19 +53,23 @@ export default function App() {
 
   if (!onboardingComplete) {
     return (
-      <SafeAreaProvider>
-        <StatusBar style="light" />
-        <OnboardingScreen />
-      </SafeAreaProvider>
+      <ErrorBoundary>
+        <SafeAreaProvider>
+          <StatusBar style="light" />
+          <OnboardingScreen />
+        </SafeAreaProvider>
+      </ErrorBoundary>
     );
   }
 
   return (
-    <SafeAreaProvider>
-      <NavigationContainer>
-        <StatusBar style="light" />
-        <RootNavigator />
-      </NavigationContainer>
-    </SafeAreaProvider>
+    <ErrorBoundary>
+      <SafeAreaProvider>
+        <NavigationContainer>
+          <StatusBar style="light" />
+          <RootNavigator />
+        </NavigationContainer>
+      </SafeAreaProvider>
+    </ErrorBoundary>
   );
 }
