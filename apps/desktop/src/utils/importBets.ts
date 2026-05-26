@@ -10,25 +10,31 @@ function uuid(): string {
 
 // Maps any recognizable column header to a canonical field name
 const COL_ALIASES: Record<string, string> = {
-  'дата': 'date', 'date': 'date',
+  'дата': 'date', 'date': 'date', 'placedat': 'date', 'placed at': 'date', 'placed': 'date',
   'событие': 'event', 'event': 'event', 'матч': 'event', 'match': 'event',
-  'выбор': 'pick', 'pick': 'pick', 'ставка на': 'pick', 'bet': 'pick',
+  'hometeam': 'homeTeam', 'home team': 'homeTeam', 'home': 'homeTeam', 'хозяева': 'homeTeam',
+  'awayteam': 'awayTeam', 'away team': 'awayTeam', 'away': 'awayTeam', 'гости': 'awayTeam',
+  'выбор': 'pick', 'pick': 'pick', 'ставка на': 'pick', 'bet': 'pick', 'selection': 'pick',
   'коэф.': 'odds', 'коэф': 'odds', 'коэффициент': 'odds', 'odds': 'odds', 'кф': 'odds',
+  'oddsdecimal': 'odds', 'odds decimal': 'odds', 'decimal odds': 'odds',
   'ставка': 'stake', 'stake': 'stake', 'сумма': 'stake', 'amount': 'stake',
-  'статус': 'status', 'status': 'status', 'результат': 'status', 'result': 'status',
+  'статус': 'status', 'status': 'status',
+  'результат': 'result', 'result': 'result',
   'букмекер': 'bookmaker', 'bookmaker': 'bookmaker', 'бк': 'bookmaker', 'bk': 'bookmaker',
   'стратегия': 'strategy', 'strategy': 'strategy',
   'спорт': 'sport', 'sport': 'sport', 'вид спорта': 'sport',
   'тип ставки': 'betType', 'тип': 'betType', 'bet type': 'betType', 'bettype': 'betType',
+  'markettype': 'betType', 'market type': 'betType', 'market': 'betType',
   'заметка': 'notes', 'заметки': 'notes', 'notes': 'notes', 'note': 'notes', 'комментарий': 'notes',
   'дисциплина': 'discipline', 'discipline': 'discipline',
 };
 
 const STATUS_MAP: Record<string, BetStatus> = {
   'won': 'won', 'выигрыш': 'won', 'победа': 'won', 'выиграл': 'won', 'win': 'won', 'w': 'won', '✅': 'won',
-  'lost': 'lost', 'проигрыш': 'lost', 'поражение': 'lost', 'проиграл': 'lost', 'lose': 'lost', 'l': 'lost', '❌': 'lost',
+  'lost': 'lost', 'loss': 'lost', 'проигрыш': 'lost', 'поражение': 'lost', 'проиграл': 'lost', 'lose': 'lost', 'l': 'lost', '❌': 'lost',
   'pending': 'pending', 'ожидание': 'pending', 'ожидает': 'pending', 'в ожидании': 'pending', 'p': 'pending',
   'refund': 'refund', 'возврат': 'refund', 'r': 'refund', 'возвр.': 'refund', 'возвр': 'refund',
+  'выкуп': 'refund', 'cashout': 'refund', 'cash out': 'refund',
 };
 
 // Reverse-map human-readable Russian labels back to enum values
@@ -45,6 +51,7 @@ const SPORT_MAP: Record<string, Sport> = {
 
 const BET_TYPE_MAP: Record<string, BetType> = {
   '1x2': '1X2', '1X2': '1X2',
+  'итоговая победа': '1X2', 'победитель матча': '1X2', 'победитель': '1X2', 'winner': '1X2',
   'тотал тб': 'total_over', 'total_over': 'total_over', 'тб': 'total_over', 'over': 'total_over',
   'тотал тм': 'total_under', 'total_under': 'total_under', 'тм': 'total_under', 'under': 'total_under',
   'фора': 'handicap', 'handicap': 'handicap', 'гандикап': 'handicap',
@@ -57,7 +64,7 @@ const BET_TYPE_MAP: Record<string, BetType> = {
 
 const STRATEGY_MAP: Record<string, Strategy> = {
   'value': 'value', 'вэлью': 'value',
-  'stats': 'stats', 'статистика': 'stats',
+  'stats': 'stats', 'statistics': 'stats', 'статистика': 'stats',
   'form': 'form', 'форма': 'form',
   'intuition': 'intuition', 'интуиция': 'intuition',
   'system': 'system', 'система': 'system',
@@ -78,14 +85,53 @@ function normalizeHeader(h: string): string {
   return h.toLowerCase().trim().replace(/\s+/g, ' ');
 }
 
+// Parses monetary amounts with either comma or dot as decimal/thousands separator.
+// Handles: "5,000.00 ₽", "1 234,56 ₽", "403.00", "1.85"
+function parseAmount(raw: string): number {
+  const s = raw.replace(/[^\d.,]/g, '');
+  if (!s) return NaN;
+  if (s.includes(',') && s.includes('.')) {
+    return s.lastIndexOf('.') > s.lastIndexOf(',')
+      ? parseFloat(s.replace(/,/g, ''))           // "1,234.56" → 1234.56
+      : parseFloat(s.replace(/\./g, '').replace(',', '.')); // "1.234,56" → 1234.56
+  }
+  if (s.includes(',')) {
+    const parts = s.split(',');
+    const last = parts[parts.length - 1] ?? '';
+    // If last segment has ≤2 digits it's a decimal comma ("1234,56"), else thousands ("1,234")
+    return last.length <= 2
+      ? parseFloat(s.replace(',', '.'))
+      : parseFloat(s.replace(/,/g, ''));
+  }
+  return parseFloat(s);
+}
+
+// Scans up to the first 10 rows to find the header row (the one with most column aliases matched).
+function findHeaderRowIndex(data: string[][]): number {
+  const known = new Set(Object.keys(COL_ALIASES));
+  let bestIdx = 0;
+  let bestScore = 0;
+  for (let i = 0; i < Math.min(data.length, 10); i++) {
+    const row = data[i] ?? [];
+    const score = row.filter(cell => known.has(normalizeHeader(String(cell ?? '')))).length;
+    if (score > bestScore) { bestScore = score; bestIdx = i; }
+  }
+  return bestIdx;
+}
+
 function mapRow(raw: Record<string, string>, existingIds: Set<string>): Bet | null {
   const g = (key: string) => (raw[key] ?? '').trim();
 
-  const dateRaw = g('date');
-  const event = g('event');
+  // Construct event from dedicated column or HomeTeam vs AwayTeam
+  const homeTeam = g('homeTeam');
+  const awayTeam = g('awayTeam');
+  let event = g('event');
+  if (!event && (homeTeam || awayTeam)) {
+    event = [homeTeam, awayTeam].filter(Boolean).join(' vs ');
+  }
   if (!event) return null;
 
-  // Normalize date: accept YYYY-MM-DD, DD.MM.YYYY, DD/MM/YYYY, MM/DD/YYYY
+  const dateRaw = g('date');
   let date = dateRaw;
   if (/^\d{2}\.\d{2}\.\d{4}$/.test(dateRaw)) {
     const [d, m, y] = dateRaw.split('.');
@@ -96,16 +142,16 @@ function mapRow(raw: Record<string, string>, existingIds: Set<string>): Bet | nu
   }
   if (!date) date = new Date().toISOString().split('T')[0] ?? '';
 
-  const oddsRaw = g('odds').replace(',', '.');
-  const odds = parseFloat(oddsRaw);
+  const odds = parseAmount(g('odds'));
   if (isNaN(odds) || odds <= 1) return null;
 
-  const stakeStr = g('stake').replace(/[^\d.,]/g, '').replace(',', '.');
-  const stakeRubles = parseFloat(stakeStr);
+  const stakeRubles = parseAmount(g('stake'));
   if (isNaN(stakeRubles) || stakeRubles <= 0) return null;
 
+  // Prefer "result" column (Win/Loss/Выкуп) over "status" column (may contain workflow state)
+  const resultRaw = g('result').toLowerCase();
   const statusRaw = g('status').toLowerCase();
-  const status: BetStatus = STATUS_MAP[statusRaw] ?? 'pending';
+  const status: BetStatus = STATUS_MAP[resultRaw] ?? STATUS_MAP[statusRaw] ?? 'pending';
 
   const sportRaw = g('sport').toLowerCase();
   const sport: Sport = SPORT_MAP[sportRaw] ?? (sportRaw as Sport) ?? 'other';
@@ -191,8 +237,10 @@ export function importFromCSV(content: string): ImportResult {
     return result;
   }
 
-  const headers = parseCSVLine(nonEmpty[0]!);
-  const rows = nonEmpty.slice(1).map(parseCSVLine);
+  const allRows = nonEmpty.map(parseCSVLine);
+  const headerIdx = findHeaderRowIndex(allRows);
+  const headers = allRows[headerIdx] ?? [];
+  const rows = allRows.slice(headerIdx + 1);
   const objects = rowsToObjects(headers, rows);
 
   const ids = new Set<string>();
@@ -214,8 +262,9 @@ export function importFromXLSX(buffer: ArrayBuffer): ImportResult {
   const data = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1, raw: false }) as string[][];
   if (data.length < 2) return { bets: [], skipped: 0, total: 0 };
 
-  const headers = (data[0] ?? []).map(String);
-  const rows = data.slice(1).map((r) => (r ?? []).map(String));
+  const headerIdx = findHeaderRowIndex(data);
+  const headers = (data[headerIdx] ?? []).map(String);
+  const rows = data.slice(headerIdx + 1).map((r) => (r ?? []).map(String));
   const objects = rowsToObjects(headers, rows);
 
   const ids = new Set<string>();

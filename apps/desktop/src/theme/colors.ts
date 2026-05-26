@@ -14,8 +14,8 @@ export const colors = {
   violet: '#A78BFA',
 
   textPrimary: '#E2E2EF',
-  textSecondary: '#555568',
-  textMuted: '#333345',
+  textSecondary: '#8888A0',
+  textMuted: '#5C5C76',
 
   won: '#22D3A0',
   lost: '#F4455A',
