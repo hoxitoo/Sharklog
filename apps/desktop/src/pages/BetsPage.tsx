@@ -12,10 +12,10 @@ interface Props {
 }
 
 const STATUS_LABELS: Record<BetStatus, string> = {
-  pending: 'Ожидание', won: 'Победа', lost: 'Проигрыш', refund: 'Выкуп',
+  pending: 'Ожидание', won: 'Победа', lost: 'Проигрыш', refund: 'Возврат', cashout: 'Выкуп',
 };
 const STATUS_COLORS: Record<BetStatus, string> = {
-  pending: colors.pending, won: colors.won, lost: colors.lost, refund: colors.refund,
+  pending: colors.pending, won: colors.won, lost: colors.lost, refund: colors.refund, cashout: colors.refund,
 };
 
 const FILTERS: Array<{ key: BetStatus | 'all'; label: string }> = [
@@ -23,7 +23,8 @@ const FILTERS: Array<{ key: BetStatus | 'all'; label: string }> = [
   { key: 'pending', label: 'Ожидание' },
   { key: 'won', label: 'Победы' },
   { key: 'lost', label: 'Проигрыши' },
-  { key: 'refund', label: 'Выкупы' },
+  { key: 'refund', label: 'Возвраты' },
+  { key: 'cashout', label: 'Выкупы' },
 ];
 
 type SortKey = 'date_desc' | 'date_asc' | 'odds_desc' | 'odds_asc' | 'stake_desc' | 'stake_asc';
@@ -254,6 +255,7 @@ export function BetsPage({ onAdd, onEdit }: Props) {
                               <button style={{ ...s.chip, color: colors.won, borderColor: colors.won + '55', backgroundColor: colors.won + '18' }} onClick={() => handleClose(bet, 'won')}>W</button>
                               <button style={{ ...s.chip, color: colors.lost, borderColor: colors.lost + '55', backgroundColor: colors.lost + '18' }} onClick={() => handleClose(bet, 'lost')}>L</button>
                               <button style={{ ...s.chip, color: colors.refund, borderColor: colors.refund + '55', backgroundColor: colors.refund + '18' }} onClick={() => handleClose(bet, 'refund')}>R</button>
+                              <button style={{ ...s.chip, color: colors.refund, borderColor: colors.refund + '55', backgroundColor: colors.refund + '18' }} onClick={() => handleClose(bet, 'cashout')}>C</button>
                             </>
                           )}
                           <button style={s.editBtn} onClick={() => onEdit(bet)}>✏️</button>

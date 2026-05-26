@@ -1,4 +1,4 @@
-export type BetStatus = 'pending' | 'won' | 'lost' | 'refund';
+export type BetStatus = 'pending' | 'won' | 'lost' | 'refund' | 'cashout';
 
 export type EsportsDiscipline =
   | 'dota2'

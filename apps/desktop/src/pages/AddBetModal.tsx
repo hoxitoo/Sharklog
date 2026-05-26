@@ -452,6 +452,7 @@ export function AddBetModal({ editBet, onClose }: Props) {
                   { key: 'won' as BetStatus, label: 'Победа' },
                   { key: 'lost' as BetStatus, label: 'Проигрыш' },
                   { key: 'refund' as BetStatus, label: 'Возврат' },
+                  { key: 'cashout' as BetStatus, label: 'Выкуп' },
                 ]}
                 value={status}
                 onChange={setStatus}

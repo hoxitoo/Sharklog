@@ -7,6 +7,7 @@ export interface SliceStats {
   won: number;
   lost: number;
   refund: number;
+  cashout: number;
   pending: number;
   pnl: number;        // in kopecks
   roi: number;        // percentage, e.g. 12.5
@@ -33,9 +34,10 @@ function calcSlice(bets: Bet[], label: string): SliceStats {
   const won = bets.filter((b) => b.status === 'won').length;
   const lost = bets.filter((b) => b.status === 'lost').length;
   const refund = bets.filter((b) => b.status === 'refund').length;
+  const cashout = bets.filter((b) => b.status === 'cashout').length;
   const pending = bets.filter((b) => b.status === 'pending').length;
 
-  // Include refund stakes in totalStaked — capital was wagered even if returned
+  // Include refund/cashout stakes in totalStaked — capital was wagered even if returned
   const totalStaked = bets.filter((b) => b.status !== 'pending').reduce((sum, b) => sum + b.stake, 0);
   const pnl = bets.reduce((sum, b) => {
     if (b.status === 'won') return sum + Math.round(b.stake * b.odds) - b.stake;
@@ -52,6 +54,7 @@ function calcSlice(bets: Bet[], label: string): SliceStats {
     won,
     lost,
     refund,
+    cashout,
     pending,
     pnl,
     roi: Math.round(roi * 100) / 100,

@@ -34,7 +34,8 @@ const STATUS_FILTERS: Array<{ key: BetStatus | 'all'; label: string }> = [
   { key: 'pending', label: 'Ожидание' },
   { key: 'won', label: 'Победы' },
   { key: 'lost', label: 'Проигрыши' },
-  { key: 'refund', label: 'Выкупы' },
+  { key: 'refund', label: 'Возвраты' },
+  { key: 'cashout', label: 'Выкупы' },
 ];
 
 type SortKey = 'date_desc' | 'date_asc' | 'odds_desc' | 'stake_desc';

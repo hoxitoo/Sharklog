@@ -400,7 +400,7 @@ export function DashboardScreen() {
                   color: bet.status === 'won' ? colors.won : bet.status === 'lost' ? colors.lost : colors.pending,
                   fontSize: 12, fontWeight: '600',
                 }}>
-                  {bet.status === 'won' ? 'W' : bet.status === 'lost' ? 'L' : bet.status === 'refund' ? 'R' : '?'}
+                  {bet.status === 'won' ? 'W' : bet.status === 'lost' ? 'L' : bet.status === 'refund' ? 'R' : bet.status === 'cashout' ? 'C' : '?'}
                 </Text>
               </View>
             </TouchableOpacity>
