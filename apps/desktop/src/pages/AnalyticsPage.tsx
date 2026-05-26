@@ -27,15 +27,30 @@ function Section({ title, stats }: { title: string; stats: SliceStats[] }) {
     <div style={s.card}>
       <div style={s.cardTitle}>{title}</div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, alignItems: 'start' }}>
-        <ResponsiveContainer width="100%" height={180}>
-          <BarChart data={chartData} barSize={28}>
+        <ResponsiveContainer width="100%" height={200}>
+          <BarChart data={chartData} maxBarSize={40} margin={{ bottom: 8 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={colors.border} vertical={false} />
-            <XAxis dataKey="name" tick={{ fill: colors.textMuted, fontSize: 11 }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fill: colors.textMuted, fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
+            <XAxis
+              dataKey="name"
+              tick={{ fill: colors.textSecondary, fontSize: 11 }}
+              axisLine={false}
+              tickLine={false}
+              interval={0}
+              height={48}
+              tickFormatter={(v: string) => v.length > 12 ? v.slice(0, 11) + '…' : v}
+            />
+            <YAxis tick={{ fill: colors.textSecondary, fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
             <Tooltip
-              contentStyle={{ backgroundColor: colors.bgCard, border: `1px solid ${colors.border}`, borderRadius: 8 }}
+              cursor={{ fill: 'rgba(91,106,240,0.07)' }}
+              contentStyle={{
+                backgroundColor: '#1A1A2E',
+                border: `1px solid ${colors.purple}55`,
+                borderRadius: 8,
+                fontSize: 12,
+                boxShadow: '0 4px 16px rgba(0,0,0,0.6)',
+              }}
               formatter={(v: number) => [`${v}%`, 'ROI']}
-              labelStyle={{ color: colors.textPrimary }}
+              labelStyle={{ color: colors.textPrimary, marginBottom: 4, fontWeight: 600 }}
             />
             <Bar dataKey="roi" radius={[4, 4, 0, 0]}>
               {chartData.map((entry, i) => (

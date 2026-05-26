@@ -12,7 +12,7 @@ interface Props {
 }
 
 const STATUS_LABELS: Record<BetStatus, string> = {
-  pending: 'Ожидание', won: 'Победа', lost: 'Проигрыш', refund: 'Возврат',
+  pending: 'Ожидание', won: 'Победа', lost: 'Проигрыш', refund: 'Выкуп',
 };
 const STATUS_COLORS: Record<BetStatus, string> = {
   pending: colors.pending, won: colors.won, lost: colors.lost, refund: colors.refund,
@@ -23,16 +23,10 @@ const FILTERS: Array<{ key: BetStatus | 'all'; label: string }> = [
   { key: 'pending', label: 'Ожидание' },
   { key: 'won', label: 'Победы' },
   { key: 'lost', label: 'Проигрыши' },
-  { key: 'refund', label: 'Возвраты' },
+  { key: 'refund', label: 'Выкупы' },
 ];
 
-type SortKey = 'date_desc' | 'date_asc' | 'odds_desc' | 'stake_desc';
-const SORT_OPTIONS: Array<{ key: SortKey; label: string }> = [
-  { key: 'date_desc', label: 'Новые ↓' },
-  { key: 'date_asc', label: 'Старые ↑' },
-  { key: 'odds_desc', label: 'Коэф. ↓' },
-  { key: 'stake_desc', label: 'Ставка ↓' },
-];
+type SortKey = 'date_desc' | 'date_asc' | 'odds_desc' | 'odds_asc' | 'stake_desc' | 'stake_asc';
 
 function formatDateTitle(dateStr: string): string {
   const today = new Date().toISOString().split('T')[0] ?? '';
@@ -79,7 +73,9 @@ export function BetsPage({ onAdd, onEdit }: Props) {
     return sortedDates.map((date) => {
       const data = [...(map.get(date) ?? [])];
       if (sort === 'odds_desc') data.sort((a, b) => b.odds - a.odds);
+      else if (sort === 'odds_asc') data.sort((a, b) => a.odds - b.odds);
       else if (sort === 'stake_desc') data.sort((a, b) => b.stake - a.stake);
+      else if (sort === 'stake_asc') data.sort((a, b) => a.stake - b.stake);
       else if (sort === 'date_asc') data.sort((a, b) => a.time.localeCompare(b.time));
       else data.sort((a, b) => b.time.localeCompare(a.time));
 
@@ -158,15 +154,23 @@ export function BetsPage({ onAdd, onEdit }: Props) {
           ))}
         </div>
         <div style={{ display: 'flex', gap: 4, marginLeft: 8, borderLeft: `1px solid ${colors.border}`, paddingLeft: 12 }}>
-          {SORT_OPTIONS.map((o) => (
-            <button
-              key={o.key}
-              style={{ ...s.sortBtn, ...(sort === o.key ? s.sortBtnActive : {}) }}
-              onClick={() => setSort(o.key)}
-            >
-              {o.label}
+          {(['date_desc', 'date_asc'] as SortKey[]).map((k) => (
+            <button key={k} style={{ ...s.sortBtn, ...(sort === k ? s.sortBtnActive : {}) }} onClick={() => setSort(k)}>
+              {k === 'date_desc' ? 'Новые ↓' : 'Старые ↑'}
             </button>
           ))}
+          <button
+            style={{ ...s.sortBtn, ...(sort === 'odds_desc' || sort === 'odds_asc' ? s.sortBtnActive : {}) }}
+            onClick={() => setSort(sort === 'odds_desc' ? 'odds_asc' : sort === 'odds_asc' ? 'odds_desc' : 'odds_desc')}
+          >
+            Коэф.&nbsp;{sort === 'odds_asc' ? '↑' : '↓'}
+          </button>
+          <button
+            style={{ ...s.sortBtn, ...(sort === 'stake_desc' || sort === 'stake_asc' ? s.sortBtnActive : {}) }}
+            onClick={() => setSort(sort === 'stake_desc' ? 'stake_asc' : sort === 'stake_asc' ? 'stake_desc' : 'stake_desc')}
+          >
+            Ставка&nbsp;{sort === 'stake_asc' ? '↑' : '↓'}
+          </button>
         </div>
       </div>
 
@@ -253,7 +257,7 @@ export function BetsPage({ onAdd, onEdit }: Props) {
                             </>
                           )}
                           <button style={s.editBtn} onClick={() => onEdit(bet)}>✏️</button>
-                          <button style={s.delBtn} onClick={() => handleDelete(bet)}>🗑</button>
+                          <button style={s.delBtn} onClick={() => handleDelete(bet)}>✕</button>
                         </div>
                       </td>
                     </tr>
@@ -330,6 +334,6 @@ const s: Record<string, React.CSSProperties> = {
   badge: { padding: '3px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600 },
   actions: { display: 'flex', gap: 4, alignItems: 'center' },
   chip: { border: '1px solid', borderRadius: 6, padding: '3px 7px', fontSize: 11, fontWeight: 700, cursor: 'pointer' },
-  editBtn: { background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', borderRadius: 6, fontSize: 14 },
-  delBtn: { background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', borderRadius: 6, fontSize: 14 },
+  editBtn: { background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', borderRadius: 6, fontSize: 15, opacity: 0.65 },
+  delBtn: { background: 'none', border: 'none', cursor: 'pointer', padding: '4px 6px', borderRadius: 6, fontSize: 15, color: colors.lost, opacity: 0.6, fontWeight: 700 },
 };
