@@ -68,6 +68,9 @@ jobs:
       - name: Install Node deps
         run: npm ci
 
+      - name: Build @sharklog/core
+        run: cd packages/core && npm run build
+
       - name: Build Tauri app
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
