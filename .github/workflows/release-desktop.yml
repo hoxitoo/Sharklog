@@ -72,7 +72,16 @@ jobs:
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
-        run: cd apps/desktop && npx tauri build
+        shell: bash
+        run: |
+          cd apps/desktop
+          if [ -n "$TAURI_SIGNING_PRIVATE_KEY" ]; then
+            echo "Signing key configured — building with updater artifacts"
+            npx tauri build
+          else
+            echo "No signing key — building without updater artifacts (test build)"
+            npx tauri build --config '{"bundle":{"createUpdaterArtifacts":false}}'
+          fi
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
