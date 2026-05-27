@@ -6,8 +6,8 @@ Bet tracker app — мобильное (React Native + Expo) и десктопн
 
 ```
 apps/mobile/     — React Native + Expo 51 (iOS + Android)
-apps/desktop/    — Tauri v2 + React + Vite (Win / Mac / Linux) ← ПОЛНОСТЬЮ ГОТОВ
-packages/core/   — Чистая TS бизнес-логика (типы, статистика, Kelly, форматтеры)
+apps/desktop/    — Tauri v2 + React + Vite (Win / Mac / Linux)
+packages/core/   — Чистая TS бизнес-логика (типы, статистика, Kelly, форматтеры, билдер стратегий)
 docs/            — ROADMAP.md, ANALYSIS.md, PRIVACY_POLICY.md
 ```
 
@@ -25,6 +25,7 @@ docs/            — ROADMAP.md, ANALYSIS.md, PRIVACY_POLICY.md
 - PRO-функции мобилки — `<ProGate feature="...">` компонент.
 - `packages/core` — без зависимостей на React/RN/Browser.
 - `exactOptionalPropertyTypes: true` — нельзя писать `prop={undefined}`, нужен spread `{...(x ? { prop: x } : {})}`.
+- **refund ≠ cashout**: `refund` = букмекер вернул ставку (отмена матча); `cashout` = игрок сам выкупил досрочно. Это два разных `BetStatus`.
 
 ## Цветовая система
 
@@ -34,7 +35,7 @@ colors.purple   = '#5B6AF0'  // purple — CTA-кнопки, активные с
 colors.won      = '#22D3A0'
 colors.lost     = '#F4455A'
 colors.pending  = '#F59E0B'
-colors.refund   = '#A78BFA'
+colors.refund   = '#A78BFA'  // используется и для cashout
 colors.gold     = '#F59E0B'  // PRO badge
 ```
 
@@ -56,6 +57,7 @@ colors.gold     = '#F59E0B'  // PRO badge
 - Дневной лимит: только PRO, 0 = без лимита
 - 7 дней бесплатного Pro для новых пользователей
 - Freemium: 199 ₽/мес, 990 ₽/год
+- Инсайты/команды (PRO): только команды с ≥10 ставок показываются в "Любимые команды"
 
 ## Команды
 
@@ -106,36 +108,102 @@ useBetsStore(s => s.clearAll)()
 
 // Детекция Tauri
 const IS_TAURI = !!(window as any).__TAURI_INTERNALS__;
+
+// Парсинг команд из event string
+import { parseEventTeams } from '@sharklog/core';
+parseEventTeams('NaVi vs Astralis');   // → ['NaVi', 'Astralis']
+
+// Статистика по турнирам / командам
+import { calcByTournament, calcByTeam } from '@sharklog/core';
+const tournamentStats = calcByTournament(bets);     // все турниры
+const teamStats = calcByTeam(bets, 10);             // команды с ≥10 ставок
+
+// Билдер стратегий
+import { STRATEGY_QUESTIONS, buildStrategy } from '@sharklog/core';
+const strategy = buildStrategy(answers);            // → GeneratedStrategy
+// Сохранить: updateSettings({ generatedStrategy: strategy })
 ```
 
 ## Структура desktop (apps/desktop/src/)
 
 ```
-App.tsx                    — загрузка, онбординг-роут, main layout
+App.tsx                    — загрузка (logo.png), онбординг-роут, main layout
+                             PAGE_ORDER: dashboard/bets/analytics/insights/strategy/bankroll/diary/settings
 components/
   ErrorBoundary.tsx        — React class boundary, кнопки retry/reload
   ChecklistModal.tsx       — 5 вопросов перед ставкой (PRO)
   ConfirmModal.tsx         — подтверждение деструктивных действий
   Toaster.tsx              — toast уведомления
 layouts/
-  AppLayout.tsx            — sidebar, nav, FREE_LIMITS прогресс-бар
+  AppLayout.tsx            — sidebar: logo img, nav 8 пунктов (PRO badge на strategy), FREE_LIMITS прогресс-бар
 pages/
-  DashboardPage.tsx        — period filter, 6 KPI, W/L strip, heatmap, pending bets
-  BetsPage.tsx             — date-grouped sections, daily P&L, search/filter/sort
+  DashboardPage.tsx        — period filter, 6 KPI, W/L strip, heatmap, стратегия-плашка (→ 'strategy')
+  BetsPage.tsx             — date-grouped sections, daily P&L, search/filter/sort; статусы refund + cashout
   AddBetModal.tsx          — форма + TeamAutocomplete + Kelly calculator + ChecklistModal
-  AnalyticsPage.tsx        — 7 срезов (PRO), formatPercent без двойного +
+                             поле "Турнир / Лига" с <datalist> autocomplete
+                             clipboard paste для pre-fill; статус cashout
+  AnalyticsPage.tsx        — 7 срезов (PRO) + "Топ турниры" mini-cards
   BankrollPage.tsx         — equity curve, Kelly calc, транзакции с удалением
   DiaryPage.tsx            — mood tracker, тилт-стата, дневник
+  InsightsPage.tsx         — period filter; TournamentsSection (Free); TeamsSection (PRO)
+  StrategyBuilderPage.tsx  — PRO: progress bar + 10 вопросов + ResultCard + disclaimer
   SettingsPage.tsx         — подписка, тилт-stepper, букмекеры, команды,
                              CSV/Excel/JSON import-export, проверка обновлений
-  OnboardingPage.tsx       — 3-шаговый визард (welcome → букмекеры → go)
+  OnboardingPage.tsx       — 3-шаговый визард (welcome logo → букмекеры → go)
 storage/
   storageService.ts        — SQLite (Tauri) / localStorage (browser) абстракция
 store/
   betsStore.ts             — Zustand; load() async, persist() fire-and-forget
   toastStore.ts            — эфемерные toast-уведомления
 utils/
-  importBets.ts            — импорт CSV/XLSX с алиасами колонок, нормализацией дат
+  importBets.ts            — импорт CSV/XLSX с алиасами колонок, нормализацией дат, поддержка cashout
+  clipboardParser.ts       — parseClipboard(text) → Partial<Bet> (pre-fill AddBetModal)
 theme/
   colors.ts                — цветовая система
+public/
+  logo.png                 — официальный логотип (sidebar, loading screen)
+  logo-512.png             — high-res версия
+```
+
+## Структура mobile (apps/mobile/src/)
+
+```
+navigation/
+  RootNavigator.tsx        — Stack: Tabs + AddBet (modal) + Bankroll + StrategyBuilder
+                             Tabs (6): Ставки | Дашборд | Инсайты | Дисциплина | Аналитика | Настройки
+screens/
+  BetsScreen/              — SectionList + quick-result W/L/R/C (cashout)
+  AddBetScreen/            — форма с полем Турнир/Лига, статус cashout
+  DashboardScreen/         — стратегия-плашка → navigate('StrategyBuilder')
+  InsightsScreen/          — TournamentRow (Free) + TeamCard (PRO via ProGate)
+  AnalyticsScreen/         — 8 срезов (PRO via ProGate)
+  BankrollScreen/          — equity curve, Kelly (PRO)
+  DisciplineScreen/        — mood, тилт, дневник
+  SettingsScreen/          — PRO settings + "Билдер стратегий" кнопка
+  OnboardingScreen/        — logo Image + 3 шага
+  StrategyBuilderScreen/   — PRO: WizardScreen + ResultScreen
+components/
+  StatusBadge.tsx          — бейджи: pending/won/lost/refund ("Возврат")/cashout ("Выкуп")
+  ProGate.tsx              — RevenueCat paywall
+assets/
+  icon.png                 — 1024×1024 на тёмном фоне
+  adaptive-icon.png        — 1024×1024 прозрачный фон (Android)
+  splash.png               — 1284×2778 по центру
+```
+
+## Структура core (packages/core/src/)
+
+```
+types/bet.ts          — BetStatus: 'pending'|'won'|'lost'|'refund'|'cashout'
+                        Bet: + tournament?: string
+                        AppSettings: + generatedStrategy?: GeneratedStrategy
+                        GeneratedStrategy, StrategyAnswers, + 10 union types
+constants/index.ts    — SPORTS, BET_TYPES, STRATEGIES, FREE_LIMITS, ODDS_RANGES
+utils/
+  stats.ts            — calcDashboard, calcByField, calcByOddsRange, calcByDayOfWeek,
+                        calcByHour, isInTilt, calcByTournament, calcByTeam, parseEventTeams
+  kelly.ts            — kellyFraction, halfKelly, expectedValue, impliedProbability
+  formatters.ts       — formatMoney, parseMoneyInput, formatOdds, formatPercent
+  strategyBuilder.ts  — STRATEGY_QUESTIONS (10 вопросов), buildStrategy(answers)
+  migrations.ts       — migrate(raw)
 ```

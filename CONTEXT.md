@@ -9,96 +9,126 @@ Read this at the start of every session. Always develop on `claude/busy-shannon-
 ```
 apps/mobile/src/
   screens/
-    BetsScreen/         — SectionList с датами + daily P&L, search, status filter (scroll), sort row, swipe-to-delete, haptics
-    AddBetScreen/       — react-hook-form, TeamAutocomplete, Kelly calculator (collapsible, запускается при odds > 1)
-    DashboardScreen/    — period filter (7д/30д/Всё), stats grid, W/L strip, heatmap, P&L chart, best/worst bet
-    AnalyticsScreen/    — period filter (7д/30д/Всё), SummaryCard + 8 срезов с барами (PRO via ProGate)
-    BankrollScreen/     — equity curve LineChart, сводка банкролла, inline deposit/withdrawal, Kelly (PRO)
-    DisciplineScreen/   — mood picker (1-5), тилт-стата (X/N лимит для PRO), 8 правил, diary
-    SettingsScreen/     — Stepper для PRO настроек, paywall modal, clearAll, export, notifications
-    OnboardingScreen/   — 3 шага: welcome → стартовый банкролл → букмекеры
+    BetsScreen/              — SectionList с датами + daily P&L, search, status filter (scroll), sort row,
+                               swipe-to-delete, haptics; quick-result chips W/L/R/C
+    AddBetScreen/            — react-hook-form, TeamAutocomplete, Kelly calculator (collapsible),
+                               tournament/league TextInput field, status includes cashout
+    DashboardScreen/         — period filter (7д/30д/Всё), stats grid, W/L strip, heatmap, P&L chart,
+                               best/worst bet, strategy badge (кликабельная плашка → StrategyBuilder)
+    AnalyticsScreen/         — period filter (7д/30д/Всё), SummaryCard + 8 срезов с барами (PRO via ProGate)
+    InsightsScreen/          — period filter; Tournaments table (Free); Favorite Teams cards (PRO via ProGate)
+    BankrollScreen/          — equity curve LineChart, сводка банкролла, inline deposit/withdrawal, Kelly (PRO)
+    DisciplineScreen/        — mood picker (1-5), тилт-стата (X/N лимит для PRO), 8 правил, diary
+    SettingsScreen/          — Stepper для PRO настроек, paywall modal, clearAll, export, notifications,
+                               "Билдер стратегий" кнопка для PRO → navigate('StrategyBuilder')
+    OnboardingScreen/        — 3 шага: welcome (logo image) → стартовый банкролл → букмекеры
+    StrategyBuilderScreen/   — PRO: прогресс-бар + 10 вопросов + результат + "Применить стратегию"
   components/
-    ErrorBoundary.tsx   — React class component; friendly RN error screen + reload button
-    ProGate.tsx         — пейвол с реальными RC offerings (monthly/annual), restore
-    ScreenHeader.tsx    — title + subtitle + optional right CTA
-    ChecklistModal.tsx  — 5 вопросов перед ставкой, только PRO
-    StatusBadge.tsx     — цветной бейдж статуса ставки
+    ErrorBoundary.tsx        — React class component; friendly RN error screen + reload button
+    ProGate.tsx              — пейвол с реальными RC offerings (monthly/annual), restore
+    ScreenHeader.tsx         — title + subtitle + optional right CTA
+    ChecklistModal.tsx       — 5 вопросов перед ставкой, только PRO
+    StatusBadge.tsx          — цветной бейдж статуса ставки (pending/won/lost/refund/cashout)
   navigation/
-    RootNavigator.tsx   — Stack: Tabs + AddBet (modal) + Bankroll
-                          Tabs: Ставки | Дашборд | Дисциплина | Аналитика | Настройки
+    RootNavigator.tsx        — Stack: Tabs + AddBet (modal) + Bankroll + StrategyBuilder
+                               Tabs (6): Ставки | Дашборд | Инсайты | Дисциплина | Аналитика | Настройки
   services/
-    revenueCat.ts       — initRevenueCat, getOfferings, purchasePackage, restorePurchases, syncEntitlement
-    sentry.ts           — initSentry, captureException, setUserContext, clearUserContext
+    revenueCat.ts            — initRevenueCat, getOfferings, purchasePackage, restorePurchases, syncEntitlement
+    sentry.ts                — initSentry, captureException, setUserContext, clearUserContext
   store/
-    betsStore.ts        — Zustand + AsyncStorage; addBet, updateBet, deleteBet,
-                          updateSettings, updateBankroll, addDiaryEntry, deleteTeam, clearAll, canAddBet
-                          Exports: defaultSettings, defaultBankroll (used in tests)
+    betsStore.ts             — Zustand + AsyncStorage; addBet, updateBet, deleteBet,
+                               updateSettings, updateBankroll, addDiaryEntry, deleteTeam, clearAll, canAddBet
+                               Exports: defaultSettings, defaultBankroll (used in tests)
   theme/
-    colors.ts           — two-accent palette (accent=teal, purple=CTA)
+    colors.ts                — two-accent palette (accent=teal, purple=CTA)
   utils/
-    haptics.ts          — haptic.selection/light/medium/heavy/success/warning/error
-    notifications.ts    — scheduleDailyReminder (20:00), sendTiltNotification, requestNotificationPermission
-    exportCSV.ts        — CSV с UTF-8 BOM, expo-file-system + expo-sharing
+    haptics.ts               — haptic.selection/light/medium/heavy/success/warning/error
+    notifications.ts         — scheduleDailyReminder (20:00), sendTiltNotification, requestNotificationPermission
+    exportCSV.ts             — CSV с UTF-8 BOM, expo-file-system + expo-sharing
   __tests__/
-    betsStore.test.ts   — 17 smoke tests (canAddBet, addBet, deleteBet, updateBet, clearAll)
+    betsStore.test.ts        — 17 smoke tests (canAddBet, addBet, deleteBet, updateBet, clearAll)
     __mocks__/
-      async-storage.ts  — in-memory AsyncStorage mock
-      notifications.ts  — jest.fn() stubs for scheduleDailyReminder/sendTiltNotification
+      async-storage.ts       — in-memory AsyncStorage mock
+      notifications.ts       — jest.fn() stubs for scheduleDailyReminder/sendTiltNotification
 
-apps/desktop/src/       — React+Vite frontend (TypeScript strict), Tauri v2 backend (src-tauri/)
-  App.tsx               — routing, modal state, Cmd+N hotkey, Esc to close;
-                          isLoaded guard (spinner), onboarding gate, ErrorBoundary wrapper
+apps/desktop/src/            — React+Vite frontend (TypeScript strict), Tauri v2 backend (src-tauri/)
+  App.tsx                    — routing (8 pages), modal state, Cmd+N hotkey, Esc to close;
+                               isLoaded guard (logo spinner), onboarding gate, ErrorBoundary wrapper
   layouts/
-    AppLayout.tsx       — sidebar (logo, nav, "+ Новая ставка" btn, free progress bar)
+    AppLayout.tsx            — sidebar: logo image, nav (8 items, PRO badge на strategy), "+ Новая ставка",
+                               free progress bar
   components/
-    ErrorBoundary.tsx   — React class component; friendly web error screen + retry/reload
+    ErrorBoundary.tsx        — React class component; friendly web error screen + retry/reload
+    ChecklistModal.tsx       — 5 вопросов перед ставкой (PRO)
+    ConfirmModal.tsx         — подтверждение деструктивных действий
+    Toaster.tsx              — toast уведомления
   storage/
-    storageService.ts   — IS_TAURI detection → SQLite (kv table) or localStorage fallback
-                          loadData(): Promise<object|null>, saveData(data): Promise<void>
+    storageService.ts        — IS_TAURI detection → SQLite (kv table) or localStorage fallback
+                               loadData(): Promise<object|null>, saveData(data): Promise<void>
   store/
-    betsStore.ts        — Zustand; load(): Promise<void>, persist() fire-and-forget
-                          VITE_OWNER_PRO=true → isPro=true on init
-                          Exports: defaultSettings, defaultBankroll (used in tests)
+    betsStore.ts             — Zustand; load(): Promise<void>, persist() fire-and-forget
+                               VITE_OWNER_PRO=true → isPro=true on init
+                               Exports: defaultSettings, defaultBankroll (used in tests)
   pages/
-    DashboardPage.tsx   — period filter, 6-stat grid, W/L strip, 12-week heatmap, P&L chart, best/worst, empty state
-    BetsPage.tsx        — date-grouped sections (tbody), daily P&L per section, search, status filter, sort (4 modes)
-    AddBetModal.tsx     — full form with TeamAutocomplete, canAddBet() guard, limit banner, potential win preview
-    AnalyticsPage.tsx   — 7 срезов: sport/betType/bookmaker/strategy/oddsRange/dayOfWeek/hour (PRO)
-    BankrollPage.tsx    — equity curve, unit stepper (whiteSpace:nowrap), deposit/withdrawal, Kelly calc (PRO)
-    DiaryPage.tsx       — mood picker, tilt stats, 8 правил, diary history
-    SettingsPage.tsx    — subscription, tilt stepper, daily limit stepper, bookmakers,
-                          CSV+XLSX import, CSV+JSON export, JSON import/restore,
-                          "О приложении" card with version + check-for-updates button
-    OnboardingPage.tsx  — 3-step wizard: welcome → bookmakers → ready; calls updateSettings({onboardingComplete: true})
+    DashboardPage.tsx        — period filter, 6-stat grid, W/L strip, 12-week heatmap, P&L chart,
+                               best/worst, empty state, strategy badge (кликабельная, → 'strategy' page)
+    BetsPage.tsx             — date-grouped sections (tbody), daily P&L per section, search,
+                               status filter (pending/won/lost/refund/cashout), sort (4 modes),
+                               quick-result buttons W/L/R/C
+    AddBetModal.tsx          — full form with TeamAutocomplete + tournament datalist autocomplete,
+                               canAddBet() guard, limit banner, potential win preview,
+                               status includes cashout; clipboard paste pre-fill
+    AnalyticsPage.tsx        — 7 срезов: sport/betType/bookmaker/strategy/oddsRange/dayOfWeek/hour (PRO)
+                               + "Топ турниры" mini-cards block (calcByTournament)
+    InsightsPage.tsx         — period filter; TournamentsSection table (Free);
+                               TeamsSection card grid (PRO, calcByTeam minBets=10)
+    BankrollPage.tsx         — equity curve, unit stepper, Kelly calc, deposit/withdrawal, PRO gate
+    DiaryPage.tsx            — mood picker, tilt stats, 8 правил, diary history
+    SettingsPage.tsx         — subscription, tilt stepper, daily limit stepper, bookmakers, teams,
+                               CSV+XLSX import, CSV+JSON export, JSON import/restore,
+                               "О приложении" card with version + check-for-updates button
+    OnboardingPage.tsx       — 3-step wizard: welcome → bookmakers → ready
+    StrategyBuilderPage.tsx  — PRO: progress bar + 10 questions + ResultCard + "Применить стратегию"
   utils/
-    importBets.ts       — importFromCSV(content), importFromXLSX(buffer) → ImportResult
-                          Column aliases (RU/EN), status map, date normalization (DD.MM.YYYY → YYYY-MM-DD)
+    importBets.ts            — importFromCSV(content), importFromXLSX(buffer) → ImportResult
+                               Column aliases (RU/EN), status map (including cashout), date normalization
+    clipboardParser.ts       — parseClipboard(text) → Partial<Bet>; Variant A: paste to pre-fill AddBet
   theme/
-    colors.ts           — same palette as mobile
+    colors.ts                — same palette as mobile
   test/
-    setup.ts            — vi.mock for @tauri-apps/plugin-sql + storageService
+    setup.ts                 — vi.mock for @tauri-apps/plugin-sql + storageService
   store/
-    betsStore.test.ts   — 25 smoke tests
+    betsStore.test.ts        — 25 smoke tests
   utils/
-    importBets.test.ts  — 15 tests for CSV/XLSX parsing
+    importBets.test.ts       — 15 tests for CSV/XLSX parsing
 
-  apps/desktop/src-tauri/  — Tauri v2 Rust backend
-    tauri.conf.json     — productName, identifier, window config, bundle targets,
-                          createUpdaterArtifacts: true, updater plugin config
-    Cargo.toml          — tauri 2.x, tauri-plugin-opener, tauri-plugin-sql (sqlite),
-                          tauri-plugin-updater
-    src/main.rs + lib.rs — entry point; registers sql + updater plugins
-    gen/schemas/        — ACL capability schemas (auto-generated by cargo build)
-    Cargo.lock          — committed (reproducible builds)
+  apps/desktop/src-tauri/    — Tauri v2 Rust backend
+    tauri.conf.json          — productName, identifier, window config, bundle targets,
+                               createUpdaterArtifacts: true, updater plugin config
+    Cargo.toml               — tauri 2.x, tauri-plugin-opener, tauri-plugin-sql (sqlite),
+                               tauri-plugin-updater
+    src/main.rs + lib.rs     — entry point; registers sql + updater plugins
+    icons/                   — full icon set: 32/128/256/512px PNG, ICO, Windows Square tiles, AppImage.png
+    gen/schemas/             — ACL capability schemas (auto-generated by cargo build)
+    Cargo.lock               — committed (reproducible builds)
+
+  apps/desktop/public/
+    logo.png                 — official app logo (sidebar, loading screen, onboarding)
+    logo-512.png             — high-res version
 
 packages/core/src/
-  types/bet.ts          — Bet, Team, EsportsDiscipline, Bankroll, DiaryEntry, AppSettings, StorageSchema
-  constants/index.ts    — SPORTS, BET_TYPES, STRATEGIES, ESPORTS_DISCIPLINES, FREE_LIMITS, ODDS_RANGES
+  types/bet.ts               — Bet (+ tournament? field), Team, EsportsDiscipline, Bankroll, DiaryEntry,
+                               AppSettings (+ generatedStrategy?), StorageSchema
+                               BetStatus: 'pending'|'won'|'lost'|'refund'|'cashout'
+                               Strategy types: StrategyAnswers, GeneratedStrategy + 10 answer union types
+  constants/index.ts         — SPORTS, BET_TYPES, STRATEGIES, ESPORTS_DISCIPLINES, FREE_LIMITS, ODDS_RANGES
   utils/
-    stats.ts            — calcDashboard, calcByField, calcByOddsRange, calcByDayOfWeek, calcByHour, isInTilt
-    kelly.ts            — kellyFraction, halfKelly, expectedValue, impliedProbability, recommendedStake
-    formatters.ts       — formatMoney, parseMoneyInput, formatOdds, formatPercent (adds + prefix for positive)
-    migrations.ts       — migrate(raw)
+    stats.ts                 — calcDashboard, calcByField, calcByOddsRange, calcByDayOfWeek, calcByHour,
+                               isInTilt, calcByTournament, calcByTeam, parseEventTeams
+    kelly.ts                 — kellyFraction, halfKelly, expectedValue, impliedProbability, recommendedStake
+    formatters.ts            — formatMoney, parseMoneyInput, formatOdds, formatPercent (adds + prefix)
+    strategyBuilder.ts       — STRATEGY_QUESTIONS (10 вопросов), buildStrategy(answers) → GeneratedStrategy
+    migrations.ts            — migrate(raw)
 ```
 
 ---
@@ -115,38 +145,68 @@ interface Bet {
   discipline?: EsportsDiscipline; // только когда sport === 'esports'
   bookmaker: string;
   event: string;                  // "Team A vs Team B" — парсится для team memory
+  tournament?: string;            // Турнир / Лига (опционально)
   betType: BetType;
   pick: string;
   odds: number;                   // decimal (1.85)
   stake: number;                  // КОПЕЙКИ — никогда не float
-  status: BetStatus;              // 'pending'|'won'|'lost'|'refund'
+  status: BetStatus;              // 'pending'|'won'|'lost'|'refund'|'cashout'
   strategy: Strategy;
   notes?: string;
   schemaVersion: number;
 }
 
+// refund = букмекер вернул ставку (например, отмена матча)
+// cashout = игрок сам выкупил ставку досрочно
+
 interface AppSettings {
-  tiltThreshold: number;   // Free: фикс 3 / PRO: stepper 2–10
-  dailyBetLimit: number;   // 0 = нет лимита (только PRO); enforced в canAddBet()
+  tiltThreshold: number;          // Free: фикс 3 / PRO: stepper 2–10
+  dailyBetLimit: number;          // 0 = нет лимита (только PRO); enforced в canAddBet()
   bookmakers: string[];
   isPro: boolean;
   onboardingComplete: boolean;
+  reminderHour: number;           // час ежедневного напоминания (PRO: stepper 6–23)
+  generatedStrategy?: GeneratedStrategy;  // PRO: сохранённая стратегия
   schemaVersion: number;
 }
 
-interface Bankroll {
-  id: string; name: string; currency: string;
-  unitPercent: number;     // % банкролла = 1 юнит (default 2%)
-  transactions: BankrollTransaction[];
+interface GeneratedStrategy {
+  name: string;
+  description: string;
+  betsPerDay: number;
+  stakePercent: number;
+  oddsMin: number;
+  oddsMax: number;
+  kellyMultiplier: number;
+  tiltThreshold: number;
+  betTypeAdvice: string;
+  sportAdvice: string;
   createdAt: string;
+  answers: StrategyAnswers;
 }
 
-interface BankrollTransaction {
-  id: string;              // UUID v4 — никогда не Date.now()
-  type: 'deposit' | 'withdrawal';
-  amount: number;          // kopecks
-  date: string;            // ISO-8601
-  note?: string;
+interface TournamentStats {
+  tournament: string;
+  sport: Sport;
+  count: number;
+  won: number;
+  lost: number;
+  winRate: number;
+  totalStaked: number;   // kopecks
+  pnl: number;           // kopecks
+  roi: number;           // fraction (0.12 = 12%)
+}
+
+interface TeamStats {
+  team: string;
+  sport: Sport;
+  discipline?: EsportsDiscipline;
+  count: number;
+  won: number;
+  lost: number;
+  pnl: number;
+  roi: number;
+  lastTournament?: string;
 }
 ```
 
@@ -165,6 +225,9 @@ interface BankrollTransaction {
 9. **Period filter**: `b.date > cutoffStr` (НЕ `>=`) — иначе off-by-one (8 дней вместо 7).
 10. **formatPercent()**: уже добавляет `+` для положительных значений — не добавляй префикс вручную.
 11. **Onboarding**: новые пользователи видят OnboardingPage; существующие пользователи — `onboardingComplete ?? true` при load().
+12. **refund vs cashout**: refund = возврат букмекером (отмена матча); cashout = досрочный выкуп игроком. Это два разных статуса.
+13. **parseEventTeams(event)**: разбивает event по ` — `, ` – `, ` vs `, ` против `, ` - ` → массив имён команд.
+14. **calcByTeam(bets, minBets=10)**: возвращает только команды с ≥10 ставок (PRO "Любимые команды").
 
 ---
 
@@ -196,6 +259,32 @@ Storage layer (`storageService.ts`):
 
 ---
 
+## Strategy Builder (PRO)
+
+Билдер стратегий — 10-вопросный мастер (PRO), создаёт персональную стратегию ставок.
+
+```typescript
+// packages/core/src/utils/strategyBuilder.ts
+STRATEGY_QUESTIONS   // 10 вопросов: goal, bankroll, risk, sport, betType, odds, time, experience, tilt, priority
+buildStrategy(answers: StrategyAnswers): GeneratedStrategy
+
+// Логика (rule-based, без ML):
+// stakePercent: base из risk (1/2/3.5%), корректируется по experience/goal, cap 5%
+// betsPerDay: из timePerDay (1/2/3/5), корректируется по priority/experience
+// oddsMin/Max: low(1.30–1.65) / mid(1.65–2.40) / high(2.40–4.00)
+// kellyMultiplier: conservative=0.25 / moderate=0.5 / aggressive=0.75
+// tiltThreshold: stop=2 / reduce=3 / continue=4
+// 6 вариантов названий: Стартовая, Консервативная, Ценностная, Агрессивная, Сбалансированная, Профессиональная
+```
+
+Сохранённая стратегия:
+- Хранится в `settings.generatedStrategy`
+- Отображается кликабельной плашкой на DashboardScreen/DashboardPage
+- Плашка ведёт на StrategyBuilderScreen / 'strategy' page
+- Если стратегии нет — плашки нет
+
+---
+
 ## Auto-updater (Desktop)
 
 - **Signing**: `npx tauri signer generate` → private key в GitHub Secret `TAURI_SIGNING_PRIVATE_KEY`
@@ -203,6 +292,7 @@ Storage layer (`storageService.ts`):
 - **Endpoint**: `https://github.com/hoxitoo/sharklog/releases/latest/download/latest.json`
 - **UI**: кнопка "Проверить обновления" в SettingsPage → "О приложении" карточка
 - **CI**: `release-desktop.yml` собирает подписанные артефакты при теге `v*`
+- **404 handling**: 404 от endpoint трактуется как "последняя версия", не как ошибка
 
 ---
 
@@ -231,53 +321,66 @@ VITE_OWNER_PRO=true
 
 ## Что сделано
 
-### Mobile (Phase 2 — complete)
-- [x] Все 7 мобильных экранов + OnboardingScreen
+### Core (packages/core)
+- [x] BetStatus расширен: добавлен `'cashout'` (выкуп игроком, отдельно от `'refund'`)
+- [x] Bet.tournament?: string — поле для турнира/лиги
+- [x] AppSettings.generatedStrategy?: GeneratedStrategy
+- [x] calcByTournament(bets) → TournamentStats[] — статистика по турнирам
+- [x] calcByTeam(bets, minBets=10) → TeamStats[] — статистика по командам (≥10 ставок)
+- [x] parseEventTeams(event) → string[] — парсинг команд из event string
+- [x] strategyBuilder.ts: STRATEGY_QUESTIONS (10 вопросов) + buildStrategy(answers)
+- [x] calcByHour() — статистика по часам дня
+- [x] SliceStats.cashout: number — подсчёт кешаутов
+- [x] Bugfix: totalStaked включает refund-ставки (ROI был завышен)
+- [x] Bugfix: period filter off-by-one (>= → >)
+- [x] formatPercent() — добавляет + для положительных значений
+- [x] 12 vitest unit tests (все зелёные)
+
+### Mobile (React Native + Expo 51)
+- [x] Все экраны + OnboardingScreen (logo image вместо emoji)
+- [x] InsightsScreen: period filter + Tournaments table (Free) + Teams cards (PRO)
+- [x] StrategyBuilderScreen: PRO wizard (10 вопросов) + ResultScreen + "Применить"
+- [x] DashboardScreen: стратегия-плашка → navigate('StrategyBuilder')
+- [x] SettingsScreen: "Билдер стратегий" кнопка для PRO
+- [x] StatusBadge: поддержка cashout (label "Выкуп", refund остался "Возврат")
+- [x] BetsScreen: filter chips refund + cashout; quick-result chip C (cashout)
+- [x] AddBetScreen: поле "Турнир / Лига" + статус cashout
+- [x] RootNavigator: Tabs (6): Bets/Dashboard/Insights/Discipline/Analytics/Settings
+                      Stack: Tabs + AddBet + Bankroll + StrategyBuilder
+- [x] Assets: icon.png / adaptive-icon.png / splash.png — официальный логотип
+- [x] OnboardingScreen: Image компонент (logo) вместо emoji
 - [x] Zustand store с полным CRUD + AsyncStorage persistence
 - [x] RevenueCat paywall (real offerings, purchase, restore)
-- [x] Push notifications (daily reminder, tilt alert с правильным streak count)
+- [x] Push notifications (daily reminder, tilt alert)
 - [x] CSV export (expo-sharing, UTF-8 BOM)
 - [x] Team autocomplete с esports discipline
 - [x] Pre-bet checklist modal (PRO)
 - [x] CI: tests + type-check (все зелёные)
 - [x] EAS: development/preview/production profiles
-- [x] DM Sans + DM Mono fonts (useFonts hook, 6 variants)
-- [x] Haptic feedback: haptics.ts, wired в AddBet + BetCard + DisciplineScreen
-- [x] BetsScreen: sort (date/odds/stake) + status filter scroll + date sections с daily P&L
-- [x] AnalyticsScreen: SummaryCard + 8 срезов, period filter
-- [x] AddBetScreen: Kelly calculator (collapsible, implied prob, EV, half-kelly)
-- [x] canAddBet() enforces dailyBetLimit для PRO + free limit
-- [x] BankrollScreen: equity curve LineChart
-- [x] Dashboard: best/worst bet, W/L strip (oldest-first), heatmap
-- [x] ErrorBoundary (class component, RN View-based crash screen)
-- [x] 17 smoke tests (plain babel-jest, no jest-expo)
+- [x] 17 smoke tests
 
-### Desktop (Phase 3 — production-near)
-- [x] DashboardPage: period filter, 6 stat cards, W/L strip, 12-week heatmap, P&L chart, best/worst, empty state
-- [x] BetsPage: date-grouped sections, daily P&L headers, search+filter, 4 sort modes, DM Mono for numbers
-- [x] AddBetModal: TeamAutocomplete, canAddBet() guard + limit banner, potential win preview, date+time fields
-- [x] AnalyticsPage: 7 срезов + bar charts + table, period filter, PRO gate с рабочей кнопкой
-- [x] BankrollPage: equity curve AreaChart, unit stepper, Kelly calc, deposit/withdrawal, PRO gate
-- [x] DiaryPage: mood picker, tilt stats, 8 правил, diary history
-- [x] SettingsPage: tilt+daily-limit steppers (PRO), bookmakers, CSV+XLSX import, CSV+JSON export, JSON import/restore, check-for-updates
-- [x] AppLayout: sidebar nav + "+ Новая ставка" button + free progress bar
-- [x] Keyboard shortcuts: Cmd/Ctrl+N (new bet), Esc (close modal)
-- [x] DM Sans + DM Mono (Google Fonts CDN в index.html)
-- [x] Tauri v2 backend: tauri-plugin-sql (SQLite), tauri-plugin-updater, Cargo.lock committed
-- [x] StorageService abstraction (SQLite in Tauri, localStorage in browser)
-- [x] ErrorBoundary (class component, web crash screen)
-- [x] OnboardingPage (3-step wizard)
-- [x] CSV + XLSX import (column aliases, RU/EN headers, date normalization)
+### Desktop (Tauri v2 + React + Vite)
+- [x] InsightsPage: period filter + TournamentsSection (Free) + TeamsSection (PRO)
+- [x] StrategyBuilderPage: PRO wizard + ResultCard + disclaimer + "Применить стратегию"
+- [x] DashboardPage: стратегия-плашка (кликабельная → 'strategy') + onNavigate prop
+- [x] BetsPage: filter + quick-result buttons для cashout (C); refund/cashout отдельные фильтры
+- [x] AddBetModal: "Турнир / Лига" поле с `<datalist>` autocomplete; статус cashout;
+                   clipboard paste для pre-fill формы
+- [x] AnalyticsPage: "Топ турниры" блок (calcByTournament, top-3)
+- [x] AppLayout: sidebar logo = img logo.png, nav 8 пунктов (Insights + Strategy с PRO badge)
+- [x] App.tsx: 8 pages + loading screen с logo.png
+- [x] OnboardingPage: logo image вместо emoji
+- [x] public/logo.png + public/logo-512.png — официальный логотип
+- [x] src-tauri/icons/: полный набор иконок (32/128/256/512, ICO, Windows tiles, AppImage)
+- [x] PAGE_ORDER: 8 страниц, Ctrl+1..6 shortcuts
+- [x] Auto-updater: 404 трактуется как "уже последняя версия"
+- [x] DashboardPage, BetsPage, AddBetModal, AnalyticsPage, BankrollPage — полные
+- [x] DiaryPage, SettingsPage, AppLayout, OnboardingPage — полные
+- [x] CSV + XLSX import (column aliases, RU/EN, cashout в status map)
+- [x] clipboardParser.ts — paste pre-fill для AddBetModal
 - [x] Owner PRO mode (VITE_OWNER_PRO=true)
-- [x] Auto-updater UI in SettingsPage
-- [x] 40 smoke tests (vitest + happy-dom)
-- [x] Release workflow (sign + publish GitHub Release on tag)
-
-### Core (packages/core)
-- [x] calcByHour() — статистика по часам дня
-- [x] Bugfix: totalStaked включает refund-ставки (ROI был завышен)
-- [x] Bugfix: period filter off-by-one (>= → >)
-- [x] formatPercent() — добавляет + для положительных значений
+- [x] Auto-updater UI в SettingsPage
+- [x] 40 smoke tests
 
 ---
 
@@ -327,7 +430,6 @@ git push -u origin claude/busy-shannon-jQgRK
 - [ ] Заменить `projectId: "PLACEHOLDER"` в `app.json` реальным EAS projectId
 
 ### Желательно
-- [ ] Финальные иконки (заменить placeholder)
 - [ ] Скриншоты для App Store / Google Play
 - [ ] LemonSqueezy для платежей (desktop)
 - [ ] Sentry DSN в production env
