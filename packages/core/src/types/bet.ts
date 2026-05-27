@@ -64,6 +64,7 @@ export interface Bet {
   status: BetStatus;
   strategy: Strategy;
   notes?: string;
+  tournament?: string;       // league / cup name, e.g. "Лига Чемпионов"
   discipline?: EsportsDiscipline; // only when sport === 'esports'
   schemaVersion: number;   // for migrations
 }

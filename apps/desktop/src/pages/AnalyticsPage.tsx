@@ -4,7 +4,7 @@ import {
 } from 'recharts';
 import {
   calcByField, calcByOddsRange, calcByDayOfWeek, calcByHour, calcDashboard,
-  SPORTS, BET_TYPES, STRATEGIES, formatMoney, formatPercent,
+  calcByTournament, SPORTS, BET_TYPES, STRATEGIES, formatMoney, formatPercent,
 } from '@sharklog/core';
 import type { SliceStats } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
@@ -156,6 +156,7 @@ export function AnalyticsPage() {
   const byOdds = calcByOddsRange(filteredBets);
   const byDay = calcByDayOfWeek(filteredBets);
   const byHour = calcByHour(filteredBets);
+  const topTournaments = useMemo(() => calcByTournament(filteredBets).slice(0, 3), [filteredBets]);
 
   return (
     <div style={s.page}>
@@ -182,6 +183,34 @@ export function AnalyticsPage() {
       ) : (
         <>
           <SummaryCard bets={filteredBets} />
+          {topTournaments.length > 0 && (
+            <div style={s.card}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                <div style={s.cardTitle}>Топ турниры</div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: `repeat(${topTournaments.length}, 1fr)`, gap: 12 }}>
+                {topTournaments.map((t) => {
+                  const pnlColor = t.pnl > 0 ? colors.won : t.pnl < 0 ? colors.lost : colors.textSecondary;
+                  return (
+                    <div key={t.tournament} style={{ backgroundColor: colors.bgElevated, borderRadius: 10, padding: 14, border: `1px solid ${colors.border}` }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: colors.textPrimary, marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.tournament}</div>
+                      <div style={{ fontSize: 11, color: colors.textMuted, marginBottom: 10 }}>{SPORTS[t.sport as keyof typeof SPORTS] ?? t.sport} · {t.count} ставок</div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <div>
+                          <div style={{ fontSize: 16, fontWeight: 700, color: pnlColor }}>{t.pnl >= 0 ? '+' : ''}{formatMoney(t.pnl)}</div>
+                          <div style={{ fontSize: 10, color: colors.textMuted }}>P&L</div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: 16, fontWeight: 700, color: pnlColor }}>{formatPercent(t.roi)}</div>
+                          <div style={{ fontSize: 10, color: colors.textMuted }}>ROI</div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           <Section title="По виду спорта" stats={bySport} />
           <Section title="По типу ставки" stats={byBetType} />
           <Section title="По букмекеру" stats={byBookmaker} />

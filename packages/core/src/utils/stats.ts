@@ -178,3 +178,112 @@ export function isInTilt(bets: Bet[], threshold: number): boolean {
   const streak = calcStreak(bets);
   return streak.type === 'loss' && streak.count >= threshold;
 }
+
+export interface TournamentStats {
+  tournament: string;
+  sport: string;        // most common sport label in this group
+  count: number;
+  won: number;
+  lost: number;
+  pending: number;
+  pnl: number;          // kopecks
+  roi: number;          // %
+  winRate: number;      // %
+  totalStaked: number;  // kopecks
+}
+
+export function calcByTournament(bets: Bet[]): TournamentStats[] {
+  const groups = new Map<string, Bet[]>();
+  for (const bet of bets) {
+    const key = (bet.tournament ?? '').trim();
+    if (!key) continue;
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key)!.push(bet);
+  }
+
+  return Array.from(groups.entries()).map(([tournament, group]) => {
+    const slice = calcSlice(group, tournament);
+
+    // Most common sport in group
+    const sportCount = new Map<string, number>();
+    for (const b of group) {
+      sportCount.set(b.sport, (sportCount.get(b.sport) ?? 0) + 1);
+    }
+    const sport = [...sportCount.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? '';
+
+    return {
+      tournament,
+      sport,
+      count: slice.count,
+      won: slice.won,
+      lost: slice.lost,
+      pending: slice.pending,
+      pnl: slice.pnl,
+      roi: slice.roi,
+      winRate: slice.winRate,
+      totalStaked: slice.totalStaked,
+    };
+  }).sort((a, b) => b.pnl - a.pnl);
+}
+
+export interface TeamStats {
+  name: string;
+  sport: string;
+  count: number;
+  won: number;
+  lost: number;
+  pnl: number;          // kopecks
+  roi: number;          // %
+  winRate: number;      // %
+  lastTournament: string;
+}
+
+function parseEventTeams(event: string): string[] {
+  const parts = event.split(/\s+(?:—|–|vs\.?|против|-)\s+/i);
+  return parts.map((p) => p.trim()).filter((p) => p.length >= 2 && p.length <= 50);
+}
+
+export function calcByTeam(bets: Bet[], minBets = 10): TeamStats[] {
+  const teamBets = new Map<string, Bet[]>();
+
+  for (const bet of bets) {
+    for (const team of parseEventTeams(bet.event)) {
+      const key = team.toLowerCase();
+      if (!teamBets.has(key)) teamBets.set(key, []);
+      teamBets.get(key)!.push(bet);
+    }
+  }
+
+  const result: TeamStats[] = [];
+
+  for (const [, group] of teamBets.entries()) {
+    if (group.length < minBets) continue;
+
+    const slice = calcSlice(group, '');
+    // Canonical name: from most recent bet's event part matching this team
+    const sorted = [...group].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    const name = parseEventTeams(sorted[0]?.event ?? '').find(
+      (t) => group.some((b) => parseEventTeams(b.event).some((et) => et.toLowerCase() === t.toLowerCase()))
+    ) ?? sorted[0]?.event ?? '';
+
+    const sportCount = new Map<string, number>();
+    for (const b of group) sportCount.set(b.sport, (sportCount.get(b.sport) ?? 0) + 1);
+    const sport = [...sportCount.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? '';
+
+    const lastTournament = sorted.find((b) => b.tournament?.trim())?.tournament ?? '';
+
+    result.push({
+      name,
+      sport,
+      count: slice.count,
+      won: slice.won,
+      lost: slice.lost,
+      pnl: slice.pnl,
+      roi: slice.roi,
+      winRate: slice.winRate,
+      lastTournament,
+    });
+  }
+
+  return result.sort((a, b) => b.count - a.count);
+}

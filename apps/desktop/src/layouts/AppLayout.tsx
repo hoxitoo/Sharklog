@@ -3,12 +3,13 @@ import { FREE_LIMITS } from '@sharklog/core';
 import { colors } from '../theme/colors';
 import { useBetsStore } from '../store/betsStore';
 
-export type Page = 'dashboard' | 'bets' | 'analytics' | 'bankroll' | 'diary' | 'settings';
+export type Page = 'dashboard' | 'bets' | 'analytics' | 'insights' | 'bankroll' | 'diary' | 'settings';
 
 const NAV: Array<{ id: Page; icon: string; label: string }> = [
   { id: 'dashboard', icon: '📊', label: 'Дашборд' },
   { id: 'bets', icon: '📋', label: 'Ставки' },
   { id: 'analytics', icon: '🔬', label: 'Аналитика' },
+  { id: 'insights', icon: '💡', label: 'Инсайты' },
   { id: 'bankroll', icon: '💰', label: 'Банкролл' },
   { id: 'diary', icon: '🧘', label: 'Дисциплина' },
   { id: 'settings', icon: '⚙️', label: 'Настройки' },

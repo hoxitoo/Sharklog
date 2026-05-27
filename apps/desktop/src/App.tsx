@@ -7,13 +7,14 @@ import { AnalyticsPage } from './pages/AnalyticsPage';
 import { BankrollPage } from './pages/BankrollPage';
 import { SettingsPage } from './pages/SettingsPage';
 import { DiaryPage } from './pages/DiaryPage';
+import { InsightsPage } from './pages/InsightsPage';
 import { OnboardingPage } from './pages/OnboardingPage';
 import { AddBetModal } from './pages/AddBetModal';
 import { Toaster } from './components/Toaster';
 import { useBetsStore } from './store/betsStore';
 import { colors } from './theme/colors';
 
-const PAGE_ORDER: Page[] = ['dashboard', 'bets', 'analytics', 'bankroll', 'diary', 'settings'];
+const PAGE_ORDER: Page[] = ['dashboard', 'bets', 'analytics', 'insights', 'bankroll', 'diary', 'settings'];
 
 export function App() {
   const load = useBetsStore((s) => s.load);
@@ -74,6 +75,7 @@ export function App() {
           {page === 'dashboard' && <DashboardPage />}
           {page === 'bets' && <BetsPage onAdd={openAdd} onEdit={openEdit} />}
           {page === 'analytics' && <AnalyticsPage />}
+          {page === 'insights' && <InsightsPage />}
           {page === 'bankroll' && <BankrollPage />}
           {page === 'diary' && <DiaryPage />}
           {page === 'settings' && <SettingsPage />}

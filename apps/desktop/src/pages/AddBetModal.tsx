@@ -226,7 +226,11 @@ const kl: Record<string, React.CSSProperties> = {
 };
 
 export function AddBetModal({ editBet, onClose }: Props) {
-  const { addBet, updateBet, settings, bankroll, canAddBet } = useBetsStore();
+  const { addBet, updateBet, settings, bankroll, canAddBet, bets } = useBetsStore();
+  const knownTournaments = useMemo(
+    () => [...new Set(bets.map((b) => b.tournament ?? '').filter(Boolean))].sort(),
+    [bets],
+  );
   const now = new Date();
   const defaultDate = now.toISOString().split('T')[0] ?? '';
   const defaultTime = now.toTimeString().slice(0, 5);
@@ -243,6 +247,7 @@ export function AddBetModal({ editBet, onClose }: Props) {
   const [strategy, setStrategy] = useState<Strategy>(editBet?.strategy ?? 'value');
   const [status, setStatus] = useState<BetStatus>(editBet?.status ?? 'pending');
   const [bookmaker, setBookmaker] = useState(editBet?.bookmaker ?? (settings.bookmakers[0] ?? ''));
+  const [tournament, setTournament] = useState(editBet?.tournament ?? '');
   const [notes, setNotes] = useState(editBet?.notes ?? '');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [kellyOpen, setKellyOpen] = useState(false);
@@ -300,6 +305,7 @@ export function AddBetModal({ editBet, onClose }: Props) {
     const extras = {
       ...(sport === 'esports' ? { discipline } : {}),
       ...(notes ? { notes } : {}),
+      ...(tournament.trim() ? { tournament: tournament.trim() } : {}),
     };
     if (editBet) {
       updateBet(editBet.id, { event, pick, odds: oddsNum, stake: stakeKopecks, sport, betType, strategy, status, bookmaker, date: date || defaultDate, time: time || defaultTime, ...extras });
@@ -441,6 +447,23 @@ export function AddBetModal({ editBet, onClose }: Props) {
                   {bk}
                 </button>
               ))}
+            </div>
+          </Field>
+
+          <Field label="Турнир / Лига">
+            <div style={{ position: 'relative' }}>
+              <input
+                style={inputStyle}
+                list="tournament-suggestions"
+                placeholder="Лига Чемпионов, РПЛ, CS2 Major..."
+                value={tournament}
+                onChange={(e) => setTournament(e.target.value)}
+              />
+              {knownTournaments.length > 0 && (
+                <datalist id="tournament-suggestions">
+                  {knownTournaments.map((t) => <option key={t} value={t} />)}
+                </datalist>
+              )}
             </div>
           </Field>
 
