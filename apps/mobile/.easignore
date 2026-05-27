@@ -1,0 +1,20 @@
+# Dependencies (reinstalled on EAS servers)
+node_modules/
+
+# Test files
+**/__tests__/
+**/__mocks__/
+**/*.test.ts
+**/*.test.tsx
+**/*.spec.ts
+
+# Dev/build artifacts
+.expo/
+dist/
+build/
+android/
+ios/
+
+# Misc
+.DS_Store
+*.log
