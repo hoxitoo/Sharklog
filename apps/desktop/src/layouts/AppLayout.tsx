@@ -31,8 +31,7 @@ export function AppLayout({ page, onNavigate, onAddBet, children }: Props) {
       <aside style={s.sidebar}>
         {/* Logo */}
         <div style={s.logo}>
-          <span style={{ fontSize: 24 }}>🦈</span>
-          <span style={s.logoText}>SharkLog</span>
+          <img src="/logo.png" alt="SharkLog" style={{ width: 140, height: 140, objectFit: 'contain', display: 'block', margin: '-28px auto -12px' }} />
         </div>
 
         {/* Nav */}

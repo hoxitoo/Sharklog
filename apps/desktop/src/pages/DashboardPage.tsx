@@ -172,7 +172,7 @@ export function DashboardPage() {
           </div>
         </div>
         <div style={s.emptyWrap}>
-          <div style={{ fontSize: 72, marginBottom: 16, animation: 'sharkFloat 2.4s ease-in-out infinite' }}>🦈</div>
+          <img src="/logo.png" alt="SharkLog" style={{ width: 120, height: 120, objectFit: 'contain', marginBottom: 16, animation: 'sharkFloat 2.4s ease-in-out infinite' }} />
           <div style={s.emptyTitle}>Ставок пока нет</div>
           <div style={s.emptySub}>Добавь первую ставку, чтобы начать отслеживать результаты</div>
           <div style={s.emptyHint}>

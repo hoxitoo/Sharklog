@@ -49,9 +49,8 @@ export function App() {
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
         height: '100vh', backgroundColor: colors.bg, gap: 16,
       }}>
-        <div style={{ fontSize: 56, animation: 'sharkFloat 1.6s ease-in-out infinite' }}>🦈</div>
-        <div style={{ fontSize: 18, fontWeight: 700, color: colors.textPrimary, letterSpacing: -0.5 }}>SharkLog</div>
-        <div style={{ fontSize: 13, color: colors.textMuted }}>Загрузка...</div>
+        <img src="/logo.png" alt="SharkLog" style={{ width: 140, height: 140, objectFit: 'contain', animation: 'sharkFloat 1.6s ease-in-out infinite' }} />
+        <div style={{ fontSize: 13, color: colors.textMuted, marginTop: 8 }}>Загрузка...</div>
       </div>
     );
   }

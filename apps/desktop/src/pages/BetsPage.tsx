@@ -178,9 +178,10 @@ export function BetsPage({ onAdd, onEdit }: Props) {
       {/* Content */}
       {totalFiltered === 0 ? (
         <div style={s.empty}>
-          <div style={{ fontSize: 52, marginBottom: 12, animation: search ? 'none' : 'sharkFloat 2.4s ease-in-out infinite' }}>
-            {search ? '🔍' : '🦈'}
-          </div>
+          {search
+            ? <div style={{ fontSize: 52, marginBottom: 12 }}>🔍</div>
+            : <img src="/logo.png" alt="SharkLog" style={{ width: 100, height: 100, objectFit: 'contain', marginBottom: 12, animation: 'sharkFloat 2.4s ease-in-out infinite' }} />
+          }
           <div style={s.emptyTitle}>{search ? 'Ничего не найдено' : 'Ставок пока нет'}</div>
           {search
             ? <div style={s.emptySub}>Попробуй другой запрос или очисти фильтр</div>
