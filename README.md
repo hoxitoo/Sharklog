@@ -4,15 +4,19 @@ Professional betting tracker for the CIS market. Mobile (React Native + Expo) an
 
 ## Features
 
-- **Bet tracking** — full history with sport, bookmaker, strategy, odds, stake; grouped by date with daily P&L
+- **Bet tracking** — full history with sport, bookmaker, strategy, odds, stake, tournament/league; grouped by date with daily P&L
+- **5 bet statuses** — Pending / Won / Lost / Refund (букмекер вернул) / Cashout (выкуп игроком)
 - **Team autocomplete** — remembers teams per sport/esports discipline (NaVi in Dota 2 ≠ NaVi in CS2)
-- **Dashboard** — P&L curve chart, W/L strip, 12-week activity heatmap, tilt detection, best/worst bet
-- **Analytics** — 7 slices: sport, bet type, bookmaker, strategy, odds range, day of week, hour of day
+- **Dashboard** — P&L curve chart, W/L strip, 12-week activity heatmap, tilt detection, best/worst bet, active strategy badge
+- **Analytics** — 7 slices: sport, bet type, bookmaker, strategy, odds range, day of week, hour of day + top tournaments block
+- **Insights** — Tournament/League stats table (Free) + Favorite Teams cards (PRO, ≥10 bets per team)
+- **Strategy Builder** (PRO) — 10-question wizard generates a personalised betting strategy; strategy badge on dashboard
 - **Bankroll** — deposit/withdrawal tracking, Kelly calculator, unit sizing, equity curve
 - **Discipline** — daily mood tracker, 8 professional rules, diary, tilt stats
 - **Import** — CSV and Excel (.xlsx) import with Russian/English column headers; export to CSV and JSON
+- **Clipboard paste** — paste a bet from clipboard to pre-fill the AddBet form (desktop)
 - **Auto-updates** — Tauri updater with signed artifacts published via GitHub Releases
-- **Freemium** — 50 free bets; PRO unlocks analytics, bankroll, discipline features, custom limits
+- **Freemium** — 50 free bets; PRO unlocks analytics, insights, strategy builder, bankroll, discipline features, custom limits
 
 ## Monorepo Structure
 
@@ -21,7 +25,7 @@ apps/
   mobile/     — React Native + Expo 51 (iOS + Android)
   desktop/    — Tauri v2 + React + Vite (Win / Mac / Linux)
 packages/
-  core/       — Shared business logic (types, stats, Kelly, formatters)
+  core/       — Shared business logic (types, stats, Kelly, formatters, strategy builder)
 docs/         — Roadmap, analysis, privacy policy
 ```
 
@@ -93,6 +97,7 @@ First build takes ~5–10 min (compiles Rust). Subsequent builds are faster.
 
 - **Money in kopecks** — all monetary values stored as integers (no float precision issues). `1000 ₽ = 100_000`
 - **UUID v4** — all entity IDs generated client-side, never `Date.now()`
+- **refund ≠ cashout** — `refund`: bookmaker returned stake (cancelled match); `cashout`: player cashed out early
 - **PRO features** guarded by `canAddBet()` / `<ProGate>` — never bypass
 - **Freemium limits** defined in `packages/core/src/constants/index.ts` (`FREE_LIMITS`)
 - **exactOptionalPropertyTypes: true** — use `{...(x ? { prop: x } : {})}`, not `prop={undefined}`
@@ -122,8 +127,8 @@ VITE_OWNER_PRO=true
 
 ## Pricing
 
-- **Free**: 50 bets, basic stats, tilt alerts (fixed threshold)
-- **Pro**: 199 ₽/month or 990 ₽/year — unlimited bets, full analytics, bankroll tracker, discipline module, custom tilt/daily limits
+- **Free**: 50 bets, basic stats, tilt alerts (fixed threshold), tournament stats
+- **Pro**: 199 ₽/month or 990 ₽/year — unlimited bets, full analytics, insights (teams), strategy builder, bankroll tracker, discipline module, custom tilt/daily limits, custom reminder time
 
 ## CI / Release
 
