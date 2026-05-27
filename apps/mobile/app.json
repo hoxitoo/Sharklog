@@ -31,8 +31,14 @@
       "permissions": ["android.permission.POST_NOTIFICATIONS", "android.permission.RECEIVE_BOOT_COMPLETED"]
     },
     "plugins": [
-      "expo-notifications",
-      "react-native-purchases"
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/icon.png",
+          "color": "#0A0A0A",
+          "sounds": []
+        }
+      ]
     ],
     "extra": {
       "eas": {
