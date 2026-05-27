@@ -38,6 +38,18 @@
           "color": "#0A0A0A",
           "sounds": []
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 34,
+            "targetSdkVersion": 34,
+            "buildToolsVersion": "34.0.0",
+            "agpVersion": "8.2.1",
+            "kotlinVersion": "1.9.24"
+          }
+        }
       ]
     ],
     "extra": {
