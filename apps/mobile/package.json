@@ -24,6 +24,7 @@
     "@sharklog/core": "*",
     "date-fns": "^3.6.0",
     "expo": "~51.0.0",
+    "expo-build-properties": "~0.12.0",
     "expo-file-system": "~17.0.1",
     "expo-font": "^56.0.5",
     "expo-haptics": "~13.0.1",
