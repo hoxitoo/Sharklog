@@ -11,11 +11,13 @@ import { DisciplineScreen } from '../screens/DisciplineScreen';
 import { BankrollScreen } from '../screens/BankrollScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { AddBetScreen } from '../screens/AddBetScreen';
+import { StrategyBuilderScreen } from '../screens/StrategyBuilderScreen';
 
 export type RootStackParamList = {
   Tabs: undefined;
   AddBet: { betId?: string };
   Bankroll: undefined;
+  StrategyBuilder: undefined;
 };
 
 export type TabParamList = {
@@ -100,6 +102,17 @@ export function RootNavigator() {
           headerTintColor: colors.textPrimary,
           headerTitleStyle: { color: colors.textPrimary, fontWeight: '700' },
           title: 'Банкролл',
+        }}
+      />
+      <Stack.Screen
+        name="StrategyBuilder"
+        component={StrategyBuilderScreen}
+        options={{
+          headerShown: true,
+          headerStyle: { backgroundColor: colors.bgCard },
+          headerTintColor: colors.textPrimary,
+          headerTitleStyle: { color: colors.textPrimary, fontWeight: '700' },
+          title: 'Билдер стратегий',
         }}
       />
     </Stack.Navigator>

@@ -3,13 +3,14 @@ import { FREE_LIMITS } from '@sharklog/core';
 import { colors } from '../theme/colors';
 import { useBetsStore } from '../store/betsStore';
 
-export type Page = 'dashboard' | 'bets' | 'analytics' | 'insights' | 'bankroll' | 'diary' | 'settings';
+export type Page = 'dashboard' | 'bets' | 'analytics' | 'insights' | 'strategy' | 'bankroll' | 'diary' | 'settings';
 
-const NAV: Array<{ id: Page; icon: string; label: string }> = [
+const NAV: Array<{ id: Page; icon: string; label: string; pro?: boolean }> = [
   { id: 'dashboard', icon: '📊', label: 'Дашборд' },
   { id: 'bets', icon: '📋', label: 'Ставки' },
   { id: 'analytics', icon: '🔬', label: 'Аналитика' },
   { id: 'insights', icon: '💡', label: 'Инсайты' },
+  { id: 'strategy', icon: '🎯', label: 'Стратегия', pro: true },
   { id: 'bankroll', icon: '💰', label: 'Банкролл' },
   { id: 'diary', icon: '🧘', label: 'Дисциплина' },
   { id: 'settings', icon: '⚙️', label: 'Настройки' },
@@ -47,7 +48,10 @@ export function AppLayout({ page, onNavigate, onAddBet, children }: Props) {
               }}
             >
               <span style={s.navIcon}>{item.icon}</span>
-              <span>{item.label}</span>
+              <span style={{ flex: 1 }}>{item.label}</span>
+              {item.pro && !isPro && (
+                <span style={{ fontSize: 9, fontWeight: 700, color: colors.gold, backgroundColor: colors.gold + '22', borderRadius: 4, padding: '2px 5px', border: `1px solid ${colors.gold}44` }}>PRO</span>
+              )}
             </button>
           ))}
         </nav>

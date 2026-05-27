@@ -215,6 +215,23 @@ export function DashboardScreen() {
         subtitle={new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}
       />
 
+      {settings.generatedStrategy && (
+        <TouchableOpacity
+          style={styles.strategyBadge}
+          onPress={() => { haptic.selection(); navigation.navigate('StrategyBuilder'); }}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.strategyIcon}>🎯</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.strategyName}>Стратегия: {settings.generatedStrategy.name}</Text>
+            <Text style={styles.strategySub}>
+              {settings.generatedStrategy.betsPerDay} ст/день · {settings.generatedStrategy.stakePercent}% банка · коэф {settings.generatedStrategy.oddsMin.toFixed(2)}–{settings.generatedStrategy.oddsMax.toFixed(2)}
+            </Text>
+          </View>
+          <Text style={styles.strategyArrow}>→</Text>
+        </TouchableOpacity>
+      )}
+
       <View style={styles.periodRow}>
         {PERIOD_OPTIONS.map((p) => (
           <TouchableOpacity
@@ -413,6 +430,16 @@ export function DashboardScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
+  strategyBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    marginHorizontal: 16, marginBottom: 12, padding: 12,
+    backgroundColor: colors.purple + '14', borderRadius: 10,
+    borderWidth: 1, borderColor: colors.purple + '44',
+  },
+  strategyIcon: { fontSize: 20 },
+  strategyName: { fontSize: 13, fontWeight: '700', color: colors.textPrimary },
+  strategySub: { fontSize: 11, color: colors.textSecondary, marginTop: 2 },
+  strategyArrow: { fontSize: 14, color: colors.textMuted },
   periodRow: {
     flexDirection: 'row',
     paddingHorizontal: 16,

@@ -118,7 +118,9 @@ function Heatmap({ bets }: { bets: Bet[] }) {
   );
 }
 
-export function DashboardPage() {
+interface DashboardProps { onNavigate?: (page: string) => void; }
+
+export function DashboardPage({ onNavigate }: DashboardProps = {}) {
   const { bets, settings, bankroll, updateBet } = useBetsStore();
   const toast = useToastStore((s) => s.show);
 
@@ -186,6 +188,18 @@ export function DashboardPage() {
 
   return (
     <div style={s.page}>
+      {settings.generatedStrategy && (
+        <button
+          style={s.strategyBadge}
+          onClick={() => onNavigate?.('strategy')}
+          title="Посмотреть стратегию"
+        >
+          <span>🎯</span>
+          <span>Стратегия: <strong>{settings.generatedStrategy.name}</strong></span>
+          <span style={{ fontSize: 11, opacity: 0.6 }}>· {settings.generatedStrategy.betsPerDay} ст/день · {settings.generatedStrategy.stakePercent}% банка · коэф {settings.generatedStrategy.oddsMin.toFixed(2)}–{settings.generatedStrategy.oddsMax.toFixed(2)}</span>
+          <span style={{ marginLeft: 'auto', opacity: 0.5, fontSize: 12 }}>→</span>
+        </button>
+      )}
       <div style={s.header}>
         <div>
           <h1 style={s.title}>Дашборд</h1>
@@ -425,6 +439,13 @@ export function DashboardPage() {
 
 const s: Record<string, React.CSSProperties> = {
   page: { padding: '28px 32px', flex: 1, overflow: 'auto' },
+  strategyBadge: {
+    display: 'flex', alignItems: 'center', gap: 10,
+    width: '100%', marginBottom: 16, padding: '10px 16px',
+    backgroundColor: colors.purple + '14', border: `1px solid ${colors.purple}44`,
+    borderRadius: 10, cursor: 'pointer', textAlign: 'left',
+    color: colors.textPrimary, fontSize: 13,
+  },
   header: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 },
   title: { fontSize: 28, fontWeight: 700, color: colors.textPrimary, letterSpacing: -0.5 },
   subtitle: { fontSize: 13, color: colors.textSecondary, marginTop: 4 },
