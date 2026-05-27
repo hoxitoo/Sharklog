@@ -11,7 +11,7 @@ import { useBetsStore } from '../../store/betsStore';
 import { colors } from '../../theme/colors';
 import { exportBetsCSV } from '../../utils/exportCSV';
 import { requestNotificationPermission, scheduleDailyReminder } from '../../utils/notifications';
-import * as FileSystem from 'expo-file-system';
+import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import { ProGate } from '../../components/ProGate';
 import type { RootStackParamList } from '../../navigation/RootNavigator';

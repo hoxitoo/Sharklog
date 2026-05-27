@@ -3,6 +3,8 @@ import * as Notifications from 'expo-notifications';
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
     shouldPlaySound: false,
     shouldSetBadge: false,
   }),
@@ -32,7 +34,7 @@ export async function scheduleDailyReminder(hour = 20): Promise<void> {
         body: 'Не забудь записать сегодняшние ставки',
         data: { type: 'daily_reminder' },
       },
-      trigger: { hour, minute: 0, repeats: true } as Notifications.DailyTriggerInput,
+      trigger: { type: 'daily', hour, minute: 0, repeats: true } as Notifications.DailyTriggerInput,
     });
   } catch {
     // permissions not granted or scheduling unavailable — silently skip
