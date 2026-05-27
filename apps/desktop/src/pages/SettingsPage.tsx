@@ -160,9 +160,16 @@ export function SettingsPage() {
         setUpdateStatus('latest');
         toast('У вас последняя версия SharkLog', 'success');
       }
-    } catch {
-      setUpdateStatus('error');
-      toast('Не удалось проверить обновления', 'error');
+    } catch (err) {
+      const msg = String(err);
+      // 404 = релиз ещё не опубликован, не ошибка приложения
+      if (msg.includes('404') || msg.includes('Not Found') || msg.includes('failed to fetch')) {
+        setUpdateStatus('latest');
+        toast('У вас актуальная версия SharkLog', 'success');
+      } else {
+        setUpdateStatus('error');
+        toast('Не удалось проверить обновления — нет сети или сервер недоступен', 'error');
+      }
     }
   }
 

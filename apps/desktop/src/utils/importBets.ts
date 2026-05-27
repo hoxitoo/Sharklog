@@ -34,7 +34,7 @@ const STATUS_MAP: Record<string, BetStatus> = {
   'lost': 'lost', 'loss': 'lost', 'проигрыш': 'lost', 'поражение': 'lost', 'проиграл': 'lost', 'lose': 'lost', 'l': 'lost', '❌': 'lost',
   'pending': 'pending', 'ожидание': 'pending', 'ожидает': 'pending', 'в ожидании': 'pending', 'p': 'pending',
   'refund': 'refund', 'возврат': 'refund', 'r': 'refund', 'возвр.': 'refund', 'возвр': 'refund',
-  'выкуп': 'refund', 'cashout': 'refund', 'cash out': 'refund',
+  'выкуп': 'cashout', 'cashout': 'cashout', 'cash out': 'cashout', 'c': 'cashout',
 };
 
 // Reverse-map human-readable Russian labels back to enum values

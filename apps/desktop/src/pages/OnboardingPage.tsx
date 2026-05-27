@@ -53,7 +53,7 @@ export function OnboardingPage({ onFinish }: Props) {
 
         {step === 0 && (
           <div style={s.stepContent}>
-            <div style={{ fontSize: 56, marginBottom: 12 }}>🦈</div>
+            <img src="/logo.png" alt="SharkLog" style={{ width: 160, height: 160, objectFit: 'contain', marginBottom: 12 }} />
             <h1 style={s.title}>Добро пожаловать в SharkLog</h1>
             <p style={s.subtitle}>Профессиональный трекер ставок — анализируй, контролируй, побеждай</p>
             <div style={s.features}>

@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import {
-  View, SectionList, StyleSheet, TouchableOpacity, Text, TextInput, ScrollView, Alert, RefreshControl,
+  View, SectionList, StyleSheet, TouchableOpacity, Text, TextInput, ScrollView, Alert, RefreshControl, Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -35,6 +35,7 @@ const STATUS_FILTERS: Array<{ key: BetStatus | 'all'; label: string }> = [
   { key: 'won', label: 'Победы' },
   { key: 'lost', label: 'Проигрыши' },
   { key: 'refund', label: 'Возвраты' },
+  { key: 'cashout', label: 'Выкупы' },
 ];
 
 type SortKey = 'date_desc' | 'date_asc' | 'odds_desc' | 'stake_desc';
@@ -210,7 +211,7 @@ export function BetsScreen() {
         }
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Text style={styles.emptyIcon}>🦈</Text>
+            <Image source={require('../../../assets/icon.png')} style={styles.emptyIcon} resizeMode="contain" />
             <Text style={styles.emptyTitle}>Ставок пока нет</Text>
             <Text style={styles.emptySubtitle}>
               {search ? 'Ничего не найдено' : 'Нажми «+ Добавить» чтобы начать'}
@@ -300,7 +301,7 @@ const styles = StyleSheet.create({
   sectionDate: { fontSize: 11, color: colors.textMuted, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
   sectionPnl: { fontSize: 12, fontWeight: '700' },
   empty: { alignItems: 'center', paddingTop: 80 },
-  emptyIcon: { fontSize: 48, marginBottom: 12 },
+  emptyIcon: { width: 90, height: 90, marginBottom: 12, alignSelf: 'center' },
   emptyTitle: { fontSize: 18, fontWeight: '600', color: colors.textPrimary, marginBottom: 6 },
   emptySubtitle: { fontSize: 14, color: colors.textSecondary, textAlign: 'center' },
   limitBanner: {

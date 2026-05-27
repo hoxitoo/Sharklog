@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, TextInput,
-  ScrollView, KeyboardAvoidingView, Platform, StatusBar,
+  ScrollView, KeyboardAvoidingView, Platform, StatusBar, Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DEFAULT_BOOKMAKERS, parseMoneyInput, formatMoney } from '@sharklog/core';
@@ -84,8 +84,7 @@ export function OnboardingScreen() {
       {/* Step 0: Welcome */}
       {step === 0 && (
         <ScrollView contentContainerStyle={styles.stepContent} showsVerticalScrollIndicator={false}>
-          <Text style={styles.shark}>🦈</Text>
-          <Text style={styles.appName}>SharkLog</Text>
+          <Image source={require('../../../assets/icon.png')} style={styles.logo} resizeMode="contain" />
           <Text style={styles.tagline}>Профессиональный трекер ставок</Text>
 
           <View style={styles.features}>
@@ -231,8 +230,7 @@ const styles = StyleSheet.create({
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.border },
   dotActive: { width: 20, backgroundColor: colors.purple },
   stepContent: { flex: 1, paddingHorizontal: 28, paddingTop: 24, paddingBottom: 16 },
-  shark: { fontSize: 72, textAlign: 'center', marginBottom: 12 },
-  appName: { fontSize: 36, fontWeight: '700', color: colors.textPrimary, textAlign: 'center', letterSpacing: -1 },
+  logo: { width: 180, height: 180, alignSelf: 'center', marginBottom: 8 },
   tagline: { fontSize: 16, color: colors.textSecondary, textAlign: 'center', marginBottom: 36, marginTop: 6 },
   features: { gap: 16, marginBottom: 28 },
   featureRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },

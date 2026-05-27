@@ -9,6 +9,7 @@ import type { Bet } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
 import { ChecklistModal } from '../components/ChecklistModal';
 import { colors } from '../theme/colors';
+import { parseClipboardText, isUsefulPaste } from '../utils/clipboardParser';
 
 function uuid(): string {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
@@ -225,7 +226,11 @@ const kl: Record<string, React.CSSProperties> = {
 };
 
 export function AddBetModal({ editBet, onClose }: Props) {
-  const { addBet, updateBet, settings, bankroll, canAddBet } = useBetsStore();
+  const { addBet, updateBet, settings, bankroll, canAddBet, bets } = useBetsStore();
+  const knownTournaments = useMemo(
+    () => [...new Set(bets.map((b) => b.tournament ?? '').filter(Boolean))].sort(),
+    [bets],
+  );
   const now = new Date();
   const defaultDate = now.toISOString().split('T')[0] ?? '';
   const defaultTime = now.toTimeString().slice(0, 5);
@@ -242,10 +247,32 @@ export function AddBetModal({ editBet, onClose }: Props) {
   const [strategy, setStrategy] = useState<Strategy>(editBet?.strategy ?? 'value');
   const [status, setStatus] = useState<BetStatus>(editBet?.status ?? 'pending');
   const [bookmaker, setBookmaker] = useState(editBet?.bookmaker ?? (settings.bookmakers[0] ?? ''));
+  const [tournament, setTournament] = useState(editBet?.tournament ?? '');
   const [notes, setNotes] = useState(editBet?.notes ?? '');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [kellyOpen, setKellyOpen] = useState(false);
   const [showChecklist, setShowChecklist] = useState(false);
+  const [pasteHint, setPasteHint] = useState<string | null>(null);
+
+  async function handlePaste() {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (!text.trim()) { setPasteHint('Буфер пуст'); return; }
+      const parsed = parseClipboardText(text);
+      if (!isUsefulPaste(parsed)) { setPasteHint('Не найдено данных ставки'); return; }
+      if (parsed.event) setEvent(parsed.event);
+      if (parsed.pick) setPick(parsed.pick);
+      if (parsed.odds) setOdds(parsed.odds);
+      if (parsed.stake) setStake(parsed.stake);
+      const filled = [parsed.event && 'событие', parsed.pick && 'выбор', parsed.odds && 'коэф.', parsed.stake && 'сумма']
+        .filter(Boolean).join(', ');
+      setPasteHint(`✓ Заполнено: ${filled}`);
+      setTimeout(() => setPasteHint(null), 3000);
+    } catch {
+      setPasteHint('Нет доступа к буферу');
+      setTimeout(() => setPasteHint(null), 2000);
+    }
+  }
 
   const oddsNum = parseFloat(odds);
   const stakeKopecks = parseMoneyInput(stake);
@@ -278,6 +305,7 @@ export function AddBetModal({ editBet, onClose }: Props) {
     const extras = {
       ...(sport === 'esports' ? { discipline } : {}),
       ...(notes ? { notes } : {}),
+      ...(tournament.trim() ? { tournament: tournament.trim() } : {}),
     };
     if (editBet) {
       updateBet(editBet.id, { event, pick, odds: oddsNum, stake: stakeKopecks, sport, betType, strategy, status, bookmaker, date: date || defaultDate, time: time || defaultTime, ...extras });
@@ -313,7 +341,19 @@ export function AddBetModal({ editBet, onClose }: Props) {
       <div className="sl-modal" style={m.modal}>
         <div style={m.modalHeader}>
           <h2 style={m.modalTitle}>{editBet ? 'Редактировать ставку' : 'Новая ставка'}</h2>
-          <button style={m.closeBtn} onClick={onClose}>✕</button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {!editBet && (
+              <div style={{ position: 'relative' }}>
+                <button style={m.pasteBtn} onClick={handlePaste} title="Вставить ставку из буфера (Ctrl+C на странице букмекера)">
+                  📋 Вставить
+                </button>
+                {pasteHint && (
+                  <div style={m.pasteHint}>{pasteHint}</div>
+                )}
+              </div>
+            )}
+            <button style={m.closeBtn} onClick={onClose}>✕</button>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} style={m.body}>
@@ -410,6 +450,23 @@ export function AddBetModal({ editBet, onClose }: Props) {
             </div>
           </Field>
 
+          <Field label="Турнир / Лига">
+            <div style={{ position: 'relative' }}>
+              <input
+                style={inputStyle}
+                list="tournament-suggestions"
+                placeholder="Лига Чемпионов, РПЛ, CS2 Major..."
+                value={tournament}
+                onChange={(e) => setTournament(e.target.value)}
+              />
+              {knownTournaments.length > 0 && (
+                <datalist id="tournament-suggestions">
+                  {knownTournaments.map((t) => <option key={t} value={t} />)}
+                </datalist>
+              )}
+            </div>
+          </Field>
+
           {editBet && (
             <Field label="Статус">
               <SegmentRow
@@ -418,6 +475,7 @@ export function AddBetModal({ editBet, onClose }: Props) {
                   { key: 'won' as BetStatus, label: 'Победа' },
                   { key: 'lost' as BetStatus, label: 'Проигрыш' },
                   { key: 'refund' as BetStatus, label: 'Возврат' },
+                  { key: 'cashout' as BetStatus, label: 'Выкуп' },
                 ]}
                 value={status}
                 onChange={setStatus}
@@ -460,6 +518,18 @@ const m: Record<string, React.CSSProperties> = {
   },
   modalTitle: { fontSize: 18, fontWeight: 700, color: colors.textPrimary },
   closeBtn: { background: 'none', border: 'none', color: colors.textMuted, fontSize: 18, cursor: 'pointer' },
+  pasteBtn: {
+    backgroundColor: colors.bgElevated, border: `1px solid ${colors.border}`,
+    borderRadius: 8, padding: '6px 12px', color: colors.textSecondary,
+    fontSize: 12, fontWeight: 600, cursor: 'pointer',
+  },
+  pasteHint: {
+    position: 'absolute', right: 0, top: '110%',
+    backgroundColor: colors.bgElevated, border: `1px solid ${colors.border}`,
+    borderRadius: 8, padding: '6px 10px', fontSize: 11,
+    color: colors.accent, whiteSpace: 'nowrap', zIndex: 10,
+    boxShadow: '0 4px 12px rgba(0,0,0,0.4)',
+  },
   body: { padding: 24 },
   limitBanner: {
     backgroundColor: colors.lost + '15', border: `1px solid ${colors.lost}44`,

@@ -4,10 +4,11 @@ import type { BetStatus } from '@sharklog/core';
 import { colors } from '../theme/colors';
 
 const STATUS_CONFIG: Record<BetStatus, { label: string; color: string }> = {
-  pending: { label: 'Ожидание', color: colors.pending },
-  won:     { label: 'Победа',   color: colors.won },
-  lost:    { label: 'Проигрыш', color: colors.lost },
-  refund:  { label: 'Возврат',  color: colors.refund },
+  pending:  { label: 'Ожидание', color: colors.pending },
+  won:      { label: 'Победа',   color: colors.won },
+  lost:     { label: 'Проигрыш', color: colors.lost },
+  refund:   { label: 'Возврат',  color: colors.refund },
+  cashout:  { label: 'Выкуп',    color: colors.refund },
 };
 
 export function StatusBadge({ status }: { status: BetStatus }) {

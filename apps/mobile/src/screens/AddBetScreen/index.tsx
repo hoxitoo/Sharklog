@@ -32,6 +32,7 @@ interface FormData {
   status: BetStatus;
   notes: string;
   bookmaker: string;
+  tournament: string;
   date: string;
   time: string;
 }
@@ -362,6 +363,7 @@ export function AddBetScreen() {
       status: editBet?.status ?? 'pending',
       notes: editBet?.notes ?? '',
       bookmaker: editBet?.bookmaker ?? (settings.bookmakers[0] ?? ''),
+      tournament: editBet?.tournament ?? '',
       date: editBet?.date ?? defaultDate,
       time: editBet?.time ?? defaultTime,
     },
@@ -407,6 +409,7 @@ export function AddBetScreen() {
     const extras = {
       ...(data.sport === 'esports' ? { discipline: data.discipline } : {}),
       ...(data.notes ? { notes: data.notes } : {}),
+      ...(data.tournament?.trim() ? { tournament: data.tournament.trim() } : {}),
     };
 
     const dateVal = data.date.trim() || defaultDate;
@@ -650,6 +653,7 @@ export function AddBetScreen() {
                   { key: 'won' as BetStatus, label: 'Победа' },
                   { key: 'lost' as BetStatus, label: 'Проигрыш' },
                   { key: 'refund' as BetStatus, label: 'Возврат' },
+                  { key: 'cashout' as BetStatus, label: 'Выкуп' },
                 ]}
                 value={value}
                 onChange={onChange}
@@ -657,6 +661,23 @@ export function AddBetScreen() {
             )}
           />
         )}
+
+        <Field label="Турнир / Лига">
+          <Controller
+            control={control}
+            name="tournament"
+            render={({ field: { onChange, value } }) => (
+              <TextInput
+                style={inputStyle}
+                placeholder="Лига Чемпионов, РПЛ, CS2 Major..."
+                placeholderTextColor={colors.textMuted}
+                value={value}
+                onChangeText={onChange}
+                returnKeyType="next"
+              />
+            )}
+          />
+        </Field>
 
         <Field label="Заметки">
           <Controller

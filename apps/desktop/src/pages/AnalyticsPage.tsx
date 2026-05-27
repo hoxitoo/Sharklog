@@ -4,7 +4,7 @@ import {
 } from 'recharts';
 import {
   calcByField, calcByOddsRange, calcByDayOfWeek, calcByHour, calcDashboard,
-  SPORTS, BET_TYPES, STRATEGIES, formatMoney, formatPercent,
+  calcByTournament, SPORTS, BET_TYPES, STRATEGIES, formatMoney, formatPercent,
 } from '@sharklog/core';
 import type { SliceStats } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
@@ -27,15 +27,30 @@ function Section({ title, stats }: { title: string; stats: SliceStats[] }) {
     <div style={s.card}>
       <div style={s.cardTitle}>{title}</div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, alignItems: 'start' }}>
-        <ResponsiveContainer width="100%" height={180}>
-          <BarChart data={chartData} barSize={28}>
+        <ResponsiveContainer width="100%" height={200}>
+          <BarChart data={chartData} maxBarSize={40} margin={{ bottom: 8 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={colors.border} vertical={false} />
-            <XAxis dataKey="name" tick={{ fill: colors.textMuted, fontSize: 11 }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fill: colors.textMuted, fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
+            <XAxis
+              dataKey="name"
+              tick={{ fill: colors.textSecondary, fontSize: 11 }}
+              axisLine={false}
+              tickLine={false}
+              interval={0}
+              height={48}
+              tickFormatter={(v: string) => v.length > 12 ? v.slice(0, 11) + '…' : v}
+            />
+            <YAxis tick={{ fill: colors.textSecondary, fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} />
             <Tooltip
-              contentStyle={{ backgroundColor: colors.bgCard, border: `1px solid ${colors.border}`, borderRadius: 8 }}
+              cursor={{ fill: 'rgba(91,106,240,0.07)' }}
+              contentStyle={{
+                backgroundColor: '#1A1A2E',
+                border: `1px solid ${colors.purple}55`,
+                borderRadius: 8,
+                fontSize: 12,
+                boxShadow: '0 4px 16px rgba(0,0,0,0.6)',
+              }}
               formatter={(v: number) => [`${v}%`, 'ROI']}
-              labelStyle={{ color: colors.textPrimary }}
+              labelStyle={{ color: colors.textPrimary, marginBottom: 4, fontWeight: 600 }}
             />
             <Bar dataKey="roi" radius={[4, 4, 0, 0]}>
               {chartData.map((entry, i) => (
@@ -141,6 +156,7 @@ export function AnalyticsPage() {
   const byOdds = calcByOddsRange(filteredBets);
   const byDay = calcByDayOfWeek(filteredBets);
   const byHour = calcByHour(filteredBets);
+  const topTournaments = useMemo(() => calcByTournament(filteredBets).slice(0, 3), [filteredBets]);
 
   return (
     <div style={s.page}>
@@ -167,6 +183,34 @@ export function AnalyticsPage() {
       ) : (
         <>
           <SummaryCard bets={filteredBets} />
+          {topTournaments.length > 0 && (
+            <div style={s.card}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                <div style={s.cardTitle}>Топ турниры</div>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: `repeat(${topTournaments.length}, 1fr)`, gap: 12 }}>
+                {topTournaments.map((t) => {
+                  const pnlColor = t.pnl > 0 ? colors.won : t.pnl < 0 ? colors.lost : colors.textSecondary;
+                  return (
+                    <div key={t.tournament} style={{ backgroundColor: colors.bgElevated, borderRadius: 10, padding: 14, border: `1px solid ${colors.border}` }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: colors.textPrimary, marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.tournament}</div>
+                      <div style={{ fontSize: 11, color: colors.textMuted, marginBottom: 10 }}>{SPORTS[t.sport as keyof typeof SPORTS] ?? t.sport} · {t.count} ставок</div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <div>
+                          <div style={{ fontSize: 16, fontWeight: 700, color: pnlColor }}>{t.pnl >= 0 ? '+' : ''}{formatMoney(t.pnl)}</div>
+                          <div style={{ fontSize: 10, color: colors.textMuted }}>P&L</div>
+                        </div>
+                        <div style={{ textAlign: 'right' }}>
+                          <div style={{ fontSize: 16, fontWeight: 700, color: pnlColor }}>{formatPercent(t.roi)}</div>
+                          <div style={{ fontSize: 10, color: colors.textMuted }}>ROI</div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           <Section title="По виду спорта" stats={bySport} />
           <Section title="По типу ставки" stats={byBetType} />
           <Section title="По букмекеру" stats={byBookmaker} />

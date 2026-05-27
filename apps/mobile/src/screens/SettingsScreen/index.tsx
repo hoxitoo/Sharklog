@@ -4,6 +4,8 @@ import {
   TextInput, Alert, Modal,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { FREE_LIMITS } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { colors } from '../../theme/colors';
@@ -12,6 +14,7 @@ import { requestNotificationPermission, scheduleDailyReminder } from '../../util
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { ProGate } from '../../components/ProGate';
+import type { RootStackParamList } from '../../navigation/RootNavigator';
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -80,6 +83,7 @@ const step_ = StyleSheet.create({
 
 export function SettingsScreen() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { settings, updateSettings, bets, clearAll } = useBetsStore();
   const [newBookmaker, setNewBookmaker] = useState('');
   const [exporting, setExporting] = useState(false);
@@ -197,6 +201,25 @@ export function SettingsScreen() {
             </View>
           )}
         </View>
+
+        {settings.isPro && (
+          <TouchableOpacity
+            style={styles.strategyBtn}
+            onPress={() => navigation.navigate('StrategyBuilder')}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.strategyBtnIcon}>🎯</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.strategyBtnText}>Билдер стратегий</Text>
+              <Text style={styles.strategyBtnSub}>
+                {settings.generatedStrategy
+                  ? `Активна: ${settings.generatedStrategy.name}`
+                  : 'Создай персональную стратегию'}
+              </Text>
+            </View>
+            <Text style={styles.strategyBtnArrow}>→</Text>
+          </TouchableOpacity>
+        )}
 
         <Section title="Тилт-контроль">
           <Row label="Порог тилт-алерта">
@@ -317,6 +340,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingBottom: 16,
   },
   title: { fontSize: 28, fontWeight: '700', color: colors.textPrimary, letterSpacing: -0.5 },
+  strategyBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    marginHorizontal: 16, marginBottom: 16, padding: 14,
+    backgroundColor: colors.purple + '14', borderRadius: 12,
+    borderWidth: 1, borderColor: colors.purple + '44',
+  },
+  strategyBtnIcon: { fontSize: 22 },
+  strategyBtnText: { fontSize: 14, fontWeight: '700', color: colors.textPrimary },
+  strategyBtnSub: { fontSize: 11, color: colors.textSecondary, marginTop: 2 },
+  strategyBtnArrow: { fontSize: 14, color: colors.textMuted },
   proBtn: { backgroundColor: colors.gold, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 },
   proBtnText: { fontSize: 13, fontWeight: '700', color: '#000' },
   proBadge: {

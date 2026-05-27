@@ -22,7 +22,7 @@ export function BetCard({ bet, onEdit }: Props) {
     ? -bet.stake
     : null;
 
-  function handleQuickResult(status: 'won' | 'lost' | 'refund') {
+  function handleQuickResult(status: 'won' | 'lost' | 'refund' | 'cashout') {
     if (status === 'won') haptic.success();
     else if (status === 'lost') haptic.error();
     else haptic.warning();
@@ -84,6 +84,13 @@ export function BetCard({ bet, onEdit }: Props) {
             activeOpacity={0.75}
           >
             <Text style={[styles.chipText, { color: colors.refund }]}>R</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.resultChip, styles.chipRefund]}
+            onPress={() => handleQuickResult('cashout')}
+            activeOpacity={0.75}
+          >
+            <Text style={[styles.chipText, { color: colors.refund }]}>C</Text>
           </TouchableOpacity>
           <Text style={styles.quickResultHint}>Нажми для закрытия</Text>
         </View>

@@ -1,4 +1,4 @@
-export type BetStatus = 'pending' | 'won' | 'lost' | 'refund';
+export type BetStatus = 'pending' | 'won' | 'lost' | 'refund' | 'cashout';
 
 export type EsportsDiscipline =
   | 'dota2'
@@ -64,6 +64,7 @@ export interface Bet {
   status: BetStatus;
   strategy: Strategy;
   notes?: string;
+  tournament?: string;       // league / cup name, e.g. "Лига Чемпионов"
   discipline?: EsportsDiscipline; // only when sport === 'esports'
   schemaVersion: number;   // for migrations
 }
@@ -92,15 +93,55 @@ export interface DiaryEntry {
   text?: string;
 }
 
+export type StrategyGoal = 'income' | 'hobby' | 'professional';
+export type StrategyBankroll = 'small' | 'medium' | 'large' | 'xlarge';
+export type StrategyRisk = 'conservative' | 'moderate' | 'aggressive';
+export type StrategySport = 'football' | 'hockey' | 'tennis' | 'esports' | 'mixed';
+export type StrategyBetType = 'singles' | 'express' | 'both';
+export type StrategyOdds = 'low' | 'mid' | 'high';
+export type StrategyTime = 'minimal' | 'moderate' | 'substantial' | 'intensive';
+export type StrategyExperience = 'beginner' | 'experienced' | 'professional';
+export type StrategyTilt = 'stop' | 'reduce' | 'continue';
+export type StrategyPriority = 'quantity' | 'quality';
+
+export interface StrategyAnswers {
+  goal: StrategyGoal;
+  bankroll: StrategyBankroll;
+  risk: StrategyRisk;
+  sport: StrategySport;
+  betTypes: StrategyBetType;
+  oddsRange: StrategyOdds;
+  timePerDay: StrategyTime;
+  experience: StrategyExperience;
+  tiltReaction: StrategyTilt;
+  priority: StrategyPriority;
+}
+
+export interface GeneratedStrategy {
+  name: string;
+  description: string;
+  betsPerDay: number;
+  stakePercent: number;      // % of bankroll per bet
+  oddsMin: number;
+  oddsMax: number;
+  kellyMultiplier: number;   // e.g. 0.25 = quarter-Kelly
+  tiltThreshold: number;     // suggested consecutive losses threshold
+  betTypeAdvice: string;
+  sportAdvice: string;
+  createdAt: string;
+  answers: StrategyAnswers;
+}
+
 export interface AppSettings {
-  tiltThreshold: number;   // consecutive losses that trigger alert
-  dailyBetLimit: number;   // max bets per day, 0 = unlimited
-  bookmakers: string[];    // user-defined list
+  tiltThreshold: number;
+  dailyBetLimit: number;
+  bookmakers: string[];
   isPro: boolean;
-  proExpiresAt?: string;   // ISO-8601, undefined = lifetime
+  proExpiresAt?: string;
   onboardingComplete: boolean;
-  reminderHour: number;    // 0-23, daily reminder hour (default 20)
+  reminderHour: number;
   schemaVersion: number;
+  generatedStrategy?: GeneratedStrategy;
 }
 
 export interface StorageSchema {
