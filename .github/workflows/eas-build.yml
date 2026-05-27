@@ -33,6 +33,9 @@ jobs:
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
+      - name: Debug expo config
+        working-directory: apps/mobile
+        run: npx expo config --json 2>&1 || true
       - name: Build
         working-directory: apps/mobile
         run: eas build --platform ${{ inputs.platform }} --profile ${{ inputs.profile }} --non-interactive
