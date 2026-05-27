@@ -154,14 +154,17 @@ describe('deleteBet', () => {
 // ─── updateBet ────────────────────────────────────────────────────────────────
 
 describe('updateBet', () => {
-  it('updates status and bumps updatedAt', async () => {
+  it('updates status and bumps updatedAt', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2024-01-01T12:00:00.000Z'));
     const bet = makeBet();
     useBetsStore.getState().addBet(bet);
-    await new Promise((r) => setTimeout(r, 1)); // ensure time advances
+    vi.setSystemTime(new Date('2024-01-01T12:00:01.000Z'));
     useBetsStore.getState().updateBet(bet.id, { status: 'won' });
     const updated = useBetsStore.getState().bets.find((b) => b.id === bet.id);
     expect(updated?.status).toBe('won');
     expect(updated?.updatedAt).not.toBe(bet.updatedAt);
+    vi.useRealTimers();
   });
 });
 

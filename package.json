@@ -14,7 +14,7 @@
     "type-check": "turbo run type-check"
   },
   "devDependencies": {
-    "@types/react": "^19.2.15",
+    "@types/react": "~18.3.29",
     "turbo": "^2.0.0",
     "typescript": "^5.4.0"
   },

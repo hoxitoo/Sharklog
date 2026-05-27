@@ -20,7 +20,7 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
       - name: Run vitest (core)
         run: cd packages/core && npx vitest run --reporter=verbose
       - name: Run vitest (desktop)
@@ -38,7 +38,7 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
       - name: Install Playwright browsers
         run: cd apps/desktop && npx playwright install --with-deps chromium
       - name: Run E2E tests
@@ -63,7 +63,7 @@ jobs:
         with:
           node-version: '20'
           cache: 'npm'
-      - run: npm ci
+      - run: npm ci --legacy-peer-deps
       - name: Mobile
         run: |
           cd apps/mobile
