@@ -41,7 +41,11 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Debug expo config
-        run: npx expo config --json 2>&1 || true
+        run: |
+          echo "=== npx expo config ==="
+          npx expo config --json 2>&1 && echo "SUCCESS" || echo "FAILED exit $?"
+          echo "=== node expo config ==="
+          node ../../node_modules/expo/bin/cli config --json 2>&1 && echo "SUCCESS" || echo "FAILED exit $?"
 
       - name: Build
         run: eas build --platform ${{ inputs.platform }} --profile ${{ inputs.profile }} --non-interactive
