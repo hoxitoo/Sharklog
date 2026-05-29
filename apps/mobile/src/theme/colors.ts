@@ -14,8 +14,8 @@ export const colors = {
   violet: '#A78BFA',      // secondary stats
 
   textPrimary: '#E2E2EF',
-  textSecondary: '#555568',
-  textMuted: '#333345',
+  textSecondary: '#8888A8',
+  textMuted: '#606078',
 
   won: '#22D3A0',
   lost: '#F4455A',

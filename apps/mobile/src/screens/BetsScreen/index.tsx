@@ -5,7 +5,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { Bet, BetStatus } from '@sharklog/core';
-import { formatMoney } from '@sharklog/core';
+import { formatMoney, isInTilt } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { colors } from '../../theme/colors';
 import { ScreenHeader } from '../../components/ScreenHeader';
@@ -38,18 +38,12 @@ const STATUS_FILTERS: Array<{ key: BetStatus | 'all'; label: string }> = [
   { key: 'cashout', label: 'Выкупы' },
 ];
 
-type SortKey = 'date_desc' | 'date_asc' | 'odds_desc' | 'stake_desc';
-
-const SORT_OPTIONS: Array<{ key: SortKey; label: string }> = [
-  { key: 'date_desc', label: 'Новые' },
-  { key: 'date_asc', label: 'Старые' },
-  { key: 'odds_desc', label: 'Кэф ↓' },
-  { key: 'stake_desc', label: 'Сумма ↓' },
-];
+type SortKey = 'date_desc' | 'date_asc' | 'odds_desc' | 'odds_asc' | 'stake_desc' | 'stake_asc';
 
 export function BetsScreen() {
   const navigation = useNavigation<Nav>();
   const { bets, settings, canAddBet, deleteBet } = useBetsStore();
+  const inTilt = isInTilt(bets, settings.tiltThreshold);
   const [statusFilter, setStatusFilter] = useState<BetStatus | 'all'>('all');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortKey>('date_desc');
@@ -93,6 +87,8 @@ export function BetsScreen() {
           case 'date_asc': return (a.time ?? '').localeCompare(b.time ?? '');
           case 'odds_desc': return b.odds - a.odds;
           case 'stake_desc': return b.stake - a.stake;
+          case 'odds_asc': return a.odds - b.odds;
+          case 'stake_asc': return a.stake - b.stake;
           default: return (b.time ?? '').localeCompare(a.time ?? '');
         }
       });
@@ -167,18 +163,44 @@ export function BetsScreen() {
       </ScrollView>
 
       <View style={styles.sortRow}>
-        {SORT_OPTIONS.map((s) => (
-          <TouchableOpacity
-            key={s.key}
-            style={[styles.sortBtn, sort === s.key && styles.sortBtnActive]}
-            onPress={() => { haptic.selection(); setSort(s.key); }}
-          >
-            <Text style={[styles.sortText, sort === s.key && styles.sortTextActive]}>
-              {s.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        {(['date_desc', 'date_asc', 'odds_desc', 'stake_desc'] as const).map((key) => {
+          const isOdds = key === 'odds_desc';
+          const isStake = key === 'stake_desc';
+          const isActive =
+            sort === key ||
+            (isOdds && sort === 'odds_asc') ||
+            (isStake && sort === 'stake_asc');
+          const label = isOdds
+            ? `Кэф ${sort === 'odds_asc' ? '↑' : '↓'}`
+            : isStake
+            ? `Сумма ${sort === 'stake_asc' ? '↑' : '↓'}`
+            : key === 'date_desc' ? 'Новые' : 'Старые';
+          return (
+            <TouchableOpacity
+              key={key}
+              style={[styles.sortBtn, isActive && styles.sortBtnActive]}
+              onPress={() => {
+                haptic.selection();
+                if (isOdds) setSort(sort === 'odds_desc' ? 'odds_asc' : 'odds_desc');
+                else if (isStake) setSort(sort === 'stake_desc' ? 'stake_asc' : 'stake_desc');
+                else setSort(key);
+              }}
+            >
+              <Text style={[styles.sortText, isActive && styles.sortTextActive]}>{label}</Text>
+            </TouchableOpacity>
+          );
+        })}
       </View>
+
+      {inTilt && (
+        <View style={styles.tiltBanner}>
+          <Text style={styles.tiltEmoji}>🔥</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.tiltTitle}>Стоп. Ты в тилте.</Text>
+            <Text style={styles.tiltSub}>Сделай паузу перед следующей ставкой.</Text>
+          </View>
+        </View>
+      )}
 
       <SectionList
         sections={sections}
@@ -247,12 +269,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  filtersScroll: { marginBottom: 8 },
+  filtersScroll: { marginBottom: 8, flexGrow: 0 },
   filters: {
     flexDirection: 'row',
     paddingHorizontal: 16,
     gap: 6,
     paddingBottom: 2,
+    alignItems: 'center',
   },
   filterBtn: {
     paddingHorizontal: 10,
@@ -261,6 +284,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgCard,
     borderWidth: 1,
     borderColor: colors.border,
+    alignSelf: 'center',
   },
   filterBtnActive: {
     backgroundColor: colors.purple,
@@ -313,4 +337,19 @@ const styles = StyleSheet.create({
     borderColor: colors.lost + '44',
   },
   limitText: { color: colors.lost, fontSize: 13, textAlign: 'center', fontWeight: '600' },
+  tiltBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginHorizontal: 16,
+    marginBottom: 10,
+    padding: 12,
+    backgroundColor: colors.lost + '18',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.lost + '55',
+  },
+  tiltEmoji: { fontSize: 22 },
+  tiltTitle: { fontSize: 14, fontWeight: '700', color: colors.lost },
+  tiltSub: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
 });

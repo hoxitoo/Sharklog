@@ -20,6 +20,8 @@ export function BetCard({ bet, onEdit }: Props) {
     ? potentialWin - bet.stake
     : bet.status === 'lost'
     ? -bet.stake
+    : bet.status === 'cashout' && bet.cashoutAmount != null
+    ? bet.cashoutAmount - bet.stake
     : null;
 
   function handleQuickResult(status: 'won' | 'lost' | 'refund' | 'cashout') {
@@ -47,6 +49,11 @@ export function BetCard({ bet, onEdit }: Props) {
           {pnl !== null && (
             <Text style={[styles.pnl, { color: pnl >= 0 ? colors.won : colors.lost }]}>
               {pnl >= 0 ? '+' : ''}{formatMoney(pnl)}
+            </Text>
+          )}
+          {bet.status === 'cashout' && bet.cashoutAmount != null && (
+            <Text style={styles.cashoutAmt}>
+              Выкуп: {formatMoney(bet.cashoutAmount)}
             </Text>
           )}
         </View>
@@ -156,4 +163,5 @@ const styles = StyleSheet.create({
   chipText: { fontSize: 13, fontWeight: '700' },
   quickResultHint: { fontSize: 11, color: colors.textMuted, marginLeft: 4 },
   notes: { fontSize: 12, color: colors.textMuted, marginTop: 6, fontStyle: 'italic' },
+  cashoutAmt: { fontSize: 11, color: colors.refund, marginTop: 1 },
 });

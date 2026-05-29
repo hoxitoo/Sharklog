@@ -186,7 +186,7 @@ export function DashboardScreen() {
   }, [bets, period]);
 
   const stats = calcDashboard(filteredBets);
-  const inTilt = isInTilt(filteredBets, settings.tiltThreshold);
+  const inTilt = isInTilt(bets, settings.tiltThreshold);
 
   // Bank total always reflects all-time P&L + transactions
   const allTimePnl = period === 'all' ? stats.pnl : calcDashboard(bets).pnl;
@@ -248,11 +248,11 @@ export function DashboardScreen() {
 
       {inTilt && (
         <View style={styles.tiltAlert}>
-          <Text style={styles.tiltIcon}>⚠️</Text>
-          <View>
-            <Text style={styles.tiltTitle}>Внимание: возможный тилт</Text>
+          <Text style={styles.tiltIcon}>🔥</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.tiltTitle}>Стоп. Ты в тилте.</Text>
             <Text style={styles.tiltSub}>
-              {stats.currentStreak.count} поражений подряд. Сделай паузу.
+              {stats.currentStreak.count} поражений подряд. Закрой приложение и отдохни.
             </Text>
           </View>
         </View>
@@ -336,30 +336,31 @@ export function DashboardScreen() {
             </Text>
           </View>
           <View style={styles.chartCard}>
-            <LineChart
-              data={stats.pnlCurve.map((p) => ({ value: p.pnl / 100 }))}
-              width={width - 64}
-              height={110}
-              color={stats.pnl >= 0 ? colors.won : colors.lost}
-              thickness={2}
-              hideDataPoints
-              areaChart
-              startFillColor={stats.pnl >= 0 ? colors.won : colors.lost}
-              endFillColor={colors.bgCard}
-              startOpacity={0.25}
-              endOpacity={0}
-              backgroundColor={colors.bgCard}
-              xAxisColor={colors.border}
-              yAxisColor="transparent"
-              rulesType="solid"
-              rulesColor={colors.border + '66'}
-              noOfSections={3}
-              yAxisTextStyle={{ color: colors.textMuted, fontSize: 9 }}
-              xAxisLabelTextStyle={{ color: colors.textMuted, fontSize: 9 }}
-              hideYAxisText
-              adjustToWidth
-              curved
-            />
+            <View style={{ height: 140, overflow: 'hidden' }}>
+              <LineChart
+                data={stats.pnlCurve.map((p) => ({ value: p.pnl / 100 }))}
+                width={width - 72}
+                height={110}
+                color={stats.pnl >= 0 ? colors.won : colors.lost}
+                thickness={2}
+                hideDataPoints
+                areaChart
+                startFillColor={stats.pnl >= 0 ? colors.won : colors.lost}
+                endFillColor={colors.bgCard}
+                startOpacity={0.25}
+                endOpacity={0}
+                backgroundColor={colors.bgCard}
+                xAxisColor={colors.border}
+                yAxisColor="transparent"
+                rulesType="solid"
+                rulesColor={colors.border + '66'}
+                noOfSections={3}
+                yAxisTextStyle={{ color: colors.textMuted, fontSize: 9 }}
+                xAxisLabelTextStyle={{ color: colors.textMuted, fontSize: 9 }}
+                hideYAxisText
+                curved
+              />
+            </View>
           </View>
         </View>
       )}
@@ -468,14 +469,14 @@ const styles = StyleSheet.create({
     margin: 16,
     marginTop: 0,
     padding: 14,
-    backgroundColor: colors.lost + '15',
+    backgroundColor: colors.lost + '18',
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.lost + '44',
+    borderColor: colors.lost + '55',
   },
-  tiltIcon: { fontSize: 24 },
-  tiltTitle: { fontSize: 14, fontWeight: '700', color: colors.lost },
-  tiltSub: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
+  tiltIcon: { fontSize: 28 },
+  tiltTitle: { fontSize: 15, fontWeight: '700', color: colors.lost },
+  tiltSub: { fontSize: 12, color: colors.textSecondary, marginTop: 3 },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',

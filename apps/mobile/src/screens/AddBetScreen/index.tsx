@@ -34,6 +34,7 @@ interface FormData {
   strategy: Strategy;
   status: BetStatus;
   notes: string;
+  cashoutAmount: string;
   bookmaker: string;
   tournament: string;
   date: string;
@@ -400,6 +401,7 @@ export function AddBetScreen() {
       strategy: editBet?.strategy ?? 'value',
       status: editBet?.status ?? 'pending',
       notes: editBet?.notes ?? '',
+      cashoutAmount: editBet?.cashoutAmount != null ? String(editBet.cashoutAmount / 100) : '',
       bookmaker: editBet?.bookmaker ?? (settings.bookmakers[0] ?? ''),
       tournament: editBet?.tournament ?? '',
       date: editBet?.date ?? defaultDate,
@@ -414,6 +416,10 @@ export function AddBetScreen() {
   const stakeRaw = watch('stake');
   const stakeKopecks = parseMoneyInput(stakeRaw);
   const singleOdds = parseFloat(nd(watch('odds') || '0'));
+  const watchedStatus = watch('status');
+  const cashoutRaw = watch('cashoutAmount');
+  const cashoutKopecks = parseMoneyInput(cashoutRaw || '0');
+  const cashoutPnl = stakeKopecks > 0 && cashoutKopecks > 0 ? cashoutKopecks - stakeKopecks : null;
 
   const expressOdds = legs.reduce((p, l) => {
     const o = parseFloat(nd(l.odds || '0'));
@@ -462,6 +468,9 @@ export function AddBetScreen() {
       ...(data.notes ? { notes: data.notes } : {}),
       ...(data.tournament?.trim() ? { tournament: data.tournament.trim() } : {}),
     };
+    const cashoutExtras = data.status === 'cashout' && data.cashoutAmount
+      ? { cashoutAmount: parseMoneyInput(data.cashoutAmount) }
+      : {};
     const dateVal = data.date.trim() || defaultDate;
     const timeVal = data.time.trim() || defaultTime;
 
@@ -483,7 +492,7 @@ export function AddBetScreen() {
           event, pick, odds: oddsVal, stake: stakeVal,
           sport: data.sport, betType: data.betType, strategy: data.strategy,
           status: data.status, bookmaker: data.bookmaker,
-          date: dateVal, time: timeVal, ...extras,
+          date: dateVal, time: timeVal, ...extras, ...cashoutExtras,
         });
       } else {
         addBet({
@@ -491,7 +500,7 @@ export function AddBetScreen() {
           date: dateVal, time: timeVal,
           event, pick, odds: oddsVal, stake: stakeVal,
           sport: data.sport, betType: data.betType, strategy: data.strategy,
-          status: data.status, bookmaker: data.bookmaker, schemaVersion: 1, ...extras,
+          status: data.status, bookmaker: data.bookmaker, schemaVersion: 1, ...extras, ...cashoutExtras,
         });
       }
     } else {
@@ -515,7 +524,7 @@ export function AddBetScreen() {
           event, pick: 'Экспресс', odds: combinedOdds, stake: stakeVal,
           sport: data.sport, betType: 'express', strategy: data.strategy,
           status: data.status, bookmaker: data.bookmaker,
-          date: dateVal, time: timeVal, ...extras,
+          date: dateVal, time: timeVal, ...extras, ...cashoutExtras,
         });
       } else {
         addBet({
@@ -523,7 +532,7 @@ export function AddBetScreen() {
           date: dateVal, time: timeVal,
           event, pick: 'Экспресс', odds: combinedOdds, stake: stakeVal,
           sport: data.sport, betType: 'express', strategy: data.strategy,
-          status: data.status, bookmaker: data.bookmaker, schemaVersion: 1, ...extras,
+          status: data.status, bookmaker: data.bookmaker, schemaVersion: 1, ...extras, ...cashoutExtras,
         });
       }
     }
@@ -875,6 +884,35 @@ export function AddBetScreen() {
               />
             )}
           />
+        )}
+
+        {editBet && watchedStatus === 'cashout' && (
+          <>
+            <Field label="Сумма выкупа (₽)">
+              <Controller
+                control={control}
+                name="cashoutAmount"
+                render={({ field: { onChange, value } }) => (
+                  <TextInput
+                    style={inputStyle}
+                    placeholder="500"
+                    placeholderTextColor={colors.textMuted}
+                    value={value}
+                    onChangeText={onChange}
+                    keyboardType="decimal-pad"
+                  />
+                )}
+              />
+            </Field>
+            {cashoutPnl !== null && (
+              <View style={styles.winPreview}>
+                <Text style={styles.winLabel}>Результат выкупа</Text>
+                <Text style={[styles.winAmount, { color: cashoutPnl >= 0 ? colors.won : colors.lost }]}>
+                  {cashoutPnl >= 0 ? '+' : ''}{formatMoney(cashoutPnl)}
+                </Text>
+              </View>
+            )}
+          </>
         )}
 
         {/* ── Tournament + Notes ─── */}
