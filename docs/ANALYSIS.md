@@ -104,12 +104,25 @@
 
 ### Phase 3 — Пред-релизная подготовка 🔄 В РАБОТЕ
 
+**Blockers (без них релиз невозможен):**
 - [ ] Tauri signing key (`TAURI_SIGNING_PRIVATE_KEY` в GitHub Secrets)
 - [ ] EAS projectId (заменить PLACEHOLDER в app.json)
-- [ ] LemonSqueezy для desktop
-- [ ] RevenueCat реальный projectId
-- [ ] Финальные иконки, скриншоты для сторов
-- [ ] Сабмит в App Store + Google Play
+- [ ] RevenueCat реальный projectId (iOS + Android)
+
+**Монетизация:**
+- [ ] LemonSqueezy для desktop (платёж → webhook → `isPro`)
+- [ ] Убрать `VITE_OWNER_PRO` из production окружения
+
+**Store prep:**
+- [ ] Финальные иконки (заменить placeholder)
+- [ ] Скриншоты для App Store / Google Play
+- [ ] Privacy Policy задеплоен по URL
+- [ ] Apple ID + ASC App ID в `eas.json`
+
+**Релиз:**
+- [ ] Сабмит в App Store (TestFlight → Review → Release)
+- [ ] Сабмит в Google Play (Internal → Closed → Production)
+- [ ] Desktop GitHub Release v0.1.0 (тег `v0.1.0` → CI соберёт инсталляторы)
 
 ### Phase 4 — v2 (2–3 мес после релиза)
 
