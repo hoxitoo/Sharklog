@@ -70,11 +70,13 @@ interface BetsStore {
   canAddBet: () => boolean;
 }
 
+const IS_OWNER_PRO = process.env.EXPO_PUBLIC_OWNER_PRO === 'true';
+
 export const defaultSettings: AppSettings = {
   tiltThreshold: FREE_LIMITS.TILT_ALERT_THRESHOLD,
   dailyBetLimit: 0,
   bookmakers: ['1xBet', 'Parimatch', 'Fonbet'],
-  isPro: false,
+  isPro: IS_OWNER_PRO,
   onboardingComplete: false,
   reminderHour: 20,
   schemaVersion: CURRENT_SCHEMA_VERSION,
