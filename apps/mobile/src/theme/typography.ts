@@ -1,5 +1,5 @@
 import { StyleSheet } from 'react-native';
-import { colors } from './colors.js';
+import { colors } from './colors';
 
 export const FONTS = {
   sans: 'DMSans_400Regular',

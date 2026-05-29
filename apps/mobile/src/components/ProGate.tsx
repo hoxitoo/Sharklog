@@ -7,14 +7,14 @@ import {
   ActivityIndicator,
   Alert,
 } from 'react-native';
-import { colors } from '../theme/colors.js';
-import { useBetsStore } from '../store/betsStore.js';
+import { colors } from '../theme/colors';
+import { useBetsStore } from '../store/betsStore';
 import {
   getOfferings,
   purchasePackage,
   restorePurchases,
   type OfferingPackages,
-} from '../services/revenueCat.js';
+} from '../services/revenueCat';
 
 interface Props {
   children: React.ReactNode;
