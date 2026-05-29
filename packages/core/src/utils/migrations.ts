@@ -1,5 +1,5 @@
-import type { StorageSchema } from '../types/bet.js';
-import { CURRENT_SCHEMA_VERSION } from '../constants/index.js';
+import type { StorageSchema } from '../types/bet';
+import { CURRENT_SCHEMA_VERSION } from '../constants/index';
 
 type MigrationFn = (data: Record<string, unknown>) => Record<string, unknown>;
 

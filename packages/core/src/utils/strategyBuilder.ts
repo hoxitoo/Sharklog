@@ -1,7 +1,7 @@
 import type {
   StrategyAnswers, GeneratedStrategy,
   StrategyGoal, StrategyRisk, StrategyExperience,
-} from '../types/bet.js';
+} from '../types/bet';
 
 // ── Questions definition ────────────────────────────────────────────────────
 

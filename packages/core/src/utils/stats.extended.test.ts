@@ -6,8 +6,8 @@ import {
   calcByDayOfWeek,
   calcByHour,
   isInTilt,
-} from './stats.js';
-import type { Bet } from '../types/bet.js';
+} from './stats';
+import type { Bet } from '../types/bet';
 
 let _id = 0;
 function makeBet(overrides: Partial<Bet> & { status: Bet['status'] }): Bet {

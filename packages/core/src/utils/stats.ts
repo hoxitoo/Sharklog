@@ -1,5 +1,5 @@
-import type { Bet } from '../types/bet.js';
-import { ODDS_RANGES } from '../constants/index.js';
+import type { Bet } from '../types/bet';
+import { ODDS_RANGES } from '../constants/index';
 
 export interface SliceStats {
   label: string;

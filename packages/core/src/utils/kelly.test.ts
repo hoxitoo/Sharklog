@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { kellyFraction, expectedValue, impliedProbability } from './kelly.js';
+import { kellyFraction, expectedValue, impliedProbability } from './kelly';
 
 describe('kellyFraction', () => {
   it('returns 0 for negative EV bet', () => {

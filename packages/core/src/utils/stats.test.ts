@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { calcDashboard, isInTilt } from './stats.js';
-import type { Bet } from '../types/bet.js';
+import { calcDashboard, isInTilt } from './stats';
+import type { Bet } from '../types/bet';
 
 function makeBet(overrides: Partial<Bet> & { status: Bet['status'] }): Bet {
   return {

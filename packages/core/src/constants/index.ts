@@ -1,4 +1,4 @@
-import type { Sport, BetType, Strategy, EsportsDiscipline } from '../types/bet.js';
+import type { Sport, BetType, Strategy, EsportsDiscipline } from '../types/bet';
 
 export const SPORTS: Record<Sport, string> = {
   football: 'Футбол',

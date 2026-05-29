@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { formatMoney, parseMoneyInput, formatOdds, formatPercent } from './formatters.js';
+import { formatMoney, parseMoneyInput, formatOdds, formatPercent } from './formatters';
 
 describe('formatMoney', () => {
   it('formats 1000 rub (100_000 kopecks)', () => {
