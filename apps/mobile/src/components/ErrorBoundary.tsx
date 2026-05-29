@@ -29,7 +29,6 @@ export class ErrorBoundary extends React.Component<Props, State> {
           <Text style={s.emoji}>🦈💥</Text>
           <Text style={s.title}>Что-то пошло не так</Text>
           <Text style={s.msg}>{error.message}</Text>
-          <Text style={s.stack} numberOfLines={8}>{error.stack}</Text>
           <TouchableOpacity style={s.btn} onPress={() => this.setState({ error: null })}>
             <Text style={s.btnText}>Попробовать снова</Text>
           </TouchableOpacity>
@@ -44,8 +43,7 @@ const s = StyleSheet.create({
   content: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
   emoji: { fontSize: 48, marginBottom: 12 },
   title: { fontSize: 22, fontWeight: '700', color: colors.textPrimary, marginBottom: 8, textAlign: 'center' },
-  msg: { fontSize: 13, color: colors.lost, marginBottom: 16, textAlign: 'center', fontFamily: 'DMMono_400Regular' },
-  stack: { fontSize: 10, color: colors.textMuted, backgroundColor: colors.bgElevated, borderRadius: 8, padding: 10, width: '100%', marginBottom: 24 },
+  msg: { fontSize: 13, color: colors.lost, marginBottom: 24, textAlign: 'center', fontFamily: 'DMMono_400Regular' },
   btn: { backgroundColor: colors.purple, borderRadius: 12, paddingVertical: 14, paddingHorizontal: 28 },
   btnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
 });

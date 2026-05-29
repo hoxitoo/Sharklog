@@ -1,6 +1,6 @@
 # SharkLog — Roadmap
 
-_Обновлено: 2026-05-29 (batch 7)_
+_Обновлено: 2026-05-29 (batch 8)_
 
 ---
 
@@ -106,18 +106,27 @@ _Обновлено: 2026-05-29 (batch 7)_
 - Tab bar: `useSafeAreaInsets()` — больше не перекрывается системной навигацией Android
 
 ### Инфраструктура (mobile)
-- Owner PRO mode: `EXPO_PUBLIC_OWNER_PRO=true` в `eas.json` preview-профиле → `isPro: true` без клика
 - `babel.config.js`: `process.env.NODE_ENV === 'test'` вместо `env.test`-блока — решает конфликт Jest + babel-preset-expo
 - EAS Build: успешная сборка APK (build #14), исправлены все блокеры (`compileSdkVersion 36`, `promise` dep)
+
+### Security audit & fixes (batch 8)
+- **C-2** `eas.json`: удалён `EXPO_PUBLIC_OWNER_PRO=true` из preview-профиля (был запечён в APK-бинарь)
+- **H-2** `tauri.conf.json`: `csp: null` → строгая CSP-политика (`default-src 'self'` + узкие исключения)
+- **H-3** `crypto.randomUUID()` вместо `Math.random()`-UUID во всех 10 местах (mobile + desktop)
+- **H-4** `google-service-account.json` добавлен в `.gitignore`
+- **M-1** `error.stack` убран из UI ErrorBoundary обоих приложений (остался только в `console.error`)
+- **M-2** JSON-импорт теперь стрипает `isPro`/`proExpiresAt` — нельзя поднять подписку через backup-файл
+- **M-5** `opener:default` удалён из Tauri capabilities (неиспользуемый вектор XSS→IPC)
+- **M-7** Лимит 10 МБ на все три типа импорта (JSON / CSV / XLSX)
 
 ---
 
 ## 🔄 Phase 3 — Пред-релизная подготовка (в работе)
 
 ### Blocker: подписи и ключи
-- [ ] `npx tauri signer generate` → добавить `TAURI_SIGNING_PRIVATE_KEY` в GitHub Secrets
-- [ ] Заменить `UPDATER_PUBLIC_KEY_PLACEHOLDER` в `tauri.conf.json` реальным публичным ключом
-- [ ] Заменить `projectId: "PLACEHOLDER"` в `app.json` реальным EAS projectId
+- [x] `npx tauri signer generate` → `TAURI_SIGNING_PRIVATE_KEY` добавлен в GitHub Secrets, desktop-релиз выпущен
+- [x] Реальный публичный ключ прописан в `tauri.conf.json`
+- [x] Реальный `projectId` прописан в `app.json` (`5d3248d5-6413-4bfc-afd6-83d5bfe75c35`)
 
 ### Store prep (mobile)
 - [ ] Финальные иконки (заменить placeholder — нужен дизайнер/Figma)

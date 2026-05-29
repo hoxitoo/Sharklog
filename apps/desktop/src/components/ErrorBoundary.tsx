@@ -28,10 +28,6 @@ export class ErrorBoundary extends React.Component<Props, State> {
           <div style={{ fontSize: 48, marginBottom: 16 }}>🦈💥</div>
           <h2 style={s.title}>Что-то пошло не так</h2>
           <p style={s.msg}>{error.message}</p>
-          <details style={s.details}>
-            <summary style={{ cursor: 'pointer', color: colors.textMuted, fontSize: 12 }}>Детали ошибки</summary>
-            <pre style={s.stack}>{error.stack}</pre>
-          </details>
           <div style={{ display: 'flex', gap: 10, marginTop: 20 }}>
             <button style={s.btn} onClick={() => this.setState({ error: null })}>
               Попробовать снова
@@ -58,11 +54,6 @@ const s: Record<string, React.CSSProperties> = {
   },
   title: { fontSize: 22, fontWeight: 700, color: colors.textPrimary, margin: '0 0 8px' },
   msg: { fontSize: 14, color: colors.lost, margin: '0 0 16px', fontFamily: "'DM Mono', monospace" },
-  details: { textAlign: 'left', marginTop: 8 },
-  stack: {
-    fontSize: 11, color: colors.textMuted, backgroundColor: colors.bgElevated,
-    borderRadius: 8, padding: 12, overflow: 'auto', maxHeight: 160, marginTop: 6,
-  },
   btn: {
     backgroundColor: colors.purple, color: '#fff', border: 'none',
     borderRadius: 10, padding: '10px 20px', fontSize: 14, fontWeight: 700, cursor: 'pointer',

@@ -66,15 +66,18 @@ export function SettingsPage() {
     input.onchange = () => {
       const file = input.files?.[0];
       if (!file) return;
+      if (file.size > 10 * 1024 * 1024) { toast('Файл слишком большой (максимум 10 МБ)', 'error'); return; }
       const reader = new FileReader();
       reader.onload = () => {
         try {
           const parsed = JSON.parse(reader.result as string);
           if (!parsed || typeof parsed !== 'object') throw new Error('Bad format');
           const store = useBetsStore.getState();
+          // Strip isPro and proExpiresAt — subscription state must not be imported from a file
+          const { isPro: _ip, proExpiresAt: _pe, ...importedSettings } = parsed.settings ?? {};
           useBetsStore.setState({
             ...(parsed.bets ? { bets: parsed.bets } : {}),
-            ...(parsed.settings ? { settings: { ...store.settings, ...parsed.settings } } : {}),
+            ...(parsed.settings ? { settings: { ...store.settings, ...importedSettings } } : {}),
             ...(parsed.bankroll ? { bankroll: parsed.bankroll } : {}),
             ...(parsed.diary ? { diary: parsed.diary } : {}),
             ...(parsed.teams ? { teams: parsed.teams } : {}),
@@ -97,6 +100,7 @@ export function SettingsPage() {
     input.onchange = () => {
       const file = input.files?.[0];
       if (!file) return;
+      if (file.size > 10 * 1024 * 1024) { toast('Файл слишком большой (максимум 10 МБ)', 'error'); return; }
       const reader = new FileReader();
       reader.onload = () => {
         try {
@@ -125,6 +129,7 @@ export function SettingsPage() {
     input.onchange = () => {
       const file = input.files?.[0];
       if (!file) return;
+      if (file.size > 10 * 1024 * 1024) { toast('Файл слишком большой (максимум 10 МБ)', 'error'); return; }
       const reader = new FileReader();
       reader.onload = () => {
         try {

@@ -1,5 +1,7 @@
 # SharkLog
 
+> **Status:** Feature-complete, pre-release — Phase 3 (signing keys, store submission) in progress.
+
 Professional betting tracker for the CIS market. Mobile (React Native + Expo) and desktop (Tauri v2 + React) apps sharing a common TypeScript core.
 
 ## Features
@@ -22,7 +24,7 @@ Professional betting tracker for the CIS market. Mobile (React Native + Expo) an
 
 ```
 apps/
-  mobile/     — React Native + Expo 51 (iOS + Android)
+  mobile/     — React Native 0.85 + Expo 56 (iOS + Android)
   desktop/    — Tauri v2 + React + Vite (Win / Mac / Linux)
 packages/
   core/       — Shared business logic (types, stats, Kelly, formatters, strategy builder)
@@ -38,14 +40,14 @@ npm install
 # Run mobile dev server
 cd apps/mobile && npx expo start
 
-# Run desktop in browser (full PRO unlocked)
-cd apps/desktop && VITE_OWNER_PRO=true npx vite dev
+# Run desktop in browser
+cd apps/desktop && npm run dev        # localhost:1420
 
 # Run desktop as native window (requires Rust)
 cd apps/desktop && npx tauri dev
 
 # Run all tests
-cd packages/core && npx vitest run    # 12 unit tests
+cd packages/core && npx vitest run    # 57 unit tests
 cd apps/desktop && npx vitest run     # 40 smoke tests
 cd apps/mobile && npm test            # 17 smoke tests
 ```
@@ -84,7 +86,7 @@ First build takes ~5–10 min (compiles Rust). Subsequent builds are faster.
 
 | Layer | Mobile | Desktop |
 |-------|--------|---------|
-| Framework | React Native 0.74 + Expo 51 | Tauri v2 + React 18 |
+| Framework | React Native 0.85 + Expo 56 | Tauri v2 + React 18 |
 | State | Zustand + AsyncStorage | Zustand + SQLite (localStorage fallback) |
 | Charts | react-native-gifted-charts | Recharts |
 | Fonts | DM Sans + DM Mono (expo-google-fonts) | DM Sans + DM Mono (Google CDN) |
@@ -112,18 +114,6 @@ First build takes ~5–10 min (compiles Rust). Subsequent builds are faster.
 | Red | `#F4455A` | Loss indicators, negative values |
 | Gold | `#F59E0B` | Pending bets, PRO badge |
 | Violet | `#A78BFA` | Refunds, secondary stats |
-
-## Owner / Developer Mode
-
-To unlock all PRO features locally without a subscription:
-
-```bash
-# Desktop
-cd apps/desktop && VITE_OWNER_PRO=true npx vite dev
-
-# Or create apps/desktop/.env.local (gitignored):
-VITE_OWNER_PRO=true
-```
 
 ## Pricing
 
