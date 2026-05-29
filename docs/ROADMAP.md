@@ -124,9 +124,9 @@ _Обновлено: 2026-05-29 (batch 8)_
 ## 🔄 Phase 3 — Пред-релизная подготовка (в работе)
 
 ### Blocker: подписи и ключи
-- [ ] `npx tauri signer generate` → добавить `TAURI_SIGNING_PRIVATE_KEY` в GitHub Secrets
-- [ ] Заменить `UPDATER_PUBLIC_KEY_PLACEHOLDER` в `tauri.conf.json` реальным публичным ключом
-- [ ] Заменить `projectId: "PLACEHOLDER"` в `app.json` реальным EAS projectId
+- [x] `npx tauri signer generate` → `TAURI_SIGNING_PRIVATE_KEY` добавлен в GitHub Secrets, desktop-релиз выпущен
+- [x] Реальный публичный ключ прописан в `tauri.conf.json`
+- [x] Реальный `projectId` прописан в `app.json` (`5d3248d5-6413-4bfc-afd6-83d5bfe75c35`)
 
 ### Store prep (mobile)
 - [ ] Финальные иконки (заменить placeholder — нужен дизайнер/Figma)

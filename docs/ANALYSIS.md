@@ -105,8 +105,8 @@
 ### Phase 3 — Пред-релизная подготовка 🔄 В РАБОТЕ
 
 **Blockers (без них релиз невозможен):**
-- [ ] Tauri signing key (`TAURI_SIGNING_PRIVATE_KEY` в GitHub Secrets)
-- [ ] EAS projectId (заменить PLACEHOLDER в app.json)
+- [x] Tauri signing key — `TAURI_SIGNING_PRIVATE_KEY` в GitHub Secrets, pubkey в `tauri.conf.json`, desktop-релиз выпущен
+- [x] EAS projectId — реальный UUID в `app.json` (`5d3248d5-6413-4bfc-afd6-83d5bfe75c35`)
 - [ ] RevenueCat реальный projectId (iOS + Android)
 
 **Монетизация:**
