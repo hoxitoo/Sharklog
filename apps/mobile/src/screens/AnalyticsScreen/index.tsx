@@ -94,30 +94,34 @@ function SummaryCard({ bets }: { bets: Parameters<typeof calcDashboard>[0] }) {
     <View style={summary.card}>
       <Text style={summary.title}>Общая статистика</Text>
       <View style={summary.grid}>
-        <View style={summary.cell}>
-          <Text style={summary.value}>{stats.totalBets}</Text>
-          <Text style={summary.label}>Ставок</Text>
+        <View style={summary.gridRow}>
+          <View style={summary.cell}>
+            <Text style={summary.value}>{stats.totalBets}</Text>
+            <Text style={summary.label}>Ставок</Text>
+          </View>
+          <View style={summary.cell}>
+            <Text style={[summary.value, { color: stats.winRate > 50 ? colors.won : colors.textPrimary }]}>
+              {stats.winRate.toFixed(1)}%
+            </Text>
+            <Text style={summary.label}>Выигрышей</Text>
+          </View>
         </View>
-        <View style={summary.cell}>
-          <Text style={[summary.value, { color: stats.winRate > 50 ? colors.won : colors.textPrimary }]}>
-            {stats.winRate.toFixed(1)}%
-          </Text>
-          <Text style={summary.label}>Выигрышей</Text>
-        </View>
-        <View style={summary.cell}>
-          <Text style={[summary.value, { color: pnlColor }]}>
-            {stats.pnl >= 0 ? '+' : ''}{formatMoney(stats.pnl)}
-          </Text>
-          <Text style={summary.label}>P&L</Text>
-        </View>
-        <View style={summary.cell}>
-          <Text style={[summary.value, { color: pnlColor }]}>
-            {stats.roi >= 0 ? '+' : ''}{formatPercent(stats.roi)}
-          </Text>
-          <Text style={summary.label}>ROI</Text>
+        <View style={summary.gridRow}>
+          <View style={summary.cell}>
+            <Text style={[summary.value, { color: pnlColor }]} numberOfLines={1} adjustsFontSizeToFit>
+              {stats.pnl >= 0 ? '+' : ''}{formatMoney(stats.pnl)}
+            </Text>
+            <Text style={summary.label}>P&L</Text>
+          </View>
+          <View style={summary.cell}>
+            <Text style={[summary.value, { color: pnlColor }]}>
+              {stats.roi >= 0 ? '+' : ''}{formatPercent(stats.roi)}
+            </Text>
+            <Text style={summary.label}>ROI</Text>
+          </View>
         </View>
       </View>
-      {bestSport && (
+      {bestSport && bestSport.roi > 0 && (
         <View style={summary.best}>
           <Text style={summary.bestLabel}>Лучший вид спорта</Text>
           <Text style={summary.bestValue}>{bestSport.label} · ROI {formatPercent(bestSport.roi)}</Text>
@@ -138,7 +142,8 @@ const summary = StyleSheet.create({
     borderColor: colors.border,
   },
   title: { fontSize: 15, fontWeight: '700', color: colors.textPrimary, marginBottom: 14 },
-  grid: { flexDirection: 'row', justifyContent: 'space-between' },
+  grid: { flexDirection: 'column', gap: 12 },
+  gridRow: { flexDirection: 'row', justifyContent: 'space-between' },
   cell: { alignItems: 'center', flex: 1 },
   value: { fontSize: 20, fontWeight: '700', color: colors.textPrimary },
   label: { fontSize: 11, color: colors.textMuted, marginTop: 3 },

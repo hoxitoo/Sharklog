@@ -154,11 +154,15 @@ function SingleTeamInput({
     if (!focused || value.length < 1) return [];
     return teams
       .filter((t) => {
-        if (t.sport !== sport) return false;
-        if (sport === 'esports' && t.discipline && t.discipline !== discipline) return false;
+        if (sport === 'esports' && t.sport === 'esports' && t.discipline && t.discipline !== discipline) return false;
         return t.name.toLowerCase().includes(value.toLowerCase());
       })
-      .sort((a, b) => b.usageCount - a.usageCount)
+      .sort((a, b) => {
+        const sameA = a.sport === sport ? 1 : 0;
+        const sameB = b.sport === sport ? 1 : 0;
+        if (sameB !== sameA) return sameB - sameA;
+        return b.usageCount - a.usageCount;
+      })
       .slice(0, 5);
   }, [teams, value, sport, discipline, focused]);
 
@@ -191,6 +195,11 @@ function SingleTeamInput({
             >
               <Text style={ac.name}>{team.name}</Text>
               <View style={ac.right}>
+                {team.sport !== sport && (
+                  <View style={ac.badge}>
+                    <Text style={ac.badgeText}>{SPORTS[team.sport]}</Text>
+                  </View>
+                )}
                 {sport === 'esports' && team.discipline ? (
                   <View style={ac.badge}>
                     <Text style={ac.badgeText}>{ESPORTS_DISCIPLINES[team.discipline]}</Text>

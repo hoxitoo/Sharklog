@@ -94,7 +94,11 @@ export function BetCard({ bet, onEdit }: Props) {
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.resultChip, styles.chipRefund]}
-            onPress={() => handleQuickResult('cashout')}
+            onPress={() => {
+              haptic.warning();
+              updateBet(bet.id, { status: 'cashout' });
+              onEdit(bet);
+            }}
             activeOpacity={0.75}
           >
             <Text style={[styles.chipText, { color: colors.refund }]}>C</Text>

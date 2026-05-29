@@ -324,46 +324,52 @@ export function DashboardScreen() {
 
       <Heatmap bets={filteredBets} />
 
-      {stats.pnlCurve.length > 1 && (
-        <View style={styles.section}>
-          <View style={styles.sectionRow}>
-            <Text style={styles.sectionTitle}>P&L кривая</Text>
-            <Text style={[
-              styles.pnlChipText,
-              { color: stats.pnl >= 0 ? colors.won : colors.lost },
-            ]}>
-              {stats.pnl >= 0 ? '+' : ''}{formatMoney(stats.pnlCurve[stats.pnlCurve.length - 1]?.pnl ?? 0)}
-            </Text>
-          </View>
-          <View style={styles.chartCard}>
-            <View style={{ height: 140, overflow: 'hidden' }}>
+      {stats.pnlCurve.length > 1 && (() => {
+        const rawVals = stats.pnlCurve.map((p) => p.pnl / 100);
+        const dataMin = Math.min(...rawVals);
+        const dataMax = Math.max(...rawVals);
+        const yMax = Math.max(dataMax, 0);
+        const yMin = Math.min(dataMin, 0);
+        const range = yMax - yMin || 1;
+        const chartMax = Math.ceil(yMax + range * 0.12);
+        const chartMin = Math.floor(yMin - range * 0.12);
+        const lineColor = stats.pnl >= 0 ? colors.won : colors.lost;
+        return (
+          <View style={styles.section}>
+            <View style={styles.sectionRow}>
+              <Text style={styles.sectionTitle}>P&L кривая</Text>
+              <Text style={[styles.pnlChipText, { color: lineColor }]}>
+                {stats.pnl >= 0 ? '+' : ''}{formatMoney(stats.pnlCurve[stats.pnlCurve.length - 1]?.pnl ?? 0)}
+              </Text>
+            </View>
+            <View style={styles.chartCard}>
               <LineChart
-                data={stats.pnlCurve.map((p) => ({ value: p.pnl / 100 }))}
+                data={rawVals.map((v) => ({ value: v }))}
                 width={width - 72}
-                height={110}
-                color={stats.pnl >= 0 ? colors.won : colors.lost}
+                height={120}
+                maxValue={chartMax}
+                mostNegativeValue={chartMin}
+                color={lineColor}
                 thickness={2}
                 hideDataPoints
                 areaChart
-                startFillColor={stats.pnl >= 0 ? colors.won : colors.lost}
+                startFillColor={lineColor}
                 endFillColor={colors.bgCard}
-                startOpacity={0.25}
+                startOpacity={0.3}
                 endOpacity={0}
                 backgroundColor={colors.bgCard}
                 xAxisColor={colors.border}
                 yAxisColor="transparent"
                 rulesType="solid"
-                rulesColor={colors.border + '66'}
+                rulesColor={colors.border + '55'}
                 noOfSections={3}
                 yAxisTextStyle={{ color: colors.textMuted, fontSize: 9 }}
-                xAxisLabelTextStyle={{ color: colors.textMuted, fontSize: 9 }}
                 hideYAxisText
-                curved
               />
             </View>
           </View>
-        </View>
-      )}
+        );
+      })()}
 
       {(bestBet || worstBet) && (
         <View style={styles.section}>
@@ -512,7 +518,7 @@ const styles = StyleSheet.create({
   chartCard: {
     backgroundColor: colors.bgCard,
     borderRadius: 12,
-    paddingTop: 12,
+    paddingTop: 8,
     paddingBottom: 4,
     paddingLeft: 4,
     borderWidth: 1,
