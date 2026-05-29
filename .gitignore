@@ -20,3 +20,5 @@ web-build/
 .tauri/target/
 src-tauri/target/
 apps/desktop/src-tauri/target/
+google-service-account.json
+**/google-service-account.json

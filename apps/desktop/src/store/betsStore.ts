@@ -4,10 +4,7 @@ import { migrate, CURRENT_SCHEMA_VERSION, FREE_LIMITS, isInTilt } from '@sharklo
 import { loadData, saveData } from '../storage/storageService';
 
 function uuid(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
-  });
+  return crypto.randomUUID();
 }
 
 function extractTeamNames(event: string): string[] {

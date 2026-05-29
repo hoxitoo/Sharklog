@@ -2,10 +2,7 @@ import * as XLSX from 'xlsx';
 import type { Bet, BetStatus, Sport, BetType, Strategy, EsportsDiscipline } from '@sharklog/core';
 
 function uuid(): string {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
-    const r = (Math.random() * 16) | 0;
-    return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
-  });
+  return crypto.randomUUID();
 }
 
 // Maps any recognizable column header to a canonical field name
