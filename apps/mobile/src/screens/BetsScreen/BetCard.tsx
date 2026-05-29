@@ -39,7 +39,9 @@ export function BetCard({ bet, onEdit }: Props) {
     >
       <View style={styles.row}>
         <View style={styles.left}>
-          <Text style={styles.sport}>{SPORTS[bet.sport]} · {BET_TYPES[bet.betType]}</Text>
+          <Text style={styles.sport}>
+            {bet.customSport || SPORTS[bet.sport]} · {bet.customBetType || BET_TYPES[bet.betType]}
+          </Text>
           <Text style={styles.event} numberOfLines={1}>{bet.event}</Text>
           <Text style={styles.pick}>{bet.pick}</Text>
         </View>

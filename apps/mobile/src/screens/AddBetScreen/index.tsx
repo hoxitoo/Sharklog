@@ -22,6 +22,8 @@ type Route = RouteProp<RootStackParamList, 'AddBet'>;
 
 type BetMode = 'single' | 'express';
 
+type Pick1x2 = 'п1' | 'x' | 'п2';
+
 interface FormData {
   betMode: BetMode;
   team1: string;
@@ -39,6 +41,10 @@ interface FormData {
   tournament: string;
   date: string;
   time: string;
+  pick1x2: Pick1x2;
+  customSport: string;
+  customBetType: string;
+  customStrategy: string;
 }
 
 interface ExpressLeg {
@@ -195,14 +201,13 @@ function SingleTeamInput({
             >
               <Text style={ac.name}>{team.name}</Text>
               <View style={ac.right}>
-                {team.sport !== sport && (
-                  <View style={ac.badge}>
-                    <Text style={ac.badgeText}>{SPORTS[team.sport]}</Text>
-                  </View>
-                )}
-                {sport === 'esports' && team.discipline ? (
+                {team.sport === 'esports' && team.discipline ? (
                   <View style={ac.badge}>
                     <Text style={ac.badgeText}>{ESPORTS_DISCIPLINES[team.discipline]}</Text>
+                  </View>
+                ) : team.sport !== sport ? (
+                  <View style={ac.badge}>
+                    <Text style={ac.badgeText}>{SPORTS[team.sport]}</Text>
                   </View>
                 ) : null}
                 <Text style={ac.count}>{team.usageCount}×</Text>
@@ -415,6 +420,10 @@ export function AddBetScreen() {
       tournament: editBet?.tournament ?? '',
       date: editBet?.date ?? defaultDate,
       time: editBet?.time ?? defaultTime,
+      pick1x2: 'п1' as Pick1x2,
+      customSport: editBet?.customSport ?? '',
+      customBetType: editBet?.customBetType ?? '',
+      customStrategy: editBet?.customStrategy ?? '',
     },
   });
 
@@ -422,6 +431,10 @@ export function AddBetScreen() {
   const isSingle = betMode === 'single';
   const watchedSport = watch('sport');
   const watchedDiscipline = watch('discipline');
+  const watchedBetType = watch('betType');
+  const watchedStrategy = watch('strategy');
+  const watchedTeam1 = watch('team1');
+  const watchedTeam2 = watch('team2');
   const stakeRaw = watch('stake');
   const stakeKopecks = parseMoneyInput(stakeRaw);
   const singleOdds = parseFloat(nd(watch('odds') || '0'));
@@ -476,6 +489,9 @@ export function AddBetScreen() {
       ...(data.sport === 'esports' ? { discipline: data.discipline } : {}),
       ...(data.notes ? { notes: data.notes } : {}),
       ...(data.tournament?.trim() ? { tournament: data.tournament.trim() } : {}),
+      ...(data.sport === 'other' && data.customSport.trim() ? { customSport: data.customSport.trim() } : {}),
+      ...(data.betType === 'other' && data.customBetType.trim() ? { customBetType: data.customBetType.trim() } : {}),
+      ...(data.strategy === 'other' && data.customStrategy.trim() ? { customStrategy: data.customStrategy.trim() } : {}),
     };
     const cashoutExtras = data.status === 'cashout' && data.cashoutAmount
       ? { cashoutAmount: parseMoneyInput(data.cashoutAmount) }
@@ -494,7 +510,15 @@ export function AddBetScreen() {
         Alert.alert('Ошибка', 'Введи название команды или события');
         return;
       }
-      const pick = BET_TYPES[data.betType];
+      const pick = data.betType === '1X2'
+        ? (data.pick1x2 === 'п1'
+            ? (data.team1.trim() || 'П1')
+            : data.pick1x2 === 'п2'
+            ? (data.team2.trim() || 'П2')
+            : 'Ничья')
+        : data.betType === 'other' && data.customBetType.trim()
+        ? data.customBetType.trim()
+        : BET_TYPES[data.betType];
 
       if (editBet) {
         updateBet(editBet.id, {
@@ -787,6 +811,24 @@ export function AddBetScreen() {
           )}
         />
 
+        {watchedSport === 'other' && (
+          <Field label="Уточни вид спорта">
+            <Controller
+              control={control}
+              name="customSport"
+              render={({ field: { onChange, value } }) => (
+                <TextInput
+                  style={inputStyle}
+                  placeholder="МMA, Бокс, Формула-1..."
+                  placeholderTextColor={colors.textMuted}
+                  value={value}
+                  onChangeText={onChange}
+                />
+              )}
+            />
+          </Field>
+        )}
+
         {watchedSport === 'esports' && (
           <Controller
             control={control}
@@ -808,6 +850,58 @@ export function AddBetScreen() {
           />
         )}
 
+        {/* ── П1/Ничья/П2 outcome picker (only for 1X2 single) ─── */}
+        {isSingle && watchedBetType === '1X2' && (
+          <Field label="Исход">
+            <Controller
+              control={control}
+              name="pick1x2"
+              render={({ field: { onChange, value } }) => (
+                <View style={styles.outcomePicker}>
+                  {(['п1', 'x', 'п2'] as const).map((choice) => {
+                    const label = choice === 'п1'
+                      ? (watchedTeam1.trim() || 'П1')
+                      : choice === 'п2'
+                      ? (watchedTeam2.trim() || 'П2')
+                      : 'Ничья';
+                    return (
+                      <TouchableOpacity
+                        key={choice}
+                        style={[styles.outcomeBtn, value === choice && styles.outcomeBtnActive]}
+                        onPress={() => { onChange(choice); haptic.selection(); }}
+                        activeOpacity={0.8}
+                      >
+                        <Text style={[styles.outcomeTxt, value === choice && styles.outcomeTxtActive]}>
+                          {label}
+                        </Text>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              )}
+            />
+          </Field>
+        )}
+
+        {/* ── Custom bet type label (when betType === 'other') ─── */}
+        {isSingle && watchedBetType === 'other' && (
+          <Field label="Уточни тип ставки">
+            <Controller
+              control={control}
+              name="customBetType"
+              render={({ field: { onChange, value } }) => (
+                <TextInput
+                  style={inputStyle}
+                  placeholder="Победитель турнира, Карточки..."
+                  placeholderTextColor={colors.textMuted}
+                  value={value}
+                  onChangeText={onChange}
+                />
+              )}
+            />
+          </Field>
+        )}
+
         <Controller
           control={control}
           name="strategy"
@@ -815,6 +909,24 @@ export function AddBetScreen() {
             <SegmentedControl label="Стратегия" options={strategyOptions} value={value} onChange={onChange} />
           )}
         />
+
+        {watchedStrategy === 'other' && (
+          <Field label="Уточни стратегию">
+            <Controller
+              control={control}
+              name="customStrategy"
+              render={({ field: { onChange, value } }) => (
+                <TextInput
+                  style={inputStyle}
+                  placeholder="Матч-ставка, Арбитраж..."
+                  placeholderTextColor={colors.textMuted}
+                  value={value}
+                  onChangeText={onChange}
+                />
+              )}
+            />
+          </Field>
+        )}
 
         {/* ── Bookmaker ─── */}
         <Field label="Букмекер">
@@ -1079,6 +1191,29 @@ const styles = StyleSheet.create({
   bkText: { fontSize: 13, color: colors.textSecondary },
   bkTextActive: { color: '#fff', fontWeight: '700' },
   notes: { height: 80 },
+  outcomePicker: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  outcomeBtn: {
+    flex: 1,
+    paddingVertical: 11,
+    borderRadius: 10,
+    alignItems: 'center',
+    backgroundColor: colors.bgCard,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  outcomeBtnActive: {
+    backgroundColor: colors.purple,
+    borderColor: colors.purple,
+  },
+  outcomeTxt: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  outcomeTxtActive: { color: '#fff' },
   submitBtn: {
     backgroundColor: colors.purple,
     borderRadius: 14,

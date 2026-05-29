@@ -67,6 +67,9 @@ export interface Bet {
   cashoutAmount?: number;   // kopecks; only set when status === 'cashout'
   tournament?: string;       // league / cup name, e.g. "Лига Чемпионов"
   discipline?: EsportsDiscipline; // only when sport === 'esports'
+  customSport?: string;     // free-text label when sport === 'other'
+  customBetType?: string;   // free-text label when betType === 'other'
+  customStrategy?: string;  // free-text label when strategy === 'other'
   schemaVersion: number;   // for migrations
 }
 
