@@ -70,7 +70,7 @@
 
 ## Скорректированный план реализации
 
-### Phase 0 — Foundation (1 неделя) ← **ТЕКУЩИЙ ЭТАП**
+### Phase 0 — Foundation ✅ DONE
 
 - [x] Монорепо: Turborepo + workspace конфиги
 - [x] `packages/core`: типы, константы, статистика, Kelly, форматтеры, миграции
@@ -78,56 +78,38 @@
 - [x] Design tokens (цвета, типографика)
 - [x] Zustand store с persist
 - [x] ProGate компонент
-- [ ] CI: GitHub Actions — type-check + test на PR
+- [x] CI: GitHub Actions — type-check + test на PR
 
-### Phase 1 — Mobile MVP (4 недели)
+### Phase 1 — Mobile MVP ✅ DONE
 
-**Неделя 1 — Навигация и экраны:**
-- React Navigation: BottomTabs (Ставки / Дашборд / Аналитика / Банкролл / Настройки)
-- Экран «Добавить ставку» с react-hook-form, валидацией
-- Список ставок с фильтрами (статус, спорт) и свайп-удалением
-- Быстрое закрытие статуса через ActionSheet
+- [x] React Navigation: Stack + BottomTabs (6 вкладок)
+- [x] AddBetScreen: react-hook-form, BetMode (ординар/экспресс), Команда 1/2 split, запятая-фикс
+- [x] BetsScreen: фильтры статуса, сортировка ↑↓, быстрые кнопки W/L/R/C, тилт-баннер
+- [x] DashboardScreen: stat grid, heatmap, P&L chart (bounded), тилт-баннер
+- [x] AnalyticsScreen: 8 срезов (PRO)
+- [x] BankrollScreen: equity curve, Kelly calculator
+- [x] DisciplineScreen: mood tracker, тилт-статистика, дневник
+- [x] StrategyBuilderScreen: 10-вопросный визард → ResultScreen (PRO)
+- [x] RevenueCat paywall, EAS Build (APK), Owner PRO mode
 
-**Неделя 2 — Дашборд и аналитика:**
-- P&L карточки (текущий банк, ROI, винрейт, серия)
-- Area Chart P&L кривой (gifted-charts)
-- Тепловая карта активности (GitHub-стиль, кастомная реализация)
-- Блок «Последние 5 ставок»
-- Тилт-алерт (базовый, без настройки для Free)
+### Phase 2 — Desktop MVP ✅ DONE
 
-**Неделя 3 — PRO-функции:**
-- Чеклист дисциплины (5 вопросов, нельзя пропустить)
-- 7 срезов аналитики с Bar Charts
-- Банкролл: история транзакций, график роста, расчёт юнита
-- Калькулятор Келли + EV
-- Дневник беттора с настроением
-- ProGate на все PRO-экраны
+- [x] Все 8 страниц: Dashboard, Bets, Analytics, Bankroll, Diary, Insights, StrategyBuilder, Settings
+- [x] AddBetModal: TeamAutocomplete, Kelly calc, Турнир/Лига datalist, clipboard paste, cashout
+- [x] StrategyBuilderPage: 10 вопросов → ResultCard → применяется на дашборде
+- [x] Tauri v2 SQLite / localStorage абстракция
+- [x] CSV + XLSX import/export, JSON backup/restore
+- [x] Onboarding 3-step wizard
+- [x] Owner PRO mode: `VITE_OWNER_PRO=true`
 
-**Неделя 4 — Инфраструктура:**
-- RevenueCat SDK, продукты monthly/annual/trial
-- Экспорт CSV (Expo File System + Sharing)
-- Онбординг (приветствие + стартовый банк)
-- Иконка + сплэш
-- EAS Build → первый APK
+### Phase 3 — Пред-релизная подготовка 🔄 В РАБОТЕ
 
-### Phase 2 — Store Release (2 недели)
-
-- Expo Notifications (тилт-пуш, ежедневное напоминание 20:00)
-- Sentry crash reporting
-- Скриншоты App Store / Google Play (Figma → симулятор)
-- Политика конфиденциальности
-- Сабмит в App Store + Google Play
-
-### Phase 3 — Desktop (3 недели)
-
-- Tauri v2 + React + Vite инициализация
-- Перенос всей UI-логики из web-прототипа
-- SQLite через `tauri-plugin-sql` (замена localStorage)
-- Импорт/экспорт CSV через Tauri FS
-- System Tray: текущий банк + быстрое добавление ставки
-- Tauri Updater (автообновление)
-- LemonSqueezy лицензионный ключ + верификация
-- Сборка: Windows `.msi`, macOS `.dmg`, Linux `.AppImage`
+- [ ] Tauri signing key (`TAURI_SIGNING_PRIVATE_KEY` в GitHub Secrets)
+- [ ] EAS projectId (заменить PLACEHOLDER в app.json)
+- [ ] LemonSqueezy для desktop
+- [ ] RevenueCat реальный projectId
+- [ ] Финальные иконки, скриншоты для сторов
+- [ ] Сабмит в App Store + Google Play
 
 ### Phase 4 — v2 (2–3 мес после релиза)
 

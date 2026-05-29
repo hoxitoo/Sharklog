@@ -1,6 +1,6 @@
 # SharkLog — Roadmap
 
-_Обновлено: 2026-05-25 (batch 5)_
+_Обновлено: 2026-05-29 (batch 7)_
 
 ---
 
@@ -77,6 +77,38 @@ _Обновлено: 2026-05-25 (batch 5)_
 ### Bugfixes
 - `++ROI` двойной плюс в AnalyticsPage (formatPercent уже добавляет +)
 - Unit stepper `₽` переносился на новую строку (добавлен whiteSpace: nowrap)
+
+---
+
+## ✅ Phase 2.5 — Полировка и доработки (done)
+
+### Bilдер стратегий (оба приложения)
+- `packages/core`: `STRATEGY_QUESTIONS` (10 вопросов), `buildStrategy(answers)` → `GeneratedStrategy`
+- Mobile `StrategyBuilderScreen`: прогресс-бар → WizardScreen (вопросы с вариантами, кнопка "Назад") → ResultScreen (7 метрик, "Применить", "Пересоздать")
+- Desktop `StrategyBuilderPage`: тот же флоу + PRO-gate; "Применить" сохраняет в store → плашка на DashборdeE
+- Стратегия хранится в `settings.generatedStrategy`, отображается на Dashboard обоих приложений
+
+### Форма добавления ставки (mobile)
+- Новый BetMode-переключатель: **ординар / экспресс** вверху формы (pill-toggle)
+- Поле «Событие» разделено на **Команда 1** + **Команда 2** с автофокусом (Enter → следующее поле)
+- Экспресс-режим: динамические карточки матчей (добавить / удалить лег, сводный кэф)
+- `pick` вычисляется автоматически: `BET_TYPES[betType]` для ординара, `'Экспресс'` для экспресса
+- Поле **Турнир / Лига** с autocomplete `<datalist>`
+- **Кешаут**: поле «Сумма выкупа» + превью прибыли/убытка появляется при `status=cashout`
+- Фикс запятой: `nd()` — нормализация `','` → `'.'` перед `parseFloat` для русских клавиатур
+
+### UX / дизайн (mobile)
+- Фильтры BetsScreen: `alignItems: 'center'` в contentContainerStyle — кнопки больше не растягиваются
+- Сортировка: `Кэф ↓ / ↑`, `Сумма ↓ / ↑` — повторный тап переключает направление
+- Тилт-баннер 🔥 «Стоп. Ты в тилте.» в BetsScreen и DashboardScreen (использует все ставки, не фильтрованные)
+- P&L-график ограничен контейнером `height: 140, overflow: hidden` — больше не занимает весь экран
+- Текст: `textSecondary #8888A8`, `textMuted #606078` — улучшена читаемость мелкого текста
+- Tab bar: `useSafeAreaInsets()` — больше не перекрывается системной навигацией Android
+
+### Инфраструктура (mobile)
+- Owner PRO mode: `EXPO_PUBLIC_OWNER_PRO=true` в `eas.json` preview-профиле → `isPro: true` без клика
+- `babel.config.js`: `process.env.NODE_ENV === 'test'` вместо `env.test`-блока — решает конфликт Jest + babel-preset-expo
+- EAS Build: успешная сборка APK (build #14), исправлены все блокеры (`compileSdkVersion 36`, `promise` dep)
 
 ---
 
