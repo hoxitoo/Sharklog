@@ -2,6 +2,7 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Text } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../theme/colors';
 import { BetsScreen } from '../screens/BetsScreen';
 import { DashboardScreen } from '../screens/DashboardScreen';
@@ -49,6 +50,7 @@ function TabIcon({ name, focused }: { name: string; focused: boolean }) {
 }
 
 function Tabs() {
+  const insets = useSafeAreaInsets();
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -57,8 +59,8 @@ function Tabs() {
           backgroundColor: colors.bgCard,
           borderTopColor: colors.border,
           borderTopWidth: 1,
-          paddingBottom: 4,
-          height: 60,
+          paddingBottom: insets.bottom + 4,
+          height: 60 + insets.bottom,
         },
         tabBarActiveTintColor: colors.purple,
         tabBarInactiveTintColor: colors.textMuted,

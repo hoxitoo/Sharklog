@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, Alert, KeyboardAvoidingView, Platform,
@@ -20,9 +20,12 @@ import type { RootStackParamList } from '../../navigation/RootNavigator';
 type Nav = NativeStackNavigationProp<RootStackParamList, 'AddBet'>;
 type Route = RouteProp<RootStackParamList, 'AddBet'>;
 
+type BetMode = 'single' | 'express';
+
 interface FormData {
-  event: string;
-  pick: string;
+  betMode: BetMode;
+  team1: string;
+  team2: string;
   odds: string;
   stake: string;
   sport: Sport;
@@ -37,12 +40,25 @@ interface FormData {
   time: string;
 }
 
+interface ExpressLeg {
+  team1: string;
+  team2: string;
+  odds: string;
+}
+
 function uuid(): string {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
     const r = (Math.random() * 16) | 0;
     return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16);
   });
 }
+
+// Accept both comma and dot as decimal separator (Russian keyboard uses comma)
+function nd(v: string): string {
+  return v.replace(',', '.');
+}
+
+// ── Segmented Control ─────────────────────────────────────────────────────────
 
 function SegmentedControl<T extends string>({
   label, options, value, onChange,
@@ -88,7 +104,9 @@ const sc = StyleSheet.create({
   textActive: { color: '#fff', fontWeight: '700' },
 });
 
-function Field({ label, error, children }: { label: string; error?: string | undefined; children: React.ReactNode }) {
+// ── Field wrapper ─────────────────────────────────────────────────────────────
+
+function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
     <View style={field.container}>
       <Text style={field.label}>{label}</Text>
@@ -115,56 +133,48 @@ const inputStyle = {
   borderColor: colors.border,
 };
 
-// ── Team Autocomplete ──────────────────────────────────────────────────────────
+// ── Single Team Input with autocomplete ───────────────────────────────────────
 
-function TeamAutocompleteInput({
-  value,
-  onChange,
-  sport,
-  discipline,
+function SingleTeamInput({
+  value, onChange, onSubmitEditing, textInputRef, placeholder, sport, discipline,
 }: {
   value: string;
   onChange: (v: string) => void;
+  onSubmitEditing?: () => void;
+  textInputRef?: React.RefObject<TextInput>;
+  placeholder?: string;
   sport: Sport;
   discipline: EsportsDiscipline;
 }) {
   const teams = useBetsStore((s) => s.teams);
   const [focused, setFocused] = useState(false);
 
-  // Determine which portion is being actively typed (before or after " vs ")
-  const vsParts = value.split(' vs ');
-  const hasVs = vsParts.length >= 2;
-  const activePart = (vsParts[vsParts.length - 1] ?? '').trimStart();
-  const prefix = hasVs ? vsParts.slice(0, -1).join(' vs ') + ' vs ' : '';
-
   const suggestions = useMemo<Team[]>(() => {
-    if (!focused || activePart.length < 1) return [];
+    if (!focused || value.length < 1) return [];
     return teams
       .filter((t) => {
         if (t.sport !== sport) return false;
         if (sport === 'esports' && t.discipline && t.discipline !== discipline) return false;
-        return t.name.toLowerCase().includes(activePart.toLowerCase());
+        return t.name.toLowerCase().includes(value.toLowerCase());
       })
       .sort((a, b) => b.usageCount - a.usageCount)
-      .slice(0, 6);
-  }, [teams, activePart, sport, discipline, focused]);
-
-  function handleSelect(team: Team) {
-    const filled = prefix + team.name;
-    // After first team, add " vs " automatically so user can start second team
-    onChange(hasVs ? filled : filled + ' vs ');
-  }
+      .slice(0, 5);
+  }, [teams, value, sport, discipline, focused]);
 
   return (
     <View style={ac.wrapper}>
       <TextInput
+        {...(textInputRef ? { ref: textInputRef } : {})}
         style={inputStyle}
-        placeholder="NaVi vs Virtus.pro"
+        placeholder={placeholder ?? 'Команда...'}
         placeholderTextColor={colors.textMuted}
         value={value}
         onChangeText={onChange}
         onFocus={() => setFocused(true)}
         onBlur={() => setTimeout(() => setFocused(false), 180)}
+        returnKeyType={onSubmitEditing ? 'next' : 'default'}
+        onSubmitEditing={onSubmitEditing}
+        blurOnSubmit={!onSubmitEditing}
       />
       {focused && suggestions.length > 0 && (
         <View style={ac.dropdown}>
@@ -172,7 +182,10 @@ function TeamAutocompleteInput({
             <TouchableOpacity
               key={team.id}
               style={ac.item}
-              onPress={() => handleSelect(team)}
+              onPress={() => {
+                onChange(team.name);
+                onSubmitEditing?.();
+              }}
               activeOpacity={0.7}
             >
               <Text style={ac.name}>{team.name}</Text>
@@ -341,6 +354,7 @@ export function AddBetScreen() {
   const route = useRoute<Route>();
   const { bets, addBet, updateBet, settings, bankroll } = useBetsStore();
   const [kellyOpen, setKellyOpen] = useState(false);
+  const team2Ref = useRef<TextInput>(null);
 
   const editBet = route.params?.betId
     ? bets.find((b) => b.id === route.params?.betId)
@@ -350,15 +364,39 @@ export function AddBetScreen() {
   const defaultDate = now.toISOString().split('T')[0] ?? '';
   const defaultTime = now.toTimeString().slice(0, 5);
 
-  const { control, handleSubmit, watch, setValue, formState: { errors } } = useForm<FormData>({
+  const initialBetMode: BetMode = editBet?.betType === 'express' ? 'express' : 'single';
+  const eventParts = editBet?.betType !== 'express' ? (editBet?.event ?? '').split(' vs ') : [];
+  const initialTeam1 = eventParts[0]?.trim() ?? '';
+  const initialTeam2 = eventParts.slice(1).join(' vs ').trim();
+
+  const buildInitialLegs = (): ExpressLeg[] => {
+    if (editBet?.betType === 'express') {
+      const parts = editBet.event.split(' / ');
+      if (parts.length >= 2) {
+        return parts.map((p) => {
+          const t = p.trim().split(' vs ');
+          return { team1: t[0]?.trim() ?? '', team2: t[1]?.trim() ?? '', odds: '' };
+        });
+      }
+    }
+    return [
+      { team1: '', team2: '', odds: '' },
+      { team1: '', team2: '', odds: '' },
+    ];
+  };
+
+  const [legs, setLegs] = useState<ExpressLeg[]>(buildInitialLegs);
+
+  const { control, handleSubmit, watch, setValue, clearErrors, formState: { errors } } = useForm<FormData>({
     defaultValues: {
-      event: editBet?.event ?? '',
-      pick: editBet?.pick ?? '',
+      betMode: initialBetMode,
+      team1: initialTeam1,
+      team2: initialTeam2,
       odds: editBet ? String(editBet.odds) : '',
       stake: editBet ? String(editBet.stake / 100) : '',
       sport: editBet?.sport ?? 'football',
       discipline: editBet?.discipline ?? 'csgo',
-      betType: editBet?.betType ?? '1X2',
+      betType: (editBet?.betType && editBet.betType !== 'express') ? editBet.betType : '1X2',
       strategy: editBet?.strategy ?? 'value',
       status: editBet?.status ?? 'pending',
       notes: editBet?.notes ?? '',
@@ -369,13 +407,22 @@ export function AddBetScreen() {
     },
   });
 
-  const watchedOdds = parseFloat(watch('odds') || '0');
-  const stakeRaw = watch('stake');
+  const betMode = watch('betMode');
+  const isSingle = betMode === 'single';
   const watchedSport = watch('sport');
   const watchedDiscipline = watch('discipline');
+  const stakeRaw = watch('stake');
   const stakeKopecks = parseMoneyInput(stakeRaw);
-  const potentialProfit = watchedOdds > 0 && stakeKopecks > 0
-    ? formatMoney(Math.round(stakeKopecks * watchedOdds) - stakeKopecks)
+  const singleOdds = parseFloat(nd(watch('odds') || '0'));
+
+  const expressOdds = legs.reduce((p, l) => {
+    const o = parseFloat(nd(l.odds || '0'));
+    return o > 1 ? p * o : p;
+  }, 1);
+
+  const activeOdds = isSingle ? singleOdds : expressOdds;
+  const potentialProfit = activeOdds > 1 && stakeKopecks > 0
+    ? formatMoney(Math.round(stakeKopecks * activeOdds) - stakeKopecks)
     : null;
 
   const bankKopecks = useMemo(() => {
@@ -394,12 +441,16 @@ export function AddBetScreen() {
     navigation.setOptions({ title: editBet ? 'Редактировать ставку' : 'Новая ставка' });
   }, [editBet]);
 
+  // Clear field errors when switching bet mode
+  useEffect(() => {
+    clearErrors(['team1', 'odds', 'stake']);
+  }, [betMode]);
+
+  function updateLeg(idx: number, key: keyof ExpressLeg, val: string) {
+    setLegs((prev) => prev.map((l, i) => i === idx ? { ...l, [key]: val } : l));
+  }
+
   function onSubmit(data: FormData) {
-    const oddsVal = parseFloat(data.odds);
-    if (isNaN(oddsVal) || oddsVal <= 1) {
-      Alert.alert('Ошибка', 'Коэффициент должен быть больше 1');
-      return;
-    }
     const stakeVal = parseMoneyInput(data.stake);
     if (stakeVal <= 0) {
       Alert.alert('Ошибка', 'Укажи сумму ставки');
@@ -411,35 +462,80 @@ export function AddBetScreen() {
       ...(data.notes ? { notes: data.notes } : {}),
       ...(data.tournament?.trim() ? { tournament: data.tournament.trim() } : {}),
     };
-
     const dateVal = data.date.trim() || defaultDate;
     const timeVal = data.time.trim() || defaultTime;
 
-    if (editBet) {
-      updateBet(editBet.id, {
-        event: data.event, pick: data.pick, odds: oddsVal, stake: stakeVal,
-        sport: data.sport, betType: data.betType, strategy: data.strategy,
-        status: data.status, bookmaker: data.bookmaker,
-        date: dateVal, time: timeVal, ...extras,
-      });
+    if (isSingle) {
+      const oddsVal = parseFloat(nd(data.odds));
+      if (isNaN(oddsVal) || oddsVal <= 1) {
+        Alert.alert('Ошибка', 'Коэффициент должен быть больше 1');
+        return;
+      }
+      const event = [data.team1.trim(), data.team2.trim()].filter(Boolean).join(' vs ');
+      if (!event) {
+        Alert.alert('Ошибка', 'Введи название команды или события');
+        return;
+      }
+      const pick = BET_TYPES[data.betType];
+
+      if (editBet) {
+        updateBet(editBet.id, {
+          event, pick, odds: oddsVal, stake: stakeVal,
+          sport: data.sport, betType: data.betType, strategy: data.strategy,
+          status: data.status, bookmaker: data.bookmaker,
+          date: dateVal, time: timeVal, ...extras,
+        });
+      } else {
+        addBet({
+          id: uuid(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+          date: dateVal, time: timeVal,
+          event, pick, odds: oddsVal, stake: stakeVal,
+          sport: data.sport, betType: data.betType, strategy: data.strategy,
+          status: data.status, bookmaker: data.bookmaker, schemaVersion: 1, ...extras,
+        });
+      }
     } else {
-      addBet({
-        id: uuid(),
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        date: dateVal, time: timeVal,
-        event: data.event, pick: data.pick, odds: oddsVal, stake: stakeVal,
-        sport: data.sport, betType: data.betType, strategy: data.strategy,
-        status: data.status, bookmaker: data.bookmaker, schemaVersion: 1,
-        ...extras,
+      const validLegs = legs.filter((l) => {
+        const o = parseFloat(nd(l.odds || '0'));
+        return l.team1.trim() && o > 1;
       });
+      if (validLegs.length < 2) {
+        Alert.alert('Ошибка', 'Экспресс: минимум 2 события с кэфом > 1');
+        return;
+      }
+      const combinedOdds = parseFloat(
+        validLegs.reduce((p, l) => p * parseFloat(nd(l.odds)), 1).toFixed(3),
+      );
+      const event = validLegs
+        .map((l) => [l.team1.trim(), l.team2.trim()].filter(Boolean).join(' vs '))
+        .join(' / ');
+
+      if (editBet) {
+        updateBet(editBet.id, {
+          event, pick: 'Экспресс', odds: combinedOdds, stake: stakeVal,
+          sport: data.sport, betType: 'express', strategy: data.strategy,
+          status: data.status, bookmaker: data.bookmaker,
+          date: dateVal, time: timeVal, ...extras,
+        });
+      } else {
+        addBet({
+          id: uuid(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
+          date: dateVal, time: timeVal,
+          event, pick: 'Экспресс', odds: combinedOdds, stake: stakeVal,
+          sport: data.sport, betType: 'express', strategy: data.strategy,
+          status: data.status, bookmaker: data.bookmaker, schemaVersion: 1, ...extras,
+        });
+      }
     }
+
     haptic.success();
     navigation.goBack();
   }
 
   const sportOptions = Object.entries(SPORTS).map(([k, v]) => ({ key: k as Sport, label: v }));
-  const betTypeOptions = Object.entries(BET_TYPES).map(([k, v]) => ({ key: k as BetType, label: v }));
+  const betTypeOptions = Object.entries(BET_TYPES)
+    .filter(([k]) => k !== 'express')
+    .map(([k, v]) => ({ key: k as BetType, label: v }));
   const strategyOptions = Object.entries(STRATEGIES).map(([k, v]) => ({ key: k as Strategy, label: v }));
   const disciplineOptions = Object.entries(ESPORTS_DISCIPLINES).map(([k, v]) => ({ key: k as EsportsDiscipline, label: v }));
 
@@ -454,77 +550,188 @@ export function AddBetScreen() {
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
-        <Field label="Событие *" error={errors.event?.message}>
-          <Controller
-            control={control}
-            name="event"
-            rules={{ required: 'Введи название события' }}
-            render={({ field: { onChange, value } }) => (
-              <TeamAutocompleteInput
-                value={value}
-                onChange={onChange}
-                sport={watchedSport}
-                discipline={watchedDiscipline}
-              />
-            )}
-          />
-        </Field>
+        {/* ── Bet mode toggle ─── */}
+        <Controller
+          control={control}
+          name="betMode"
+          render={({ field: { onChange, value } }) => (
+            <View style={styles.betModeRow}>
+              <TouchableOpacity
+                style={[styles.betModeBtn, value === 'single' && styles.betModeBtnActive]}
+                onPress={() => { onChange('single'); haptic.selection(); }}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.betModeTxt, value === 'single' && styles.betModeTxtActive]}>
+                  Ординар
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.betModeBtn, value === 'express' && styles.betModeBtnActive]}
+                onPress={() => { onChange('express'); haptic.selection(); }}
+                activeOpacity={0.8}
+              >
+                <Text style={[styles.betModeTxt, value === 'express' && styles.betModeTxtActive]}>
+                  Экспресс
+                </Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        />
 
-        <Field label="Выбор *" error={errors.pick?.message}>
-          <Controller
-            control={control}
-            name="pick"
-            rules={{ required: 'Укажи выбор' }}
-            render={({ field: { onChange, value } }) => (
-              <TextInput
-                style={inputStyle}
-                placeholder="П1, ТБ 2.5, Ф1(-1.5)..."
-                placeholderTextColor={colors.textMuted}
-                value={value}
-                onChangeText={onChange}
+        {/* ── Single mode ─── */}
+        {isSingle && (
+          <>
+            <Field label="Команда 1 *" {...(errors.team1?.message ? { error: errors.team1.message } : {})}>
+              <Controller
+                control={control}
+                name="team1"
+                rules={{ validate: (v) => !!v.trim() || 'Введи команду или событие' }}
+                render={({ field: { onChange, value } }) => (
+                  <SingleTeamInput
+                    value={value}
+                    onChange={onChange}
+                    onSubmitEditing={() => team2Ref.current?.focus()}
+                    placeholder="NaVi, FC Barcelona..."
+                    sport={watchedSport}
+                    discipline={watchedDiscipline}
+                  />
+                )}
               />
-            )}
-          />
-        </Field>
+            </Field>
 
-        <View style={styles.row2}>
-          <Field label="Коэффициент *" error={errors.odds?.message}>
-            <Controller
-              control={control}
-              name="odds"
-              rules={{ required: 'Укажи коэффициент' }}
-              render={({ field: { onChange, value } }) => (
+            <Field label="Команда 2">
+              <Controller
+                control={control}
+                name="team2"
+                render={({ field: { onChange, value } }) => (
+                  <SingleTeamInput
+                    value={value}
+                    onChange={onChange}
+                    textInputRef={team2Ref}
+                    placeholder="Virtus.pro, Real Madrid..."
+                    sport={watchedSport}
+                    discipline={watchedDiscipline}
+                  />
+                )}
+              />
+            </Field>
+
+            <View style={styles.row2}>
+              <Field label="Коэффициент *" {...(errors.odds?.message ? { error: errors.odds.message } : {})}>
+                <Controller
+                  control={control}
+                  name="odds"
+                  render={({ field: { onChange, value } }) => (
+                    <TextInput
+                      style={[inputStyle, styles.halfInput]}
+                      placeholder="1.85"
+                      placeholderTextColor={colors.textMuted}
+                      value={value}
+                      onChangeText={onChange}
+                      keyboardType="decimal-pad"
+                    />
+                  )}
+                />
+              </Field>
+
+              <Field label="Сумма (₽) *" {...(errors.stake?.message ? { error: errors.stake.message } : {})}>
+                <Controller
+                  control={control}
+                  name="stake"
+                  render={({ field: { onChange, value } }) => (
+                    <TextInput
+                      style={[inputStyle, styles.halfInput]}
+                      placeholder="1000"
+                      placeholderTextColor={colors.textMuted}
+                      value={value}
+                      onChangeText={onChange}
+                      keyboardType="decimal-pad"
+                    />
+                  )}
+                />
+              </Field>
+            </View>
+          </>
+        )}
+
+        {/* ── Express mode ─── */}
+        {!isSingle && (
+          <>
+            {legs.map((leg, i) => (
+              <View key={i} style={styles.legCard}>
+                <View style={styles.legHeader}>
+                  <Text style={styles.legTitle}>Матч {i + 1}</Text>
+                  {legs.length > 2 && (
+                    <TouchableOpacity
+                      onPress={() => setLegs((prev) => prev.filter((_, j) => j !== i))}
+                      hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                      <Text style={styles.legRemove}>✕</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
                 <TextInput
-                  style={[inputStyle, styles.halfInput]}
-                  placeholder="1.85"
+                  style={[inputStyle, { marginBottom: 8 }]}
+                  placeholder="Команда 1"
                   placeholderTextColor={colors.textMuted}
-                  value={value}
-                  onChangeText={onChange}
+                  value={leg.team1}
+                  onChangeText={(v) => updateLeg(i, 'team1', v)}
+                  returnKeyType="next"
+                />
+                <TextInput
+                  style={[inputStyle, { marginBottom: 8 }]}
+                  placeholder="Команда 2"
+                  placeholderTextColor={colors.textMuted}
+                  value={leg.team2}
+                  onChangeText={(v) => updateLeg(i, 'team2', v)}
+                  returnKeyType="next"
+                />
+                <TextInput
+                  style={inputStyle}
+                  placeholder="Кэф (1.85)"
+                  placeholderTextColor={colors.textMuted}
+                  value={leg.odds}
+                  onChangeText={(v) => updateLeg(i, 'odds', v)}
                   keyboardType="decimal-pad"
                 />
-              )}
-            />
-          </Field>
+              </View>
+            ))}
 
-          <Field label="Сумма (₽) *" error={errors.stake?.message}>
-            <Controller
-              control={control}
-              name="stake"
-              rules={{ required: 'Укажи сумму' }}
-              render={({ field: { onChange, value } }) => (
-                <TextInput
-                  style={[inputStyle, styles.halfInput]}
-                  placeholder="1000"
-                  placeholderTextColor={colors.textMuted}
-                  value={value}
-                  onChangeText={onChange}
-                  keyboardType="decimal-pad"
-                />
-              )}
-            />
-          </Field>
-        </View>
+            <TouchableOpacity
+              style={styles.addLegBtn}
+              onPress={() => setLegs((prev) => [...prev, { team1: '', team2: '', odds: '' }])}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.addLegText}>+ Добавить матч</Text>
+            </TouchableOpacity>
 
+            {expressOdds > 1 && (
+              <View style={styles.expressOddsRow}>
+                <Text style={styles.expressOddsLabel}>Общий кэф</Text>
+                <Text style={styles.expressOddsValue}>{expressOdds.toFixed(2)}</Text>
+              </View>
+            )}
+
+            <Field label="Сумма (₽) *">
+              <Controller
+                control={control}
+                name="stake"
+                render={({ field: { onChange, value } }) => (
+                  <TextInput
+                    style={inputStyle}
+                    placeholder="1000"
+                    placeholderTextColor={colors.textMuted}
+                    value={value}
+                    onChangeText={onChange}
+                    keyboardType="decimal-pad"
+                  />
+                )}
+              />
+            </Field>
+          </>
+        )}
+
+        {/* ── Profit preview ─── */}
         {potentialProfit && (
           <View style={styles.winPreview}>
             <Text style={styles.winLabel}>Прибыль при победе</Text>
@@ -532,7 +739,8 @@ export function AddBetScreen() {
           </View>
         )}
 
-        {watchedOdds > 1 && (
+        {/* ── Kelly calculator (single only) ─── */}
+        {isSingle && singleOdds > 1 && (
           <TouchableOpacity
             style={[styles.kellyToggle, kellyOpen && styles.kellyToggleActive]}
             onPress={() => { haptic.selection(); setKellyOpen((v) => !v); }}
@@ -544,14 +752,15 @@ export function AddBetScreen() {
           </TouchableOpacity>
         )}
 
-        {kellyOpen && watchedOdds > 1 && (
+        {isSingle && kellyOpen && singleOdds > 1 && (
           <KellyHelper
-            odds={watchedOdds}
+            odds={singleOdds}
             bankKopecks={bankKopecks}
             onApply={(v) => { setValue('stake', v); haptic.success(); }}
           />
         )}
 
+        {/* ── Sport ─── */}
         <Controller
           control={control}
           name="sport"
@@ -570,13 +779,16 @@ export function AddBetScreen() {
           />
         )}
 
-        <Controller
-          control={control}
-          name="betType"
-          render={({ field: { onChange, value } }) => (
-            <SegmentedControl label="Тип ставки" options={betTypeOptions} value={value} onChange={onChange} />
-          )}
-        />
+        {/* ── Bet type (single only, express option removed) ─── */}
+        {isSingle && (
+          <Controller
+            control={control}
+            name="betType"
+            render={({ field: { onChange, value } }) => (
+              <SegmentedControl label="Тип ставки" options={betTypeOptions} value={value} onChange={onChange} />
+            )}
+          />
+        )}
 
         <Controller
           control={control}
@@ -586,6 +798,7 @@ export function AddBetScreen() {
           )}
         />
 
+        {/* ── Bookmaker ─── */}
         <Field label="Букмекер">
           <Controller
             control={control}
@@ -606,6 +819,7 @@ export function AddBetScreen() {
           />
         </Field>
 
+        {/* ── Date + Time ─── */}
         <View style={styles.row2}>
           <Field label="Дата">
             <Controller
@@ -641,6 +855,7 @@ export function AddBetScreen() {
           </Field>
         </View>
 
+        {/* ── Status (edit only) ─── */}
         {editBet && (
           <Controller
             control={control}
@@ -662,6 +877,7 @@ export function AddBetScreen() {
           />
         )}
 
+        {/* ── Tournament + Notes ─── */}
         <Field label="Турнир / Лига">
           <Controller
             control={control}
@@ -714,6 +930,72 @@ const styles = StyleSheet.create({
   content: { padding: 16, paddingBottom: 40 },
   row2: { flexDirection: 'row', gap: 12 },
   halfInput: { flex: 1 },
+
+  betModeRow: {
+    flexDirection: 'row',
+    backgroundColor: colors.bgCard,
+    borderRadius: 12,
+    padding: 4,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  betModeBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    borderRadius: 9,
+    alignItems: 'center',
+  },
+  betModeBtnActive: { backgroundColor: colors.purple },
+  betModeTxt: { fontSize: 15, fontWeight: '600', color: colors.textSecondary },
+  betModeTxtActive: { color: '#fff' },
+
+  legCard: {
+    backgroundColor: colors.bgCard,
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  legHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  legTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  legRemove: { fontSize: 16, color: colors.lost },
+  addLegBtn: {
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.purple + '88',
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  addLegText: { fontSize: 14, fontWeight: '600', color: colors.purple },
+  expressOddsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: colors.purpleDim,
+    borderRadius: 10,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.purple + '44',
+  },
+  expressOddsLabel: { fontSize: 13, color: colors.purple },
+  expressOddsValue: { fontSize: 18, fontWeight: '700', color: colors.purple },
+
   winPreview: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -725,6 +1007,7 @@ const styles = StyleSheet.create({
   },
   winLabel: { fontSize: 13, color: colors.accent },
   winAmount: { fontSize: 16, fontWeight: '700', color: colors.accent },
+
   kellyToggle: {
     alignSelf: 'flex-start',
     paddingHorizontal: 12,
@@ -738,6 +1021,7 @@ const styles = StyleSheet.create({
   kellyToggleActive: { borderColor: colors.accent + '66', backgroundColor: colors.accentDim },
   kellyToggleText: { fontSize: 13, color: colors.textSecondary },
   kellyToggleTextActive: { color: colors.accent, fontWeight: '600' },
+
   bookmakers: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   bkBtn: {
     paddingHorizontal: 12, paddingVertical: 7,
