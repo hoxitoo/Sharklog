@@ -83,6 +83,7 @@ export function BetsPage({ onAdd, onEdit }: Props) {
       const dailyPnl = data.reduce((sum, b) => {
         if (b.status === 'won') return sum + Math.round(b.stake * b.odds) - b.stake;
         if (b.status === 'lost') return sum - b.stake;
+        if (b.status === 'cashout' && b.cashoutAmount != null) return sum + b.cashoutAmount - b.stake;
         return sum;
       }, 0);
 
@@ -222,7 +223,9 @@ export function BetsPage({ onAdd, onEdit }: Props) {
                 {/* Bet rows */}
                 {section.data.map((bet) => {
                   const pnl = bet.status === 'won' ? Math.round(bet.stake * (bet.odds - 1))
-                    : bet.status === 'lost' ? -bet.stake : null;
+                    : bet.status === 'lost' ? -bet.stake
+                    : bet.status === 'cashout' && bet.cashoutAmount != null ? bet.cashoutAmount - bet.stake
+                    : null;
                   const isHov = hovered === bet.id;
                   return (
                     <tr
