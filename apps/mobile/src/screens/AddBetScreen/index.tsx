@@ -484,7 +484,7 @@ export function AddBetScreen() {
     setLegs((prev) => prev.map((l, i) => i === idx ? { ...l, [key]: val } : l));
   }
 
-  function onSubmit(data: FormData) {
+  function onSubmit(data: FormData) { try {
     const stakeVal = parseMoneyInput(data.stake);
     if (stakeVal <= 0) {
       Alert.alert('Ошибка', 'Укажи сумму ставки');
@@ -578,7 +578,9 @@ export function AddBetScreen() {
 
     haptic.success();
     navigation.goBack();
-  }
+  } catch (e) {
+    Alert.alert('Ошибка', e instanceof Error ? e.message : String(e));
+  } }
 
   const sportOptions = Object.entries(SPORTS).map(([k, v]) => ({ key: k as Sport, label: v }));
   const betTypeOptions = Object.entries(BET_TYPES)

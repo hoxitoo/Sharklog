@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, Alert, Modal,
@@ -88,6 +88,22 @@ export function SettingsScreen() {
   const [newBookmaker, setNewBookmaker] = useState('');
   const [exporting, setExporting] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [devTapCount, setDevTapCount] = useState(0);
+  const devTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function handleDevTap() {
+    if (settings.isPro) return;
+    if (devTapTimer.current) clearTimeout(devTapTimer.current);
+    const next = devTapCount + 1;
+    setDevTapCount(next);
+    if (next >= 7) {
+      setDevTapCount(0);
+      updateSettings({ isPro: true });
+      Alert.alert('👑 Developer Pro', 'Pro активирован для разработчика');
+    } else {
+      devTapTimer.current = setTimeout(() => setDevTapCount(0), 2000);
+    }
+  }
 
   useEffect(() => {
     if (settings.isPro) setShowPaywall(false);
@@ -282,9 +298,11 @@ export function SettingsScreen() {
             <Text style={styles.value}>{bets.length}</Text>
           </Row>
           <Row label="Подписка">
-            <Text style={[styles.value, { color: settings.isPro ? colors.gold : colors.textSecondary }]}>
-              {settings.isPro ? 'Pro' : `Free · ${Math.max(0, 50 - bets.length)} ставок осталось`}
-            </Text>
+            <TouchableOpacity onPress={handleDevTap} activeOpacity={0.7}>
+              <Text style={[styles.value, { color: settings.isPro ? colors.gold : colors.textSecondary }]}>
+                {settings.isPro ? 'Pro' : `Free · ${Math.max(0, 50 - bets.length)} ставок осталось`}
+              </Text>
+            </TouchableOpacity>
           </Row>
         </Section>
 
