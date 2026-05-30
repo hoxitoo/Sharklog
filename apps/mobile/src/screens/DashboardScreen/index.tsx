@@ -36,7 +36,7 @@ function WLStrip({ bets }: { bets: Bet[] }) {
               wl.square,
               b.status === 'won' && wl.squareW,
               b.status === 'lost' && wl.squareL,
-              b.status === 'refund' && wl.squareR,
+              (b.status === 'refund' || b.status === 'cashout') && wl.squareR,
             ]}
           >
             <Text style={[wl.letter, {
@@ -44,7 +44,7 @@ function WLStrip({ bets }: { bets: Bet[] }) {
                 : b.status === 'lost' ? colors.lost
                 : colors.refund,
             }]}>
-              {b.status === 'won' ? 'W' : b.status === 'lost' ? 'L' : 'R'}
+              {b.status === 'won' ? 'W' : b.status === 'lost' ? 'L' : b.status === 'cashout' ? 'C' : 'R'}
             </Text>
           </View>
         ))}
@@ -92,7 +92,9 @@ function Heatmap({ bets }: { bets: Bet[] }) {
     if (bet.status === 'pending') continue;
     const profit = bet.status === 'won'
       ? Math.round(bet.stake * (bet.odds - 1))
-      : bet.status === 'lost' ? -bet.stake : 0;
+      : bet.status === 'lost' ? -bet.stake
+      : bet.status === 'cashout' && bet.cashoutAmount != null ? bet.cashoutAmount - bet.stake
+      : 0;
     pnlByDate[bet.date] = (pnlByDate[bet.date] ?? 0) + profit;
     countByDate[bet.date] = (countByDate[bet.date] ?? 0) + 1;
   }
@@ -199,8 +201,13 @@ export function DashboardScreen() {
   const last5 = filteredBets.slice(0, 5);
 
   const settledWithPnl = filteredBets
-    .filter((b) => b.status === 'won' || b.status === 'lost')
-    .map((b) => ({ ...b, pnl: b.status === 'won' ? Math.round(b.stake * b.odds) - b.stake : -b.stake }));
+    .filter((b) => b.status === 'won' || b.status === 'lost' || (b.status === 'cashout' && b.cashoutAmount != null))
+    .map((b) => ({
+      ...b,
+      pnl: b.status === 'won' ? Math.round(b.stake * b.odds) - b.stake
+        : b.status === 'cashout' && b.cashoutAmount != null ? b.cashoutAmount - b.stake
+        : -b.stake,
+    }));
   const bestBet = settledWithPnl.length > 0
     ? settledWithPnl.reduce((a, b) => b.pnl > a.pnl ? b : a)
     : null;

@@ -47,7 +47,7 @@ function WLStrip({ bets }: { bets: Bet[] }) {
             color: b.status === 'won' ? colors.won : b.status === 'lost' ? colors.lost : colors.refund,
           }}
         >
-          {b.status === 'won' ? 'W' : b.status === 'lost' ? 'L' : 'R'}
+          {b.status === 'won' ? 'W' : b.status === 'lost' ? 'L' : b.status === 'cashout' ? 'C' : 'R'}
         </div>
       ))}
     </div>
@@ -65,7 +65,9 @@ function Heatmap({ bets }: { bets: Bet[] }) {
     if (bet.status === 'pending') continue;
     const profit = bet.status === 'won'
       ? Math.round(bet.stake * (bet.odds - 1))
-      : bet.status === 'lost' ? -bet.stake : 0;
+      : bet.status === 'lost' ? -bet.stake
+      : bet.status === 'cashout' && bet.cashoutAmount != null ? bet.cashoutAmount - bet.stake
+      : 0;
     pnlByDate[bet.date] = (pnlByDate[bet.date] ?? 0) + profit;
     countByDate[bet.date] = (countByDate[bet.date] ?? 0) + 1;
   }
@@ -153,8 +155,13 @@ export function DashboardPage({ onNavigate }: DashboardProps = {}) {
   const pnlPositive = stats.pnl >= 0;
 
   const settledWithPnl = filteredBets
-    .filter((b) => b.status === 'won' || b.status === 'lost')
-    .map((b) => ({ ...b, pnl: b.status === 'won' ? Math.round(b.stake * b.odds) - b.stake : -b.stake }));
+    .filter((b) => b.status === 'won' || b.status === 'lost' || (b.status === 'cashout' && b.cashoutAmount != null))
+    .map((b) => ({
+      ...b,
+      pnl: b.status === 'won' ? Math.round(b.stake * b.odds) - b.stake
+        : b.status === 'cashout' && b.cashoutAmount != null ? b.cashoutAmount - b.stake
+        : -b.stake,
+    }));
   const bestBet = settledWithPnl.length > 0
     ? settledWithPnl.reduce((a, b) => b.pnl > a.pnl ? b : a)
     : null;
@@ -408,7 +415,9 @@ export function DashboardPage({ onNavigate }: DashboardProps = {}) {
             <tbody>
               {filteredBets.slice(0, 5).map((bet) => {
                 const pnl = bet.status === 'won' ? Math.round(bet.stake * (bet.odds - 1))
-                  : bet.status === 'lost' ? -bet.stake : null;
+                  : bet.status === 'lost' ? -bet.stake
+                  : bet.status === 'cashout' && bet.cashoutAmount != null ? bet.cashoutAmount - bet.stake
+                  : null;
                 const statusColors: Record<string, string> = {
                   won: colors.won, lost: colors.lost, pending: colors.pending, refund: colors.refund,
                 };
@@ -423,7 +432,7 @@ export function DashboardPage({ onNavigate }: DashboardProps = {}) {
                     </td>
                     <td style={s.td}>
                       <span style={{ ...s.statusBadge, color: statusColors[bet.status], backgroundColor: statusColors[bet.status] + '22' }}>
-                        {bet.status === 'won' ? 'Победа' : bet.status === 'lost' ? 'Проигрыш' : bet.status === 'pending' ? 'Ожидание' : 'Возврат'}
+                        {bet.status === 'won' ? 'Победа' : bet.status === 'lost' ? 'Проигрыш' : bet.status === 'pending' ? 'Ожидание' : bet.status === 'cashout' ? 'Выкуп' : 'Возврат'}
                       </span>
                     </td>
                   </tr>

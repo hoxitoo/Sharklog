@@ -7,7 +7,16 @@ import { sendTiltNotification } from '../utils/notifications';
 const STORAGE_KEY = '@sharklog/data';
 
 function uuid(): string {
-  return crypto.randomUUID();
+  const buf = new Uint8Array(16);
+  (globalThis.crypto as Crypto).getRandomValues(buf);
+  buf[6] = (buf[6]! & 0x0f) | 0x40;
+  buf[8] = (buf[8]! & 0x3f) | 0x80;
+  let s = '';
+  for (let i = 0; i < 16; i++) {
+    if (i === 4 || i === 6 || i === 8 || i === 10) s += '-';
+    s += buf[i]!.toString(16).padStart(2, '0');
+  }
+  return s;
 }
 
 function extractTeamNames(event: string): string[] {

@@ -42,6 +42,7 @@ function calcSlice(bets: Bet[], label: string): SliceStats {
   const pnl = bets.reduce((sum, b) => {
     if (b.status === 'won') return sum + Math.round(b.stake * b.odds) - b.stake;
     if (b.status === 'lost') return sum - b.stake;
+    if (b.status === 'cashout' && b.cashoutAmount != null) return sum + b.cashoutAmount - b.stake;
     return sum;
   }, 0);
 
@@ -66,18 +67,20 @@ function calcSlice(bets: Bet[], label: string): SliceStats {
 export function calcDashboard(bets: Bet[]): DashboardStats {
   const stats = calcSlice(bets, 'all');
   const settled = bets
-    .filter((b) => b.status === 'won' || b.status === 'lost')
+    .filter((b) => b.status === 'won' || b.status === 'lost' || (b.status === 'cashout' && b.cashoutAmount != null))
     .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 
   const pendingCount = bets.filter((b) => b.status === 'pending').length;
   const totalStaked = stats.totalStaked;
-  const avgOdds = settled.length > 0
-    ? Math.round((settled.reduce((sum, b) => sum + b.odds, 0) / settled.length) * 100) / 100
+  const wonLost = settled.filter((b) => b.status === 'won' || b.status === 'lost');
+  const avgOdds = wonLost.length > 0
+    ? Math.round((wonLost.reduce((sum, b) => sum + b.odds, 0) / wonLost.length) * 100) / 100
     : 0;
 
   let running = 0;
   const pnlCurve = settled.map((b, i) => {
     if (b.status === 'won') running += Math.round(b.stake * b.odds) - b.stake;
+    else if (b.status === 'cashout' && b.cashoutAmount != null) running += b.cashoutAmount - b.stake;
     else running -= b.stake;
     return { index: i + 1, pnl: running };
   });

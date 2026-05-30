@@ -20,7 +20,7 @@ interface Props {
   onClose: () => void;
 }
 
-function Field({ label, error, children }: { label: string; error?: string | undefined; children: React.ReactNode }) {
+function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
   return (
     <div style={f.container}>
       <label style={f.label}>{label}</label>
@@ -66,34 +66,33 @@ function SegmentRow<T extends string>({
   );
 }
 
-function TeamAutocomplete({
-  value, onChange, sport, discipline,
-}: { value: string; onChange: (v: string) => void; sport: Sport; discipline: EsportsDiscipline }) {
+function SingleTeamInput({
+  value, onChange, sport, discipline, placeholder,
+}: { value: string; onChange: (v: string) => void; sport: Sport; discipline: EsportsDiscipline; placeholder?: string }) {
   const teams = useBetsStore((s) => s.teams);
   const [focused, setFocused] = useState(false);
 
-  const vsParts = value.split(' vs ');
-  const hasVs = vsParts.length >= 2;
-  const activePart = (vsParts[vsParts.length - 1] ?? '').trimStart();
-  const prefix = hasVs ? vsParts.slice(0, -1).join(' vs ') + ' vs ' : '';
-
   const suggestions = useMemo<Team[]>(() => {
-    if (!focused || activePart.length < 1) return [];
-    return teams
-      .filter((t) => {
-        if (t.sport !== sport) return false;
-        if (sport === 'esports' && t.discipline && t.discipline !== discipline) return false;
-        return t.name.toLowerCase().includes(activePart.toLowerCase());
-      })
-      .sort((a, b) => b.usageCount - a.usageCount)
-      .slice(0, 6);
-  }, [teams, activePart, sport, discipline, focused]);
+    if (!focused || value.length < 1) return [];
+    const q = value.toLowerCase();
+    const same = teams.filter((t) => {
+      if (!t.name.toLowerCase().includes(q)) return false;
+      if (t.sport !== sport) return false;
+      if (sport === 'esports' && t.discipline && t.discipline !== discipline) return false;
+      return true;
+    });
+    const other = teams.filter((t) => {
+      if (!t.name.toLowerCase().includes(q)) return false;
+      return t.sport !== sport;
+    });
+    return [...same, ...other].sort((a, b) => b.usageCount - a.usageCount).slice(0, 6);
+  }, [teams, value, sport, discipline, focused]);
 
   return (
     <div style={{ position: 'relative' }}>
       <input
         style={inputStyle}
-        placeholder="NaVi vs Virtus.pro"
+        placeholder={placeholder ?? 'Команда...'}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         onFocus={() => setFocused(true)}
@@ -102,16 +101,14 @@ function TeamAutocomplete({
       {focused && suggestions.length > 0 && (
         <div style={ac.dropdown}>
           {suggestions.map((team) => (
-            <div
-              key={team.id}
-              style={ac.item}
-              onMouseDown={() => onChange(hasVs ? prefix + team.name : prefix + team.name + ' vs ')}
-            >
+            <div key={team.id} style={ac.item} onMouseDown={() => onChange(team.name)}>
               <span style={ac.name}>{team.name}</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                {team.discipline && (
-                  <span style={ac.badge}>{ESPORTS_DISCIPLINES[team.discipline]}</span>
-                )}
+                {team.sport === 'esports' && team.discipline
+                  ? <span style={ac.badge}>{ESPORTS_DISCIPLINES[team.discipline]}</span>
+                  : team.sport !== sport
+                  ? <span style={ac.badge}>{SPORTS[team.sport]}</span>
+                  : null}
                 <span style={ac.count}>{team.usageCount}×</span>
               </div>
             </div>
@@ -222,6 +219,15 @@ const kl: Record<string, React.CSSProperties> = {
   },
 };
 
+type Pick1x2 = 'п1' | 'x' | 'п2';
+
+function initPick1x2(editBet: Bet | undefined, t1: string, t2: string): Pick1x2 {
+  if (!editBet || editBet.betType !== '1X2') return 'п1';
+  if (editBet.pick === 'Ничья') return 'x';
+  if (editBet.pick === t2) return 'п2';
+  return 'п1';
+}
+
 export function AddBetModal({ editBet, onClose }: Props) {
   const { addBet, updateBet, settings, bankroll, canAddBet, bets } = useBetsStore();
   const knownTournaments = useMemo(
@@ -232,8 +238,16 @@ export function AddBetModal({ editBet, onClose }: Props) {
   const defaultDate = now.toISOString().split('T')[0] ?? '';
   const defaultTime = now.toTimeString().slice(0, 5);
 
-  const [event, setEvent] = useState(editBet?.event ?? '');
-  const [pick, setPick] = useState(editBet?.pick ?? '');
+  // Split event into team1 / team2
+  const initT1 = editBet?.event.split(' vs ')[0] ?? '';
+  const initT2 = editBet?.event.includes(' vs ')
+    ? editBet.event.split(' vs ').slice(1).join(' vs ')
+    : '';
+
+  const [team1, setTeam1] = useState(initT1);
+  const [team2, setTeam2] = useState(initT2);
+  const [pick, setPick] = useState(editBet?.betType !== '1X2' ? (editBet?.pick ?? '') : '');
+  const [pick1x2, setPick1x2] = useState<Pick1x2>(() => initPick1x2(editBet, initT1, initT2));
   const [odds, setOdds] = useState(editBet ? String(editBet.odds) : '');
   const [stake, setStake] = useState(editBet ? String(editBet.stake / 100) : '');
   const [date, setDate] = useState(editBet?.date ?? defaultDate);
@@ -246,10 +260,26 @@ export function AddBetModal({ editBet, onClose }: Props) {
   const [bookmaker, setBookmaker] = useState(editBet?.bookmaker ?? (settings.bookmakers[0] ?? ''));
   const [tournament, setTournament] = useState(editBet?.tournament ?? '');
   const [notes, setNotes] = useState(editBet?.notes ?? '');
+  const [customSport, setCustomSport] = useState(editBet?.customSport ?? '');
+  const [customBetType, setCustomBetType] = useState(editBet?.customBetType ?? '');
+  const [customStrategy, setCustomStrategy] = useState(editBet?.customStrategy ?? '');
+  const [cashoutAmount, setCashoutAmount] = useState(
+    editBet?.cashoutAmount != null ? String(editBet.cashoutAmount / 100) : '',
+  );
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [kellyOpen, setKellyOpen] = useState(false);
   const [showChecklist, setShowChecklist] = useState(false);
   const [pasteHint, setPasteHint] = useState<string | null>(null);
+
+  const event = team1.trim()
+    ? team2.trim() ? `${team1.trim()} vs ${team2.trim()}` : team1.trim()
+    : '';
+
+  const computedPick = betType === '1X2'
+    ? (pick1x2 === 'п1' ? (team1.trim() || 'П1')
+       : pick1x2 === 'п2' ? (team2.trim() || 'П2')
+       : 'Ничья')
+    : pick;
 
   async function handlePaste() {
     try {
@@ -257,7 +287,11 @@ export function AddBetModal({ editBet, onClose }: Props) {
       if (!text.trim()) { setPasteHint('Буфер пуст'); return; }
       const parsed = parseClipboardText(text);
       if (!isUsefulPaste(parsed)) { setPasteHint('Не найдено данных ставки'); return; }
-      if (parsed.event) setEvent(parsed.event);
+      if (parsed.event) {
+        const parts = parsed.event.split(' vs ');
+        setTeam1(parts[0] ?? parsed.event);
+        if (parts[1]) setTeam2(parts.slice(1).join(' vs '));
+      }
       if (parsed.pick) setPick(parsed.pick);
       if (parsed.odds) setOdds(parsed.odds);
       if (parsed.stake) setStake(parsed.stake);
@@ -271,16 +305,20 @@ export function AddBetModal({ editBet, onClose }: Props) {
     }
   }
 
-  const oddsNum = parseFloat(odds);
+  const oddsNum = parseFloat(odds.replace(',', '.'));
   const stakeKopecks = parseMoneyInput(stake);
+  const cashoutKopecks = parseMoneyInput(cashoutAmount);
   const potentialWin = oddsNum > 1 && stakeKopecks > 0
     ? formatMoney(Math.round(stakeKopecks * oddsNum))
+    : null;
+  const cashoutPnl = status === 'cashout' && cashoutKopecks > 0 && stakeKopecks > 0
+    ? cashoutKopecks - stakeKopecks
     : null;
 
   function validate() {
     const e: Record<string, string> = {};
-    if (!event.trim()) e['event'] = 'Введи название события';
-    if (!pick.trim()) e['pick'] = 'Укажи выбор';
+    if (!team1.trim()) e['team1'] = 'Введи название команды / события';
+    if (betType !== '1X2' && !computedPick.trim()) e['pick'] = 'Укажи выбор';
     if (isNaN(oddsNum) || oddsNum <= 1) e['odds'] = 'Коэффициент должен быть больше 1';
     if (stakeKopecks <= 0) e['stake'] = 'Укажи сумму ставки';
     setErrors(e);
@@ -303,9 +341,18 @@ export function AddBetModal({ editBet, onClose }: Props) {
       ...(sport === 'esports' ? { discipline } : {}),
       ...(notes ? { notes } : {}),
       ...(tournament.trim() ? { tournament: tournament.trim() } : {}),
+      ...(sport === 'other' && customSport.trim() ? { customSport: customSport.trim() } : {}),
+      ...(betType === 'other' && customBetType.trim() ? { customBetType: customBetType.trim() } : {}),
+      ...(strategy === 'other' && customStrategy.trim() ? { customStrategy: customStrategy.trim() } : {}),
+      ...(status === 'cashout' && cashoutKopecks > 0 ? { cashoutAmount: cashoutKopecks } : {}),
     };
     if (editBet) {
-      updateBet(editBet.id, { event, pick, odds: oddsNum, stake: stakeKopecks, sport, betType, strategy, status, bookmaker, date: date || defaultDate, time: time || defaultTime, ...extras });
+      updateBet(editBet.id, {
+        event, pick: computedPick, odds: oddsNum, stake: stakeKopecks,
+        sport, betType, strategy, status, bookmaker,
+        date: date || defaultDate, time: time || defaultTime,
+        ...extras,
+      });
     } else {
       addBet({
         id: uuid(),
@@ -313,7 +360,7 @@ export function AddBetModal({ editBet, onClose }: Props) {
         updatedAt: now.toISOString(),
         date: date || defaultDate,
         time: time || defaultTime,
-        event, pick, odds: oddsNum, stake: stakeKopecks, sport,
+        event, pick: computedPick, odds: oddsNum, stake: stakeKopecks, sport,
         betType, strategy, status, bookmaker, schemaVersion: CURRENT_SCHEMA_VERSION,
         ...extras,
       });
@@ -341,12 +388,10 @@ export function AddBetModal({ editBet, onClose }: Props) {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {!editBet && (
               <div style={{ position: 'relative' }}>
-                <button style={m.pasteBtn} onClick={handlePaste} title="Вставить ставку из буфера (Ctrl+C на странице букмекера)">
+                <button style={m.pasteBtn} onClick={handlePaste} title="Вставить ставку из буфера">
                   📋 Вставить
                 </button>
-                {pasteHint && (
-                  <div style={m.pasteHint}>{pasteHint}</div>
-                )}
+                {pasteHint && <div style={m.pasteHint}>{pasteHint}</div>}
               </div>
             )}
             <button style={m.closeBtn} onClick={onClose}>✕</button>
@@ -359,20 +404,52 @@ export function AddBetModal({ editBet, onClose }: Props) {
               🔒 Лимит {FREE_LIMITS.MAX_BETS} ставок достигнут. Перейди на Pro для безлимитного трекинга.
             </div>
           )}
-          <Field label="Событие *" {...(errors['event'] ? { error: errors['event'] } : {})}>
-            <TeamAutocomplete value={event} onChange={setEvent} sport={sport} discipline={discipline} />
-          </Field>
 
-          <Field label="Выбор *" {...(errors['pick'] ? { error: errors['pick'] } : {})}>
-            <input style={inputStyle} placeholder="П1, ТБ 2.5, Ф1(-1.5)..." value={pick} onChange={(e) => setPick(e.target.value)} />
-          </Field>
+          {/* Team 1 + Team 2 */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            <Field label="Команда 1 *" {...(errors['team1'] ? { error: errors['team1'] } : {})}>
+              <SingleTeamInput value={team1} onChange={setTeam1} sport={sport} discipline={discipline} placeholder="NaVi, Arsenal..." />
+            </Field>
+            <Field label="Команда 2">
+              <SingleTeamInput value={team2} onChange={setTeam2} sport={sport} discipline={discipline} placeholder="Virtus.pro, Chelsea..." />
+            </Field>
+          </div>
+
+          {/* 1X2 outcome picker */}
+          {betType === '1X2' && (
+            <Field label="Исход">
+              <div style={{ display: 'flex', gap: 8 }}>
+                {(['п1', 'x', 'п2'] as Pick1x2[]).map((v) => {
+                  const label = v === 'п1' ? (team1.trim() || 'П1') : v === 'п2' ? (team2.trim() || 'П2') : 'Ничья';
+                  const active = pick1x2 === v;
+                  return (
+                    <button key={v} type="button" onClick={() => setPick1x2(v)} style={{
+                      flex: 1, padding: '8px 0', borderRadius: 8, fontSize: 13, cursor: 'pointer', fontWeight: active ? 700 : 400,
+                      border: `1px solid ${active ? colors.accent : colors.border}`,
+                      backgroundColor: active ? colors.accentDim : colors.bgElevated,
+                      color: active ? colors.accent : colors.textSecondary,
+                    }}>
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            </Field>
+          )}
+
+          {/* Pick input for non-1X2 */}
+          {betType !== '1X2' && (
+            <Field label="Выбор *" {...(errors['pick'] ? { error: errors['pick'] } : {})}>
+              <input style={inputStyle} placeholder="ТБ 2.5, Ф1(-1.5)..." value={pick} onChange={(e) => setPick(e.target.value)} />
+            </Field>
+          )}
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <Field label="Коэффициент *" {...(errors['odds'] ? { error: errors['odds'] } : {})}>
-              <input style={inputStyle} placeholder="1.85" type="number" step="0.01" value={odds} onChange={(e) => setOdds(e.target.value)} />
+              <input style={inputStyle} placeholder="1.85" value={odds} onChange={(e) => setOdds(e.target.value)} />
             </Field>
             <Field label="Сумма (₽) *" {...(errors['stake'] ? { error: errors['stake'] } : {})}>
-              <input style={inputStyle} placeholder="1000" type="number" value={stake} onChange={(e) => setStake(e.target.value)} />
+              <input style={inputStyle} placeholder="1000" value={stake} onChange={(e) => setStake(e.target.value)} />
             </Field>
           </div>
 
@@ -380,10 +457,7 @@ export function AddBetModal({ editBet, onClose }: Props) {
             <button
               type="button"
               onClick={() => setKellyOpen((v) => !v)}
-              style={{
-                ...m.kellyToggle,
-                ...(kellyOpen ? m.kellyToggleActive : {}),
-              }}
+              style={{ ...m.kellyToggle, ...(kellyOpen ? m.kellyToggleActive : {}) }}
             >
               📊 Калькулятор Келли {kellyOpen ? '▲' : '▼'}
             </button>
@@ -397,7 +471,7 @@ export function AddBetModal({ editBet, onClose }: Props) {
             />
           )}
 
-          {potentialWin && (
+          {potentialWin && status !== 'cashout' && (
             <div style={m.winPreview}>
               <span style={{ color: colors.accent }}>Потенциальный выигрыш</span>
               <span style={{ color: colors.accent, fontWeight: 700, fontSize: 16 }}>{potentialWin}</span>
@@ -417,6 +491,12 @@ export function AddBetModal({ editBet, onClose }: Props) {
             <SegmentRow options={sportOptions} value={sport} onChange={setSport} />
           </Field>
 
+          {sport === 'other' && (
+            <Field label="Укажи вид спорта">
+              <input style={inputStyle} placeholder="Гольф, Крикет..." value={customSport} onChange={(e) => setCustomSport(e.target.value)} />
+            </Field>
+          )}
+
           {sport === 'esports' && (
             <Field label="Дисциплина">
               <SegmentRow options={discOptions} value={discipline} onChange={setDiscipline} />
@@ -427,9 +507,21 @@ export function AddBetModal({ editBet, onClose }: Props) {
             <SegmentRow options={betTypeOptions} value={betType} onChange={setBetType} />
           </Field>
 
+          {betType === 'other' && (
+            <Field label="Назови тип ставки">
+              <input style={inputStyle} placeholder="Двойной шанс, Чистая победа..." value={customBetType} onChange={(e) => setCustomBetType(e.target.value)} />
+            </Field>
+          )}
+
           <Field label="Стратегия">
             <SegmentRow options={strategyOptions} value={strategy} onChange={setStrategy} />
           </Field>
+
+          {strategy === 'other' && (
+            <Field label="Назови стратегию">
+              <input style={inputStyle} placeholder="Моя стратегия..." value={customStrategy} onChange={(e) => setCustomStrategy(e.target.value)} />
+            </Field>
+          )}
 
           <Field label="Букмекер">
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -477,6 +569,22 @@ export function AddBetModal({ editBet, onClose }: Props) {
                 value={status}
                 onChange={setStatus}
               />
+            </Field>
+          )}
+
+          {editBet && status === 'cashout' && (
+            <Field label="Сумма выкупа (₽)">
+              <input
+                style={inputStyle}
+                placeholder="957"
+                value={cashoutAmount}
+                onChange={(e) => setCashoutAmount(e.target.value)}
+              />
+              {cashoutPnl !== null && (
+                <span style={{ fontSize: 12, color: cashoutPnl >= 0 ? colors.won : colors.lost, marginTop: 4, display: 'block' }}>
+                  {cashoutPnl >= 0 ? '+' : ''}{formatMoney(cashoutPnl)} относительно ставки
+                </span>
+              )}
             </Field>
           )}
 
