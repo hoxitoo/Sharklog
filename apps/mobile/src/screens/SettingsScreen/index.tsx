@@ -90,6 +90,25 @@ export function SettingsScreen() {
   const [showPaywall, setShowPaywall] = useState(false);
   const [devTapCount, setDevTapCount] = useState(0);
   const devTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'latest' | 'available'>('idle');
+  const [latestVersion, setLatestVersion] = useState('');
+
+  const APP_VERSION = '1.0.0';
+
+  async function handleCheckUpdate() {
+    setUpdateStatus('checking');
+    try {
+      const res = await fetch('https://api.github.com/repos/hoxitoo/Sharklog/releases/latest');
+      if (!res.ok) throw new Error('network');
+      const data = await res.json() as { tag_name: string };
+      const remote = data.tag_name.replace(/^v/, '');
+      setLatestVersion(remote);
+      setUpdateStatus(remote !== APP_VERSION ? 'available' : 'latest');
+    } catch {
+      Alert.alert('Ошибка', 'Не удалось проверить обновления. Проверь подключение к интернету.');
+      setUpdateStatus('idle');
+    }
+  }
 
   function handleDevTap() {
     if (settings.isPro) return;
@@ -304,6 +323,44 @@ export function SettingsScreen() {
               </Text>
             </TouchableOpacity>
           </Row>
+          <Row label="Округлять суммы">
+            <TouchableOpacity
+              onPress={() => updateSettings({ roundAmounts: !settings.roundAmounts })}
+              activeOpacity={0.7}
+              style={[styles.toggle, settings.roundAmounts && styles.toggleOn]}
+            >
+              <View style={[styles.toggleThumb, settings.roundAmounts && styles.toggleThumbOn]} />
+            </TouchableOpacity>
+          </Row>
+        </Section>
+
+        <Section title="Обновления">
+          <Row label={`Версия ${APP_VERSION}`}>
+            {updateStatus === 'available' ? (
+              <Text style={[styles.value, { color: colors.accent }]}>🆕 {latestVersion}</Text>
+            ) : updateStatus === 'latest' ? (
+              <Text style={[styles.value, { color: colors.textSecondary }]}>Актуальная</Text>
+            ) : null}
+          </Row>
+          <TouchableOpacity
+            style={styles.actionBtn}
+            onPress={handleCheckUpdate}
+            disabled={updateStatus === 'checking'}
+          >
+            <Text style={styles.actionBtnText}>
+              {updateStatus === 'checking' ? '⏳ Проверяем...' : '🔄 Проверить обновления'}
+            </Text>
+          </TouchableOpacity>
+          {updateStatus === 'available' && (
+            <TouchableOpacity
+              style={[styles.actionBtn, { borderColor: colors.accent + '44', backgroundColor: colors.accent + '11' }]}
+              onPress={() => Alert.alert('Обновление', `Версия ${latestVersion} доступна.\nСкачай APK на GitHub или обнови через магазин.`)}
+            >
+              <Text style={[styles.actionBtnText, { color: colors.accent }]}>
+                ⬇️ Скачать {latestVersion}
+              </Text>
+            </TouchableOpacity>
+          )}
         </Section>
 
         <Section title="Уведомления">
@@ -391,6 +448,13 @@ const styles = StyleSheet.create({
   addBkBtnText: { fontSize: 22, color: '#fff', fontWeight: '700', lineHeight: 26 },
   actionBtn: { paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.border },
   actionBtnText: { fontSize: 15, color: colors.purple, fontWeight: '600' },
+  toggle: {
+    width: 44, height: 26, borderRadius: 13, backgroundColor: colors.border,
+    justifyContent: 'center', paddingHorizontal: 3,
+  },
+  toggleOn: { backgroundColor: colors.accent },
+  toggleThumb: { width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff' },
+  toggleThumbOn: { alignSelf: 'flex-end' },
   dangerBtn: { paddingVertical: 14, alignItems: 'center' },
   dangerBtnText: { fontSize: 15, color: colors.lost, fontWeight: '600' },
   paywallBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },

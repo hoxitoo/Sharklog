@@ -145,6 +145,7 @@ export interface AppSettings {
   onboardingComplete: boolean;
   reminderHour: number;
   schemaVersion: number;
+  roundAmounts: boolean;
   generatedStrategy?: GeneratedStrategy;
 }
 

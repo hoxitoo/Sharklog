@@ -115,7 +115,7 @@ function SummaryCard({ bets }: { bets: Parameters<typeof calcDashboard>[0] }) {
           </View>
           <View style={summary.cell}>
             <Text style={[summary.value, { color: pnlColor }]}>
-              {stats.roi >= 0 ? '+' : ''}{formatPercent(stats.roi)}
+              {formatPercent(stats.roi)}
             </Text>
             <Text style={summary.label}>ROI</Text>
           </View>

@@ -69,32 +69,49 @@ export function BetsScreen() {
         (b) => b.event.toLowerCase().includes(q) || b.pick.toLowerCase().includes(q),
       );
     }
-    // Group by date
+
+    // For odds/stake sorts — flat global list (no date grouping)
+    const isGlobalSort = sort === 'odds_desc' || sort === 'odds_asc' || sort === 'stake_desc' || sort === 'stake_asc';
+    if (isGlobalSort) {
+      result.sort((a, b) => {
+        switch (sort) {
+          case 'odds_desc': return b.odds - a.odds;
+          case 'odds_asc': return a.odds - b.odds;
+          case 'stake_desc': return b.stake - a.stake;
+          case 'stake_asc': return a.stake - b.stake;
+          default: return 0;
+        }
+      });
+      const totalPnl = result.reduce((sum, b) => {
+        if (b.status === 'won') return sum + Math.round(b.stake * b.odds) - b.stake;
+        if (b.status === 'lost') return sum - b.stake;
+        if (b.status === 'cashout' && b.cashoutAmount != null) return sum + b.cashoutAmount - b.stake;
+        return sum;
+      }, 0);
+      return [{ title: 'Все ставки', date: '', dailyPnl: totalPnl, data: result }];
+    }
+
+    // Group by date for date sorts
     const map = new Map<string, Bet[]>();
     for (const bet of result) {
       const arr = map.get(bet.date) ?? [];
       arr.push(bet);
       map.set(bet.date, arr);
     }
-    // Sort section dates
     const sortedDates = [...map.keys()].sort((a, b) =>
       sort === 'date_asc' ? a.localeCompare(b) : b.localeCompare(a),
     );
     return sortedDates.map((date) => {
       const data = [...(map.get(date) ?? [])];
-      data.sort((a, b) => {
-        switch (sort) {
-          case 'date_asc': return (a.time ?? '').localeCompare(b.time ?? '');
-          case 'odds_desc': return b.odds - a.odds;
-          case 'stake_desc': return b.stake - a.stake;
-          case 'odds_asc': return a.odds - b.odds;
-          case 'stake_asc': return a.stake - b.stake;
-          default: return (b.time ?? '').localeCompare(a.time ?? '');
-        }
-      });
+      data.sort((a, b) =>
+        sort === 'date_asc'
+          ? (a.time ?? '').localeCompare(b.time ?? '')
+          : (b.time ?? '').localeCompare(a.time ?? ''),
+      );
       const dailyPnl = data.reduce((sum, b) => {
         if (b.status === 'won') return sum + Math.round(b.stake * b.odds) - b.stake;
         if (b.status === 'lost') return sum - b.stake;
+        if (b.status === 'cashout' && b.cashoutAmount != null) return sum + b.cashoutAmount - b.stake;
         return sum;
       }, 0);
       return { title: formatDateTitle(date), date, dailyPnl, data };
