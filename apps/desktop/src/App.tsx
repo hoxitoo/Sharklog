@@ -34,7 +34,7 @@ export function App() {
     function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape' && modalBet !== null) { closeModal(); return; }
       if ((e.ctrlKey || e.metaKey) && e.key === 'n') { e.preventDefault(); openAdd(); return; }
-      if ((e.ctrlKey || e.metaKey) && e.key >= '1' && e.key <= '6') {
+      if ((e.ctrlKey || e.metaKey) && e.key >= '1' && e.key <= '9') {
         const idx = parseInt(e.key, 10) - 1;
         const target = PAGE_ORDER[idx];
         if (target) { e.preventDefault(); setPage(target); }

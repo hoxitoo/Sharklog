@@ -10,6 +10,7 @@ const BASE_SETTINGS = {
   dailyBetLimit: 0,
   reminderHour: 20,
   schemaVersion: SCHEMA_VERSION,
+  roundAmounts: false,
 };
 
 const BASE_BANKROLL = {
@@ -160,13 +161,13 @@ test.describe('Add bet', () => {
   test('shows validation errors on empty submit', async ({ page }) => {
     await page.click('button:has-text("+ Новая ставка")');
     await page.click('button[type="submit"]');
-    await expect(page.getByText('Введи название события')).toBeVisible();
+    await expect(page.getByText('Введи название команды / события')).toBeVisible();
   });
 
   test('can fill and submit a bet', async ({ page }) => {
     await page.click('button:has-text("+ Новая ставка")');
-    await page.fill('input[placeholder="NaVi vs Virtus.pro"]', 'Arsenal vs Chelsea');
-    await page.fill('input[placeholder="П1, ТБ 2.5, Ф1(-1.5)..."]', 'П1');
+    await page.fill('input[placeholder="NaVi, Arsenal..."]', 'Arsenal');
+    await page.fill('input[placeholder="Virtus.pro, Chelsea..."]', 'Chelsea');
     await page.fill('input[placeholder="1.85"]', '1.85');
     await page.fill('input[placeholder="1000"]', '1000');
     await page.click('button[type="submit"]');
@@ -245,8 +246,8 @@ test.describe('Navigation', () => {
     await expect(page.getByRole('heading', { name: 'Ставки' })).toBeVisible();
   });
 
-  test('Ctrl+6 navigates to Settings page', async ({ page }) => {
-    await page.keyboard.press('Control+6');
+  test('Ctrl+8 navigates to Settings page', async ({ page }) => {
+    await page.keyboard.press('Control+8');
     await expect(page.getByRole('heading', { name: 'Настройки' })).toBeVisible();
   });
 });
