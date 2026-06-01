@@ -93,6 +93,7 @@ export const defaultSettings: AppSettings = {
   onboardingComplete: false,
   reminderHour: 20,
   schemaVersion: CURRENT_SCHEMA_VERSION,
+  roundAmounts: false,
 };
 
 export const defaultBankroll: Bankroll = {

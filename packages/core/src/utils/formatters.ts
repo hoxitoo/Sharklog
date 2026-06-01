@@ -1,10 +1,10 @@
 /** Convert kopecks to display string, e.g. 150000 → "1 500 ₽" */
-export function formatMoney(kopecks: number, currency = '₽'): string {
+export function formatMoney(kopecks: number, currency = '₽', maxDecimals = 2): string {
   const rubles = kopecks / 100;
   return (
     new Intl.NumberFormat('ru-RU', {
       minimumFractionDigits: 0,
-      maximumFractionDigits: 2,
+      maximumFractionDigits: maxDecimals,
     }).format(rubles) +
     ' ' +
     currency

@@ -11,6 +11,7 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { StatCard } from './StatCard';
 import { haptic } from '../../utils/haptics';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import { useFormatMoney } from '../../utils/useFormatMoney';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -176,6 +177,7 @@ export function DashboardScreen() {
   const navigation = useNavigation<Nav>();
   const { width } = useWindowDimensions();
   const { bets, settings, bankroll } = useBetsStore();
+  const fmt = useFormatMoney();
   const [period, setPeriod] = useState<PeriodFilter>('all');
 
   const filteredBets = useMemo(() => {
@@ -268,7 +270,7 @@ export function DashboardScreen() {
       <View style={styles.statsGrid}>
         <StatCard
           label="P&L"
-          value={formatMoney(stats.pnl)}
+          value={fmt(stats.pnl)}
           sub="чистая прибыль"
           positive={stats.pnl > 0}
           negative={stats.pnl < 0}
@@ -288,12 +290,12 @@ export function DashboardScreen() {
         />
         <StatCard
           label="Банк"
-          value={formatMoney(bankTotal)}
+          value={fmt(bankTotal)}
           sub="текущий баланс"
         />
         <StatCard
           label="Поставлено"
-          value={formatMoney(stats.totalStaked)}
+          value={fmt(stats.totalStaked)}
           sub={`ср. кэф ${stats.avgOdds > 0 ? stats.avgOdds.toFixed(2) : '—'}`}
         />
         <StatCard
