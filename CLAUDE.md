@@ -21,11 +21,14 @@ docs/            — ROADMAP.md, ANALYSIS.md, PRIVACY_POLICY.md
 ## Ключевые соглашения
 
 - Деньги — **копейки (integer)**. `1000 ₽ = 100_000`. `formatMoney()` для вывода, `parseMoneyInput()` для ввода.
-- Ставки — **UUID v4** (не timestamp).
+- `formatMoney(kopecks, currency='₽', maxDecimals=2)` — третий аргумент управляет знаками после запятой.
+- На мобилке использовать `useFormatMoney()` (из `utils/useFormatMoney.ts`) вместо прямого `formatMoney` — он учитывает `settings.roundAmounts`.
+- Ставки — **UUID v4** (не timestamp). На мобилке — `uuid()` с fallback на Math.random (crypto может быть unavailable на Hermes/Android).
 - PRO-функции мобилки — `<ProGate feature="...">` компонент.
 - `packages/core` — без зависимостей на React/RN/Browser.
 - `exactOptionalPropertyTypes: true` — нельзя писать `prop={undefined}`, нужен spread `{...(x ? { prop: x } : {})}`.
 - **refund ≠ cashout**: `refund` = букмекер вернул ставку (отмена матча); `cashout` = игрок сам выкупил досрочно. Это два разных `BetStatus`.
+- **formatPercent()** уже добавляет `+` для положительных значений — не добавляй префикс вручную.
 
 ## Цветовая система
 
@@ -94,6 +97,11 @@ VITE_OWNER_PRO=true
 // Деньги
 const kopecks = parseMoneyInput('1000');  // → 100000
 formatMoney(100000);                       // → '1 000 ₽'
+formatMoney(100000, '₽', 0);              // → '1 000 ₽' (без копеек, округлённо)
+
+// На мобилке — форматирование с учётом roundAmounts (хук)
+const fmt = useFormatMoney();
+fmt(100000);  // '1 000 ₽' или '1 000,00 ₽' в зависимости от настройки
 
 // Optional props с exactOptionalPropertyTypes
 <Component {...(value ? { prop: value } : {})} />
@@ -129,6 +137,7 @@ const strategy = buildStrategy(answers);            // → GeneratedStrategy
 ```
 App.tsx                    — загрузка (logo.png), онбординг-роут, main layout
                              PAGE_ORDER: dashboard/bets/analytics/insights/strategy/bankroll/diary/settings
+                             Ctrl+1..8 — навигация; Ctrl+N — новая ставка; Esc — закрыть модал
 components/
   ErrorBoundary.tsx        — React class boundary, кнопки retry/reload
   ChecklistModal.tsx       — 5 вопросов перед ставкой (PRO)
@@ -139,9 +148,11 @@ layouts/
 pages/
   DashboardPage.tsx        — period filter, 6 KPI, W/L strip, heatmap, стратегия-плашка (→ 'strategy')
   BetsPage.tsx             — date-grouped sections, daily P&L, search/filter/sort; статусы refund + cashout
-  AddBetModal.tsx          — форма + TeamAutocomplete + Kelly calculator + ChecklistModal
+  AddBetModal.tsx          — форма с двумя полями команд (Команда 1 / Команда 2) + 1X2 picker
+                             + Kelly calculator + ChecklistModal (PRO)
                              поле "Турнир / Лига" с <datalist> autocomplete
                              clipboard paste для pre-fill; статус cashout
+                             event строится как `${team1} vs ${team2}`
   AnalyticsPage.tsx        — 7 срезов (PRO) + "Топ турниры" mini-cards
   BankrollPage.tsx         — equity curve, Kelly calc, транзакции с удалением
   DiaryPage.tsx            — mood tracker, тилт-стата, дневник
@@ -180,6 +191,9 @@ screens/
   BankrollScreen/          — equity curve, Kelly (PRO)
   DisciplineScreen/        — mood, тилт, дневник
   SettingsScreen/          — PRO settings + "Билдер стратегий" кнопка
+                             roundAmounts toggle (округление сумм)
+                             "Проверить обновления" (GitHub latest release API)
+                             7-tap Easter egg на строке "Подписка" → активация PRO (dev bypass)
   OnboardingScreen/        — logo Image + 3 шага
   StrategyBuilderScreen/   — PRO: WizardScreen + ResultScreen
 components/
@@ -196,14 +210,14 @@ assets/
 ```
 types/bet.ts          — BetStatus: 'pending'|'won'|'lost'|'refund'|'cashout'
                         Bet: + tournament?: string
-                        AppSettings: + generatedStrategy?: GeneratedStrategy
+                        AppSettings: + generatedStrategy?: GeneratedStrategy, + roundAmounts: boolean
                         GeneratedStrategy, StrategyAnswers, + 10 union types
 constants/index.ts    — SPORTS, BET_TYPES, STRATEGIES, FREE_LIMITS, ODDS_RANGES
 utils/
   stats.ts            — calcDashboard, calcByField, calcByOddsRange, calcByDayOfWeek,
                         calcByHour, isInTilt, calcByTournament, calcByTeam, parseEventTeams
   kelly.ts            — kellyFraction, halfKelly, expectedValue, impliedProbability
-  formatters.ts       — formatMoney, parseMoneyInput, formatOdds, formatPercent
+  formatters.ts       — formatMoney(kopecks, currency='₽', maxDecimals=2), parseMoneyInput, formatOdds, formatPercent (adds + prefix)
   strategyBuilder.ts  — STRATEGY_QUESTIONS (10 вопросов), buildStrategy(answers)
   migrations.ts       — migrate(raw)
 ```

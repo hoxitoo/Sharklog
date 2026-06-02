@@ -47,7 +47,7 @@ cd apps/desktop && npm run dev        # localhost:1420
 cd apps/desktop && npx tauri dev
 
 # Run all tests
-cd packages/core && npx vitest run    # 57 unit tests
+cd packages/core && npx vitest run    # 12 unit tests
 cd apps/desktop && npx vitest run     # 40 smoke tests
 cd apps/mobile && npm test            # 17 smoke tests
 ```
@@ -98,6 +98,7 @@ First build takes ~5–10 min (compiles Rust). Subsequent builds are faster.
 ## Key Conventions
 
 - **Money in kopecks** — all monetary values stored as integers (no float precision issues). `1000 ₽ = 100_000`
+- **formatMoney(kopecks, currency?, maxDecimals?)** — `maxDecimals` defaults to 2; pass `0` for whole-ruble display. On mobile use `useFormatMoney()` hook which respects `settings.roundAmounts`
 - **UUID v4** — all entity IDs generated client-side, never `Date.now()`
 - **refund ≠ cashout** — `refund`: bookmaker returned stake (cancelled match); `cashout`: player cashed out early
 - **PRO features** guarded by `canAddBet()` / `<ProGate>` — never bypass
