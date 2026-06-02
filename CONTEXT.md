@@ -45,6 +45,7 @@ apps/mobile/src/
     haptics.ts               — haptic.selection/light/medium/heavy/success/warning/error
     notifications.ts         — scheduleDailyReminder (20:00), sendTiltNotification, requestNotificationPermission
     exportCSV.ts             — CSV с UTF-8 BOM, expo-file-system + expo-sharing
+    useFormatMoney.ts        — хук: useFormatMoney() → (kopecks) => string; учитывает settings.roundAmounts
   __tests__/
     betsStore.test.ts        — 17 smoke tests (canAddBet, addBet, deleteBet, updateBet, clearAll)
     __mocks__/
@@ -126,7 +127,7 @@ packages/core/src/
     stats.ts                 — calcDashboard, calcByField, calcByOddsRange, calcByDayOfWeek, calcByHour,
                                isInTilt, calcByTournament, calcByTeam, parseEventTeams
     kelly.ts                 — kellyFraction, halfKelly, expectedValue, impliedProbability, recommendedStake
-    formatters.ts            — formatMoney, parseMoneyInput, formatOdds, formatPercent (adds + prefix)
+    formatters.ts            — formatMoney(kopecks, currency='₽', maxDecimals=2), parseMoneyInput, formatOdds, formatPercent (adds + prefix)
     strategyBuilder.ts       — STRATEGY_QUESTIONS (10 вопросов), buildStrategy(answers) → GeneratedStrategy
     migrations.ts            — migrate(raw)
 ```
@@ -166,6 +167,7 @@ interface AppSettings {
   isPro: boolean;
   onboardingComplete: boolean;
   reminderHour: number;           // час ежедневного напоминания (PRO: stepper 6–23)
+  roundAmounts: boolean;          // округлять суммы до целых рублей (0 знаков после запятой)
   generatedStrategy?: GeneratedStrategy;  // PRO: сохранённая стратегия
   schemaVersion: number;
 }
@@ -341,13 +343,15 @@ VITE_OWNER_PRO=true
 - [x] InsightsScreen: period filter + Tournaments table (Free) + Teams cards (PRO)
 - [x] StrategyBuilderScreen: PRO wizard (10 вопросов) + ResultScreen + "Применить"
 - [x] DashboardScreen: стратегия-плашка → navigate('StrategyBuilder')
-- [x] SettingsScreen: "Билдер стратегий" кнопка для PRO
+- [x] SettingsScreen: "Билдер стратегий" кнопка для PRO; roundAmounts toggle; "Проверить обновления";
+                      7-tap dev bypass (активирует PRO без RevenueCat)
 - [x] StatusBadge: поддержка cashout (label "Выкуп", refund остался "Возврат")
-- [x] BetsScreen: filter chips refund + cashout; quick-result chip C (cashout)
-- [x] AddBetScreen: поле "Турнир / Лига" + статус cashout
+- [x] BetsScreen: filter chips refund + cashout; quick-result chip C (cashout);
+                  sort by кэф/сумма — flat-section режим (нет groupby дат)
+- [x] AddBetScreen: поле "Турнир / Лига" + статус cashout; uuid() с Math.random fallback
 - [x] RootNavigator: Tabs (6): Bets/Dashboard/Insights/Discipline/Analytics/Settings
                       Stack: Tabs + AddBet + Bankroll + StrategyBuilder
-- [x] Assets: icon.png / adaptive-icon.png / splash.png — официальный логотип
+- [x] Splash: использует icon.png (backgroundColor #080C12)
 - [x] OnboardingScreen: Image компонент (logo) вместо emoji
 - [x] Zustand store с полным CRUD + AsyncStorage persistence
 - [x] RevenueCat paywall (real offerings, purchase, restore)
@@ -355,6 +359,8 @@ VITE_OWNER_PRO=true
 - [x] CSV export (expo-sharing, UTF-8 BOM)
 - [x] Team autocomplete с esports discipline
 - [x] Pre-bet checklist modal (PRO)
+- [x] useFormatMoney() хук — учитывает roundAmounts
+- [x] AnalyticsScreen: исправлен double-plus перед ROI (formatPercent уже добавляет +)
 - [x] CI: tests + type-check (все зелёные)
 - [x] EAS: development/preview/production profiles
 - [x] 17 smoke tests
@@ -364,15 +370,16 @@ VITE_OWNER_PRO=true
 - [x] StrategyBuilderPage: PRO wizard + ResultCard + disclaimer + "Применить стратегию"
 - [x] DashboardPage: стратегия-плашка (кликабельная → 'strategy') + onNavigate prop
 - [x] BetsPage: filter + quick-result buttons для cashout (C); refund/cashout отдельные фильтры
-- [x] AddBetModal: "Турнир / Лига" поле с `<datalist>` autocomplete; статус cashout;
-                   clipboard paste для pre-fill формы
+- [x] AddBetModal: поля Команда 1 / Команда 2 (event = "T1 vs T2") + 1X2 outcome picker
+                   "Турнир / Лига" с `<datalist>` autocomplete; статус cashout;
+                   clipboard paste для pre-fill формы; Kelly calculator
 - [x] AnalyticsPage: "Топ турниры" блок (calcByTournament, top-3)
 - [x] AppLayout: sidebar logo = img logo.png, nav 8 пунктов (Insights + Strategy с PRO badge)
-- [x] App.tsx: 8 pages + loading screen с logo.png
+- [x] App.tsx: 8 pages + loading screen с logo.png; Ctrl+1..8, Ctrl+N, Esc
 - [x] OnboardingPage: logo image вместо emoji
 - [x] public/logo.png + public/logo-512.png — официальный логотип
 - [x] src-tauri/icons/: полный набор иконок (32/128/256/512, ICO, Windows tiles, AppImage)
-- [x] PAGE_ORDER: 8 страниц, Ctrl+1..6 shortcuts
+- [x] PAGE_ORDER: 8 страниц, Ctrl+1..8 shortcuts (все страницы), Ctrl+N — новая ставка, Esc — закрыть
 - [x] Auto-updater: 404 трактуется как "уже последняя версия"
 - [x] DashboardPage, BetsPage, AddBetModal, AnalyticsPage, BankrollPage — полные
 - [x] DiaryPage, SettingsPage, AppLayout, OnboardingPage — полные
@@ -380,7 +387,9 @@ VITE_OWNER_PRO=true
 - [x] clipboardParser.ts — paste pre-fill для AddBetModal
 - [x] Owner PRO mode (VITE_OWNER_PRO=true)
 - [x] Auto-updater UI в SettingsPage
-- [x] 40 smoke tests
+- [x] roundAmounts: false в defaultSettings (type-safe)
+- [x] E2E tests (Playwright, continue-on-error): 40+ тестов
+- [x] 40 smoke tests (Vitest)
 
 ---
 
