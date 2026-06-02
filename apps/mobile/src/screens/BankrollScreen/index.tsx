@@ -242,7 +242,10 @@ function BankrollContent() {
     }
     for (const bet of bets) {
       if (bet.status === 'pending') continue;
-      const pnl = bet.status === 'won' ? Math.round(bet.stake * bet.odds) - bet.stake : bet.status === 'lost' ? -bet.stake : 0;
+      const pnl = bet.status === 'won' ? Math.round(bet.stake * bet.odds) - bet.stake
+        : bet.status === 'lost' ? -bet.stake
+        : bet.status === 'cashout' && bet.cashoutAmount != null ? bet.cashoutAmount - bet.stake
+        : 0;
       events.push({ date: bet.date, delta: pnl });
     }
     if (events.length < 2) return [];

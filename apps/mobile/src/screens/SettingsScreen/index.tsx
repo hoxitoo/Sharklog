@@ -6,7 +6,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { FREE_LIMITS } from '@sharklog/core';
+import { FREE_LIMITS, CURRENT_SCHEMA_VERSION } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { colors } from '../../theme/colors';
 import { exportBetsCSV } from '../../utils/exportCSV';
@@ -103,8 +103,10 @@ export function SettingsScreen() {
     try {
       const res = await fetch('https://api.github.com/repos/hoxitoo/Sharklog/releases/latest');
       if (!res.ok) throw new Error('network');
-      const data = await res.json() as { tag_name: string };
-      const remote = data.tag_name.replace(/^v/, '');
+      const data = await res.json() as { tag_name?: unknown };
+      const tag = typeof data?.tag_name === 'string' ? data.tag_name : '';
+      if (!tag) throw new Error('invalid_response');
+      const remote = tag.replace(/^v/, '');
       setLatestVersion(remote);
       setUpdateStatus(remote !== APP_VERSION ? 'available' : 'latest');
     } catch {
@@ -115,6 +117,7 @@ export function SettingsScreen() {
 
   function handleDevTap() {
     if (settings.isPro) return;
+    if (!__DEV__) return;
     if (devTapTimer.current) clearTimeout(devTapTimer.current);
     const next = devTapCount + 1;
     setDevTapCount(next);
@@ -251,11 +254,12 @@ export function SettingsScreen() {
 
   async function handleBackupJSON() {
     const { bets: allBets, bankroll, diary, teams } = useBetsStore.getState();
+    const { isPro: _ip, proExpiresAt: _pe, ...exportableSettings } = settings;
     const backup = JSON.stringify({
-      version: 1,
+      version: CURRENT_SCHEMA_VERSION,
       exportedAt: new Date().toISOString(),
       bets: allBets,
-      settings,
+      settings: exportableSettings,
       bankroll,
       diary,
       teams,
@@ -264,6 +268,7 @@ export function SettingsScreen() {
     try {
       await FileSystem.writeAsStringAsync(path, backup, { encoding: FileSystem.EncodingType.UTF8 });
       await Sharing.shareAsync(path, { mimeType: 'application/json', dialogTitle: 'Резервная копия SharkLog' });
+      await FileSystem.deleteAsync(path, { idempotent: true });
     } catch {
       Alert.alert('Ошибка', 'Не удалось создать резервную копию');
     }

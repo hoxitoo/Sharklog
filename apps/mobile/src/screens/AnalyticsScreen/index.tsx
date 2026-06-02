@@ -218,7 +218,7 @@ function AnalyticsContent() {
 export function AnalyticsScreen() {
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Аналитика" subtitle="8 срезов статистики" />
+      <ScreenHeader title="Аналитика" subtitle="7 срезов статистики" />
       <ProGate feature="Полная аналитика по 7 срезам">
         <AnalyticsContent />
       </ProGate>

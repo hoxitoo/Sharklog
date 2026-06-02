@@ -241,7 +241,7 @@ export interface TeamStats {
   lastTournament: string;
 }
 
-function parseEventTeams(event: string): string[] {
+export function parseEventTeams(event: string): string[] {
   const parts = event.split(/\s+(?:—|–|vs\.?|против|-)\s+/i);
   return parts.map((p) => p.trim()).filter((p) => p.length >= 2 && p.length <= 50);
 }

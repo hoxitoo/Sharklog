@@ -10,7 +10,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { Sport, BetType, Strategy, BetStatus, EsportsDiscipline, Team } from '@sharklog/core';
 import {
   SPORTS, BET_TYPES, STRATEGIES, ESPORTS_DISCIPLINES, parseMoneyInput, formatMoney,
-  impliedProbability, halfKelly, expectedValue, recommendedStake,
+  impliedProbability, halfKelly, expectedValue, recommendedStake, CURRENT_SCHEMA_VERSION,
 } from '@sharklog/core';
 import { colors } from '../../theme/colors';
 import { useBetsStore } from '../../store/betsStore';
@@ -326,6 +326,16 @@ function TournamentInput({ value, onChange }: { value: string; onChange: (v: str
   );
 }
 
+// ── Restore pick1x2 value from an existing 1X2 bet ────────────────────────────
+
+function initPick1x2(editBet: { betType: BetType; pick?: string } | undefined, team1: string, team2: string): Pick1x2 {
+  if (!editBet || editBet.betType !== '1X2') return 'п1';
+  const pick = editBet.pick ?? '';
+  if (pick === 'Ничья' || pick === 'X') return 'x';
+  if ((team2.trim() && pick === team2.trim()) || pick === 'П2') return 'п2';
+  return 'п1';
+}
+
 // ── Parse existing pick back into form fields ──────────────────────────────────
 
 function parseEditPick(betType: BetType, pick: string): {
@@ -518,7 +528,7 @@ export function AddBetScreen() {
       tournament: editBet?.tournament ?? '',
       date: editBet?.date ?? defaultDate,
       time: editBet?.time ?? defaultTime,
-      pick1x2: 'п1' as Pick1x2,
+      pick1x2: initPick1x2(editBet, initialTeam1, initialTeam2),
       customSport: editBet?.customSport ?? '',
       customBetType: editBet?.customBetType ?? '',
       customStrategy: editBet?.customStrategy ?? '',
@@ -643,7 +653,7 @@ export function AddBetScreen() {
           date: dateVal, time: timeVal,
           event, pick, odds: oddsVal, stake: stakeVal,
           sport: data.sport, betType: data.betType, strategy: data.strategy,
-          status: data.status, bookmaker: data.bookmaker, schemaVersion: 1, ...extras, ...cashoutExtras,
+          status: data.status, bookmaker: data.bookmaker, schemaVersion: CURRENT_SCHEMA_VERSION, ...extras, ...cashoutExtras,
         });
       }
     } else {
