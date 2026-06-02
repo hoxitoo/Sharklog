@@ -10,9 +10,11 @@ import { FREE_LIMITS } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { colors } from '../../theme/colors';
 import { exportBetsCSV } from '../../utils/exportCSV';
+import { importFromCSV, importFromJSON } from '../../utils/importBets';
 import { requestNotificationPermission, scheduleDailyReminder } from '../../utils/notifications';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
+import * as DocumentPicker from 'expo-document-picker';
 import { ProGate } from '../../components/ProGate';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 
@@ -87,6 +89,7 @@ export function SettingsScreen() {
   const { settings, updateSettings, bets, clearAll } = useBetsStore();
   const [newBookmaker, setNewBookmaker] = useState('');
   const [exporting, setExporting] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [devTapCount, setDevTapCount] = useState(0);
   const devTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -140,6 +143,99 @@ export function SettingsScreen() {
       Alert.alert('Ошибка', 'Не удалось экспортировать данные');
     } finally {
       setExporting(false);
+    }
+  }
+
+  async function handleImportCSV() {
+    setImporting(true);
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['text/csv', 'text/plain', 'text/comma-separated-values', '*/*'],
+        copyToCacheDirectory: true,
+      });
+      if (result.canceled) return;
+      const asset = result.assets[0];
+      if (!asset) return;
+      const content = await FileSystem.readAsStringAsync(asset.uri, { encoding: FileSystem.EncodingType.UTF8 });
+      const { bets: imported, total, skipped } = importFromCSV(content);
+      if (imported.length === 0) {
+        Alert.alert('Не удалось импортировать', 'Файл не содержит распознанных ставок. Убедись, что это CSV, экспортированный из SharkLog.');
+        return;
+      }
+      Alert.alert(
+        'Импорт CSV',
+        `Найдено ${imported.length} ставок${skipped > 0 ? `, пропущено ${skipped} строк` : ''}.\nДобавить к текущим ставкам?`,
+        [
+          { text: 'Отмена', style: 'cancel' },
+          {
+            text: 'Импортировать',
+            onPress: () => {
+              const store = useBetsStore.getState();
+              useBetsStore.setState({ bets: [...imported, ...store.bets] });
+              store.persist();
+              Alert.alert('Готово', `Импортировано ${imported.length} ставок`);
+            },
+          },
+        ],
+      );
+    } catch {
+      Alert.alert('Ошибка', 'Не удалось прочитать файл');
+    } finally {
+      setImporting(false);
+    }
+  }
+
+  async function handleImportJSON() {
+    setImporting(true);
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/json', 'text/plain', '*/*'],
+        copyToCacheDirectory: true,
+      });
+      if (result.canceled) return;
+      const asset = result.assets[0];
+      if (!asset) return;
+      const content = await FileSystem.readAsStringAsync(asset.uri, { encoding: FileSystem.EncodingType.UTF8 });
+      const backup = importFromJSON(content);
+      if (!backup) {
+        Alert.alert('Ошибка', 'Файл не является корректным JSON-бэкапом SharkLog');
+        return;
+      }
+      Alert.alert(
+        'Восстановить из бэкапа?',
+        `В файле ${backup.bets.length} ставок.\n\nВыбери действие:`,
+        [
+          { text: 'Отмена', style: 'cancel' },
+          {
+            text: 'Добавить к текущим',
+            onPress: () => {
+              const store = useBetsStore.getState();
+              useBetsStore.setState({ bets: [...backup.bets, ...store.bets] });
+              store.persist();
+              Alert.alert('Готово', `Добавлено ${backup.bets.length} ставок`);
+            },
+          },
+          {
+            text: 'Заменить всё',
+            style: 'destructive',
+            onPress: () => {
+              const store = useBetsStore.getState();
+              useBetsStore.setState({
+                bets: backup.bets,
+                ...(backup.bankroll ? { bankroll: { ...store.bankroll, ...backup.bankroll } as typeof store.bankroll } : {}),
+                ...(backup.diary ? { diary: backup.diary as typeof store.diary } : {}),
+                ...(backup.teams ? { teams: backup.teams as typeof store.teams } : {}),
+              });
+              store.persist();
+              Alert.alert('Готово', `Восстановлено ${backup.bets.length} ставок`);
+            },
+          },
+        ],
+      );
+    } catch {
+      Alert.alert('Ошибка', 'Не удалось прочитать файл');
+    } finally {
+      setImporting(false);
     }
   }
 
@@ -387,7 +483,7 @@ export function SettingsScreen() {
           </TouchableOpacity>
         </Section>
 
-        <Section title="Экспорт">
+        <Section title="Экспорт / Импорт">
           <TouchableOpacity style={styles.actionBtn} onPress={handleExport} disabled={exporting}>
             <Text style={styles.actionBtnText}>
               {exporting ? 'Экспортируется...' : '📤  Экспорт ставок в CSV'}
@@ -395,6 +491,16 @@ export function SettingsScreen() {
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionBtn} onPress={handleBackupJSON}>
             <Text style={styles.actionBtnText}>💾  Резервная копия (JSON)</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionBtn} onPress={handleImportCSV} disabled={importing}>
+            <Text style={styles.actionBtnText}>
+              {importing ? 'Загружается...' : '📥  Импорт из CSV'}
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.actionBtn, styles.lastActionBtn]} onPress={handleImportJSON} disabled={importing}>
+            <Text style={styles.actionBtnText}>
+              {importing ? 'Загружается...' : '📂  Восстановить из JSON'}
+            </Text>
           </TouchableOpacity>
         </Section>
 
@@ -447,6 +553,7 @@ const styles = StyleSheet.create({
   },
   addBkBtnText: { fontSize: 22, color: '#fff', fontWeight: '700', lineHeight: 26 },
   actionBtn: { paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.border },
+  lastActionBtn: { borderBottomWidth: 0 },
   actionBtnText: { fontSize: 15, color: colors.purple, fontWeight: '600' },
   toggle: {
     width: 44, height: 26, borderRadius: 13, backgroundColor: colors.border,
