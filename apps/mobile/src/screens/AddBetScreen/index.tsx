@@ -45,6 +45,10 @@ interface FormData {
   customSport: string;
   customBetType: string;
   customStrategy: string;
+  // Dynamic pick fields
+  handicapSide: 'home' | 'away';
+  pickValue: string;
+  bothScoreYes: boolean;
 }
 
 interface ExpressLeg {
@@ -271,6 +275,84 @@ const ac = StyleSheet.create({
   count: { fontSize: 11, color: colors.textMuted },
 });
 
+// ── Tournament Input with autocomplete ────────────────────────────────────────
+
+function TournamentInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const bets = useBetsStore((s) => s.bets);
+  const [focused, setFocused] = useState(false);
+
+  const suggestions = useMemo<string[]>(() => {
+    if (!focused) return [];
+    const q = value.toLowerCase().trim();
+    const counts = new Map<string, number>();
+    for (const b of bets) {
+      const t = b.tournament?.trim();
+      if (t) counts.set(t, (counts.get(t) ?? 0) + 1);
+    }
+    return Array.from(counts.entries())
+      .filter(([t]) => !q || t.toLowerCase().includes(q))
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 6)
+      .map(([t]) => t);
+  }, [bets, value, focused]);
+
+  return (
+    <View style={ac.wrapper}>
+      <TextInput
+        style={inputStyle}
+        placeholder="Лига Чемпионов, РПЛ, CS2 Major..."
+        placeholderTextColor={colors.textMuted}
+        value={value}
+        onChangeText={onChange}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setTimeout(() => setFocused(false), 180)}
+        returnKeyType="next"
+      />
+      {focused && suggestions.length > 0 && (
+        <View style={ac.dropdown}>
+          {suggestions.map((t) => (
+            <TouchableOpacity
+              key={t}
+              style={ac.item}
+              onPress={() => { onChange(t); setFocused(false); }}
+              activeOpacity={0.7}
+            >
+              <Text style={ac.name}>{t}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+      )}
+    </View>
+  );
+}
+
+// ── Parse existing pick back into form fields ──────────────────────────────────
+
+function parseEditPick(betType: BetType, pick: string): {
+  handicapSide: 'home' | 'away';
+  pickValue: string;
+  bothScoreYes: boolean;
+} {
+  if (betType === 'handicap') {
+    const side: 'home' | 'away' = pick.startsWith('Ф2') ? 'away' : 'home';
+    const m = pick.match(/[+\-−]?\d+(?:[.,]\d+)?/);
+    return { handicapSide: side, pickValue: m ? m[0]! : '', bothScoreYes: true };
+  }
+  if (betType === 'total_over') {
+    return { handicapSide: 'home', pickValue: pick.replace(/^ТБ\s*/u, '').trim(), bothScoreYes: true };
+  }
+  if (betType === 'total_under') {
+    return { handicapSide: 'home', pickValue: pick.replace(/^ТМ\s*/u, '').trim(), bothScoreYes: true };
+  }
+  if (betType === 'exact_score') {
+    return { handicapSide: 'home', pickValue: pick, bothScoreYes: true };
+  }
+  if (betType === 'both_score') {
+    return { handicapSide: 'home', pickValue: '', bothScoreYes: pick !== 'Нет' };
+  }
+  return { handicapSide: 'home', pickValue: '', bothScoreYes: true };
+}
+
 // ── Kelly Helper ───────────────────────────────────────────────────────────────
 
 function KellyHelper({ odds, bankKopecks, onApply }: {
@@ -415,6 +497,9 @@ export function AddBetScreen() {
 
   const [legs, setLegs] = useState<ExpressLeg[]>(buildInitialLegs);
 
+  const editBetType = (editBet?.betType && editBet.betType !== 'express') ? editBet.betType : '1X2';
+  const editPickParsed = editBet ? parseEditPick(editBetType, editBet.pick ?? '') : null;
+
   const { control, handleSubmit, watch, setValue, clearErrors, formState: { errors } } = useForm<FormData>({
     defaultValues: {
       betMode: initialBetMode,
@@ -424,7 +509,7 @@ export function AddBetScreen() {
       stake: editBet ? String(editBet.stake / 100) : '',
       sport: editBet?.sport ?? 'football',
       discipline: editBet?.discipline ?? 'csgo',
-      betType: (editBet?.betType && editBet.betType !== 'express') ? editBet.betType : '1X2',
+      betType: editBetType,
       strategy: editBet?.strategy ?? 'value',
       status: editBet?.status ?? 'pending',
       notes: editBet?.notes ?? '',
@@ -437,6 +522,9 @@ export function AddBetScreen() {
       customSport: editBet?.customSport ?? '',
       customBetType: editBet?.customBetType ?? '',
       customStrategy: editBet?.customStrategy ?? '',
+      handicapSide: editPickParsed?.handicapSide ?? 'home',
+      pickValue: editPickParsed?.pickValue ?? '',
+      bothScoreYes: editPickParsed?.bothScoreYes ?? true,
     },
   });
 
@@ -523,15 +611,24 @@ export function AddBetScreen() {
         Alert.alert('Ошибка', 'Введи название команды или события');
         return;
       }
-      const pick = data.betType === '1X2'
-        ? (data.pick1x2 === 'п1'
-            ? (data.team1.trim() || 'П1')
-            : data.pick1x2 === 'п2'
-            ? (data.team2.trim() || 'П2')
-            : 'Ничья')
-        : data.betType === 'other' && data.customBetType.trim()
-        ? data.customBetType.trim()
-        : BET_TYPES[data.betType];
+      const pv = data.pickValue.trim();
+      const pick = (() => {
+        if (data.betType === '1X2') {
+          return data.pick1x2 === 'п1' ? (data.team1.trim() || 'П1')
+               : data.pick1x2 === 'п2' ? (data.team2.trim() || 'П2')
+               : 'Ничья';
+        }
+        if (data.betType === 'handicap') {
+          const side = data.handicapSide === 'home' ? 'Ф1' : 'Ф2';
+          return pv ? `${side} (${pv})` : side;
+        }
+        if (data.betType === 'total_over') return pv ? `ТБ ${pv}` : 'ТБ';
+        if (data.betType === 'total_under') return pv ? `ТМ ${pv}` : 'ТМ';
+        if (data.betType === 'both_score') return data.bothScoreYes ? 'Да' : 'Нет';
+        if (data.betType === 'exact_score') return pv || '—';
+        if (data.betType === 'other' && data.customBetType.trim()) return data.customBetType.trim();
+        return BET_TYPES[data.betType] ?? '—';
+      })();
 
       if (editBet) {
         updateBet(editBet.id, {
@@ -917,6 +1014,121 @@ export function AddBetScreen() {
           </Field>
         )}
 
+        {/* ── Handicap: side + value ─── */}
+        {isSingle && watchedBetType === 'handicap' && (
+          <>
+            <Field label="Фора">
+              <Controller
+                control={control}
+                name="handicapSide"
+                render={({ field: { onChange, value } }) => (
+                  <View style={styles.outcomePicker}>
+                    {(['home', 'away'] as const).map((side) => {
+                      const label = side === 'home'
+                        ? `Ф1${watchedTeam1.trim() ? ` (${watchedTeam1.trim()})` : ''}`
+                        : `Ф2${watchedTeam2.trim() ? ` (${watchedTeam2.trim()})` : ''}`;
+                      return (
+                        <TouchableOpacity
+                          key={side}
+                          style={[styles.outcomeBtn, value === side && styles.outcomeBtnActive]}
+                          onPress={() => { onChange(side); haptic.selection(); }}
+                          activeOpacity={0.8}
+                        >
+                          <Text style={[styles.outcomeTxt, value === side && styles.outcomeTxtActive]}>
+                            {label}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                )}
+              />
+            </Field>
+            <Field label="Значение форы (напр. −1.5, +2.5)">
+              <Controller
+                control={control}
+                name="pickValue"
+                render={({ field: { onChange, value } }) => (
+                  <TextInput
+                    style={inputStyle}
+                    placeholder="-1.5"
+                    placeholderTextColor={colors.textMuted}
+                    value={value}
+                    onChangeText={onChange}
+                    keyboardType="numbers-and-punctuation"
+                  />
+                )}
+              />
+            </Field>
+          </>
+        )}
+
+        {/* ── Total: threshold ─── */}
+        {isSingle && (watchedBetType === 'total_over' || watchedBetType === 'total_under') && (
+          <Field label={watchedBetType === 'total_over' ? 'Порог ТБ (напр. 2.5)' : 'Порог ТМ (напр. 2.5)'}>
+            <Controller
+              control={control}
+              name="pickValue"
+              render={({ field: { onChange, value } }) => (
+                <TextInput
+                  style={inputStyle}
+                  placeholder="2.5"
+                  placeholderTextColor={colors.textMuted}
+                  value={value}
+                  onChangeText={onChange}
+                  keyboardType="decimal-pad"
+                />
+              )}
+            />
+          </Field>
+        )}
+
+        {/* ── Both score: yes / no ─── */}
+        {isSingle && watchedBetType === 'both_score' && (
+          <Field label="Обе забьют?">
+            <Controller
+              control={control}
+              name="bothScoreYes"
+              render={({ field: { onChange, value } }) => (
+                <View style={styles.outcomePicker}>
+                  {([true, false] as const).map((yes) => (
+                    <TouchableOpacity
+                      key={String(yes)}
+                      style={[styles.outcomeBtn, value === yes && styles.outcomeBtnActive]}
+                      onPress={() => { onChange(yes); haptic.selection(); }}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={[styles.outcomeTxt, value === yes && styles.outcomeTxtActive]}>
+                        {yes ? 'Да' : 'Нет'}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
+            />
+          </Field>
+        )}
+
+        {/* ── Exact score: free text ─── */}
+        {isSingle && watchedBetType === 'exact_score' && (
+          <Field label="Точный счёт (напр. 2:1)">
+            <Controller
+              control={control}
+              name="pickValue"
+              render={({ field: { onChange, value } }) => (
+                <TextInput
+                  style={inputStyle}
+                  placeholder="2:1"
+                  placeholderTextColor={colors.textMuted}
+                  value={value}
+                  onChangeText={onChange}
+                  keyboardType="numbers-and-punctuation"
+                />
+              )}
+            />
+          </Field>
+        )}
+
         <Controller
           control={control}
           name="strategy"
@@ -1057,14 +1269,7 @@ export function AddBetScreen() {
             control={control}
             name="tournament"
             render={({ field: { onChange, value } }) => (
-              <TextInput
-                style={inputStyle}
-                placeholder="Лига Чемпионов, РПЛ, CS2 Major..."
-                placeholderTextColor={colors.textMuted}
-                value={value}
-                onChangeText={onChange}
-                returnKeyType="next"
-              />
+              <TournamentInput value={value} onChange={onChange} />
             )}
           />
         </Field>
