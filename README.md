@@ -1,132 +1,228 @@
-# SharkLog
+# 🦈 SharkLog — Дневник ставок
 
-> **Status:** Feature-complete, pre-release — Phase 3 (signing keys, store submission) in progress.
+<p align="center">
+  <img src="apps/desktop/public/logo-512.png" width="120" alt="SharkLog" />
+</p>
 
-Professional betting tracker for the CIS market. Mobile (React Native + Expo) and desktop (Tauri v2 + React) apps sharing a common TypeScript core.
+<p align="center">
+  Профессиональный трекер ставок для рынка СНГ.<br/>
+  Мобильное приложение (iOS + Android) и десктоп (Windows / macOS / Linux).<br/>
+  <strong>Freemium:</strong> бесплатно до 50 ставок · Pro 199 ₽/мес или 990 ₽/год
+</p>
 
-## Features
+<p align="center">
+  <a href="https://hoxitoo.github.io/Sharklog/">Лендинг</a> ·
+  <a href="https://hoxitoo.github.io/Sharklog/privacy.html">Политика конфиденциальности</a>
+</p>
 
-- **Bet tracking** — full history with sport, bookmaker, strategy, odds, stake, tournament/league; grouped by date with daily P&L
-- **5 bet statuses** — Pending / Won / Lost / Refund (букмекер вернул) / Cashout (выкуп игроком)
-- **Team autocomplete** — remembers teams per sport/esports discipline (NaVi in Dota 2 ≠ NaVi in CS2)
-- **Dashboard** — P&L curve chart, W/L strip, 12-week activity heatmap, tilt detection, best/worst bet, active strategy badge
-- **Analytics** — 7 slices: sport, bet type, bookmaker, strategy, odds range, day of week, hour of day + top tournaments block
-- **Insights** — Tournament/League stats table (Free) + Favorite Teams cards (PRO, ≥10 bets per team)
-- **Strategy Builder** (PRO) — 10-question wizard generates a personalised betting strategy; strategy badge on dashboard
-- **Bankroll** — deposit/withdrawal tracking, Kelly calculator, unit sizing, equity curve
-- **Discipline** — daily mood tracker, 8 professional rules, diary, tilt stats
-- **Import** — CSV and Excel (.xlsx) import with Russian/English column headers; export to CSV and JSON
-- **Clipboard paste** — paste a bet from clipboard to pre-fill the AddBet form (desktop)
-- **Auto-updates** — Tauri updater with signed artifacts published via GitHub Releases
-- **Freemium** — 50 free bets; PRO unlocks analytics, insights, strategy builder, bankroll, discipline features, custom limits
+---
 
-## Monorepo Structure
+## Возможности
+
+| Функция | Free | Pro |
+|---------|:----:|:---:|
+| Учёт ставок (до 50) | ✅ | ✅ |
+| Неограниченные ставки | — | ✅ |
+| Аналитика (7 срезов) | — | ✅ |
+| Инсайты по командам (≥10 ставок) | — | ✅ |
+| Банкролл + кривая капитала | — | ✅ |
+| Калькулятор Келли | — | ✅ |
+| Дневной лимит ставок | — | ✅ |
+| Тилт-алерт | ✅ (фикс. 3) | ✅ (настраиваемый) |
+| Дневник + трекер настроения | ✅ | ✅ |
+| Инсайты по турнирам | ✅ | ✅ |
+| Билдер стратегий | — | ✅ |
+| Импорт CSV / Excel | ✅ | ✅ |
+| Экспорт CSV / JSON | ✅ | ✅ |
+| 5 статусов ставки | ✅ | ✅ |
+| Автообновления (десктоп) | ✅ | ✅ |
+
+**5 статусов:** Ожидание / Победа / Поражение / Возврат (букмекер вернул) / Выкуп (кешаут)
+
+---
+
+## Структура монорепо
 
 ```
 apps/
-  mobile/     — React Native 0.85 + Expo 56 (iOS + Android)
+  mobile/     — React Native + Expo 51  (iOS + Android)
   desktop/    — Tauri v2 + React + Vite (Win / Mac / Linux)
 packages/
-  core/       — Shared business logic (types, stats, Kelly, formatters, strategy builder)
-docs/         — Roadmap, analysis, privacy policy
+  core/       — TypeScript бизнес-логика (типы, статистика, Kelly, форматтеры, стратегии)
+docs/         — ROADMAP.md, PRIVACY_POLICY.md
 ```
 
-## Quick Start
+---
+
+## Быстрый старт
+
+### Требования
+
+- Node.js 20+
+- npm 10+
+- Для нативной Tauri-сборки: Rust 1.77+ ([rustup.rs](https://rustup.rs))
+- Для мобилки: [Expo CLI](https://docs.expo.dev/get-started/installation/) и Android Studio / Xcode
+
+### Установка
 
 ```bash
-# Install dependencies
 npm install
+```
 
-# Run mobile dev server
+### Запуск
+
+```bash
+# Мобилка — Expo Dev Server
 cd apps/mobile && npx expo start
 
-# Run desktop in browser
-cd apps/desktop && npm run dev        # localhost:1420
+# Десктоп — браузер (localhost:1420)
+cd apps/desktop && npm run dev
 
-# Run desktop as native window (requires Rust)
+# Десктоп — нативное окно Tauri (требует Rust)
 cd apps/desktop && npx tauri dev
-
-# Run all tests
-cd packages/core && npx vitest run    # 12 unit tests
-cd apps/desktop && npx vitest run     # 40 smoke tests
-cd apps/mobile && npm test            # 17 smoke tests
 ```
 
-## Install Desktop App (build from source)
-
-### Prerequisites
-
-| Platform | Required |
-|----------|----------|
-| All | Rust 1.70+ (`rustup.rs`) |
-| Windows | Microsoft C++ Build Tools or Visual Studio |
-| macOS | Xcode Command Line Tools (`xcode-select --install`) |
-| Linux | `libwebkit2gtk-4.1`, `libgtk-3`, `libayatana-appindicator3` |
-
-### Build
+### Тесты
 
 ```bash
-# Install Rust
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-
-# Build the installer for your platform
-cd apps/desktop && npx tauri build
-
-# Output:
-# Windows → apps/desktop/src-tauri/target/release/bundle/msi/SharkLog_*.msi
-#         → apps/desktop/src-tauri/target/release/bundle/nsis/SharkLog_*-setup.exe
-# macOS   → apps/desktop/src-tauri/target/release/bundle/dmg/SharkLog_*.dmg
-# Linux   → apps/desktop/src-tauri/target/release/bundle/deb/sharklog_*.deb
-#         → apps/desktop/src-tauri/target/release/bundle/appimage/sharklog_*.AppImage
+cd packages/core && npx vitest run       # 12 unit-тестов
+cd apps/desktop  && npm test             # 40 smoke-тестов
+cd apps/desktop  && npx playwright test  # 22 E2E-тестов
+cd apps/mobile   && npm test             # 17 smoke-тестов
 ```
 
-First build takes ~5–10 min (compiles Rust). Subsequent builds are faster.
+### Проверка типов
 
-## Tech Stack
+```bash
+cd apps/desktop && npx tsc --noEmit
+cd apps/mobile  && npx tsc --noEmit
+```
 
-| Layer | Mobile | Desktop |
-|-------|--------|---------|
-| Framework | React Native 0.85 + Expo 56 | Tauri v2 + React 18 |
-| State | Zustand + AsyncStorage | Zustand + SQLite (localStorage fallback) |
-| Charts | react-native-gifted-charts | Recharts |
-| Fonts | DM Sans + DM Mono (expo-google-fonts) | DM Sans + DM Mono (Google CDN) |
-| Payments | RevenueCat | — (planned: LemonSqueezy) |
-| Updates | EAS OTA | Tauri updater (signed, GitHub Releases) |
-| Tests | Jest 29 (17 smoke) | Vitest (40 smoke) |
-| Language | TypeScript strict | TypeScript strict |
+---
 
-## Key Conventions
+## Сборка и релиз
 
-- **Money in kopecks** — all monetary values stored as integers (no float precision issues). `1000 ₽ = 100_000`
-- **formatMoney(kopecks, currency?, maxDecimals?)** — `maxDecimals` defaults to 2; pass `0` for whole-ruble display. On mobile use `useFormatMoney()` hook which respects `settings.roundAmounts`
-- **UUID v4** — all entity IDs generated client-side, never `Date.now()`
-- **refund ≠ cashout** — `refund`: bookmaker returned stake (cancelled match); `cashout`: player cashed out early
-- **PRO features** guarded by `canAddBet()` / `<ProGate>` — never bypass
-- **Freemium limits** defined in `packages/core/src/constants/index.ts` (`FREE_LIMITS`)
-- **exactOptionalPropertyTypes: true** — use `{...(x ? { prop: x } : {})}`, not `prop={undefined}`
-- **formatPercent()** already adds `+` prefix for positive values — do not add it manually
+### Desktop — нативный инсталлер
 
-## Color Palette
+```bash
+cd apps/desktop && npx tauri build
+# Windows → src-tauri/target/release/bundle/msi/*.msi
+# macOS   → src-tauri/target/release/bundle/dmg/*.dmg
+# Linux   → src-tauri/target/release/bundle/appimage/*.AppImage
+```
 
-| Color | Hex | Usage |
-|-------|-----|-------|
-| Teal | `#22D3A0` | Win indicators, positive values, accent |
-| Purple | `#5B6AF0` | CTAs, interactive elements, active states |
-| Red | `#F4455A` | Loss indicators, negative values |
-| Gold | `#F59E0B` | Pending bets, PRO badge |
-| Violet | `#A78BFA` | Refunds, secondary stats |
+Первая сборка ~10–15 минут (компиляция Rust). Последующие быстрее.
 
-## Pricing
+### Desktop — автоматический релиз через GitHub Actions
 
-- **Free**: 50 bets, basic stats, tilt alerts (fixed threshold), tournament stats
-- **Pro**: 199 ₽/month or 990 ₽/year — unlimited bets, full analytics, insights (teams), strategy builder, bankroll tracker, discipline module, custom tilt/daily limits, custom reminder time
+Создай тег вида `v1.0.0` — CI автоматически соберёт инсталлеры для всех трёх платформ и опубликует GitHub Release:
 
-## CI / Release
+```bash
+git tag v1.0.0 && git push origin v1.0.0
+```
 
-- **CI** (`.github/workflows/ci.yml`): runs on every push — vitest (core + desktop), jest (mobile), tsc (mobile + desktop)
-- **EAS Build** (`.github/workflows/eas-build.yml`): manual trigger — builds mobile app via Expo Application Services
-- **Desktop Release** (`.github/workflows/release-desktop.yml`): triggered by `v*` tags — builds signed installers for Windows/macOS/Linux and publishes a GitHub Release with auto-updater manifest
+> Подробная инструкция: [`docs/RELEASE_GUIDE.md`](docs/RELEASE_GUIDE.md)
 
-## License
+### Mobile — EAS Build
 
-MIT
+```bash
+# Android APK / AAB
+eas build -p android --profile production
+
+# iOS IPA
+eas build -p ios --profile production
+
+# Публикация в сторы
+eas submit -p android
+eas submit -p ios
+```
+
+Или запусти вручную через GitHub Actions → **EAS Build** workflow.
+
+---
+
+## Технологии
+
+| | Мобилка | Десктоп |
+|-|---------|---------|
+| Фреймворк | React Native + Expo 51 | Tauri v2 + React 18 |
+| Состояние | Zustand + AsyncStorage | Zustand + SQLite / localStorage |
+| Графики | react-native-gifted-charts | Recharts |
+| Шрифты | DM Sans + DM Mono | DM Sans + DM Mono |
+| Оплата | RevenueCat | — (планируется LemonSqueezy) |
+| Обновления | EAS OTA | Tauri updater (подписанные, GitHub Releases) |
+| Тесты | Jest (17 smoke) | Vitest (40 smoke) + Playwright (22 E2E) |
+| Язык | TypeScript strict | TypeScript strict |
+
+---
+
+## Ключевые соглашения
+
+- **Деньги в копейках** — все суммы хранятся как `integer`. `1000 ₽ = 100_000 коп.`  
+  `formatMoney(kopecks)` — для отображения, `parseMoneyInput(str)` — для парсинга ввода.  
+  На мобилке: `useFormatMoney()` — учитывает `settings.roundAmounts`.
+
+- **UUID v4** для всех ID. Никогда не `Date.now()`.
+
+- **refund ≠ cashout**: `refund` — букмекер вернул ставку (отмена матча); `cashout` — игрок выкупил сам.
+
+- **PRO-гейт**: `canAddBet()` в стор, `<ProGate>` на мобилке — не обходить.
+
+- **`exactOptionalPropertyTypes: true`**: писать `{...(x ? { prop: x } : {})}`, не `prop={undefined}`.
+
+- **`formatPercent()`** уже добавляет `+` для положительных — не добавлять вручную.
+
+---
+
+## Цветовая система
+
+| Цвет | HEX | Назначение |
+|------|-----|-----------|
+| Teal | `#22D3A0` | Победы, положительные значения, акцент |
+| Purple | `#5B6AF0` | CTA-кнопки, активные состояния |
+| Red | `#F4455A` | Поражения, отрицательные значения |
+| Gold | `#F59E0B` | Ожидающие ставки, PRO-бейдж |
+| Violet | `#A78BFA` | Возвраты, кешаут |
+
+---
+
+## Переменные окружения
+
+**Desktop** — `apps/desktop/.env.local` (в .gitignore):
+```env
+VITE_OWNER_PRO=true   # Pro без покупки (owner-режим)
+```
+
+**Mobile** — через EAS Secrets или `.env.local`:
+```env
+EXPO_PUBLIC_RC_IOS_KEY=...
+EXPO_PUBLIC_RC_ANDROID_KEY=...
+EXPO_PUBLIC_ENV=production
+```
+
+---
+
+## CI/CD
+
+| Workflow | Триггер | Что делает |
+|----------|---------|-----------|
+| `ci.yml` | push / PR → main | unit-тесты, E2E, tsc |
+| `release-desktop.yml` | тег `v*` | сборка Win/Mac/Linux инсталлеров + GitHub Release |
+| `eas-build.yml` | вручную | EAS Build для Android / iOS |
+
+---
+
+## Git-ветки
+
+| Ветка | Назначение |
+|-------|-----------|
+| `main` | Продакшен — только через PR, CI должен быть зелёным |
+| `claude/busy-shannon-jQgRK` | Активная разработка |
+
+**Никогда не пушить напрямую в `main`.**
+
+---
+
+## Лицензия
+
+Proprietary — все права защищены.

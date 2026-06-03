@@ -10,7 +10,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { Sport, BetType, Strategy, BetStatus, EsportsDiscipline, Team } from '@sharklog/core';
 import {
   SPORTS, BET_TYPES, STRATEGIES, ESPORTS_DISCIPLINES, parseMoneyInput, formatMoney,
-  impliedProbability, halfKelly, expectedValue, recommendedStake, CURRENT_SCHEMA_VERSION,
+  impliedProbability, halfKelly, expectedValue, recommendedStake, CURRENT_SCHEMA_VERSION, FREE_LIMITS,
 } from '@sharklog/core';
 import { colors } from '../../theme/colors';
 import { useBetsStore } from '../../store/betsStore';
@@ -472,7 +472,7 @@ const kl = StyleSheet.create({
 export function AddBetScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
-  const { bets, addBet, updateBet, settings, bankroll } = useBetsStore();
+  const { bets, addBet, updateBet, settings, bankroll, canAddBet } = useBetsStore();
   const [kellyOpen, setKellyOpen] = useState(false);
   const team2Ref = useRef<TextInput>(null);
 
@@ -596,6 +596,16 @@ export function AddBetScreen() {
       return;
     }
 
+    if (!editBet && !canAddBet()) {
+      Alert.alert(
+        settings.isPro ? 'Дневной лимит' : 'Лимит Free',
+        settings.isPro
+          ? `Дневной лимит (${settings.dailyBetLimit} ставок) достигнут. Измени лимит в Настройках.`
+          : `Бесплатная версия позволяет не более ${FREE_LIMITS.MAX_BETS} ставок.\nПерейди на Pro для неограниченного учёта.`,
+      );
+      return;
+    }
+
     const extras = {
       ...(data.sport === 'esports' ? { discipline: data.discipline } : {}),
       ...(data.notes ? { notes: data.notes } : {}),
@@ -685,7 +695,7 @@ export function AddBetScreen() {
           date: dateVal, time: timeVal,
           event, pick: 'Экспресс', odds: combinedOdds, stake: stakeVal,
           sport: data.sport, betType: 'express', strategy: data.strategy,
-          status: data.status, bookmaker: data.bookmaker, schemaVersion: 1, ...extras, ...cashoutExtras,
+          status: data.status, bookmaker: data.bookmaker, schemaVersion: CURRENT_SCHEMA_VERSION, ...extras, ...cashoutExtras,
         });
       }
     }
