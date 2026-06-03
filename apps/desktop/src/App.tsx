@@ -9,13 +9,15 @@ import { SettingsPage } from './pages/SettingsPage';
 import { DiaryPage } from './pages/DiaryPage';
 import { InsightsPage } from './pages/InsightsPage';
 import { StrategyBuilderPage } from './pages/StrategyBuilderPage';
+import { PartnersPage } from './pages/PartnersPage';
 import { OnboardingPage } from './pages/OnboardingPage';
 import { AddBetModal } from './pages/AddBetModal';
 import { Toaster } from './components/Toaster';
 import { useBetsStore } from './store/betsStore';
 import { colors } from './theme/colors';
+import { Analytics } from './utils/analytics';
 
-const PAGE_ORDER: Page[] = ['dashboard', 'bets', 'analytics', 'insights', 'strategy', 'bankroll', 'diary', 'settings'];
+const PAGE_ORDER: Page[] = ['dashboard', 'bets', 'analytics', 'insights', 'strategy', 'bankroll', 'diary', 'settings', 'partners'];
 
 export function App() {
   const load = useBetsStore((s) => s.load);
@@ -24,7 +26,7 @@ export function App() {
   const [page, setPage] = useState<Page>('dashboard');
   const [modalBet, setModalBet] = useState<Bet | null | 'new'>(null);
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => { load(); Analytics.appOpen(); }, []);
 
   function openAdd() { setModalBet('new'); }
   function openEdit(bet: Bet) { setModalBet(bet); }
@@ -80,6 +82,7 @@ export function App() {
           {page === 'bankroll' && <BankrollPage />}
           {page === 'diary' && <DiaryPage />}
           {page === 'settings' && <SettingsPage />}
+          {page === 'partners' && <PartnersPage />}
         </div>
       </AppLayout>
 

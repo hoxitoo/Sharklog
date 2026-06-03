@@ -3,7 +3,7 @@ import { FREE_LIMITS } from '@sharklog/core';
 import { colors } from '../theme/colors';
 import { useBetsStore } from '../store/betsStore';
 
-export type Page = 'dashboard' | 'bets' | 'analytics' | 'insights' | 'strategy' | 'bankroll' | 'diary' | 'settings';
+export type Page = 'dashboard' | 'bets' | 'analytics' | 'insights' | 'strategy' | 'bankroll' | 'diary' | 'settings' | 'partners';
 
 const NAV: Array<{ id: Page; icon: string; label: string; pro?: boolean }> = [
   { id: 'dashboard', icon: '📊', label: 'Дашборд' },
@@ -14,6 +14,7 @@ const NAV: Array<{ id: Page; icon: string; label: string; pro?: boolean }> = [
   { id: 'bankroll', icon: '💰', label: 'Банкролл' },
   { id: 'diary', icon: '🧘', label: 'Дисциплина' },
   { id: 'settings', icon: '⚙️', label: 'Настройки' },
+  { id: 'partners', icon: '🤝', label: 'Партнёры' },
 ];
 
 interface Props {

@@ -509,6 +509,19 @@ export function SettingsScreen() {
           </TouchableOpacity>
         </Section>
 
+        <TouchableOpacity
+          style={styles.partnersBtn}
+          onPress={() => navigation.navigate('Partners')}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.strategyBtnIcon}>🤝</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.strategyBtnText}>Партнёры</Text>
+            <Text style={styles.strategyBtnSub}>Бонусы при регистрации у букмекеров</Text>
+          </View>
+          <Text style={styles.strategyBtnArrow}>→</Text>
+        </TouchableOpacity>
+
         <Section title="Опасная зона">
           <TouchableOpacity style={styles.dangerBtn} onPress={handleClearData}>
             <Text style={styles.dangerBtnText}>Очистить все данные</Text>
@@ -536,6 +549,12 @@ const styles = StyleSheet.create({
   strategyBtnText: { fontSize: 14, fontWeight: '700', color: colors.textPrimary },
   strategyBtnSub: { fontSize: 11, color: colors.textSecondary, marginTop: 2 },
   strategyBtnArrow: { fontSize: 14, color: colors.textMuted },
+  partnersBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 12,
+    marginHorizontal: 16, marginBottom: 16, padding: 14,
+    backgroundColor: colors.accent + '14', borderRadius: 12,
+    borderWidth: 1, borderColor: colors.accent + '44',
+  },
   proBtn: { backgroundColor: colors.gold, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 },
   proBtnText: { fontSize: 13, fontWeight: '700', color: '#000' },
   proBadge: {

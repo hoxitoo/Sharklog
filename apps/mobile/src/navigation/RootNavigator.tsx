@@ -13,12 +13,14 @@ import { BankrollScreen } from '../screens/BankrollScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import { AddBetScreen } from '../screens/AddBetScreen';
 import { StrategyBuilderScreen } from '../screens/StrategyBuilderScreen';
+import { PartnersScreen } from '../screens/PartnersScreen';
 
 export type RootStackParamList = {
   Tabs: undefined;
   AddBet: { betId?: string };
   Bankroll: undefined;
   StrategyBuilder: undefined;
+  Partners: undefined;
 };
 
 export type TabParamList = {
@@ -115,6 +117,17 @@ export function RootNavigator() {
           headerTintColor: colors.textPrimary,
           headerTitleStyle: { color: colors.textPrimary, fontWeight: '700' },
           title: 'Билдер стратегий',
+        }}
+      />
+      <Stack.Screen
+        name="Partners"
+        component={PartnersScreen}
+        options={{
+          headerShown: true,
+          headerStyle: { backgroundColor: colors.bgCard },
+          headerTintColor: colors.textPrimary,
+          headerTitleStyle: { color: colors.textPrimary, fontWeight: '700' },
+          title: 'Партнёры',
         }}
       />
     </Stack.Navigator>
