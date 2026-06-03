@@ -1,6 +1,6 @@
 # SharkLog — Roadmap
 
-_Обновлено: 2026-05-29 (batch 8)_
+_Обновлено: 2026-06-03 (batch 9)_
 
 ---
 
@@ -119,53 +119,82 @@ _Обновлено: 2026-05-29 (batch 8)_
 - **M-5** `opener:default` удалён из Tauri capabilities (неиспользуемый вектор XSS→IPC)
 - **M-7** Лимит 10 МБ на все три типа импорта (JSON / CSV / XLSX)
 
+### Bug audit & fixes (batch 9)
+- `parseMoneyInput("1,000")` — правильный парсинг тысячных разрядов (было: 1₽, стало: 1000₽)
+- `potentialWin` = `stake × (odds − 1)` везде (было `stake × odds`)
+- Кривая капитала учитывает кешаут (`cashout` → `cashoutAmount − stake`)
+- Тилт-детекция использует полный список ставок, а не фильтрованный
+- `canAddBet()` теперь вызывается в `AddBetScreen.onSubmit` (ранее Free-лимит не соблюдался)
+- `parseEventTeams` экспортирована из `packages/core`
+- Замена `xlsx@0.18.5` (CVE) на `@e965/xlsx@0.20.3` (патченный fork)
+- `schemaVersion: 1` хардкод заменён на `CURRENT_SCHEMA_VERSION` везде
+- 7-дневный trial: `proExpiresAt` → автоотзыв при `load()`, "Отключить" скрыт в production
+- `syncEntitlement` возвращает `null` при нет-сети (сохранить состояние) vs `false` (отписался)
+- Tauri capability: добавлен `sql:allow-execute` (иначе `saveData()` падал в production)
+- Easter egg `handleDevTap()` защищён `if (!__DEV__) return`
+- E2E тесты: все 22 Playwright-теста зелёные
+- `test-results/`, `playwright-report/` добавлены в `.gitignore`
+
 ---
 
 ## 🔄 Phase 3 — Пред-релизная подготовка (в работе)
 
-### Blocker: подписи и ключи
-- [x] `npx tauri signer generate` → `TAURI_SIGNING_PRIVATE_KEY` добавлен в GitHub Secrets, desktop-релиз выпущен
-- [x] Реальный публичный ключ прописан в `tauri.conf.json`
-- [x] Реальный `projectId` прописан в `app.json` (`5d3248d5-6413-4bfc-afd6-83d5bfe75c35`)
+### ✅ Завершено
+- [x] `TAURI_SIGNING_PRIVATE_KEY` добавлен в GitHub Secrets; desktop-релиз выпущен
+- [x] Публичный ключ обновления в `tauri.conf.json`
+- [x] `projectId` в `app.json` (`5d3248d5-6413-4bfc-afd6-83d5bfe75c35`)
+- [x] Лендинг + Privacy Policy на GitHub Pages (`gh-pages` ветка)
+- [x] README.md на русском
+- [x] GitHub Actions: CI + desktop release + EAS build workflows
 
-### Store prep (mobile)
-- [ ] Финальные иконки (заменить placeholder — нужен дизайнер/Figma)
-- [ ] Скриншоты для App Store / Google Play (нужен физический запуск)
-- [ ] `eas.json`: заполнить Apple ID для submit
-- [ ] Задеплоить Privacy Policy URL
+### 🔴 Критические блокеры (без них нельзя в сторы)
 
-### Монетизация
-- [ ] LemonSqueezy для desktop (платежи, webhook → isPro)
-- [ ] RevenueCat: заполнить реальный projectId для iOS/Android
+| Задача | Где | Оценка |
+|--------|-----|--------|
+| Финальные иконки (1024×1024, без placeholder) | Mobile | 1–2 дня |
+| Скриншоты для App Store / Google Play | Mobile | 1 день |
+| Privacy Policy URL в `app.json` / App Store Connect | Mobile | 30 мин |
+| Apple Developer account + App ID | iOS | — |
+| Google Play Console аккаунт | Android | — |
+| `eas.json`: Apple ID для `eas submit` | iOS | 30 мин |
+| RevenueCat: создать продукты iOS / Android | Mobile | 2 ч |
+| Sentry DSN в `eas.json` production | Mobile | 30 мин |
 
-### Observability
-- [ ] Sentry DSN настроить в `eas.json` production env (mobile)
-- [ ] Sentry для desktop (опционально)
+### 🟡 Важно, но не блокируют первый релиз
+
+| Задача | Где | Оценка |
+|--------|-----|--------|
+| LemonSqueezy для desktop (вебхук → `isPro`) | Desktop | 2–3 дня |
+| Sentry для desktop | Desktop | 2 ч |
+| Аналитика событий (Amplitude / PostHog) | Both | 1–2 дня |
+| Описания приложений (App Store / GP) | — | 2–4 ч |
+| Первый GitHub Release `v1.0.0` для кнопки "Проверить обновления" | Desktop | 15 мин |
 
 ---
 
-## ⬜ Phase 4 — Рост (будущее)
+## ⬜ Phase 4 — Рост (после первого релиза)
 
-| Фича | Платформа | Приоритет |
-|------|-----------|-----------|
-| E2E тесты (Detox) | Mobile | low |
-| E2E тесты (Playwright) | Desktop | low |
-| Multi-bankroll | Both | medium |
-| Cloud sync / backup | Both | high |
-| Odds API интеграция | Both | medium |
-| Виджеты (iOS/Android) | Mobile | low |
-| Telegram bot export | Both | low |
+| Фича | Платформа | Приоритет | Оценка |
+|------|-----------|-----------|--------|
+| Cloud sync / backup | Both | 🔴 high | 2–3 нед |
+| Раздел с партнёрами (реф-ссылки на БК) | Both | 🟡 medium | 1 день |
+| Перевод на EN / KZ / BY | Both | 🟡 medium | 3–5 дней |
+| Odds API (автозаполнение кэфов) | Both | 🟡 medium | 3–5 дней |
+| Виджеты iOS / Android | Mobile | 🟢 low | 1 нед |
+| Telegram bot (уведомления / экспорт) | Both | 🟢 low | 1 нед |
+| Multi-bankroll | Both | 🟡 medium | 3–5 дней |
+| Авторизация + профиль пользователя | Both | 🔴 high | 2–4 нед |
+| Альтернативные методы оплаты (desktop) | Desktop | 🟡 medium | 1 нед |
 
 ---
 
 ## Технические долги
 
-| Долг | Важность | Когда |
-|------|----------|-------|
-| Финальные иконки | medium | До App Store |
-| LemonSqueezy (desktop) | high | Phase 3 |
-| Sentry DSN | medium | Phase 3 |
-| EAS projectId | high | Phase 3 (blocker) |
-| Tauri signing key | high | Phase 3 (blocker) |
-| E2E тесты | low | Phase 4 |
-| Cloud sync | high | Phase 4 |
+| Долг | Важность | Статус |
+|------|----------|--------|
+| Финальные иконки | 🔴 high | В работе |
+| LemonSqueezy (desktop) | 🔴 high | Не начато |
+| Sentry DSN | 🟡 medium | Не начато |
+| Cloud sync (Supabase?) | 🔴 high | Phase 4 |
+| i18n-рефакторинг (500+ строк) | 🟡 medium | Phase 4 |
+| E2E Detox (mobile) | 🟢 low | Phase 4 |
