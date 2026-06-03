@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  filtersScroll: { marginBottom: 8, flexGrow: 0 },
+  filtersScroll: { marginBottom: 8, flexGrow: 0, flexShrink: 0 },
   filters: {
     flexDirection: 'row',
     paddingHorizontal: 16,
@@ -295,8 +295,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   filterBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 5,
+    flexShrink: 0,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 8,
     backgroundColor: colors.bgCard,
     borderWidth: 1,
