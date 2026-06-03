@@ -15,6 +15,7 @@ import {
 import { colors } from '../../theme/colors';
 import { useBetsStore } from '../../store/betsStore';
 import { haptic } from '../../utils/haptics';
+import { Analytics } from '../../services/analytics';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'AddBet'>;
@@ -665,6 +666,7 @@ export function AddBetScreen() {
           sport: data.sport, betType: data.betType, strategy: data.strategy,
           status: data.status, bookmaker: data.bookmaker, schemaVersion: CURRENT_SCHEMA_VERSION, ...extras, ...cashoutExtras,
         });
+        Analytics.betAdded({ sport: data.sport, betType: data.betType, bookmaker: data.bookmaker, status: data.status });
       }
     } else {
       const validLegs = legs.filter((l) => {

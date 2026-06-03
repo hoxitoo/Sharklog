@@ -10,6 +10,7 @@ import { useBetsStore } from '../store/betsStore';
 import { ChecklistModal } from '../components/ChecklistModal';
 import { colors } from '../theme/colors';
 import { parseClipboardText, isUsefulPaste } from '../utils/clipboardParser';
+import { Analytics } from '../utils/analytics';
 
 function uuid(): string {
   return crypto.randomUUID();
@@ -364,6 +365,7 @@ export function AddBetModal({ editBet, onClose }: Props) {
         betType, strategy, status, bookmaker, schemaVersion: CURRENT_SCHEMA_VERSION,
         ...extras,
       });
+      Analytics.betAdded({ sport, betType, bookmaker, status });
     }
     onClose();
   }

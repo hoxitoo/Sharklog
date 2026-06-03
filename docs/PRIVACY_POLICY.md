@@ -1,6 +1,6 @@
 # Privacy Policy — SharkLog
 
-**Last updated: 2026-05-24**
+**Last updated: 2026-06-03**
 
 ## 1. Overview
 
@@ -18,9 +18,19 @@ All bet records, bankroll entries, diary notes, and settings are stored **only o
 |---------|---------|-------------|
 | **RevenueCat** | Subscription management | Anonymous device ID, purchase receipt |
 | **Sentry** (if enabled) | Crash reporting | Stack traces, OS/app version (no bet data) |
+| **PostHog** (if configured) | Anonymous usage analytics | Anonymous device ID, event name, OS/app version (no bet data, no PII) |
 | **Apple / Google** | In-App Purchase processing | Standard purchase flow |
 
 We do **not** collect names, email addresses, betting history, or any financial information on our servers.
+
+### 2.3 Usage analytics
+
+If configured, we collect anonymous usage events (e.g. "app opened", "bet added", "export triggered") to improve the product. Events contain only:
+- A randomly-generated anonymous device ID (not linked to any personal information)
+- Event name and category (e.g. "bet_added", sport type, bet type)
+- OS name and app version
+
+**No bet amounts, outcomes, event names, or any personally identifiable information is ever sent.** The analytics key is an environment variable — if not set, all analytics calls are no-ops.
 
 ## 3. Purchases and Subscriptions
 
@@ -48,7 +58,11 @@ The App is not intended for users under 18. Sports betting is an activity for ad
 
 We may update this policy when we add new features. The "Last updated" date at the top will reflect the most recent revision. Continued use of the App constitutes acceptance of the updated policy.
 
-## 8. Contact
+## 8. Partner Links
+
+The "Partners" section in the app contains referral links to bookmakers. When you follow a link and register, we may receive a commission. These links open in an external browser; the bookmaker's own privacy policy governs data collected on their site. We do not receive any information about whether you registered or deposited.
+
+## 9. Contact
 
 Questions? Reach us at: **support@sharklog.app**
 

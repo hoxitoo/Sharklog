@@ -13,6 +13,7 @@ import { colors } from './src/theme/colors';
 import { scheduleDailyReminder } from './src/utils/notifications';
 import { initRevenueCat, syncEntitlement } from './src/services/revenueCat';
 import { initSentry } from './src/services/sentry';
+import { Analytics } from './src/services/analytics';
 
 export default function App() {
   const load = useBetsStore((s) => s.load);
@@ -32,6 +33,7 @@ export default function App() {
   useEffect(() => {
     initSentry();
     initRevenueCat();
+    Analytics.appOpen();
     load().then(async () => {
       // Read reminderHour from store after load completes so we use the persisted value
       const { settings } = useBetsStore.getState();
