@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Alert, Modal,
+  TextInput, Alert, Modal, ActivityIndicator,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -16,6 +16,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
 import { ProGate } from '../../components/ProGate';
+import { restorePurchases } from '../../services/revenueCat';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
@@ -95,8 +96,15 @@ export function SettingsScreen() {
   const devTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'latest' | 'available'>('idle');
   const [latestVersion, setLatestVersion] = useState('');
+  const [restoring, setRestoring] = useState(false);
 
   const APP_VERSION = '1.0.0';
+
+  // Days since last backup (null = never)
+  const daysSinceBackup = settings.lastBackupAt
+    ? Math.floor((Date.now() - new Date(settings.lastBackupAt).getTime()) / 86_400_000)
+    : null;
+  const showBackupBanner = bets.length > 0 && (daysSinceBackup === null || daysSinceBackup > 30);
 
   async function handleCheckUpdate() {
     setUpdateStatus('checking');
@@ -269,15 +277,39 @@ export function SettingsScreen() {
       await FileSystem.writeAsStringAsync(path, backup, { encoding: FileSystem.EncodingType.UTF8 });
       await Sharing.shareAsync(path, { mimeType: 'application/json', dialogTitle: 'Резервная копия SharkLog' });
       await FileSystem.deleteAsync(path, { idempotent: true });
+      updateSettings({ lastBackupAt: new Date().toISOString() });
     } catch {
       Alert.alert('Ошибка', 'Не удалось создать резервную копию');
     }
   }
 
+  async function handleRestorePurchases() {
+    setRestoring(true);
+    try {
+      const isPro = await restorePurchases();
+      if (isPro) {
+        updateSettings({ isPro: true });
+        Alert.alert('Готово ✅', 'Подписка Pro восстановлена');
+      } else {
+        Alert.alert('Ничего не найдено', 'Активная подписка Pro не обнаружена.\n\nЕсли ты уверен что подписывался — убедись что зашёл в тот же Apple ID / Google аккаунт.');
+      }
+    } catch {
+      Alert.alert('Ошибка', 'Не удалось связаться с сервером. Проверь интернет-соединение.');
+    } finally {
+      setRestoring(false);
+    }
+  }
+
   function handleClearData() {
+    const proNote = settings.isPro
+      ? '\n\n✅ Подписка Pro НЕ затрагивается — она привязана к твоему App Store / Google Play аккаунту. После очистки нажми «Восстановить покупки».'
+      : '';
+    const backupNote = daysSinceBackup === null
+      ? '\n\n⚠️ Ты ещё ни разу не делал резервную копию. Рекомендуем сначала нажать «Резервная копия (JSON)».'
+      : '';
     Alert.alert(
       'Очистить все данные?',
-      'Все ставки, банкролл, дневник и команды будут удалены навсегда.',
+      `Все ставки, банкролл, дневник и команды будут удалены НАВСЕГДА — без возможности восстановления.${proNote}${backupNote}`,
       [
         { text: 'Отмена', style: 'cancel' },
         { text: 'Очистить', style: 'destructive', onPress: () => clearAll() },
@@ -327,15 +359,53 @@ export function SettingsScreen() {
       >
         <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
           <Text style={styles.title}>Настройки</Text>
-          {!settings.isPro ? (
-            <TouchableOpacity style={styles.proBtn} onPress={() => setShowPaywall(true)}>
-              <Text style={styles.proBtnText}>👑 Попробовать Pro</Text>
-            </TouchableOpacity>
-          ) : (
-            <View style={styles.proBadge}>
-              <Text style={styles.proBadgeText}>👑 PRO</Text>
+        </View>
+
+        {/* Backup reminder banner */}
+        {showBackupBanner && (
+          <TouchableOpacity style={styles.backupBanner} onPress={handleBackupJSON} activeOpacity={0.8}>
+            <Text style={styles.backupBannerIcon}>💾</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.backupBannerTitle}>
+                {daysSinceBackup === null ? 'Резервная копия не создана' : `Последняя копия: ${daysSinceBackup} дн. назад`}
+              </Text>
+              <Text style={styles.backupBannerSub}>
+                При удалении приложения ставки исчезнут. Нажми чтобы сохранить.
+              </Text>
             </View>
+            <Text style={styles.backupBannerArrow}>→</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Pro subscription info */}
+        <View style={styles.subscriptionCard}>
+          <View style={styles.subscriptionRow}>
+            <Text style={styles.subscriptionIcon}>{settings.isPro ? '👑' : '🆓'}</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.subscriptionTitle}>
+                {settings.isPro ? 'SharkLog Pro' : 'Бесплатная версия'}
+              </Text>
+              <Text style={styles.subscriptionSub}>
+                {settings.isPro
+                  ? 'Подписка активна. Привязана к App Store / Google Play аккаунту — сохраняется при переустановке.'
+                  : 'До 50 ставок. Купи Pro для неограниченного учёта.'}
+              </Text>
+            </View>
+          </View>
+          {!settings.isPro && (
+            <TouchableOpacity style={styles.proUpgradeBtn} onPress={() => setShowPaywall(true)} activeOpacity={0.8}>
+              <Text style={styles.proUpgradeBtnText}>👑 Попробовать Pro</Text>
+            </TouchableOpacity>
           )}
+          <TouchableOpacity style={styles.restoreBtn} onPress={handleRestorePurchases} disabled={restoring} activeOpacity={0.8}>
+            {restoring
+              ? <ActivityIndicator size="small" color={colors.purple} />
+              : <Text style={styles.restoreBtnText}>🔄 Восстановить покупки</Text>
+            }
+          </TouchableOpacity>
+          <Text style={styles.subscriptionHint}>
+            Уже подписан на другом устройстве или после переустановки? Нажми «Восстановить покупки».
+          </Text>
         </View>
 
         {settings.isPro && (
@@ -599,4 +669,39 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgElevated, alignItems: 'center', justifyContent: 'center',
   },
   paywallCloseText: { fontSize: 14, color: colors.textSecondary, fontWeight: '700' },
+
+  // Backup banner
+  backupBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    marginHorizontal: 16, marginBottom: 12, padding: 14,
+    backgroundColor: '#F59E0B18', borderRadius: 12,
+    borderWidth: 1, borderColor: '#F59E0B44',
+  },
+  backupBannerIcon: { fontSize: 22 },
+  backupBannerTitle: { fontSize: 13, fontWeight: '700', color: '#F59E0B' },
+  backupBannerSub: { fontSize: 11, color: colors.textSecondary, marginTop: 2 },
+  backupBannerArrow: { fontSize: 14, color: colors.textMuted },
+
+  // Subscription card
+  subscriptionCard: {
+    marginHorizontal: 16, marginBottom: 16,
+    backgroundColor: colors.bgCard, borderRadius: 14,
+    padding: 16, borderWidth: 1, borderColor: colors.border, gap: 10,
+  },
+  subscriptionRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  subscriptionIcon: { fontSize: 24, marginTop: 2 },
+  subscriptionTitle: { fontSize: 15, fontWeight: '700', color: colors.textPrimary, marginBottom: 4 },
+  subscriptionSub: { fontSize: 12, color: colors.textSecondary, lineHeight: 17 },
+  proUpgradeBtn: {
+    backgroundColor: colors.gold, borderRadius: 10,
+    paddingVertical: 10, alignItems: 'center',
+  },
+  proUpgradeBtnText: { fontSize: 14, fontWeight: '700', color: '#000' },
+  restoreBtn: {
+    backgroundColor: colors.bgElevated, borderRadius: 10,
+    paddingVertical: 10, alignItems: 'center',
+    borderWidth: 1, borderColor: colors.border,
+  },
+  restoreBtnText: { fontSize: 14, fontWeight: '600', color: colors.textSecondary },
+  subscriptionHint: { fontSize: 11, color: colors.textMuted, textAlign: 'center', lineHeight: 16 },
 });
