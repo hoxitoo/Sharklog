@@ -14,7 +14,13 @@ export function SettingsPage() {
   const toast = useToastStore((s) => s.show);
   const [newBk, setNewBk] = useState('');
   const [confirmClear, setConfirmClear] = useState(false);
+  const [clearMessage, setClearMessage] = useState('');
   const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'available' | 'latest' | 'error'>('idle');
+
+  const daysSinceBackup = settings.lastBackupAt
+    ? Math.floor((Date.now() - new Date(settings.lastBackupAt).getTime()) / 86_400_000)
+    : null;
+  const showBackupBanner = bets.length > 0 && (daysSinceBackup === null || daysSinceBackup > 30);
 
   function addBookmaker() {
     const t = newBk.trim();
@@ -36,6 +42,7 @@ export function SettingsPage() {
     a.download = `sharklog-backup-${new Date().toISOString().split('T')[0]}.json`;
     a.click();
     URL.revokeObjectURL(url);
+    updateSettings({ lastBackupAt: new Date().toISOString() });
     toast(`Резервная копия сохранена (${b.length} ставок)`, 'success');
   }
 
@@ -179,6 +186,13 @@ export function SettingsPage() {
   }
 
   function handleClearData() {
+    const proNote = settings.isPro
+      ? '\n\n⚠️ Подписка Pro на десктопе хранится локально — она будет сброшена вместе с данными. Активируй её снова через «Попробовать Pro».'
+      : '';
+    const backupNote = daysSinceBackup === null
+      ? '\n\n💾 Ты ещё ни разу не делал резервную копию. Рекомендуем сначала нажать «Резервная копия JSON».'
+      : '';
+    setClearMessage(`Все ставки, банкролл, дневник и команды будут удалены НАВСЕГДА — без возможности восстановления.${proNote}${backupNote}`);
     setConfirmClear(true);
   }
 
@@ -186,7 +200,7 @@ export function SettingsPage() {
     <div style={s.page}>
       {confirmClear && (
         <ConfirmModal
-          message="Очистить все данные? Это действие нельзя отменить."
+          message={clearMessage}
           confirmLabel="Очистить"
           onConfirm={() => { clearAll(); setConfirmClear(false); toast('Данные очищены', 'info'); }}
           onCancel={() => setConfirmClear(false)}
@@ -195,33 +209,59 @@ export function SettingsPage() {
 
       <h1 style={s.title}>Настройки</h1>
 
+      {/* Backup banner */}
+      {showBackupBanner && (
+        <div style={s.backupBanner} onClick={handleExportJSON}>
+          <span style={{ fontSize: 24 }}>💾</span>
+          <div style={{ flex: 1 }}>
+            <div style={s.backupBannerTitle}>
+              {daysSinceBackup === null ? 'Резервная копия не создана' : `Последняя копия: ${daysSinceBackup} дн. назад`}
+            </div>
+            <div style={s.backupBannerSub}>
+              Данные хранятся только на этом компьютере. Нажми чтобы сохранить резервную копию.
+            </div>
+          </div>
+          <span style={{ fontSize: 18, color: colors.pending }}>→</span>
+        </div>
+      )}
+
       {/* Subscription */}
       <div style={s.card}>
         <div style={s.cardTitle}>Подписка</div>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
           <div>
             <div style={{ fontSize: 15, color: settings.isPro ? colors.gold : colors.textSecondary, fontWeight: 600 }}>
-              {settings.isPro ? '👑 SharkLog Pro' : 'Free'}
+              {settings.isPro ? '👑 SharkLog Pro' : '🆓 Бесплатная версия'}
             </div>
-            <div style={{ fontSize: 13, color: colors.textMuted, marginTop: 3 }}>
+            <div style={{ fontSize: 13, color: colors.textMuted, marginTop: 3, maxWidth: 340, lineHeight: 1.4 }}>
               {settings.isPro
-                ? 'Все функции открыты'
-                : `${Math.max(0, 50 - bets.length)} ставок осталось`}
+                ? 'Все функции открыты. Подписка на десктопе хранится локально — не забывай делать резервные копии.'
+                : `До 50 ставок (осталось ${Math.max(0, 50 - bets.length)}). Купи Pro для неограниченного учёта.`}
             </div>
+            {settings.isPro && settings.proExpiresAt && (
+              <div style={{ fontSize: 12, color: colors.pending, marginTop: 4 }}>
+                ⏰ Пробный период до {new Date(settings.proExpiresAt).toLocaleDateString('ru')}
+              </div>
+            )}
           </div>
-          {!settings.isPro && (
-            <button style={s.proBtn} onClick={() => {
-              const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-              updateSettings({ isPro: true, proExpiresAt: expires });
-            }}>
-              👑 Попробовать Pro (7 дней)
-            </button>
-          )}
-          {settings.isPro && import.meta.env.DEV && (
-            <button style={{ ...s.proBtn, backgroundColor: colors.bgElevated, color: colors.textMuted }} onClick={() => updateSettings({ isPro: false })}>
-              Отключить (dev)
-            </button>
-          )}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'flex-end' }}>
+            {!settings.isPro && (
+              <button style={s.proBtn} onClick={() => {
+                const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+                updateSettings({ isPro: true, proExpiresAt: expires });
+              }}>
+                👑 Попробовать Pro (7 дней)
+              </button>
+            )}
+            {settings.isPro && import.meta.env.DEV && (
+              <button style={{ ...s.proBtn, backgroundColor: colors.bgElevated, color: colors.textMuted }} onClick={() => updateSettings({ isPro: false })}>
+                Отключить (dev)
+              </button>
+            )}
+          </div>
+        </div>
+        <div style={{ fontSize: 12, color: colors.textMuted, paddingTop: 8, borderTop: `1px solid ${colors.border}`, lineHeight: 1.4 }}>
+          💡 На десктопе Pro-статус хранится локально. При очистке данных он будет сброшен. Делай резервные копии регулярно.
         </div>
       </div>
 
@@ -389,4 +429,7 @@ const s: Record<string, React.CSSProperties> = {
   proBtn: { backgroundColor: colors.gold, color: '#000', border: 'none', padding: '8px 16px', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer' },
   exportBtn: { borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' },
   dangerBtn: { background: 'none', border: 'none', color: colors.lost, cursor: 'pointer', fontSize: 15, fontWeight: 600, padding: '4px 0' },
+  backupBanner: { display: 'flex', alignItems: 'center', gap: 14, backgroundColor: colors.pending + '18', border: `1px solid ${colors.pending}44`, borderRadius: 12, padding: '14px 18px', marginBottom: 16, cursor: 'pointer' },
+  backupBannerTitle: { fontSize: 14, fontWeight: 700, color: colors.pending, marginBottom: 2 },
+  backupBannerSub: { fontSize: 12, color: colors.textSecondary, lineHeight: 1.4 },
 };

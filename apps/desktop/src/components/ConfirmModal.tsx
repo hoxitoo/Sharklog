@@ -22,7 +22,7 @@ export function ConfirmModal({ message, onConfirm, onCancel, confirmLabel = 'Ğ£Ğ
         backgroundColor: colors.bgCard, borderRadius: 14, padding: '28px 28px 24px',
         border: `1px solid ${colors.border}`, width: 360, boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
       }}>
-        <div style={{ fontSize: 15, color: colors.textPrimary, lineHeight: 1.5, marginBottom: 24 }}>
+        <div style={{ fontSize: 15, color: colors.textPrimary, lineHeight: 1.5, marginBottom: 24, whiteSpace: 'pre-line' }}>
           {message}
         </div>
         <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>

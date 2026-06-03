@@ -147,6 +147,7 @@ export interface AppSettings {
   schemaVersion: number;
   roundAmounts: boolean;
   generatedStrategy?: GeneratedStrategy;
+  lastBackupAt?: string;
 }
 
 export interface StorageSchema {
