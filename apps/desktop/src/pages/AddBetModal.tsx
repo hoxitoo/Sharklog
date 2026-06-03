@@ -309,7 +309,7 @@ export function AddBetModal({ editBet, onClose }: Props) {
   const stakeKopecks = parseMoneyInput(stake);
   const cashoutKopecks = parseMoneyInput(cashoutAmount);
   const potentialWin = oddsNum > 1 && stakeKopecks > 0
-    ? formatMoney(Math.round(stakeKopecks * oddsNum))
+    ? formatMoney(Math.round(stakeKopecks * (oddsNum - 1)))
     : null;
   const cashoutPnl = status === 'cashout' && cashoutKopecks > 0 && stakeKopecks > 0
     ? cashoutKopecks - stakeKopecks

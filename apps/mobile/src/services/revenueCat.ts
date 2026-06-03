@@ -79,8 +79,9 @@ export async function restorePurchases(): Promise<boolean> {
   }
 }
 
-export async function syncEntitlement(): Promise<boolean> {
+/** Returns true/false if RevenueCat responded, null if unreachable (caller should not change Pro state). */
+export async function syncEntitlement(): Promise<boolean | null> {
   const info = await getCustomerInfo();
-  if (!info) return false;
+  if (!info) return null;
   return isProFromInfo(info);
 }

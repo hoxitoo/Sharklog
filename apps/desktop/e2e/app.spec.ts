@@ -119,7 +119,7 @@ test.describe('Dashboard', () => {
 
   test('Ctrl+N opens add bet modal', async ({ page }) => {
     await page.keyboard.press('Control+n');
-    await expect(page.getByText('Новая ставка')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Новая ставка' })).toBeVisible();
   });
 });
 
@@ -135,7 +135,7 @@ test.describe('Dashboard with bets', () => {
   });
 
   test('shows stat cards when bets exist', async ({ page }) => {
-    await expect(page.getByText('P&L')).toBeVisible();
+    await expect(page.getByText('P&L').first()).toBeVisible();
     await expect(page.getByText('Винрейт')).toBeVisible();
   });
 });
@@ -153,9 +153,9 @@ test.describe('Add bet', () => {
 
   test('can open and close modal via Escape', async ({ page }) => {
     await page.click('button:has-text("+ Новая ставка")');
-    await expect(page.getByText('Новая ставка')).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Новая ставка' })).toBeVisible();
     await page.keyboard.press('Escape');
-    await expect(page.getByText('Новая ставка')).not.toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Новая ставка' })).not.toBeVisible();
   });
 
   test('shows validation errors on empty submit', async ({ page }) => {
@@ -171,7 +171,17 @@ test.describe('Add bet', () => {
     await page.fill('input[placeholder="1.85"]', '1.85');
     await page.fill('input[placeholder="1000"]', '1000');
     await page.click('button[type="submit"]');
-    await expect(page.getByText('Новая ставка')).not.toBeVisible();
+    // isPro=true → Pre-bet checklist appears ("Готов к ставке? 🦈" title is unique)
+    const checklistVisible = await page.getByText('Готов к ставке?').isVisible().catch(() => false);
+    if (checklistVisible) {
+      await page.getByText('Я не в состоянии тилта').click();
+      await page.getByText('Ставка соответствует моей стратегии').click();
+      await page.getByText('Я проанализировал событие').click();
+      await page.getByText('Я укладываюсь в дневной лимит').click();
+      await page.getByText('Я готов потерять эту сумму').click();
+      await page.click('button:has-text("Ставить")');
+    }
+    await expect(page.getByRole('heading', { name: 'Новая ставка' })).not.toBeVisible();
 
     await page.click('button:has-text("Ставки")');
     await expect(page.getByText('Arsenal vs Chelsea')).toBeVisible();

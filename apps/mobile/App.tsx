@@ -37,8 +37,8 @@ export default function App() {
       const { settings } = useBetsStore.getState();
       scheduleDailyReminder(settings.reminderHour);
       const isPro = await syncEntitlement();
-      // Only upgrade to pro — never downgrade on network failure
-      if (isPro) updateSettings({ isPro: true });
+      // null = no network → keep current state; boolean = confirmed state → apply both ways
+      if (isPro !== null) updateSettings({ isPro });
     });
   }, []);
 

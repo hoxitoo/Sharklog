@@ -143,7 +143,7 @@ export function DashboardPage({ onNavigate }: DashboardProps = {}) {
   }, [bets, period]);
 
   const stats = calcDashboard(filteredBets);
-  const inTilt = isInTilt(filteredBets, settings.tiltThreshold);
+  const inTilt = isInTilt(bets, settings.tiltThreshold);
 
   const allTimePnl = period === 'all' ? stats.pnl : calcDashboard(bets).pnl;
   const bankTotal =
@@ -300,7 +300,7 @@ export function DashboardPage({ onNavigate }: DashboardProps = {}) {
             </thead>
             <tbody>
               {bets.filter((b) => b.status === 'pending').slice(0, 8).map((bet) => {
-                const potential = formatMoney(Math.round(bet.stake * bet.odds));
+                const potential = formatMoney(Math.round(bet.stake * (bet.odds - 1)));
                 return (
                   <tr key={bet.id} style={s.tr}>
                     <td style={s.td}><span style={s.eventCell}>{bet.event}</span></td>

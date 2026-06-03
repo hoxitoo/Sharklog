@@ -210,11 +210,14 @@ export function SettingsPage() {
             </div>
           </div>
           {!settings.isPro && (
-            <button style={s.proBtn} onClick={() => updateSettings({ isPro: true })}>
-              👑 Попробовать Pro
+            <button style={s.proBtn} onClick={() => {
+              const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+              updateSettings({ isPro: true, proExpiresAt: expires });
+            }}>
+              👑 Попробовать Pro (7 дней)
             </button>
           )}
-          {settings.isPro && (
+          {settings.isPro && import.meta.env.DEV && (
             <button style={{ ...s.proBtn, backgroundColor: colors.bgElevated, color: colors.textMuted }} onClick={() => updateSettings({ isPro: false })}>
               Отключить (dev)
             </button>

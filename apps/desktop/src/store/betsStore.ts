@@ -95,9 +95,17 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
       const raw = await loadData();
       if (!raw) { set({ isLoaded: true }); return; }
       const schema = migrate(raw as Parameters<typeof migrate>[0]);
+      const savedSettings = schema.settings ?? {};
+      const trialExpired = savedSettings.proExpiresAt != null && new Date(savedSettings.proExpiresAt) < new Date();
       set({
         bets: schema.bets ?? [],
-        settings: { ...defaultSettings, ...schema.settings, onboardingComplete: schema.settings?.onboardingComplete ?? true, ...(OWNER_PRO ? { isPro: true } : {}) },
+        settings: {
+          ...defaultSettings,
+          ...savedSettings,
+          onboardingComplete: savedSettings.onboardingComplete ?? true,
+          ...(OWNER_PRO ? { isPro: true } : {}),
+          ...(trialExpired && !OWNER_PRO ? { isPro: false } : {}),
+        },
         bankroll: { ...defaultBankroll, ...schema.bankroll },
         diary: schema.diary ?? [],
         teams: schema.teams ?? [],

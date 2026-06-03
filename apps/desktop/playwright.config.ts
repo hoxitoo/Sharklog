@@ -18,7 +18,12 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: {
+        ...devices['Desktop Chrome'],
+        launchOptions: {
+          executablePath: '/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell',
+        },
+      },
     },
   ],
   webServer: {
@@ -26,6 +31,5 @@ export default defineConfig({
     url: 'http://localhost:5174',
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,
-    env: { VITE_OWNER_PRO: 'true' },
   },
 });

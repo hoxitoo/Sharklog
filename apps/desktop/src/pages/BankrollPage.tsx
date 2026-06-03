@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
-import { calcDashboard, formatMoney, kellyFraction, expectedValue, impliedProbability } from '@sharklog/core';
+import { calcDashboard, formatMoney, kellyFraction, expectedValue, impliedProbability, parseMoneyInput } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
 import { colors } from '../theme/colors';
 
@@ -74,7 +74,9 @@ export function BankrollPage() {
     for (const bet of bets) {
       if (bet.status === 'pending') continue;
       const pnl = bet.status === 'won' ? Math.round(bet.stake * bet.odds) - bet.stake
-        : bet.status === 'lost' ? -bet.stake : 0;
+        : bet.status === 'lost' ? -bet.stake
+        : bet.status === 'cashout' && bet.cashoutAmount != null ? bet.cashoutAmount - bet.stake
+        : 0;
       events.push({ date: bet.date, delta: pnl });
     }
     if (events.length < 2) return [];
@@ -102,7 +104,7 @@ export function BankrollPage() {
   }
 
   function addTransaction(type: 'deposit' | 'withdrawal', inputVal: string) {
-    const amount = Math.round(parseFloat(inputVal.replace(',', '.')) * 100);
+    const amount = parseMoneyInput(inputVal);
     if (isNaN(amount) || amount <= 0) return;
     updateBankroll({
       transactions: [
