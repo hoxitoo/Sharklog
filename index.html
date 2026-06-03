@@ -188,6 +188,48 @@
       font-size: 11px; padding: 2px 8px; border-radius: 4px; margin-top: 8px;
     }
 
+    /* FAQ */
+    .faq-list { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+
+    details.faq-item {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      transition: border-color .2s;
+    }
+    details.faq-item[open] { border-color: var(--purple); }
+
+    details.faq-item summary {
+      display: flex; align-items: center; justify-content: space-between; gap: 16px;
+      padding: 18px 22px;
+      font-size: 15px; font-weight: 600; color: var(--text-primary);
+      cursor: pointer; list-style: none; user-select: none;
+    }
+    details.faq-item summary::-webkit-details-marker { display: none; }
+
+    .faq-chevron {
+      flex-shrink: 0; width: 22px; height: 22px;
+      background: var(--bg-elevated); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; color: var(--text-secondary);
+      transition: transform .25s, background .2s;
+    }
+    details.faq-item[open] .faq-chevron {
+      transform: rotate(180deg);
+      background: var(--purple-dim);
+      color: var(--purple);
+    }
+
+    .faq-body {
+      padding: 0 22px 18px;
+      font-size: 14px; color: var(--text-secondary); line-height: 1.65;
+      border-top: 1px solid var(--border);
+      padding-top: 14px;
+    }
+    .faq-body strong { color: var(--text-primary); }
+    .faq-body a { color: var(--teal); }
+
     /* FOOTER */
     footer {
       border-top: 1px solid var(--border);
@@ -216,6 +258,7 @@
     <a href="#features">Возможности</a>
     <a href="#pricing">Цены</a>
     <a href="#platforms">Платформы</a>
+    <a href="#faq">FAQ</a>
     <a href="privacy.html">Конфиденциальность</a>
   </div>
   <a href="#platforms" class="btn-nav">Скачать</a>
@@ -264,7 +307,7 @@
     <div class="feature-card">
       <div class="feature-icon">📊</div>
       <div class="feature-title">Дашборд</div>
-      <div class="feature-desc">P&L-кривая, кривая ROI, стрип побед/поражений, тепловая карта активности за 12 недель, тилт-детекция.</div>
+      <div class="feature-desc">P&amp;L-кривая, кривая ROI, стрип побед/поражений, тепловая карта активности за 12 недель, тилт-детекция.</div>
     </div>
 
     <div class="feature-card">
@@ -341,7 +384,7 @@
         <div class="plan-alt">Навсегда бесплатно</div>
         <ul class="plan-features">
           <li>До 50 ставок</li>
-          <li>Дашборд и P&L</li>
+          <li>Дашборд и P&amp;L</li>
           <li>Тилт-алерт (порог 3)</li>
           <li>Инсайты по турнирам</li>
           <li>CSV импорт / экспорт</li>
@@ -361,7 +404,7 @@
         <div class="plan-alt">или 990 ₽/год · 7 дней бесплатно</div>
         <ul class="plan-features">
           <li>Неограниченные ставки</li>
-          <li>Дашборд и P&L</li>
+          <li>Дашборд и P&amp;L</li>
           <li>Тилт-алерт (настраиваемый)</li>
           <li>Инсайты по турнирам</li>
           <li>CSV / Excel импорт и экспорт</li>
@@ -419,9 +462,124 @@
   </div>
 </section>
 
+<!-- FAQ -->
+<section id="faq" style="background: var(--bg-card); max-width: 100%; padding: 80px 24px;">
+  <div style="max-width: 720px; margin: 0 auto;">
+    <h2 class="section-title">Частые вопросы</h2>
+    <p class="section-sub">Всё, что нужно знать перед началом работы.</p>
+
+    <div class="faq-list">
+
+      <details class="faq-item">
+        <summary>
+          Мои данные в безопасности?
+          <span class="faq-chevron">▼</span>
+        </summary>
+        <div class="faq-body">
+          <strong>Да, на 100%.</strong> Все ставки, банкролл и дневник хранятся исключительно на твоём устройстве — в локальном хранилище телефона или компьютера. SharkLog не имеет серверов для хранения ставок, не требует регистрации и не передаёт данные третьим лицам.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>
+          Что будет с данными если я удалю приложение?
+          <span class="faq-chevron">▼</span>
+        </summary>
+        <div class="faq-body">
+          Данные будут <strong>удалены вместе с приложением</strong> — это обратная сторона полной приватности. Поэтому мы рекомендуем регулярно делать резервные копии: в Настройках нажми <strong>«Резервная копия JSON»</strong>, сохрани файл в облако (Google Drive, iCloud) или на компьютер. Восстановить данные можно через «Восстановить из JSON».
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>
+          Как перенести данные на другое устройство?
+          <span class="faq-chevron">▼</span>
+        </summary>
+        <div class="faq-body">
+          Откройте Настройки → нажми <strong>«Резервная копия JSON»</strong> на старом устройстве. Перенеси файл на новое устройство (через мессенджер, облако или кабель). На новом устройстве: Настройки → <strong>«Восстановить из JSON»</strong> — выбери файл. Все ставки, банкролл и дневник будут восстановлены.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>
+          Подписка Pro сохраняется после переустановки?
+          <span class="faq-chevron">▼</span>
+        </summary>
+        <div class="faq-body">
+          <strong>На мобильных устройствах (iOS/Android) — да.</strong> Подписка привязана к твоему аккаунту App Store или Google Play, а не к приложению. После переустановки нажми <strong>«Восстановить покупки»</strong> в Настройках — Pro активируется автоматически.<br><br>
+          <strong>На десктопе — нет.</strong> Pro-статус хранится локально, поэтому при очистке данных или переустановке он сбрасывается. Сохраняй резервные копии и держи файл-бэкап.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>
+          Купил Pro, но после переустановки он пропал. Что делать?
+          <span class="faq-chevron">▼</span>
+        </summary>
+        <div class="faq-body">
+          Открой SharkLog → Настройки → нажми кнопку <strong>«Восстановить покупки»</strong>. Убедись, что ты вошёл в тот же аккаунт App Store (iOS) или Google Play (Android), с которого оформлялась подписка. Если проблема не решилась — напиши нам, восстановим вручную.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>
+          SharkLog помогает выигрывать ставки?
+          <span class="faq-chevron">▼</span>
+        </summary>
+        <div class="faq-body">
+          Нет. SharkLog — это <strong>инструмент дисциплины и учёта</strong>, а не предсказатель исходов. Он помогает видеть реальную статистику (ROI, P&amp;L, слабые места стратегии), контролировать банкролл и не поддаваться тилту. Выигрыш зависит от твоих аналитических навыков — SharkLog лишь делает их видимыми.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>
+          Чем Free отличается от Pro?
+          <span class="faq-chevron">▼</span>
+        </summary>
+        <div class="faq-body">
+          <strong>Free:</strong> до 50 ставок, дашборд с P&amp;L и ROI, тилт-алерт (фиксированный порог 3 поражения), инсайты по турнирам, CSV-экспорт, дневник.<br><br>
+          <strong>Pro (199 ₽/мес или 990 ₽/год):</strong> неограниченные ставки, аналитика по 7 срезам, банкролл с калькулятором Келли, инсайты по командам, билдер персональной стратегии, настраиваемые тилт-порог и дневной лимит. <strong>7 дней бесплатно</strong> при первом подключении.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>
+          Можно импортировать ставки из другого приложения?
+          <span class="faq-chevron">▼</span>
+        </summary>
+        <div class="faq-body">
+          Да. SharkLog поддерживает импорт из <strong>CSV и Excel (.xlsx)</strong>. Колонки распознаются автоматически по заголовкам — поддерживаются как русские, так и английские названия. Если в файле уже есть ставки с теми же ID, дубликаты пропускаются. Найди подходящий шаблон в нашем <a href="https://github.com/hoxitoo/Sharklog">GitHub репозитории</a>.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>
+          Приложение работает без интернета?
+          <span class="faq-chevron">▼</span>
+        </summary>
+        <div class="faq-body">
+          <strong>Да, полностью оффлайн.</strong> Учёт ставок, аналитика, банкролл и дневник работают без сети. Интернет нужен только в двух случаях: проверка и синхронизация статуса подписки Pro (при запуске) и загрузка обновлений приложения.
+        </div>
+      </details>
+
+      <details class="faq-item">
+        <summary>
+          SharkLog связан с букмекерами или принимает ставки?
+          <span class="faq-chevron">▼</span>
+        </summary>
+        <div class="faq-body">
+          <strong>Нет.</strong> SharkLog — независимый трекер ставок. Мы не принимаем ставки, не являемся букмекером и не аффилированы ни с одной букмекерской конторой. Приложение предназначено исключительно для личного учёта и анализа твоих собственных ставок. Делай ставки ответственно.
+        </div>
+      </details>
+
+    </div>
+  </div>
+</section>
+
 <footer>
   <div class="footer-links">
     <a href="privacy.html">Политика конфиденциальности</a>
+    <a href="#faq">FAQ</a>
     <a href="https://github.com/hoxitoo/Sharklog">GitHub</a>
   </div>
   <div>© 2026 SharkLog. Все права защищены.</div>
