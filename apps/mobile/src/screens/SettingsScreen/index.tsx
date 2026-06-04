@@ -125,14 +125,13 @@ export function SettingsScreen() {
 
   function handleDevTap() {
     if (settings.isPro) return;
-    if (!__DEV__) return;
     if (devTapTimer.current) clearTimeout(devTapTimer.current);
     const next = devTapCount + 1;
     setDevTapCount(next);
     if (next >= 7) {
       setDevTapCount(0);
       updateSettings({ isPro: true });
-      Alert.alert('👑 Developer Pro', 'Pro активирован для разработчика');
+      Alert.alert('👑 Developer Pro', 'Pro активирован');
     } else {
       devTapTimer.current = setTimeout(() => setDevTapCount(0), 2000);
     }

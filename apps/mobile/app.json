@@ -8,7 +8,7 @@
     "userInterfaceStyle": "dark",
     "newArchEnabled": false,
     "splash": {
-      "image": "./assets/splash.png",
+      "image": "./assets/icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#080C12"
     },
@@ -31,7 +31,7 @@
       "versionCode": 1,
       "permissions": ["android.permission.POST_NOTIFICATIONS", "android.permission.RECEIVE_BOOT_COMPLETED"],
       "splash": {
-        "image": "./assets/splash.png",
+        "image": "./assets/icon.png",
         "resizeMode": "contain",
         "backgroundColor": "#080C12"
       }
