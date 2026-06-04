@@ -481,6 +481,8 @@ export function AddBetScreen() {
     ? bets.find((b) => b.id === route.params?.betId)
     : undefined;
 
+  const [isFreebet, setIsFreebet] = useState(editBet?.isFreebet ?? false);
+
   const now = new Date();
   const defaultDate = now.toISOString().split('T')[0] ?? '';
   const defaultTime = now.toTimeString().slice(0, 5);
@@ -657,6 +659,7 @@ export function AddBetScreen() {
           sport: data.sport, betType: data.betType, strategy: data.strategy,
           status: data.status, bookmaker: data.bookmaker,
           date: dateVal, time: timeVal, ...extras, ...cashoutExtras,
+          ...(isFreebet ? { isFreebet: true } : {}),
         });
       } else {
         addBet({
@@ -664,7 +667,8 @@ export function AddBetScreen() {
           date: dateVal, time: timeVal,
           event, pick, odds: oddsVal, stake: stakeVal,
           sport: data.sport, betType: data.betType, strategy: data.strategy,
-          status: data.status, bookmaker: data.bookmaker, schemaVersion: CURRENT_SCHEMA_VERSION, ...extras, ...cashoutExtras,
+          status: data.status, bookmaker: data.bookmaker, schemaVersion: CURRENT_SCHEMA_VERSION,
+          ...extras, ...cashoutExtras, ...(isFreebet ? { isFreebet: true } : {}),
         });
         Analytics.betAdded({ sport: data.sport, betType: data.betType, bookmaker: data.bookmaker, status: data.status });
       }
@@ -690,6 +694,7 @@ export function AddBetScreen() {
           sport: data.sport, betType: 'express', strategy: data.strategy,
           status: data.status, bookmaker: data.bookmaker,
           date: dateVal, time: timeVal, ...extras, ...cashoutExtras,
+          ...(isFreebet ? { isFreebet: true } : {}),
         });
       } else {
         addBet({
@@ -697,7 +702,8 @@ export function AddBetScreen() {
           date: dateVal, time: timeVal,
           event, pick: 'Экспресс', odds: combinedOdds, stake: stakeVal,
           sport: data.sport, betType: 'express', strategy: data.strategy,
-          status: data.status, bookmaker: data.bookmaker, schemaVersion: CURRENT_SCHEMA_VERSION, ...extras, ...cashoutExtras,
+          status: data.status, bookmaker: data.bookmaker, schemaVersion: CURRENT_SCHEMA_VERSION,
+          ...extras, ...cashoutExtras, ...(isFreebet ? { isFreebet: true } : {}),
         });
       }
     }
@@ -914,6 +920,17 @@ export function AddBetScreen() {
             <Text style={styles.winAmount}>{potentialProfit}</Text>
           </View>
         )}
+
+        {/* ── Freebet toggle ─── */}
+        <TouchableOpacity
+          style={[styles.freebetToggle, isFreebet && styles.freebetToggleActive]}
+          onPress={() => { haptic.selection(); setIsFreebet((v) => !v); }}
+          activeOpacity={0.8}
+        >
+          <Text style={[styles.freebetToggleText, isFreebet && styles.freebetToggleTextActive]}>
+            🎁 Фрибет{isFreebet ? ' ✓ (потеря = 0 ₽)' : ' — не свои деньги'}
+          </Text>
+        </TouchableOpacity>
 
         {/* ── Kelly calculator (single only) ─── */}
         {isSingle && singleOdds > 1 && (
@@ -1409,6 +1426,19 @@ const styles = StyleSheet.create({
   winLabel: { fontSize: 13, color: colors.accent },
   winAmount: { fontSize: 16, fontWeight: '700', color: colors.accent },
 
+  freebetToggle: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 8,
+    backgroundColor: colors.bgCard,
+    borderWidth: 1,
+    borderColor: colors.border,
+    marginBottom: 12,
+  },
+  freebetToggleActive: { borderColor: colors.accent + '66', backgroundColor: colors.accentDim },
+  freebetToggleText: { fontSize: 13, color: colors.textSecondary },
+  freebetToggleTextActive: { color: colors.accent, fontWeight: '600' },
   kellyToggle: {
     alignSelf: 'flex-start',
     paddingHorizontal: 12,

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LineChart } from 'react-native-gifted-charts';
@@ -93,7 +93,7 @@ function Heatmap({ bets }: { bets: Bet[] }) {
     if (bet.status === 'pending') continue;
     const profit = bet.status === 'won'
       ? Math.round(bet.stake * (bet.odds - 1))
-      : bet.status === 'lost' ? -bet.stake
+      : bet.status === 'lost' ? (bet.isFreebet ? 0 : -bet.stake)
       : bet.status === 'cashout' && bet.cashoutAmount != null ? bet.cashoutAmount - bet.stake
       : 0;
     pnlByDate[bet.date] = (pnlByDate[bet.date] ?? 0) + profit;
@@ -208,7 +208,7 @@ export function DashboardScreen() {
       ...b,
       pnl: b.status === 'won' ? Math.round(b.stake * b.odds) - b.stake
         : b.status === 'cashout' && b.cashoutAmount != null ? b.cashoutAmount - b.stake
-        : -b.stake,
+        : b.isFreebet ? 0 : -b.stake,
     }));
   const bestBet = settledWithPnl.length > 0
     ? settledWithPnl.reduce((a, b) => b.pnl > a.pnl ? b : a)
@@ -274,6 +274,10 @@ export function DashboardScreen() {
           sub="чистая прибыль"
           positive={stats.pnl > 0}
           negative={stats.pnl < 0}
+          onInfo={() => Alert.alert(
+            'P&L — прибыль и убыток',
+            'Чистый финансовый результат всех ставок.\n\nПример: поставил 1 000 ₽ × коэф 2.0 → выиграл 1 000 ₽ прибыли. Проиграл ещё 500 ₽ → итого P&L = +500 ₽.\n\nФрибеты учитываются только в части выигрыша — потеря фрибета P&L не уменьшает.',
+          )}
         />
         <StatCard
           label="ROI"
@@ -281,6 +285,10 @@ export function DashboardScreen() {
           sub="возврат инвестиций"
           positive={stats.roi > 0}
           negative={stats.roi < 0}
+          onInfo={() => Alert.alert(
+            'ROI — возврат инвестиций',
+            'ROI = P&L ÷ суммарный оборот × 100%\n\nПример: поставил 10 000 ₽, заработал 1 500 ₽ → ROI = +15%.\n\nROI > 0% — прибыльная игра. Стабильный ROI 5–10% считается отличным результатом в долгосроке.',
+          )}
         />
         <StatCard
           label="Винрейт"
