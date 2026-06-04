@@ -56,6 +56,7 @@ interface ExpressLeg {
   team1: string;
   team2: string;
   odds: string;
+  pick: string;
 }
 
 function uuid(): string {
@@ -494,17 +495,28 @@ export function AddBetScreen() {
 
   const buildInitialLegs = (): ExpressLeg[] => {
     if (editBet?.betType === 'express') {
-      const parts = editBet.event.split(' / ');
-      if (parts.length >= 2) {
-        return parts.map((p) => {
-          const t = p.trim().split(' vs ');
-          return { team1: t[0]?.trim() ?? '', team2: t[1]?.trim() ?? '', odds: '' };
+      const eventParts = editBet.event.split(' / ');
+      // pick field stores per-leg picks as "П1 / ТБ 2.5", OR legacy "Экспресс"
+      const pickParts = (editBet.pick && editBet.pick !== 'Экспресс')
+        ? editBet.pick.split(' / ')
+        : [];
+      if (eventParts.length >= 2) {
+        return eventParts.map((p, i) => {
+          // Support stored odds in event: "M80 vs NRG|1.10"
+          const [eventStr, storedOdds] = p.trim().split('|');
+          const t = (eventStr ?? p).trim().split(' vs ');
+          return {
+            team1: t[0]?.trim() ?? '',
+            team2: t[1]?.trim() ?? '',
+            odds: storedOdds ?? '',
+            pick: pickParts[i] ?? '',
+          };
         });
       }
     }
     return [
-      { team1: '', team2: '', odds: '' },
-      { team1: '', team2: '', odds: '' },
+      { team1: '', team2: '', odds: '', pick: '' },
+      { team1: '', team2: '', odds: '', pick: '' },
     ];
   };
 
@@ -684,13 +696,20 @@ export function AddBetScreen() {
       const combinedOdds = parseFloat(
         validLegs.reduce((p, l) => p * parseFloat(nd(l.odds)), 1).toFixed(3),
       );
+      // Store odds per leg in event: "M80 vs NRG|1.10 / Team Liquid vs Heroic|1.88"
       const event = validLegs
-        .map((l) => [l.team1.trim(), l.team2.trim()].filter(Boolean).join(' vs '))
+        .map((l) => {
+          const evStr = [l.team1.trim(), l.team2.trim()].filter(Boolean).join(' vs ');
+          return `${evStr}|${parseFloat(nd(l.odds)).toFixed(2)}`;
+        })
         .join(' / ');
+      // Store per-leg picks in pick field: "П1 / ТБ 2.5"
+      const legPicks = validLegs.map(l => l.pick.trim() || '—');
+      const pickStr = legPicks.every(p => p === '—') ? 'Экспресс' : legPicks.join(' / ');
 
       if (editBet) {
         updateBet(editBet.id, {
-          event, pick: 'Экспресс', odds: combinedOdds, stake: stakeVal,
+          event, pick: pickStr, odds: combinedOdds, stake: stakeVal,
           sport: data.sport, betType: 'express', strategy: data.strategy,
           status: data.status, bookmaker: data.bookmaker,
           date: dateVal, time: timeVal, ...extras, ...cashoutExtras,
@@ -700,7 +719,7 @@ export function AddBetScreen() {
         addBet({
           id: uuid(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
           date: dateVal, time: timeVal,
-          event, pick: 'Экспресс', odds: combinedOdds, stake: stakeVal,
+          event, pick: pickStr, odds: combinedOdds, stake: stakeVal,
           sport: data.sport, betType: 'express', strategy: data.strategy,
           status: data.status, bookmaker: data.bookmaker, schemaVersion: CURRENT_SCHEMA_VERSION,
           ...extras, ...cashoutExtras, ...(isFreebet ? { isFreebet: true } : {}),
@@ -868,20 +887,30 @@ export function AddBetScreen() {
                   onChangeText={(v) => updateLeg(i, 'team2', v)}
                   returnKeyType="next"
                 />
-                <TextInput
-                  style={inputStyle}
-                  placeholder="Кэф (1.85)"
-                  placeholderTextColor={colors.textMuted}
-                  value={leg.odds}
-                  onChangeText={(v) => updateLeg(i, 'odds', v)}
-                  keyboardType="decimal-pad"
-                />
+                <View style={styles.legOddsRow}>
+                  <TextInput
+                    style={[inputStyle, { flex: 1 }]}
+                    placeholder="Кэф"
+                    placeholderTextColor={colors.textMuted}
+                    value={leg.odds}
+                    onChangeText={(v) => updateLeg(i, 'odds', v)}
+                    keyboardType="decimal-pad"
+                  />
+                  <TextInput
+                    style={[inputStyle, { flex: 2 }]}
+                    placeholder="Исход (П1, Фора, ТБ...)"
+                    placeholderTextColor={colors.textMuted}
+                    value={leg.pick}
+                    onChangeText={(v) => updateLeg(i, 'pick', v)}
+                    returnKeyType="next"
+                  />
+                </View>
               </View>
             ))}
 
             <TouchableOpacity
               style={styles.addLegBtn}
-              onPress={() => setLegs((prev) => [...prev, { team1: '', team2: '', odds: '' }])}
+              onPress={() => setLegs((prev) => [...prev, { team1: '', team2: '', odds: '', pick: '' }])}
               activeOpacity={0.8}
             >
               <Text style={styles.addLegText}>+ Добавить матч</Text>
@@ -1376,6 +1405,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
+  legOddsRow: { flexDirection: 'row', gap: 8 },
   legHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',

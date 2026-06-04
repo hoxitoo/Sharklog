@@ -12,6 +12,11 @@ interface Props {
   onEdit: (bet: Bet) => void;
 }
 
+function displayEvent(event: string): string {
+  // Strip stored per-leg odds ("M80 vs NRG|1.10 / ...") → "M80 vs NRG / ..."
+  return event.split(' / ').map(p => p.split('|')[0] ?? p).join(' / ');
+}
+
 export function BetCard({ bet, onEdit }: Props) {
   const { updateBet } = useBetsStore();
 
@@ -19,7 +24,7 @@ export function BetCard({ bet, onEdit }: Props) {
   const pnl = bet.status === 'won'
     ? potentialWin - bet.stake
     : bet.status === 'lost'
-    ? -bet.stake
+    ? (bet.isFreebet ? 0 : -bet.stake)
     : bet.status === 'cashout' && bet.cashoutAmount != null
     ? bet.cashoutAmount - bet.stake
     : null;
@@ -42,13 +47,13 @@ export function BetCard({ bet, onEdit }: Props) {
           <Text style={styles.sport}>
             {bet.customSport || SPORTS[bet.sport]} · {bet.customBetType || BET_TYPES[bet.betType]}
           </Text>
-          <Text style={styles.event} numberOfLines={1}>{bet.event}</Text>
+          <Text style={styles.event} numberOfLines={1}>{displayEvent(bet.event)}</Text>
           <Text style={styles.pick}>{bet.pick}</Text>
         </View>
         <View style={styles.right}>
           <Text style={styles.odds}>× {formatOdds(bet.odds)}</Text>
           <Text style={styles.stake}>{formatMoney(bet.stake)}</Text>
-          {pnl !== null && (
+          {pnl !== null && pnl !== 0 && (
             <Text style={[styles.pnl, { color: pnl >= 0 ? colors.won : colors.lost }]}>
               {pnl >= 0 ? '+' : ''}{formatMoney(pnl)}
             </Text>
@@ -63,6 +68,11 @@ export function BetCard({ bet, onEdit }: Props) {
 
       <View style={styles.footer}>
         <StatusBadge status={bet.status} />
+        {bet.isFreebet && (
+          <View style={styles.freebetBadge}>
+            <Text style={styles.freebetBadgeText}>🎁 Фрибет</Text>
+          </View>
+        )}
         <Text style={styles.date}>{bet.date} {bet.time}</Text>
         {bet.bookmaker ? (
           <View style={styles.bkBadge}>
@@ -170,4 +180,13 @@ const styles = StyleSheet.create({
   quickResultHint: { fontSize: 11, color: colors.textMuted, marginLeft: 4 },
   notes: { fontSize: 12, color: colors.textMuted, marginTop: 6, fontStyle: 'italic' },
   cashoutAmt: { fontSize: 11, color: colors.refund, marginTop: 1 },
+  freebetBadge: {
+    backgroundColor: colors.accent + '1A',
+    borderRadius: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: colors.accent + '44',
+  },
+  freebetBadgeText: { fontSize: 10, color: colors.accent, fontWeight: '600' },
 });

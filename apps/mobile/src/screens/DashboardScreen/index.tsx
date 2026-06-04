@@ -395,7 +395,7 @@ export function DashboardScreen() {
             <View style={styles.extremeBet}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.extremeLabel}>Лучшая</Text>
-                <Text style={styles.recentEvent} numberOfLines={1}>{bestBet.event}</Text>
+                <Text style={styles.recentEvent} numberOfLines={1}>{bestBet.event.split(' / ').map(p => p.split('|')[0] ?? p).join(' / ')}</Text>
                 <Text style={styles.recentPick}>{bestBet.pick} · ×{bestBet.odds}</Text>
               </View>
               <Text style={[styles.extremePnl, { color: colors.won }]}>+{formatMoney(bestBet.pnl)}</Text>
@@ -405,7 +405,7 @@ export function DashboardScreen() {
             <View style={[styles.extremeBet, { marginTop: 6 }]}>
               <View style={{ flex: 1 }}>
                 <Text style={styles.extremeLabel}>Худшая</Text>
-                <Text style={styles.recentEvent} numberOfLines={1}>{worstBet.event}</Text>
+                <Text style={styles.recentEvent} numberOfLines={1}>{worstBet.event.split(' / ').map(p => p.split('|')[0] ?? p).join(' / ')}</Text>
                 <Text style={styles.recentPick}>{worstBet.pick} · ×{worstBet.odds}</Text>
               </View>
               <Text style={[styles.extremePnl, { color: colors.lost }]}>{formatMoney(worstBet.pnl)}</Text>
@@ -426,7 +426,7 @@ export function DashboardScreen() {
               onPress={() => navigation.navigate('AddBet', { betId: bet.id })}
             >
               <View style={{ flex: 1 }}>
-                <Text style={styles.recentEvent} numberOfLines={1}>{bet.event}</Text>
+                <Text style={styles.recentEvent} numberOfLines={1}>{bet.event.split(' / ').map(p => p.split('|')[0] ?? p).join(' / ')}</Text>
                 <Text style={styles.recentPick}>{bet.pick} · ×{bet.odds}</Text>
               </View>
               <View style={[
