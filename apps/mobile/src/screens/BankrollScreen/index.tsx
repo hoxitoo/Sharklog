@@ -47,7 +47,21 @@ function KellyCalculator({ bankroll }: { bankroll: number }) {
 
   return (
     <View style={kc.container}>
-      <Text style={kc.title}>Калькулятор Келли</Text>
+      <View style={kc.titleRow}>
+        <Text style={kc.title}>Калькулятор Келли</Text>
+        <TouchableOpacity
+          onPress={() => Alert.alert(
+            'Критерий Келли',
+            'Формула для расчёта оптимального размера ставки на основе вашей оценки вероятности и коэффициента.\n\nПример: коэф 2.10, ваша оценка вероятности 55% → Half-Kelly ≈ 2.4% банка.\n\nМы рекомендуем Half-Kelly (50% от полного Келли) для снижения дисперсии.',
+          )}
+          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          activeOpacity={0.7}
+        >
+          <View style={kc.infoBtn}>
+            <Text style={kc.infoBtnText}>?</Text>
+          </View>
+        </TouchableOpacity>
+      </View>
       <View style={kc.row}>
         <View style={{ flex: 1 }}>
           <Text style={kc.label}>Коэффициент</Text>
@@ -94,7 +108,14 @@ const kc = StyleSheet.create({
     backgroundColor: colors.bgCard, borderRadius: 14, padding: 16,
     marginHorizontal: 16, marginBottom: 14, borderWidth: 1, borderColor: colors.border,
   },
-  title: { fontSize: 15, fontWeight: '700', color: colors.textPrimary, marginBottom: 14 },
+  titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  title: { fontSize: 15, fontWeight: '700', color: colors.textPrimary },
+  infoBtn: {
+    width: 18, height: 18, borderRadius: 9,
+    backgroundColor: colors.bgElevated, borderWidth: 1, borderColor: colors.border,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  infoBtnText: { fontSize: 10, fontWeight: '700', color: colors.textMuted, lineHeight: 14 },
   row: { flexDirection: 'row', gap: 12, marginBottom: 4 },
   label: { fontSize: 11, color: colors.textSecondary, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
   input: {
@@ -243,7 +264,7 @@ function BankrollContent() {
     for (const bet of bets) {
       if (bet.status === 'pending') continue;
       const pnl = bet.status === 'won' ? Math.round(bet.stake * bet.odds) - bet.stake
-        : bet.status === 'lost' ? -bet.stake
+        : bet.status === 'lost' ? (bet.isFreebet ? 0 : -bet.stake)
         : bet.status === 'cashout' && bet.cashoutAmount != null ? bet.cashoutAmount - bet.stake
         : 0;
       events.push({ date: bet.date, delta: pnl });

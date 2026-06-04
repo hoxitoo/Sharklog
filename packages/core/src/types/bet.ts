@@ -65,6 +65,7 @@ export interface Bet {
   strategy: Strategy;
   notes?: string;
   cashoutAmount?: number;   // kopecks; only set when status === 'cashout'
+  isFreebet?: boolean;      // freebet: loss P&L = 0 (stake is a bonus, not own funds)
   tournament?: string;       // league / cup name, e.g. "Лига Чемпионов"
   discipline?: EsportsDiscipline; // only when sport === 'esports'
   customSport?: string;     // free-text label when sport === 'other'

@@ -37,11 +37,13 @@ function calcSlice(bets: Bet[], label: string): SliceStats {
   const cashout = bets.filter((b) => b.status === 'cashout').length;
   const pending = bets.filter((b) => b.status === 'pending').length;
 
-  // Include refund/cashout stakes in totalStaked — capital was wagered even if returned
-  const totalStaked = bets.filter((b) => b.status !== 'pending').reduce((sum, b) => sum + b.stake, 0);
+  // Freebet stakes are excluded from totalStaked — not the player's own capital
+  const totalStaked = bets
+    .filter((b) => b.status !== 'pending' && !b.isFreebet)
+    .reduce((sum, b) => sum + b.stake, 0);
   const pnl = bets.reduce((sum, b) => {
     if (b.status === 'won') return sum + Math.round(b.stake * b.odds) - b.stake;
-    if (b.status === 'lost') return sum - b.stake;
+    if (b.status === 'lost') return b.isFreebet ? sum : sum - b.stake;
     if (b.status === 'cashout' && b.cashoutAmount != null) return sum + b.cashoutAmount - b.stake;
     return sum;
   }, 0);
@@ -81,7 +83,7 @@ export function calcDashboard(bets: Bet[]): DashboardStats {
   const pnlCurve = settled.map((b, i) => {
     if (b.status === 'won') running += Math.round(b.stake * b.odds) - b.stake;
     else if (b.status === 'cashout' && b.cashoutAmount != null) running += b.cashoutAmount - b.stake;
-    else running -= b.stake;
+    else if (!b.isFreebet) running -= b.stake;
     return { index: i + 1, pnl: running };
   });
 
