@@ -7,13 +7,9 @@ import { calcDashboard, formatMoney, formatOdds, formatPercent, isInTilt } from 
 import { useBetsStore } from '../store/betsStore';
 import { useToastStore } from '../store/toastStore';
 import { colors } from '../theme/colors';
+import { useTranslation } from 'react-i18next';
 
 type PeriodFilter = '7d' | '30d' | 'all';
-const PERIOD_OPTIONS: Array<{ key: PeriodFilter; label: string }> = [
-  { key: '7d', label: '7 дней' },
-  { key: '30d', label: '30 дней' },
-  { key: 'all', label: 'Всё время' },
-];
 
 function StatCard({
   label, value, sub, color,
@@ -55,6 +51,7 @@ function WLStrip({ bets }: { bets: Bet[] }) {
 }
 
 function Heatmap({ bets }: { bets: Bet[] }) {
+  const { t } = useTranslation();
   const today = new Date();
   const weeks = 12;
   const totalDays = weeks * 7;
@@ -94,7 +91,7 @@ function Heatmap({ bets }: { bets: Bet[] }) {
 
   return (
     <div style={s.card}>
-      <div style={s.cardTitle}>Активность за 12 недель</div>
+      <div style={s.cardTitle}>{t('dashboard.heatmap')}</div>
       <div style={{ display: 'flex', gap: 3 }}>
         {columns.map((col, wi) => (
           <div key={wi} style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
@@ -125,10 +122,17 @@ interface DashboardProps { onNavigate?: (page: string) => void; }
 export function DashboardPage({ onNavigate }: DashboardProps = {}) {
   const { bets, settings, bankroll, updateBet } = useBetsStore();
   const toast = useToastStore((s) => s.show);
+  const { t, i18n } = useTranslation();
+
+  const PERIOD_OPTIONS: Array<{ key: PeriodFilter; label: string }> = [
+    { key: '7d', label: t('dashboard.week') },
+    { key: '30d', label: t('dashboard.month') },
+    { key: 'all', label: t('dashboard.allTime') },
+  ];
 
   function closeBet(bet: Bet, status: BetStatus) {
     updateBet(bet.id, { status });
-    const label = status === 'won' ? 'Победа ✅' : status === 'lost' ? 'Проигрыш ❌' : 'Возврат 🔄';
+    const label = status === 'won' ? `${t('status.won')} ✅` : status === 'lost' ? `${t('status.lost')} ❌` : `${t('status.refund')} 🔄`;
     toast(`${bet.event} — ${label}`, status === 'won' ? 'success' : status === 'lost' ? 'error' : 'info');
   }
   const [period, setPeriod] = useState<PeriodFilter>('all');
@@ -174,19 +178,18 @@ export function DashboardPage({ onNavigate }: DashboardProps = {}) {
       <div style={s.page}>
         <div style={s.header}>
           <div>
-            <h1 style={s.title}>Дашборд</h1>
+            <h1 style={s.title}>{t('dashboard.title')}</h1>
             <div style={s.subtitle}>
-              {new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' })}
+              {new Date().toLocaleDateString(i18n.language === 'en' ? 'en-US' : 'ru-RU', { weekday: 'long', day: 'numeric', month: 'long' })}
             </div>
           </div>
         </div>
         <div style={s.emptyWrap}>
           <img src="/logo.png" alt="SharkLog" style={{ width: 120, height: 120, objectFit: 'contain', marginBottom: 16, animation: 'sharkFloat 2.4s ease-in-out infinite' }} />
-          <div style={s.emptyTitle}>Ставок пока нет</div>
-          <div style={s.emptySub}>Добавь первую ставку, чтобы начать отслеживать результаты</div>
+          <div style={s.emptyTitle}>{t('dashboard.noBets')}</div>
+          <div style={s.emptySub}>{t('common.noData')}</div>
           <div style={s.emptyHint}>
             <span style={{ opacity: 0.5 }}>Ctrl+N</span>
-            <span style={{ color: colors.textMuted }}> — быстрое добавление</span>
           </div>
         </div>
       </div>
@@ -199,19 +202,19 @@ export function DashboardPage({ onNavigate }: DashboardProps = {}) {
         <button
           style={s.strategyBadge}
           onClick={() => onNavigate?.('strategy')}
-          title="Посмотреть стратегию"
+          title={t('dashboard.viewStrategy')}
         >
           <span>🎯</span>
-          <span>Стратегия: <strong>{settings.generatedStrategy.name}</strong></span>
-          <span style={{ fontSize: 11, opacity: 0.6 }}>· {settings.generatedStrategy.betsPerDay} ст/день · {settings.generatedStrategy.stakePercent}% банка · коэф {settings.generatedStrategy.oddsMin.toFixed(2)}–{settings.generatedStrategy.oddsMax.toFixed(2)}</span>
+          <span>{t('dashboard.strategy')}: <strong>{settings.generatedStrategy.name}</strong></span>
+          <span style={{ fontSize: 11, opacity: 0.6 }}>· {settings.generatedStrategy.betsPerDay} {t('dashboard.betsPerDay')} · {settings.generatedStrategy.stakePercent}{t('dashboard.bankPercent')} · {settings.generatedStrategy.oddsMin.toFixed(2)}–{settings.generatedStrategy.oddsMax.toFixed(2)}</span>
           <span style={{ marginLeft: 'auto', opacity: 0.5, fontSize: 12 }}>→</span>
         </button>
       )}
       <div style={s.header}>
         <div>
-          <h1 style={s.title}>Дашборд</h1>
+          <h1 style={s.title}>{t('dashboard.title')}</h1>
           <div style={s.subtitle}>
-            {new Date().toLocaleDateString('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' })}
+            {new Date().toLocaleDateString(i18n.language === 'en' ? 'en-US' : 'ru-RU', { weekday: 'long', day: 'numeric', month: 'long' })}
           </div>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -235,48 +238,48 @@ export function DashboardPage({ onNavigate }: DashboardProps = {}) {
         <div style={s.tiltAlert}>
           <span style={{ fontSize: 20 }}>⚠️</span>
           <div>
-            <div style={s.tiltTitle}>Возможный тилт — {stats.currentStreak.count} поражений подряд</div>
-            <div style={s.tiltSub}>Рекомендуем сделать паузу и не ставить до завтра</div>
+            <div style={s.tiltTitle}>{t('discipline.tiltAlert')} — {stats.currentStreak.count} {t('settings.tiltThresholdHint')}</div>
+            <div style={s.tiltSub}>{t('discipline.tiltMsg', { count: stats.currentStreak.count })}</div>
           </div>
         </div>
       )}
 
       <div style={s.statsGrid}>
         <StatCard
-          label="P&L"
+          label={t('dashboard.pnl')}
           value={formatMoney(stats.pnl)}
-          sub="чистая прибыль"
+          sub={t('dashboard.pnl')}
           {...(stats.pnl !== 0 ? { color: stats.pnl > 0 ? colors.won : colors.lost } : {})}
         />
         <StatCard
-          label="ROI"
+          label={t('dashboard.roi')}
           value={formatPercent(stats.roi)}
-          sub="возврат инвестиций"
+          sub={t('dashboard.roi')}
           {...(stats.roi !== 0 ? { color: stats.roi > 0 ? colors.won : colors.lost } : {})}
         />
         <StatCard
-          label="Винрейт"
+          label={t('dashboard.winRate')}
           value={`${stats.winRate.toFixed(1)}%`}
           sub={`${stats.wonBets}W / ${stats.lostBets}L`}
           color={colors.accent}
         />
         <StatCard
-          label="Банк"
+          label={t('bankroll.balance')}
           value={formatMoney(bankTotal)}
-          sub="текущий баланс"
+          sub={t('bankroll.balance')}
         />
         <StatCard
-          label="Ставок всего"
+          label={t('dashboard.totalBets')}
           value={String(stats.totalBets)}
-          sub={`${filteredBets.filter((b) => b.status === 'pending').length} в ожидании`}
+          sub={`${filteredBets.filter((b) => b.status === 'pending').length} ${t('dashboard.pending')}`}
         />
         <StatCard
-          label="Серия"
+          label={t('dashboard.streak')}
           value={
             stats.currentStreak.type === 'none' ? '—'
             : `${stats.currentStreak.count} ${stats.currentStreak.type === 'win' ? '🏆' : '💸'}`
           }
-          sub={stats.currentStreak.type === 'win' ? 'побед подряд' : stats.currentStreak.type === 'loss' ? 'поражений подряд' : ''}
+          sub={stats.currentStreak.type === 'win' ? t('dashboard.wins') : stats.currentStreak.type === 'loss' ? t('dashboard.losses') : ''}
           {...(stats.currentStreak.type !== 'none' ? { color: stats.currentStreak.type === 'win' ? colors.won : colors.lost } : {})}
         />
       </div>
@@ -285,15 +288,15 @@ export function DashboardPage({ onNavigate }: DashboardProps = {}) {
       {bets.filter((b) => b.status === 'pending').length > 0 && (
         <div style={s.card}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <div style={s.cardTitle}>Ожидают результата</div>
+            <div style={s.cardTitle}>{t('status.pending')}</div>
             <span style={{ fontSize: 12, color: colors.pending, fontWeight: 600 }}>
-              {bets.filter((b) => b.status === 'pending').length} ставок
+              {bets.filter((b) => b.status === 'pending').length} {t('common.bets')}
             </span>
           </div>
           <table style={s.table}>
             <thead>
               <tr>
-                {['Событие', 'Выбор', 'Коэф.', 'Ставка', 'Потенциал', ''].map((h) => (
+                {[t('bet.event'), t('bet.pick'), t('bet.odds'), t('bet.stake'), t('bet.potentialWin'), ''].map((h) => (
                   <th key={h} style={s.th}>{h}</th>
                 ))}
               </tr>
@@ -326,7 +329,7 @@ export function DashboardPage({ onNavigate }: DashboardProps = {}) {
       {/* W/L strip */}
       {filteredBets.length > 0 && (
         <div style={s.card}>
-          <div style={s.cardTitle}>Последние результаты</div>
+          <div style={s.cardTitle}>{t('dashboard.recentResults')}</div>
           <WLStrip bets={filteredBets} />
         </div>
       )}
@@ -337,7 +340,7 @@ export function DashboardPage({ onNavigate }: DashboardProps = {}) {
       {chartData.length > 1 && (
         <div style={s.card}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <div style={s.cardTitle}>P&L кривая</div>
+            <div style={s.cardTitle}>{t('dashboard.pnlCurve')}</div>
             <span style={{ fontSize: 14, fontWeight: 700, color: pnlPositive ? colors.won : colors.lost }}>
               {pnlPositive ? '+' : ''}{formatMoney(stats.pnl)}
             </span>
@@ -378,11 +381,11 @@ export function DashboardPage({ onNavigate }: DashboardProps = {}) {
       {/* Best / Worst bet */}
       {(bestBet || worstBet) && (
         <div style={s.card}>
-          <div style={s.cardTitle}>Лучшая / Худшая ставка</div>
+          <div style={s.cardTitle}>{t('dashboard.bestWorst')}</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginTop: 14 }}>
             {bestBet && (
               <div style={{ ...s.extremeBet, borderColor: colors.won + '44' }}>
-                <div style={{ fontSize: 11, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Лучшая</div>
+                <div style={{ fontSize: 11, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>{t('dashboard.best')}</div>
                 <div style={{ fontSize: 14, fontWeight: 600, color: colors.textPrimary, marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{bestBet.event}</div>
                 <div style={{ fontSize: 12, color: colors.textSecondary }}>{bestBet.pick} · ×{bestBet.odds}</div>
                 <div style={{ fontSize: 18, fontWeight: 700, color: colors.won, marginTop: 8 }}>+{formatMoney(bestBet.pnl)}</div>
@@ -390,7 +393,7 @@ export function DashboardPage({ onNavigate }: DashboardProps = {}) {
             )}
             {worstBet && (
               <div style={{ ...s.extremeBet, borderColor: colors.lost + '44' }}>
-                <div style={{ fontSize: 11, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>Худшая</div>
+                <div style={{ fontSize: 11, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>{t('dashboard.worst')}</div>
                 <div style={{ fontSize: 14, fontWeight: 600, color: colors.textPrimary, marginBottom: 2, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{worstBet.event}</div>
                 <div style={{ fontSize: 12, color: colors.textSecondary }}>{worstBet.pick} · ×{worstBet.odds}</div>
                 <div style={{ fontSize: 18, fontWeight: 700, color: colors.lost, marginTop: 8 }}>{formatMoney(worstBet.pnl)}</div>
@@ -403,11 +406,11 @@ export function DashboardPage({ onNavigate }: DashboardProps = {}) {
       {/* Recent bets */}
       {filteredBets.length > 0 && (
         <div style={s.card}>
-          <div style={s.cardTitle}>Последние 5 ставок</div>
+          <div style={s.cardTitle}>{t('dashboard.recentBets')}</div>
           <table style={s.table}>
             <thead>
               <tr>
-                {['Событие', 'Выбор', 'Коэф.', 'Ставка', 'P&L', 'Статус'].map((h) => (
+                {[t('bet.event'), t('bet.pick'), t('bet.odds'), t('bet.stake'), 'P&L', t('common.status')].map((h) => (
                   <th key={h} style={s.th}>{h}</th>
                 ))}
               </tr>
@@ -432,7 +435,7 @@ export function DashboardPage({ onNavigate }: DashboardProps = {}) {
                     </td>
                     <td style={s.td}>
                       <span style={{ ...s.statusBadge, color: statusColors[bet.status], backgroundColor: statusColors[bet.status] + '22' }}>
-                        {bet.status === 'won' ? 'Победа' : bet.status === 'lost' ? 'Проигрыш' : bet.status === 'pending' ? 'Ожидание' : bet.status === 'cashout' ? 'Выкуп' : 'Возврат'}
+                        {t(`status.${bet.status}`)}
                       </span>
                     </td>
                   </tr>

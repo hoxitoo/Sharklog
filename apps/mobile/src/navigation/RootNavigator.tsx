@@ -4,6 +4,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../theme/colors';
+import { useTranslation } from 'react-i18next';
 import { BetsScreen } from '../screens/BetsScreen';
 import { DashboardScreen } from '../screens/DashboardScreen';
 import { AnalyticsScreen } from '../screens/AnalyticsScreen';
@@ -53,6 +54,7 @@ function TabIcon({ name, focused }: { name: string; focused: boolean }) {
 
 function Tabs() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -72,63 +74,45 @@ function Tabs() {
         ),
       })}
     >
-      <Tab.Screen name="Bets" component={BetsScreen} options={{ tabBarLabel: 'Ставки' }} />
-      <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ tabBarLabel: 'Дашборд' }} />
-      <Tab.Screen name="Insights" component={InsightsScreen} options={{ tabBarLabel: 'Инсайты' }} />
-      <Tab.Screen name="Discipline" component={DisciplineScreen} options={{ tabBarLabel: 'Дисциплина' }} />
-      <Tab.Screen name="Analytics" component={AnalyticsScreen} options={{ tabBarLabel: 'Аналитика' }} />
-      <Tab.Screen name="Settings" component={SettingsScreen} options={{ tabBarLabel: 'Настройки' }} />
+      <Tab.Screen name="Bets" component={BetsScreen} options={{ tabBarLabel: t('nav.bets') }} />
+      <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ tabBarLabel: t('nav.dashboard') }} />
+      <Tab.Screen name="Insights" component={InsightsScreen} options={{ tabBarLabel: t('nav.insights') }} />
+      <Tab.Screen name="Discipline" component={DisciplineScreen} options={{ tabBarLabel: t('nav.discipline') }} />
+      <Tab.Screen name="Analytics" component={AnalyticsScreen} options={{ tabBarLabel: t('nav.analytics') }} />
+      <Tab.Screen name="Settings" component={SettingsScreen} options={{ tabBarLabel: t('nav.settings') }} />
     </Tab.Navigator>
   );
 }
 
 export function RootNavigator() {
+  const { t } = useTranslation();
+  const headerOpts = {
+    headerStyle: { backgroundColor: colors.bgCard },
+    headerTintColor: colors.textPrimary,
+    headerTitleStyle: { color: colors.textPrimary, fontWeight: '700' as const },
+  };
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Tabs" component={Tabs} />
       <Stack.Screen
         name="AddBet"
         component={AddBetScreen}
-        options={{
-          presentation: 'modal',
-          headerShown: true,
-          headerStyle: { backgroundColor: colors.bgCard },
-          headerTintColor: colors.textPrimary,
-          headerTitleStyle: { color: colors.textPrimary, fontWeight: '700' },
-        }}
+        options={{ presentation: 'modal', headerShown: true, ...headerOpts }}
       />
       <Stack.Screen
         name="Bankroll"
         component={BankrollScreen}
-        options={{
-          headerShown: true,
-          headerStyle: { backgroundColor: colors.bgCard },
-          headerTintColor: colors.textPrimary,
-          headerTitleStyle: { color: colors.textPrimary, fontWeight: '700' },
-          title: 'Банкролл',
-        }}
+        options={{ headerShown: true, ...headerOpts, title: t('nav.bankroll') }}
       />
       <Stack.Screen
         name="StrategyBuilder"
         component={StrategyBuilderScreen}
-        options={{
-          headerShown: true,
-          headerStyle: { backgroundColor: colors.bgCard },
-          headerTintColor: colors.textPrimary,
-          headerTitleStyle: { color: colors.textPrimary, fontWeight: '700' },
-          title: 'Билдер стратегий',
-        }}
+        options={{ headerShown: true, ...headerOpts, title: t('nav.strategyBuilder') }}
       />
       <Stack.Screen
         name="Partners"
         component={PartnersScreen}
-        options={{
-          headerShown: true,
-          headerStyle: { backgroundColor: colors.bgCard },
-          headerTintColor: colors.textPrimary,
-          headerTitleStyle: { color: colors.textPrimary, fontWeight: '700' },
-          title: 'Партнёры',
-        }}
+        options={{ headerShown: true, ...headerOpts, title: t('nav.partners') }}
       />
     </Stack.Navigator>
   );

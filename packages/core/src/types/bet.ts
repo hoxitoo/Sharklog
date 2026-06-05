@@ -149,6 +149,7 @@ export interface AppSettings {
   roundAmounts: boolean;
   generatedStrategy?: GeneratedStrategy;
   lastBackupAt?: string;
+  language?: 'ru' | 'en' | 'kz' | 'by';
 }
 
 export interface StorageSchema {

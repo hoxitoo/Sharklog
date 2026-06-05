@@ -6,12 +6,16 @@ import { useToastStore } from '../store/toastStore';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { colors } from '../theme/colors';
 import { importFromCSV, importFromXLSX } from '../utils/importBets';
+import { useTranslation } from 'react-i18next';
+import { LANGUAGES, type LangCode } from '../i18n/index';
+import i18n from '../i18n/index';
 
 const IS_TAURI = typeof window !== 'undefined' && !!(window as unknown as Record<string, unknown>).__TAURI_INTERNALS__;
 
 export function SettingsPage() {
   const { settings, updateSettings, bets, teams, deleteTeam, clearAll } = useBetsStore();
   const toast = useToastStore((s) => s.show);
+  const { t } = useTranslation();
   const [newBk, setNewBk] = useState('');
   const [confirmClear, setConfirmClear] = useState(false);
   const [clearMessage, setClearMessage] = useState('');
@@ -207,7 +211,7 @@ export function SettingsPage() {
         />
       )}
 
-      <h1 style={s.title}>Настройки</h1>
+      <h1 style={s.title}>{t('settings.title')}</h1>
 
       {/* Backup banner */}
       {showBackupBanner && (
@@ -215,10 +219,10 @@ export function SettingsPage() {
           <span style={{ fontSize: 24 }}>💾</span>
           <div style={{ flex: 1 }}>
             <div style={s.backupBannerTitle}>
-              {daysSinceBackup === null ? 'Резервная копия не создана' : `Последняя копия: ${daysSinceBackup} дн. назад`}
+              {t('settings.backupBanner')}
             </div>
             <div style={s.backupBannerSub}>
-              Данные хранятся только на этом компьютере. Нажми чтобы сохранить резервную копию.
+              {t('settings.backupNow')}
             </div>
           </div>
           <span style={{ fontSize: 18, color: colors.pending }}>→</span>
@@ -227,20 +231,20 @@ export function SettingsPage() {
 
       {/* Subscription */}
       <div style={s.card}>
-        <div style={s.cardTitle}>Подписка</div>
+        <div style={s.cardTitle}>{t('settings.subscription')}</div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
           <div>
             <div style={{ fontSize: 15, color: settings.isPro ? colors.gold : colors.textSecondary, fontWeight: 600 }}>
-              {settings.isPro ? '👑 SharkLog Pro' : '🆓 Бесплатная версия'}
+              {settings.isPro ? `👑 ${t('settings.proActive')}` : `🆓 ${t('common.free')}`}
             </div>
             <div style={{ fontSize: 13, color: colors.textMuted, marginTop: 3, maxWidth: 340, lineHeight: 1.4 }}>
               {settings.isPro
-                ? 'Все функции открыты. Подписка на десктопе хранится локально — не забывай делать резервные копии.'
-                : `До 50 ставок (осталось ${Math.max(0, 50 - bets.length)}). Купи Pro для неограниченного учёта.`}
+                ? t('settings.backupBanner')
+                : `${Math.max(0, 50 - bets.length)} ${t('common.bets')} ${t('common.of')} 50`}
             </div>
             {settings.isPro && settings.proExpiresAt && (
               <div style={{ fontSize: 12, color: colors.pending, marginTop: 4 }}>
-                ⏰ Пробный период до {new Date(settings.proExpiresAt).toLocaleDateString('ru')}
+                ⏰ {t('settings.proExpires', { date: new Date(settings.proExpiresAt).toLocaleDateString() })}
               </div>
             )}
           </div>
@@ -250,48 +254,45 @@ export function SettingsPage() {
                 const expires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
                 updateSettings({ isPro: true, proExpiresAt: expires });
               }}>
-                👑 Попробовать Pro (7 дней)
+                👑 {t('settings.tryPro')}
               </button>
             )}
             {settings.isPro && import.meta.env.DEV && (
               <button style={{ ...s.proBtn, backgroundColor: colors.bgElevated, color: colors.textMuted }} onClick={() => updateSettings({ isPro: false })}>
-                Отключить (dev)
+                Disable (dev)
               </button>
             )}
           </div>
-        </div>
-        <div style={{ fontSize: 12, color: colors.textMuted, paddingTop: 8, borderTop: `1px solid ${colors.border}`, lineHeight: 1.4 }}>
-          💡 На десктопе Pro-статус хранится локально. При очистке данных он будет сброшен. Делай резервные копии регулярно.
         </div>
       </div>
 
       {/* Tilt control */}
       <div style={s.card}>
-        <div style={s.cardTitle}>Тилт-контроль</div>
+        <div style={s.cardTitle}>{t('settings.tiltThreshold')}</div>
         <div style={s.row}>
           <div>
-            <span style={s.rowLabel}>Порог тилт-алерта</span>
-            {!settings.isPro && <div style={{ fontSize: 11, color: colors.textMuted, marginTop: 2 }}>PRO — настраивается</div>}
+            <span style={s.rowLabel}>{t('settings.tiltThreshold')}</span>
+            {!settings.isPro && <div style={{ fontSize: 11, color: colors.textMuted, marginTop: 2 }}>PRO</div>}
           </div>
           {settings.isPro ? (
             <div style={s.stepper}>
               <button style={s.stepBtn} onClick={() => updateSettings({ tiltThreshold: Math.max(2, settings.tiltThreshold - 1) })}>−</button>
-              <span style={s.stepVal}>{settings.tiltThreshold} поражений</span>
+              <span style={s.stepVal}>{settings.tiltThreshold} {t('settings.tiltThresholdHint')}</span>
               <button style={s.stepBtn} onClick={() => updateSettings({ tiltThreshold: Math.min(10, settings.tiltThreshold + 1) })}>+</button>
             </div>
           ) : (
-            <span style={s.rowValue}>{FREE_LIMITS.TILT_ALERT_THRESHOLD} (фикс.)</span>
+            <span style={s.rowValue}>{FREE_LIMITS.TILT_ALERT_THRESHOLD}</span>
           )}
         </div>
         <div style={{ ...s.row, borderBottom: 'none' }}>
           <div>
-            <span style={s.rowLabel}>Дневной лимит ставок</span>
-            {!settings.isPro && <div style={{ fontSize: 11, color: colors.textMuted, marginTop: 2 }}>PRO — настраивается</div>}
+            <span style={s.rowLabel}>{t('settings.dailyLimit')}</span>
+            {!settings.isPro && <div style={{ fontSize: 11, color: colors.textMuted, marginTop: 2 }}>PRO</div>}
           </div>
           {settings.isPro ? (
             <div style={s.stepper}>
               <button style={s.stepBtn} onClick={() => updateSettings({ dailyBetLimit: Math.max(0, settings.dailyBetLimit - 1) })}>−</button>
-              <span style={s.stepVal}>{settings.dailyBetLimit === 0 ? '∞ без лимита' : `${settings.dailyBetLimit} в день`}</span>
+              <span style={s.stepVal}>{settings.dailyBetLimit === 0 ? `∞ ${t('settings.dailyLimitHint')}` : `${settings.dailyBetLimit}`}</span>
               <button style={s.stepBtn} onClick={() => updateSettings({ dailyBetLimit: Math.min(20, settings.dailyBetLimit + 1) })}>+</button>
             </div>
           ) : (
@@ -300,19 +301,49 @@ export function SettingsPage() {
         </div>
       </div>
 
+      {/* Language */}
+      <div style={s.card}>
+        <div style={s.cardTitle}>{t('settings.language')}</div>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          {LANGUAGES.map((lang) => {
+            const active = (settings.language ?? 'ru') === lang.code;
+            return (
+              <button
+                key={lang.code}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '8px 16px', borderRadius: 20, cursor: 'pointer',
+                  border: `1px solid ${active ? colors.purple : colors.border}`,
+                  backgroundColor: active ? colors.purple + '22' : colors.bgElevated,
+                  color: active ? colors.purple : colors.textSecondary,
+                  fontWeight: active ? 700 : 500, fontSize: 13,
+                }}
+                onClick={() => {
+                  updateSettings({ language: lang.code as LangCode });
+                  i18n.changeLanguage(lang.code);
+                }}
+              >
+                <span style={{ fontSize: 18 }}>{lang.flag}</span>
+                {lang.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Bookmakers */}
       <div style={s.card}>
-        <div style={s.cardTitle}>Букмекеры</div>
+        <div style={s.cardTitle}>{t('settings.bookmakers')}</div>
         {settings.bookmakers.map((bk) => (
           <div key={bk} style={s.row}>
             <span style={s.rowLabel}>{bk}</span>
-            <button style={s.removeBtn} onClick={() => removeBookmaker(bk)}>Удалить</button>
+            <button style={s.removeBtn} onClick={() => removeBookmaker(bk)}>{t('common.delete')}</button>
           </div>
         ))}
         <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
           <input
             style={{ ...s.input, flex: 1 }}
-            placeholder="Добавить букмекера..."
+            placeholder={t('settings.addBookmakerPlaceholder')}
             value={newBk}
             onChange={(e) => setNewBk(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && addBookmaker()}
@@ -325,8 +356,8 @@ export function SettingsPage() {
       {teams.length > 0 && (
         <div style={s.card}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-            <div style={s.cardTitle}>Сохранённые команды</div>
-            <span style={{ fontSize: 12, color: colors.textMuted }}>{teams.length} команд</span>
+            <div style={s.cardTitle}>{t('insights.teams')}</div>
+            <span style={{ fontSize: 12, color: colors.textMuted }}>{teams.length}</span>
           </div>
           <div style={{ maxHeight: 200, overflowY: 'auto' }}>
             {[...teams].sort((a, b) => b.usageCount - a.usageCount).map((team) => (
@@ -339,7 +370,7 @@ export function SettingsPage() {
                     {' · '}{team.usageCount}×
                   </span>
                 </div>
-                <button style={s.removeBtn} onClick={() => deleteTeam(team.id)}>Удалить</button>
+                <button style={s.removeBtn} onClick={() => deleteTeam(team.id)}>{t('common.delete')}</button>
               </div>
             ))}
           </div>
@@ -348,35 +379,31 @@ export function SettingsPage() {
 
       {/* Data & Export */}
       <div style={s.card}>
-        <div style={s.cardTitle}>Данные и экспорт</div>
+        <div style={s.cardTitle}>{t('settings.data')}</div>
         <div style={s.row}>
-          <span style={s.rowLabel}>Всего ставок</span>
+          <span style={s.rowLabel}>{t('analytics.count')}</span>
           <span style={s.rowValue}>{bets.length}</span>
         </div>
-        <div style={s.row}>
-          <span style={s.rowLabel}>Хранилище</span>
-          <span style={s.rowValue}>localStorage</span>
-        </div>
         <div style={{ marginTop: 14 }}>
-          <div style={{ fontSize: 11, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Экспорт</div>
+          <div style={{ fontSize: 11, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>{t('settings.exportCSV').replace(' CSV', '')}</div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
             <button style={{ ...s.exportBtn, backgroundColor: colors.accent + '22', color: colors.accent, border: `1px solid ${colors.accent}44` }} onClick={handleExportCSV}>
-              📥 Экспорт CSV
+              📥 {t('settings.exportCSV')}
             </button>
             <button style={{ ...s.exportBtn, backgroundColor: colors.purple + '22', color: colors.purple, border: `1px solid ${colors.purple}44` }} onClick={handleExportJSON}>
-              💾 Резервная копия JSON
+              💾 {t('settings.backupJSON')}
             </button>
           </div>
-          <div style={{ fontSize: 11, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>Импорт</div>
+          <div style={{ fontSize: 11, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>{t('settings.importCSV').replace(' CSV', '')}</div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <button style={{ ...s.exportBtn, backgroundColor: colors.pending + '22', color: colors.pending, border: `1px solid ${colors.pending}44` }} onClick={handleImportCSV}>
-              📊 Импорт CSV
+              📊 {t('settings.importCSV')}
             </button>
             <button style={{ ...s.exportBtn, backgroundColor: '#22c55e22', color: '#22c55e', border: '1px solid #22c55e44' }} onClick={handleImportXLSX}>
-              📗 Импорт Excel (.xlsx)
+              📗 Excel (.xlsx)
             </button>
             <button style={{ ...s.exportBtn, backgroundColor: colors.pending + '22', color: colors.pending, border: `1px solid ${colors.pending}44` }} onClick={handleImportJSON}>
-              📂 Восстановить из JSON
+              📂 {t('settings.importJSON')}
             </button>
           </div>
         </div>
@@ -384,28 +411,28 @@ export function SettingsPage() {
 
       {/* About / Updates */}
       <div style={s.card}>
-        <div style={s.cardTitle}>О приложении</div>
+        <div style={s.cardTitle}>{t('settings.about')}</div>
         <div style={s.row}>
-          <span style={s.rowLabel}>Версия</span>
+          <span style={s.rowLabel}>{t('settings.version')}</span>
           <span style={s.rowValue}>0.1.0</span>
         </div>
         <div style={{ ...s.row, borderBottom: 'none' }}>
-          <span style={s.rowLabel}>Обновления</span>
+          <span style={s.rowLabel}>{t('settings.checkUpdates')}</span>
           <button
             style={{ ...s.exportBtn, backgroundColor: colors.purple + '22', color: colors.purple, border: `1px solid ${colors.purple}44`, opacity: updateStatus === 'checking' ? 0.6 : 1 }}
             onClick={handleCheckUpdate}
             disabled={updateStatus === 'checking'}
           >
-            {updateStatus === 'checking' ? '⏳ Проверяем...' : updateStatus === 'available' ? '⬇️ Устанавливаем...' : updateStatus === 'latest' ? '✅ Актуальная версия' : '🔄 Проверить обновления'}
+            {updateStatus === 'checking' ? `⏳ ${t('settings.updateChecking')}` : updateStatus === 'available' ? `⬇️ ${t('settings.updateAvailable', { version: '' })}` : updateStatus === 'latest' ? `✅ ${t('settings.updateLatest')}` : `🔄 ${t('settings.checkUpdates')}`}
           </button>
         </div>
       </div>
 
       {/* Danger zone */}
       <div style={{ ...s.card, borderColor: colors.lost + '44' }}>
-        <div style={s.cardTitle}>Опасная зона</div>
+        <div style={s.cardTitle}>{t('settings.clearAllConfirm')}</div>
         <button style={s.dangerBtn} onClick={handleClearData}>
-          Очистить все данные
+          {t('settings.clearAll')}
         </button>
       </div>
     </div>

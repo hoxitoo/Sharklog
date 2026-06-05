@@ -2,19 +2,20 @@ import React from 'react';
 import { FREE_LIMITS } from '@sharklog/core';
 import { colors } from '../theme/colors';
 import { useBetsStore } from '../store/betsStore';
+import { useTranslation } from 'react-i18next';
 
 export type Page = 'dashboard' | 'bets' | 'analytics' | 'insights' | 'strategy' | 'bankroll' | 'diary' | 'settings' | 'partners';
 
-const NAV: Array<{ id: Page; icon: string; label: string; pro?: boolean }> = [
-  { id: 'dashboard', icon: '📊', label: 'Дашборд' },
-  { id: 'bets', icon: '📋', label: 'Ставки' },
-  { id: 'analytics', icon: '🔬', label: 'Аналитика' },
-  { id: 'insights', icon: '💡', label: 'Инсайты' },
-  { id: 'strategy', icon: '🎯', label: 'Стратегия', pro: true },
-  { id: 'bankroll', icon: '💰', label: 'Банкролл' },
-  { id: 'diary', icon: '🧘', label: 'Дисциплина' },
-  { id: 'settings', icon: '⚙️', label: 'Настройки' },
-  { id: 'partners', icon: '🤝', label: 'Партнёры' },
+const NAV: Array<{ id: Page; icon: string; navKey: string; pro?: boolean }> = [
+  { id: 'dashboard', icon: '📊', navKey: 'nav.dashboard' },
+  { id: 'bets', icon: '📋', navKey: 'nav.bets' },
+  { id: 'analytics', icon: '🔬', navKey: 'nav.analytics' },
+  { id: 'insights', icon: '💡', navKey: 'nav.insights' },
+  { id: 'strategy', icon: '🎯', navKey: 'nav.strategyBuilder', pro: true },
+  { id: 'bankroll', icon: '💰', navKey: 'nav.bankroll' },
+  { id: 'diary', icon: '🧘', navKey: 'nav.discipline' },
+  { id: 'settings', icon: '⚙️', navKey: 'nav.settings' },
+  { id: 'partners', icon: '🤝', navKey: 'nav.partners' },
 ];
 
 interface Props {
@@ -27,6 +28,7 @@ interface Props {
 export function AppLayout({ page, onNavigate, onAddBet, children }: Props) {
   const betsCount = useBetsStore((s) => s.bets.length);
   const isPro = useBetsStore((s) => s.settings.isPro);
+  const { t } = useTranslation();
 
   return (
     <div style={s.root}>
@@ -49,7 +51,7 @@ export function AppLayout({ page, onNavigate, onAddBet, children }: Props) {
               }}
             >
               <span style={s.navIcon}>{item.icon}</span>
-              <span style={{ flex: 1 }}>{item.label}</span>
+              <span style={{ flex: 1 }}>{t(item.navKey)}</span>
               {item.pro && !isPro && (
                 <span style={{ fontSize: 9, fontWeight: 700, color: colors.gold, backgroundColor: colors.gold + '22', borderRadius: 4, padding: '2px 5px', border: `1px solid ${colors.gold}44` }}>PRO</span>
               )}
@@ -59,7 +61,7 @@ export function AppLayout({ page, onNavigate, onAddBet, children }: Props) {
 
         {/* Add bet button */}
         <button style={s.addBetBtn} className="sl-add-btn" onClick={onAddBet}>
-          + Новая ставка
+          + {t('bet.add')}
         </button>
 
         {/* Bottom info */}
@@ -69,7 +71,7 @@ export function AppLayout({ page, onNavigate, onAddBet, children }: Props) {
           ) : (
             <div style={s.freeInfo}>
               <span style={{ color: colors.textMuted, fontSize: 11 }}>
-                {betsCount} / {FREE_LIMITS.MAX_BETS} ставок
+                {betsCount} / {FREE_LIMITS.MAX_BETS} {t('common.bets')}
               </span>
               <div style={s.freeBar}>
                 <div style={{ ...s.freeBarFill, width: `${Math.min(100, (betsCount / FREE_LIMITS.MAX_BETS) * 100)}%` }} />

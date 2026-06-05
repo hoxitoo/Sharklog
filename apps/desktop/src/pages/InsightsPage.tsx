@@ -5,13 +5,9 @@ import {
 import type { TournamentStats, TeamStats } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
 import { colors } from '../theme/colors';
+import { useTranslation } from 'react-i18next';
 
 type Period = '7d' | '30d' | 'all';
-const PERIOD_OPTIONS: Array<{ key: Period; label: string }> = [
-  { key: '7d', label: '7 дней' },
-  { key: '30d', label: '30 дней' },
-  { key: 'all', label: 'Всё время' },
-];
 
 const SPORT_ICONS: Record<string, string> = {
   football: '⚽', hockey: '🏒', basketball: '🏀', tennis: '🎾',
@@ -28,44 +24,44 @@ function PnlCell({ pnl }: { pnl: number }) {
 }
 
 function TournamentsSection({ stats }: { stats: TournamentStats[] }) {
+  const { t } = useTranslation();
+
   if (stats.length === 0) {
     return (
       <div style={s.card}>
-        <div style={s.cardTitle}>Турниры и лиги</div>
-        <div style={s.empty}>
-          Начни добавлять турнир при записи ставки — и здесь появится статистика по лигам
-        </div>
+        <div style={s.cardTitle}>{t('insights.tournamentsAndLeagues')}</div>
+        <div style={s.empty}>{t('insights.tournamentsEmpty')}</div>
       </div>
     );
   }
 
   return (
     <div style={s.card}>
-      <div style={s.cardTitle}>Турниры и лиги</div>
+      <div style={s.cardTitle}>{t('insights.tournamentsAndLeagues')}</div>
       <table style={s.table}>
         <thead>
           <tr>
-            {['Турнир', 'Спорт', 'Ставок', 'W%', 'P&L', 'ROI'].map((h) => (
+            {[t('bet.tournament'), t('bet.sport'), t('analytics.count'), 'W%', 'P&L', 'ROI'].map((h) => (
               <th key={h} style={th}>{h}</th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {stats.map((t) => (
-            <tr key={t.tournament} style={s.tr}>
+          {stats.map((tourney) => (
+            <tr key={tourney.tournament} style={s.tr}>
               <td style={{ ...td, fontWeight: 600, color: colors.textPrimary, maxWidth: 200 }}>
-                {t.tournament}
+                {tourney.tournament}
               </td>
               <td style={{ ...td, color: colors.textMuted }}>
-                {SPORT_ICONS[t.sport] ?? '🏅'} {SPORTS[t.sport as keyof typeof SPORTS] ?? t.sport}
+                {SPORT_ICONS[tourney.sport] ?? '🏅'} {SPORTS[tourney.sport as keyof typeof SPORTS] ?? tourney.sport}
               </td>
-              <td style={td}>{t.count}</td>
-              <td style={{ ...td, color: t.winRate > 50 ? colors.won : colors.textSecondary }}>
-                {t.winRate.toFixed(0)}%
+              <td style={td}>{tourney.count}</td>
+              <td style={{ ...td, color: tourney.winRate > 50 ? colors.won : colors.textSecondary }}>
+                {tourney.winRate.toFixed(0)}%
               </td>
-              <PnlCell pnl={t.pnl} />
-              <td style={{ ...td, color: t.roi >= 0 ? colors.won : colors.lost, fontWeight: 600 }}>
-                {formatPercent(t.roi)}
+              <PnlCell pnl={tourney.pnl} />
+              <td style={{ ...td, color: tourney.roi >= 0 ? colors.won : colors.lost, fontWeight: 600 }}>
+                {formatPercent(tourney.roi)}
               </td>
             </tr>
           ))}
@@ -76,6 +72,7 @@ function TournamentsSection({ stats }: { stats: TournamentStats[] }) {
 }
 
 function TeamCard({ team }: { team: TeamStats }) {
+  const { t } = useTranslation();
   const pnlColor = team.pnl > 0 ? colors.won : team.pnl < 0 ? colors.lost : colors.textSecondary;
   return (
     <div style={s.teamCard}>
@@ -97,15 +94,15 @@ function TeamCard({ team }: { team: TeamStats }) {
       <div style={{ display: 'flex', gap: 16 }}>
         <div style={s.teamStat}>
           <span style={s.teamStatVal}>{team.count}</span>
-          <span style={s.teamStatLabel}>ставок</span>
+          <span style={s.teamStatLabel}>{t('common.bets')}</span>
         </div>
         <div style={s.teamStat}>
           <span style={{ ...s.teamStatVal, color: colors.won }}>{team.won}</span>
-          <span style={s.teamStatLabel}>побед</span>
+          <span style={s.teamStatLabel}>{t('dashboard.wins')}</span>
         </div>
         <div style={s.teamStat}>
           <span style={{ ...s.teamStatVal, color: colors.lost }}>{team.lost}</span>
-          <span style={s.teamStatLabel}>поражений</span>
+          <span style={s.teamStatLabel}>{t('dashboard.losses')}</span>
         </div>
         <div style={s.teamStat}>
           <span style={{ ...s.teamStatVal, color: colors.purple }}>{team.winRate.toFixed(0)}%</span>
@@ -121,15 +118,17 @@ function TeamCard({ team }: { team: TeamStats }) {
 }
 
 function TeamsSection({ teams, isPro }: { teams: TeamStats[]; isPro: boolean }) {
+  const { t } = useTranslation();
+
   if (!isPro) {
     return (
       <div style={s.card}>
-        <div style={s.cardTitle}>Любимые команды</div>
+        <div style={s.cardTitle}>{t('insights.teams')}</div>
         <div style={s.proGate}>
           <div style={{ fontSize: 40, marginBottom: 12 }}>👑</div>
           <div style={{ fontSize: 18, fontWeight: 700, color: colors.gold, marginBottom: 8 }}>PRO</div>
           <div style={{ color: colors.textSecondary, fontSize: 13 }}>
-            Анализ по командам (10+ ставок) доступен в подписке SharkLog Pro
+            {t('insights.teamsProMsg')}
           </div>
         </div>
       </div>
@@ -139,15 +138,15 @@ function TeamsSection({ teams, isPro }: { teams: TeamStats[]; isPro: boolean }) 
   if (teams.length === 0) {
     return (
       <div style={s.card}>
-        <div style={s.cardTitle}>Любимые команды</div>
-        <div style={s.empty}>Нужно минимум 10 ставок на одну команду</div>
+        <div style={s.cardTitle}>{t('insights.teams')}</div>
+        <div style={s.empty}>{t('insights.noTeams')}</div>
       </div>
     );
   }
 
   return (
     <div style={s.card}>
-      <div style={s.cardTitle}>Любимые команды</div>
+      <div style={s.cardTitle}>{t('insights.teams')}</div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 12 }}>
         {teams.map((team) => <TeamCard key={team.name} team={team} />)}
       </div>
@@ -157,7 +156,14 @@ function TeamsSection({ teams, isPro }: { teams: TeamStats[]; isPro: boolean }) 
 
 export function InsightsPage() {
   const { bets, settings } = useBetsStore();
+  const { t } = useTranslation();
   const [period, setPeriod] = useState<Period>('all');
+
+  const PERIOD_OPTIONS: Array<{ key: Period; label: string }> = [
+    { key: '7d', label: t('dashboard.week') },
+    { key: '30d', label: t('dashboard.month') },
+    { key: 'all', label: t('dashboard.allTime') },
+  ];
 
   const filteredBets = useMemo(() => {
     if (period === 'all') return bets;
@@ -175,8 +181,8 @@ export function InsightsPage() {
     <div style={s.page}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div>
-          <h1 style={s.title}>Инсайты</h1>
-          <p style={s.subtitle}>Турниры и любимые команды</p>
+          <h1 style={s.title}>{t('insights.title')}</h1>
+          <p style={s.subtitle}>{t('insights.tournamentsAndLeagues')} · {t('insights.teams')}</p>
         </div>
         <div style={{ display: 'flex', gap: 4 }}>
           {PERIOD_OPTIONS.map((p) => (

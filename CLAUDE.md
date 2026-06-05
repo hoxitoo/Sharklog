@@ -62,6 +62,43 @@ colors.gold     = '#F59E0B'  // PRO badge
 - Freemium: 199 ₽/мес, 990 ₽/год
 - Инсайты/команды (PRO): только команды с ≥10 ставок показываются в "Любимые команды"
 
+## Локализация (i18n)
+
+Поддерживаются 4 языка: **ru** (русский), **en** (English), **kz** (қазақша), **by** (беларуская).
+
+Файлы переводов:
+- Desktop: `apps/desktop/src/i18n/locales/{ru,en,kz,by}.json`
+- Mobile: `apps/mobile/src/i18n/locales/{ru,en,kz,by}.json`
+
+```typescript
+// Desktop — в компонентах
+import { useTranslation } from 'react-i18next';
+const { t, i18n } = useTranslation();
+t('status.won')           // → 'Победа' / 'Won' / 'Жеңді' / 'Выйграў'
+t('discipline.tiltBannerTitle', { count: 3 })  // интерполяция
+
+// Смена языка (десктоп — через SettingsPage)
+i18n.changeLanguage('en');
+updateSettings({ language: 'en' });
+
+// Mobile — через applyLanguage() в SettingsScreen
+import i18n from '../i18n';
+i18n.changeLanguage(lang);
+
+// Локаль для дат
+const locale = i18n.language === 'en' ? 'en-US' : 'ru-RU';
+new Date(str).toLocaleDateString(locale, { day: 'numeric', month: 'short' });
+```
+
+Ключевые пространства имён в JSON-файлах:
+`nav`, `status`, `bet`, `dashboard`, `analytics`, `insights`, `bankroll`, `discipline`, `settings`, `common`
+
+Соглашения:
+- `formatPercent()` не трогать — уже добавляет `+`; в переводах знак `+` тоже не ставить
+- Валюта `₽` захардкожена в `formatMoney()` — не переводить
+- Все числовые суммы идут через `formatMoney()`, не вставлять в строки вручную
+- При добавлении нового UI-текста — добавлять ключ во все 4 файла сразу
+
 ## Команды
 
 ```bash

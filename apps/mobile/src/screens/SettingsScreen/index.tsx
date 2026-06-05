@@ -9,6 +9,9 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { FREE_LIMITS, CURRENT_SCHEMA_VERSION } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { colors } from '../../theme/colors';
+import { useTranslation } from 'react-i18next';
+import { LANGUAGES, type LangCode } from '../../i18n/index';
+import i18n from '../../i18n/index';
 import { exportBetsCSV } from '../../utils/exportCSV';
 import { importFromCSV, importFromJSON } from '../../utils/importBets';
 import { requestNotificationPermission, scheduleDailyReminder } from '../../utils/notifications';
@@ -88,6 +91,7 @@ export function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { settings, updateSettings, bets, clearAll } = useBetsStore();
+  const { t } = useTranslation();
   const [newBookmaker, setNewBookmaker] = useState('');
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -504,6 +508,28 @@ export function SettingsScreen() {
           </Row>
         </Section>
 
+        <Section title={t('settings.language')}>
+          <View style={styles.langRow}>
+            {LANGUAGES.map((lang) => {
+              const active = (settings.language ?? 'ru') === lang.code;
+              return (
+                <TouchableOpacity
+                  key={lang.code}
+                  style={[styles.langChip, active && styles.langChipActive]}
+                  onPress={() => {
+                    updateSettings({ language: lang.code as LangCode });
+                    i18n.changeLanguage(lang.code);
+                  }}
+                  activeOpacity={0.75}
+                >
+                  <Text style={styles.langFlag}>{lang.flag}</Text>
+                  <Text style={[styles.langLabel, active && styles.langLabelActive]}>{lang.label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </Section>
+
         <Section title="Обновления">
           <Row label={`Версия ${APP_VERSION}`}>
             {updateStatus === 'available' ? (
@@ -703,4 +729,15 @@ const styles = StyleSheet.create({
   },
   restoreBtnText: { fontSize: 14, fontWeight: '600', color: colors.textSecondary },
   subscriptionHint: { fontSize: 11, color: colors.textMuted, textAlign: 'center', lineHeight: 16 },
+
+  langRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingVertical: 12 },
+  langChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20,
+    backgroundColor: colors.bgElevated, borderWidth: 1, borderColor: colors.border,
+  },
+  langChipActive: { backgroundColor: colors.purple + '22', borderColor: colors.purple },
+  langFlag: { fontSize: 18 },
+  langLabel: { fontSize: 13, color: colors.textSecondary, fontWeight: '500' },
+  langLabelActive: { color: colors.purple, fontWeight: '700' },
 });

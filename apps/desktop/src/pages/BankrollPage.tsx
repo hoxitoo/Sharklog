@@ -5,12 +5,14 @@ import {
 import { calcDashboard, formatMoney, kellyFraction, expectedValue, impliedProbability, parseMoneyInput } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
 import { colors } from '../theme/colors';
+import { useTranslation } from 'react-i18next';
 
 function uuid(): string {
   return crypto.randomUUID();
 }
 
 function KellyCalc({ bankroll }: { bankroll: number }) {
+  const { t } = useTranslation();
   const [odds, setOdds] = useState('');
   const [prob, setProb] = useState('');
   const oddsNum = parseFloat(odds);
@@ -22,23 +24,23 @@ function KellyCalc({ bankroll }: { bankroll: number }) {
 
   return (
     <div style={s.card}>
-      <div style={s.cardTitle}>Калькулятор Келли</div>
+      <div style={s.cardTitle}>{t('bankroll.kelly')}</div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
         <div>
-          <label style={s.label}>Коэффициент</label>
+          <label style={s.label}>{t('bet.odds')}</label>
           <input style={s.input} placeholder="2.10" type="number" step="0.01" value={odds} onChange={(e) => setOdds(e.target.value)} />
           {implied !== null && <span style={{ fontSize: 11, color: colors.textMuted, marginTop: 4, display: 'block' }}>Implied: {implied.toFixed(1)}%</span>}
         </div>
         <div>
-          <label style={s.label}>Твоя вероятность %</label>
+          <label style={s.label}>{t('bankroll.yourProb')}</label>
           <input style={s.input} placeholder="55" type="number" value={prob} onChange={(e) => setProb(e.target.value)} />
         </div>
       </div>
       {ev !== null && (
         <div style={{ borderTop: `1px solid ${colors.border}`, paddingTop: 14 }}>
           <Row label="Expected Value" value={`${ev >= 0 ? '+' : ''}${(ev * 100).toFixed(1)}% ${ev >= 0 ? '✅' : '❌'}`} color={ev >= 0 ? colors.won : colors.lost} />
-          <Row label="Full Kelly" value={`${((kelly ?? 0) * 100).toFixed(1)}% банка`} />
-          <Row label="½ Kelly (рекомендовано)" value={halfStake !== null ? formatMoney(halfStake) : '—'} color={colors.accent} />
+          <Row label={t('bankroll.fullKelly')} value={`${((kelly ?? 0) * 100).toFixed(1)}${t('bankroll.bankPercent')}`} />
+          <Row label={t('bankroll.halfKelly')} value={halfStake !== null ? formatMoney(halfStake) : '—'} color={colors.accent} />
         </div>
       )}
     </div>
@@ -56,12 +58,13 @@ function Row({ label, value, color }: { label: string; value: string; color?: st
 
 export function BankrollPage() {
   const { bets, bankroll, updateBankroll, updateSettings, settings } = useBetsStore();
+  const { t, i18n } = useTranslation();
   const stats = calcDashboard(bets);
   const [depositInput, setDepositInput] = useState('');
   const [withdrawInput, setWithdrawInput] = useState('');
 
-  const deposited = bankroll.transactions.filter((t) => t.type === 'deposit').reduce((a, t) => a + t.amount, 0);
-  const withdrawn = bankroll.transactions.filter((t) => t.type === 'withdrawal').reduce((a, t) => a + t.amount, 0);
+  const deposited = bankroll.transactions.filter((tx) => tx.type === 'deposit').reduce((a, tx) => a + tx.amount, 0);
+  const withdrawn = bankroll.transactions.filter((tx) => tx.type === 'withdrawal').reduce((a, tx) => a + tx.amount, 0);
   const currentBank = deposited - withdrawn + stats.pnl;
   const unit = Math.round(currentBank * bankroll.unitPercent / 100);
 
@@ -92,12 +95,12 @@ export function BankrollPage() {
   if (!settings.isPro) {
     return (
       <div style={s.page}>
-        <h1 style={s.title}>Банкролл</h1>
+        <h1 style={s.title}>{t('bankroll.title')}</h1>
         <div style={s.gate}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>👑</div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: colors.gold, marginBottom: 8 }}>Функция PRO</div>
-          <div style={{ color: colors.textSecondary, marginBottom: 24 }}>Банкролл-трекер и калькулятор Келли доступны в подписке</div>
-          <button style={s.proBtn} onClick={() => updateSettings({ isPro: true })}>Попробовать Pro — 7 дней бесплатно</button>
+          <div style={{ fontSize: 20, fontWeight: 700, color: colors.gold, marginBottom: 8 }}>{t('bankroll.proFeature')}</div>
+          <div style={{ color: colors.textSecondary, marginBottom: 24 }}>{t('bankroll.proMsg')}</div>
+          <button style={s.proBtn} onClick={() => updateSettings({ isPro: true })}>{t('bankroll.tryPro')}</button>
         </div>
       </div>
     );
@@ -117,21 +120,22 @@ export function BankrollPage() {
   }
 
   const pnlPositive = stats.pnl >= 0;
+  const locale = i18n.language === 'en' ? 'en-US' : 'ru-RU';
 
   return (
     <div style={s.page}>
-      <h1 style={s.title}>Банкролл</h1>
+      <h1 style={s.title}>{t('bankroll.title')}</h1>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
         {/* Summary */}
         <div style={s.card}>
-          <div style={s.label}>Текущий банк</div>
+          <div style={s.label}>{t('bankroll.currentBank')}</div>
           <div style={{ fontSize: 36, fontWeight: 700, fontFamily: "'DM Mono', monospace", color: currentBank >= 0 ? colors.textPrimary : colors.lost, margin: '8px 0 16px' }}>
             {formatMoney(currentBank)}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginBottom: 20 }}>
             <div>
-              <div style={s.metaLabel}>Внесено</div>
+              <div style={s.metaLabel}>{t('bankroll.deposited')}</div>
               <div style={s.metaValue}>{formatMoney(deposited)}</div>
             </div>
             <div>
@@ -141,7 +145,7 @@ export function BankrollPage() {
               </div>
             </div>
             <div>
-              <div style={s.metaLabel}>1 юнит</div>
+              <div style={s.metaLabel}>{t('bankroll.unit')}</div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 3 }}>
                 <button
                   style={{ ...s.stepBtn, opacity: bankroll.unitPercent <= 0.5 ? 0.4 : 1 }}
@@ -160,12 +164,12 @@ export function BankrollPage() {
             </div>
           </div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <input style={{ ...s.input, flex: 1 }} placeholder="Пополнить ₽" type="number" value={depositInput} onChange={(e) => setDepositInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addTransaction('deposit', depositInput)} />
-            <button style={{ ...s.actionBtn, backgroundColor: colors.accent }} onClick={() => addTransaction('deposit', depositInput)}>+ Пополнить</button>
+            <input style={{ ...s.input, flex: 1 }} placeholder={t('bankroll.fill')} type="number" value={depositInput} onChange={(e) => setDepositInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addTransaction('deposit', depositInput)} />
+            <button style={{ ...s.actionBtn, backgroundColor: colors.accent }} onClick={() => addTransaction('deposit', depositInput)}>+ {t('bankroll.fill')}</button>
           </div>
           <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
-            <input style={{ ...s.input, flex: 1 }} placeholder="Вывести ₽" type="number" value={withdrawInput} onChange={(e) => setWithdrawInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addTransaction('withdrawal', withdrawInput)} />
-            <button style={{ ...s.actionBtn, backgroundColor: colors.lost }} onClick={() => addTransaction('withdrawal', withdrawInput)}>− Вывести</button>
+            <input style={{ ...s.input, flex: 1 }} placeholder={t('bankroll.withdraw')} type="number" value={withdrawInput} onChange={(e) => setWithdrawInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addTransaction('withdrawal', withdrawInput)} />
+            <button style={{ ...s.actionBtn, backgroundColor: colors.lost }} onClick={() => addTransaction('withdrawal', withdrawInput)}>− {t('bankroll.withdraw')}</button>
           </div>
         </div>
 
@@ -176,7 +180,7 @@ export function BankrollPage() {
       {equityCurve.length >= 2 && (
         <div style={{ ...s.card, marginBottom: 20 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-            <div style={s.cardTitle}>Кривая банкролла</div>
+            <div style={s.cardTitle}>{t('bankroll.curve')}</div>
             <span style={{ fontSize: 14, fontWeight: 700, color: pnlPositive ? colors.won : colors.lost }}>
               {pnlPositive ? '+' : ''}{formatMoney(stats.pnl)}
             </span>
@@ -194,7 +198,7 @@ export function BankrollPage() {
               <YAxis tick={{ fill: colors.textMuted, fontSize: 11 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}₽`} />
               <Tooltip
                 contentStyle={{ backgroundColor: colors.bgCard, border: `1px solid ${colors.border}`, borderRadius: 8 }}
-                formatter={(v: number) => [`${v.toFixed(0)} ₽`, 'Банк']}
+                formatter={(v: number) => [`${v.toFixed(0)} ₽`, t('bankroll.title')]}
                 labelStyle={{ color: colors.textMuted }}
               />
               <Area type="monotone" dataKey="value" stroke={pnlPositive ? colors.accent : colors.lost} strokeWidth={2} fill="url(#eqGrad)" />
@@ -206,27 +210,27 @@ export function BankrollPage() {
       {/* Transaction history */}
       {bankroll.transactions.length > 0 && (
         <div style={s.card}>
-          <div style={s.cardTitle}>История транзакций</div>
+          <div style={s.cardTitle}>{t('bankroll.history')}</div>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
             <thead>
               <tr>
-                {['Дата', 'Тип', 'Сумма', ''].map((h) => (
+                {[t('bankroll.date'), t('bankroll.type'), t('bankroll.amount'), ''].map((h) => (
                   <th key={h} style={{ fontSize: 11, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, padding: '0 0 8px', textAlign: 'left', borderBottom: `1px solid ${colors.border}` }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {[...bankroll.transactions].reverse().map((t) => (
-                <tr key={t.id} style={{ borderBottom: `1px solid ${colors.border}` }}>
-                  <td style={{ padding: '10px 0', fontSize: 13, color: colors.textMuted }}>{new Date(t.date).toLocaleDateString('ru-RU')}</td>
-                  <td style={{ padding: '10px 0', fontSize: 13, color: colors.textPrimary }}>{t.type === 'deposit' ? '↑ Пополнение' : '↓ Вывод'}</td>
-                  <td style={{ padding: '10px 0', fontSize: 14, fontWeight: 700, color: t.type === 'deposit' ? colors.won : colors.lost }}>
-                    {t.type === 'deposit' ? '+' : '-'}{formatMoney(t.amount)}
+              {[...bankroll.transactions].reverse().map((tx) => (
+                <tr key={tx.id} style={{ borderBottom: `1px solid ${colors.border}` }}>
+                  <td style={{ padding: '10px 0', fontSize: 13, color: colors.textMuted }}>{new Date(tx.date).toLocaleDateString(locale)}</td>
+                  <td style={{ padding: '10px 0', fontSize: 13, color: colors.textPrimary }}>{tx.type === 'deposit' ? t('bankroll.txDeposit') : t('bankroll.txWithdrawal')}</td>
+                  <td style={{ padding: '10px 0', fontSize: 14, fontWeight: 700, color: tx.type === 'deposit' ? colors.won : colors.lost }}>
+                    {tx.type === 'deposit' ? '+' : '-'}{formatMoney(tx.amount)}
                   </td>
                   <td style={{ padding: '10px 0', textAlign: 'right' }}>
                     <button
                       style={{ background: 'none', border: 'none', color: colors.lost, cursor: 'pointer', fontSize: 13, opacity: 0.6 }}
-                      onClick={() => updateBankroll({ transactions: bankroll.transactions.filter((tx) => tx.id !== t.id) })}
+                      onClick={() => updateBankroll({ transactions: bankroll.transactions.filter((t) => t.id !== tx.id) })}
                     >✕</button>
                   </td>
                 </tr>

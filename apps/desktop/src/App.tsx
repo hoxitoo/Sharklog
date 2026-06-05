@@ -16,6 +16,7 @@ import { Toaster } from './components/Toaster';
 import { useBetsStore } from './store/betsStore';
 import { colors } from './theme/colors';
 import { Analytics } from './utils/analytics';
+import i18n from './i18n/index';
 
 const PAGE_ORDER: Page[] = ['dashboard', 'bets', 'analytics', 'insights', 'strategy', 'bankroll', 'diary', 'settings', 'partners'];
 
@@ -26,7 +27,9 @@ export function App() {
   const [page, setPage] = useState<Page>('dashboard');
   const [modalBet, setModalBet] = useState<Bet | null | 'new'>(null);
 
+  const language = useBetsStore((s) => s.settings.language);
   useEffect(() => { load(); Analytics.appOpen(); }, []);
+  useEffect(() => { if (language) i18n.changeLanguage(language); }, [language]);
 
   function openAdd() { setModalBet('new'); }
   function openEdit(bet: Bet) { setModalBet(bet); }

@@ -5,41 +5,23 @@ import { useBetsStore } from '../store/betsStore';
 import { useToastStore } from '../store/toastStore';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { colors } from '../theme/colors';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   onAdd: () => void;
   onEdit: (bet: Bet) => void;
 }
 
-const STATUS_LABELS: Record<BetStatus, string> = {
-  pending: 'Ожидание', won: 'Победа', lost: 'Проигрыш', refund: 'Возврат', cashout: 'Выкуп',
-};
 const STATUS_COLORS: Record<BetStatus, string> = {
   pending: colors.pending, won: colors.won, lost: colors.lost, refund: colors.refund, cashout: colors.refund,
 };
 
-const FILTERS: Array<{ key: BetStatus | 'all'; label: string }> = [
-  { key: 'all', label: 'Все' },
-  { key: 'pending', label: 'Ожидание' },
-  { key: 'won', label: 'Победы' },
-  { key: 'lost', label: 'Проигрыши' },
-  { key: 'refund', label: 'Возвраты' },
-  { key: 'cashout', label: 'Выкупы' },
-];
-
 type SortKey = 'date_desc' | 'date_asc' | 'odds_desc' | 'odds_asc' | 'stake_desc' | 'stake_asc';
-
-function formatDateTitle(dateStr: string): string {
-  const today = new Date().toISOString().split('T')[0] ?? '';
-  const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0] ?? '';
-  if (dateStr === today) return 'Сегодня';
-  if (dateStr === yesterday) return 'Вчера';
-  return new Date(dateStr + 'T12:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
-}
 
 export function BetsPage({ onAdd, onEdit }: Props) {
   const { bets, deleteBet, updateBet, settings } = useBetsStore();
   const toast = useToastStore((s) => s.show);
+  const { t, i18n } = useTranslation();
   const [filter, setFilter] = useState<BetStatus | 'all'>('all');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortKey>('date_desc');
@@ -47,6 +29,32 @@ export function BetsPage({ onAdd, onEdit }: Props) {
   const [confirmDelete, setConfirmDelete] = useState<Bet | null>(null);
 
   const freeLeft = Math.max(0, FREE_LIMITS.MAX_BETS - bets.length);
+
+  const STATUS_LABELS: Record<BetStatus, string> = {
+    pending: t('status.pending'),
+    won: t('status.won'),
+    lost: t('status.lost'),
+    refund: t('status.refund'),
+    cashout: t('status.cashout'),
+  };
+
+  const FILTERS: Array<{ key: BetStatus | 'all'; label: string }> = [
+    { key: 'all', label: t('status.all') },
+    { key: 'pending', label: t('status.pending') },
+    { key: 'won', label: t('status.won') },
+    { key: 'lost', label: t('status.lost') },
+    { key: 'refund', label: t('status.refund') },
+    { key: 'cashout', label: t('status.cashout') },
+  ];
+
+  function formatDateTitle(dateStr: string): string {
+    const today = new Date().toISOString().split('T')[0] ?? '';
+    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0] ?? '';
+    if (dateStr === today) return t('dashboard.today');
+    if (dateStr === yesterday) return t('dashboard.yesterday');
+    const locale = i18n.language === 'en' ? 'en-US' : 'ru-RU';
+    return new Date(dateStr + 'T12:00:00').toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
+  }
 
   const sections = useMemo(() => {
     let result = [...bets];
@@ -58,7 +66,6 @@ export function BetsPage({ onAdd, onEdit }: Props) {
       );
     }
 
-    // Group by date
     const map = new Map<string, Bet[]>();
     for (const bet of result) {
       const arr = map.get(bet.date) ?? [];
@@ -66,7 +73,6 @@ export function BetsPage({ onAdd, onEdit }: Props) {
       map.set(bet.date, arr);
     }
 
-    // Sort date keys
     const sortedDates = [...map.keys()].sort((a, b) =>
       sort === 'date_asc' ? a.localeCompare(b) : b.localeCompare(a),
     );
@@ -89,7 +95,7 @@ export function BetsPage({ onAdd, onEdit }: Props) {
 
       return { date, title: formatDateTitle(date), dailyPnl, data };
     });
-  }, [bets, filter, search, sort]);
+  }, [bets, filter, search, sort, i18n.language]);
 
   const totalFiltered = sections.reduce((n, s) => n + s.data.length, 0);
 
@@ -98,7 +104,7 @@ export function BetsPage({ onAdd, onEdit }: Props) {
     if (status === 'lost') {
       const updated = bets.map((b) => b.id === bet.id ? { ...b, status } : b);
       if (isInTilt(updated, settings.tiltThreshold)) {
-        toast(`🚨 Тилт! ${settings.tiltThreshold} поражений подряд — сделай перерыв`, 'error');
+        toast(`🚨 ${t('discipline.tiltAlert')} ${settings.tiltThreshold} ${t('settings.tiltThresholdHint')}`, 'error');
       }
     }
   }
@@ -107,32 +113,34 @@ export function BetsPage({ onAdd, onEdit }: Props) {
     setConfirmDelete(bet);
   }
 
-  const COLS = ['Событие', 'Выбор', 'Спорт', 'Тип', 'Коэф.', 'Ставка', 'P&L', 'Статус', ''];
+  const COLS = [t('bet.event'), t('bet.pick'), t('bet.sport'), t('bet.betType'), t('bet.odds'), t('bet.stake'), 'P&L', t('common.status'), ''];
 
   return (
     <div style={s.page}>
       {confirmDelete && (
         <ConfirmModal
-          message={`Удалить ставку?\n«${confirmDelete.event}»`}
+          message={`${t('bet.confirmDelete')}\n«${confirmDelete.event}»`}
           onConfirm={() => { deleteBet(confirmDelete.id); setConfirmDelete(null); }}
           onCancel={() => setConfirmDelete(null)}
         />
       )}
       <div style={s.header}>
         <div>
-          <h1 style={s.title}>Ставки</h1>
+          <h1 style={s.title}>{t('nav.bets')}</h1>
           <div style={s.subtitle}>
-            {settings.isPro ? `${bets.length} ставок` : `${freeLeft} из ${FREE_LIMITS.MAX_BETS} осталось`}
+            {settings.isPro
+              ? `${bets.length} ${t('common.bets')}`
+              : `${freeLeft} ${t('common.of')} ${FREE_LIMITS.MAX_BETS} ${t('common.bets')}`}
           </div>
         </div>
-        <button style={s.addBtn} onClick={onAdd}>+ Добавить ставку</button>
+        <button style={s.addBtn} onClick={onAdd}>+ {t('bet.add')}</button>
       </div>
 
       {!settings.isPro && bets.length >= FREE_LIMITS.MAX_BETS - 10 && (
         <div style={s.limitBanner}>
           {freeLeft <= 0
-            ? `🔒 Лимит ${FREE_LIMITS.MAX_BETS} ставок достигнут — перейди на Pro`
-            : `⚠️ Осталось ${freeLeft} бесплатных ставок`}
+            ? t('bet.limitReached', { count: FREE_LIMITS.MAX_BETS })
+            : t('bet.limitWarning', { count: freeLeft })}
         </div>
       )}
 
@@ -140,7 +148,7 @@ export function BetsPage({ onAdd, onEdit }: Props) {
       <div style={s.toolbar}>
         <input
           style={s.search}
-          placeholder="Поиск по событию или выбору..."
+          placeholder={t('bet.searchPlaceholder')}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
@@ -158,20 +166,20 @@ export function BetsPage({ onAdd, onEdit }: Props) {
         <div style={{ display: 'flex', gap: 4, marginLeft: 8, borderLeft: `1px solid ${colors.border}`, paddingLeft: 12 }}>
           {(['date_desc', 'date_asc'] as SortKey[]).map((k) => (
             <button key={k} style={{ ...s.sortBtn, ...(sort === k ? s.sortBtnActive : {}) }} onClick={() => setSort(k)}>
-              {k === 'date_desc' ? 'Новые ↓' : 'Старые ↑'}
+              {k === 'date_desc' ? t('bet.sortNewest') : t('bet.sortOldest')}
             </button>
           ))}
           <button
             style={{ ...s.sortBtn, ...(sort === 'odds_desc' || sort === 'odds_asc' ? s.sortBtnActive : {}) }}
             onClick={() => setSort(sort === 'odds_desc' ? 'odds_asc' : sort === 'odds_asc' ? 'odds_desc' : 'odds_desc')}
           >
-            Коэф.&nbsp;{sort === 'odds_asc' ? '↑' : '↓'}
+            {t('bet.odds')}&nbsp;{sort === 'odds_asc' ? '↑' : '↓'}
           </button>
           <button
             style={{ ...s.sortBtn, ...(sort === 'stake_desc' || sort === 'stake_asc' ? s.sortBtnActive : {}) }}
             onClick={() => setSort(sort === 'stake_desc' ? 'stake_asc' : sort === 'stake_asc' ? 'stake_desc' : 'stake_desc')}
           >
-            Ставка&nbsp;{sort === 'stake_asc' ? '↑' : '↓'}
+            {t('bet.stake')}&nbsp;{sort === 'stake_asc' ? '↑' : '↓'}
           </button>
         </div>
       </div>
@@ -183,12 +191,12 @@ export function BetsPage({ onAdd, onEdit }: Props) {
             ? <div style={{ fontSize: 52, marginBottom: 12 }}>🔍</div>
             : <img src="/logo.png" alt="SharkLog" style={{ width: 100, height: 100, objectFit: 'contain', marginBottom: 12, animation: 'sharkFloat 2.4s ease-in-out infinite' }} />
           }
-          <div style={s.emptyTitle}>{search ? 'Ничего не найдено' : 'Ставок пока нет'}</div>
+          <div style={s.emptyTitle}>{search ? t('bet.notFound') : t('bet.noBetsYet')}</div>
           {search
-            ? <div style={s.emptySub}>Попробуй другой запрос или очисти фильтр</div>
+            ? <div style={s.emptySub}>{t('bet.tryOtherSearch')}</div>
             : <>
-                <div style={s.emptySub}>Начни трекать ставки прямо сейчас</div>
-                <button onClick={onAdd} style={s.emptyBtn}>+ Новая ставка</button>
+                <div style={s.emptySub}>{t('bet.startTracking')}</div>
+                <button onClick={onAdd} style={s.emptyBtn}>+ {t('bet.newBet')}</button>
               </>
           }
         </div>
@@ -215,7 +223,7 @@ export function BetsPage({ onAdd, onEdit }: Props) {
                       </span>
                     )}
                     <span style={{ fontSize: 11, color: colors.textMuted, marginLeft: 8 }}>
-                      {section.data.length} ставок
+                      {section.data.length} {t('common.bets')}
                     </span>
                   </td>
                 </tr>

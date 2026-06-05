@@ -14,6 +14,7 @@ import { BetCard } from './BetCard';
 import { SwipeableRow } from './SwipeableRow';
 import { haptic } from '../../utils/haptics';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import { useTranslation } from 'react-i18next';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -29,20 +30,14 @@ function formatDateTitle(dateStr: string): string {
   return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
 }
 
-const STATUS_FILTERS: Array<{ key: BetStatus | 'all'; label: string }> = [
-  { key: 'all', label: 'Все' },
-  { key: 'pending', label: 'Ожидание' },
-  { key: 'won', label: 'Победы' },
-  { key: 'lost', label: 'Проигрыши' },
-  { key: 'refund', label: 'Возвраты' },
-  { key: 'cashout', label: 'Выкупы' },
-];
+const STATUS_FILTER_KEYS: Array<BetStatus | 'all'> = ['all', 'pending', 'won', 'lost', 'refund', 'cashout'];
 
 type SortKey = 'date_desc' | 'date_asc' | 'odds_desc' | 'odds_asc' | 'stake_desc' | 'stake_asc';
 
 export function BetsScreen() {
   const navigation = useNavigation<Nav>();
   const { bets, settings, canAddBet, deleteBet } = useBetsStore();
+  const { t } = useTranslation();
   const inTilt = isInTilt(bets, settings.tiltThreshold);
   const [statusFilter, setStatusFilter] = useState<BetStatus | 'all'>('all');
   const [search, setSearch] = useState('');
@@ -166,14 +161,14 @@ export function BetsScreen() {
       />
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll} contentContainerStyle={styles.filters}>
-        {STATUS_FILTERS.map((f) => (
+        {STATUS_FILTER_KEYS.map((key) => (
           <TouchableOpacity
-            key={f.key}
-            style={[styles.filterBtn, statusFilter === f.key && styles.filterBtnActive]}
-            onPress={() => { haptic.selection(); setStatusFilter(f.key); }}
+            key={key}
+            style={[styles.filterBtn, statusFilter === key && styles.filterBtnActive]}
+            onPress={() => { haptic.selection(); setStatusFilter(key); }}
           >
-            <Text style={[styles.filterText, statusFilter === f.key && styles.filterTextActive]}>
-              {f.label}
+            <Text style={[styles.filterText, statusFilter === key && styles.filterTextActive]}>
+              {key === 'all' ? t('status.all') : t(`status.${key}`)}
             </Text>
           </TouchableOpacity>
         ))}

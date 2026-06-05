@@ -2,20 +2,22 @@ import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import type { BetStatus } from '@sharklog/core';
 import { colors } from '../theme/colors';
+import { useTranslation } from 'react-i18next';
 
-const STATUS_CONFIG: Record<BetStatus, { label: string; color: string }> = {
-  pending:  { label: 'Ожидание', color: colors.pending },
-  won:      { label: 'Победа',   color: colors.won },
-  lost:     { label: 'Проигрыш', color: colors.lost },
-  refund:   { label: 'Возврат',  color: colors.refund },
-  cashout:  { label: 'Выкуп',    color: colors.refund },
+const STATUS_COLORS: Record<BetStatus, string> = {
+  pending:  colors.pending,
+  won:      colors.won,
+  lost:     colors.lost,
+  refund:   colors.refund,
+  cashout:  colors.refund,
 };
 
 export function StatusBadge({ status }: { status: BetStatus }) {
-  const cfg = STATUS_CONFIG[status];
+  const { t } = useTranslation();
+  const color = STATUS_COLORS[status];
   return (
-    <View style={[styles.badge, { backgroundColor: cfg.color + '22' }]}>
-      <Text style={[styles.text, { color: cfg.color }]}>{cfg.label}</Text>
+    <View style={[styles.badge, { backgroundColor: color + '22' }]}>
+      <Text style={[styles.text, { color }]}>{t(`status.${status}`)}</Text>
     </View>
   );
 }

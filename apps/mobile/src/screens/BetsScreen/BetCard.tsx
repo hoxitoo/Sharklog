@@ -6,6 +6,7 @@ import { colors } from '../../theme/colors';
 import { StatusBadge } from '../../components/StatusBadge';
 import { useBetsStore } from '../../store/betsStore';
 import { haptic } from '../../utils/haptics';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   bet: Bet;
@@ -19,6 +20,7 @@ function displayEvent(event: string): string {
 
 export function BetCard({ bet, onEdit }: Props) {
   const { updateBet } = useBetsStore();
+  const { t } = useTranslation();
 
   const potentialWin = Math.round(bet.stake * bet.odds);
   const pnl = bet.status === 'won'
@@ -115,7 +117,7 @@ export function BetCard({ bet, onEdit }: Props) {
           >
             <Text style={[styles.chipText, { color: colors.refund }]}>C</Text>
           </TouchableOpacity>
-          <Text style={styles.quickResultHint}>Нажми для закрытия</Text>
+          <Text style={styles.quickResultHint}>{t('bet.edit')}</Text>
         </View>
       )}
 
