@@ -9,15 +9,12 @@ import {
 import type { SliceStats } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
 import { colors } from '../theme/colors';
+import { useTranslation } from 'react-i18next';
 
 type PeriodFilter = '7d' | '30d' | 'all';
-const PERIOD_OPTIONS: Array<{ key: PeriodFilter; label: string }> = [
-  { key: '7d', label: '7 дней' },
-  { key: '30d', label: '30 дней' },
-  { key: 'all', label: 'Всё время' },
-];
 
 function Section({ title, stats }: { title: string; stats: SliceStats[] }) {
+  const { t } = useTranslation();
   const withData = stats.filter((st) => st.count > 0);
   if (withData.length === 0) return null;
 
@@ -63,7 +60,7 @@ function Section({ title, stats }: { title: string; stats: SliceStats[] }) {
         <table style={s.table}>
           <thead>
             <tr>
-              {['', 'Ставок', 'WR', 'ROI', 'P&L'].map((h) => (
+              {['', t('analytics.count'), 'WR', 'ROI', 'P&L'].map((h) => (
                 <th key={h} style={s.th}>{h}</th>
               ))}
             </tr>
@@ -90,6 +87,7 @@ function Section({ title, stats }: { title: string; stats: SliceStats[] }) {
 }
 
 function SummaryCard({ bets }: { bets: Parameters<typeof calcDashboard>[0] }) {
+  const { t } = useTranslation();
   const stats = calcDashboard(bets);
   const pnlColor = stats.pnl > 0 ? colors.won : stats.pnl < 0 ? colors.lost : colors.textPrimary;
   const bestSport = calcByField(bets, 'sport', (v) => SPORTS[v] ?? String(v))
@@ -98,11 +96,11 @@ function SummaryCard({ bets }: { bets: Parameters<typeof calcDashboard>[0] }) {
 
   return (
     <div style={{ ...s.card, marginBottom: 20 }}>
-      <div style={s.cardTitle}>Общая статистика</div>
+      <div style={s.cardTitle}>{t('analytics.totalStats')}</div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 0 }}>
         {[
-          { label: 'Ставок', value: String(stats.totalBets), color: colors.textPrimary },
-          { label: 'Выигрышей', value: `${stats.winRate.toFixed(1)}%`, color: stats.winRate > 50 ? colors.won : colors.textPrimary },
+          { label: t('analytics.betsLabel'), value: String(stats.totalBets), color: colors.textPrimary },
+          { label: t('analytics.winsLabel'), value: `${stats.winRate.toFixed(1)}%`, color: stats.winRate > 50 ? colors.won : colors.textPrimary },
           { label: 'P&L', value: `${stats.pnl >= 0 ? '+' : ''}${formatMoney(stats.pnl)}`, color: pnlColor },
           { label: 'ROI', value: formatPercent(stats.roi), color: pnlColor },
         ].map((item) => (
@@ -114,7 +112,7 @@ function SummaryCard({ bets }: { bets: Parameters<typeof calcDashboard>[0] }) {
       </div>
       {bestSport && (
         <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${colors.border}`, display: 'flex', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 12, color: colors.textMuted }}>Лучший вид спорта</span>
+          <span style={{ fontSize: 12, color: colors.textMuted }}>{t('analytics.bestSport')}</span>
           <span style={{ fontSize: 13, fontWeight: 600, color: colors.accent }}>{bestSport.label} · ROI {formatPercent(bestSport.roi)}</span>
         </div>
       )}
@@ -124,7 +122,14 @@ function SummaryCard({ bets }: { bets: Parameters<typeof calcDashboard>[0] }) {
 
 export function AnalyticsPage() {
   const { bets, settings, updateSettings } = useBetsStore();
+  const { t } = useTranslation();
   const [period, setPeriod] = useState<PeriodFilter>('all');
+
+  const PERIOD_OPTIONS: Array<{ key: PeriodFilter; label: string }> = [
+    { key: '7d', label: t('dashboard.week') },
+    { key: '30d', label: t('dashboard.month') },
+    { key: 'all', label: t('dashboard.allTime') },
+  ];
 
   const filteredBets = useMemo(() => {
     if (period === 'all') return bets;
@@ -138,12 +143,12 @@ export function AnalyticsPage() {
   if (!settings.isPro) {
     return (
       <div style={s.page}>
-        <h1 style={s.title}>Аналитика</h1>
+        <h1 style={s.title}>{t('analytics.title')}</h1>
         <div style={s.gate}>
           <div style={{ fontSize: 48, marginBottom: 16 }}>👑</div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: colors.gold, marginBottom: 8 }}>Функция PRO</div>
-          <div style={{ color: colors.textSecondary, marginBottom: 24 }}>Полная аналитика по 7 срезам доступна в подписке SharkLog Pro</div>
-          <button style={s.proBtn} onClick={() => updateSettings({ isPro: true })}>Попробовать Pro — 7 дней бесплатно</button>
+          <div style={{ fontSize: 20, fontWeight: 700, color: colors.gold, marginBottom: 8 }}>{t('analytics.proFeature')}</div>
+          <div style={{ color: colors.textSecondary, marginBottom: 24 }}>{t('analytics.proMsg')}</div>
+          <button style={s.proBtn} onClick={() => updateSettings({ isPro: true })}>{t('analytics.tryPro')}</button>
         </div>
       </div>
     );
@@ -162,8 +167,8 @@ export function AnalyticsPage() {
     <div style={s.page}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div>
-          <h1 style={s.title}>Аналитика</h1>
-          <p style={s.subtitle}>7 срезов статистики</p>
+          <h1 style={s.title}>{t('analytics.title')}</h1>
+          <p style={s.subtitle}>{t('analytics.slicesDesc')}</p>
         </div>
         <div style={{ display: 'flex', gap: 4 }}>
           {PERIOD_OPTIONS.map((p) => (
@@ -179,29 +184,29 @@ export function AnalyticsPage() {
       </div>
 
       {filteredBets.length === 0 ? (
-        <div style={s.empty}>Нет ставок за выбранный период</div>
+        <div style={s.empty}>{t('analytics.noBets')}</div>
       ) : (
         <>
           <SummaryCard bets={filteredBets} />
           {topTournaments.length > 0 && (
             <div style={s.card}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                <div style={s.cardTitle}>Топ турниры</div>
+                <div style={s.cardTitle}>{t('analytics.topTournaments')}</div>
               </div>
               <div style={{ display: 'grid', gridTemplateColumns: `repeat(${topTournaments.length}, 1fr)`, gap: 12 }}>
-                {topTournaments.map((t) => {
-                  const pnlColor = t.pnl > 0 ? colors.won : t.pnl < 0 ? colors.lost : colors.textSecondary;
+                {topTournaments.map((tourney) => {
+                  const pnlColor = tourney.pnl > 0 ? colors.won : tourney.pnl < 0 ? colors.lost : colors.textSecondary;
                   return (
-                    <div key={t.tournament} style={{ backgroundColor: colors.bgElevated, borderRadius: 10, padding: 14, border: `1px solid ${colors.border}` }}>
-                      <div style={{ fontSize: 13, fontWeight: 700, color: colors.textPrimary, marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.tournament}</div>
-                      <div style={{ fontSize: 11, color: colors.textMuted, marginBottom: 10 }}>{SPORTS[t.sport as keyof typeof SPORTS] ?? t.sport} · {t.count} ставок</div>
+                    <div key={tourney.tournament} style={{ backgroundColor: colors.bgElevated, borderRadius: 10, padding: 14, border: `1px solid ${colors.border}` }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: colors.textPrimary, marginBottom: 6, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{tourney.tournament}</div>
+                      <div style={{ fontSize: 11, color: colors.textMuted, marginBottom: 10 }}>{SPORTS[tourney.sport as keyof typeof SPORTS] ?? tourney.sport} · {tourney.count} {t('analytics.countSuffix')}</div>
                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                         <div>
-                          <div style={{ fontSize: 16, fontWeight: 700, color: pnlColor }}>{t.pnl >= 0 ? '+' : ''}{formatMoney(t.pnl)}</div>
+                          <div style={{ fontSize: 16, fontWeight: 700, color: pnlColor }}>{tourney.pnl >= 0 ? '+' : ''}{formatMoney(tourney.pnl)}</div>
                           <div style={{ fontSize: 10, color: colors.textMuted }}>P&L</div>
                         </div>
                         <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontSize: 16, fontWeight: 700, color: pnlColor }}>{formatPercent(t.roi)}</div>
+                          <div style={{ fontSize: 16, fontWeight: 700, color: pnlColor }}>{formatPercent(tourney.roi)}</div>
                           <div style={{ fontSize: 10, color: colors.textMuted }}>ROI</div>
                         </div>
                       </div>
@@ -211,13 +216,13 @@ export function AnalyticsPage() {
               </div>
             </div>
           )}
-          <Section title="По виду спорта" stats={bySport} />
-          <Section title="По типу ставки" stats={byBetType} />
-          <Section title="По букмекеру" stats={byBookmaker} />
-          <Section title="По стратегии" stats={byStrategy} />
-          <Section title="По коэффициенту" stats={byOdds} />
-          <Section title="По дню недели" stats={byDay} />
-          <Section title="По часам дня" stats={byHour} />
+          <Section title={t('analytics.bySport')} stats={bySport} />
+          <Section title={t('analytics.byBetType')} stats={byBetType} />
+          <Section title={t('analytics.byBookmaker')} stats={byBookmaker} />
+          <Section title={t('analytics.byStrategy')} stats={byStrategy} />
+          <Section title={t('analytics.byOdds')} stats={byOdds} />
+          <Section title={t('analytics.byDayOfWeek')} stats={byDay} />
+          <Section title={t('analytics.byHour')} stats={byHour} />
         </>
       )}
     </div>

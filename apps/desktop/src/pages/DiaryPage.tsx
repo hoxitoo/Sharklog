@@ -3,40 +3,41 @@ import { isInTilt, formatMoney } from '@sharklog/core';
 import type { DiaryEntry } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
 import { colors } from '../theme/colors';
+import { useTranslation } from 'react-i18next';
 
 function uuid(): string {
   return crypto.randomUUID();
 }
 
-const MOOD_LABELS: Record<number, string> = {
-  1: '😤 Тильт',
-  2: '😟 Плохо',
-  3: '😐 Нейтрально',
-  4: '🙂 Хорошо',
-  5: '😎 В потоке',
-};
-
-const RULES = [
-  'Никогда не ставь под влиянием эмоций',
-  'Следуй своей системе — не импровизируй',
-  'Не гонись за проигрышем (не \"отыгрывайся\")',
-  'Ставь только если есть реальный edge',
-  'Используй размер ставки по Келли',
-  'Записывай причину каждой ставки',
-  'Делай паузу после 3 проигрышей подряд',
-  'Не ставь более N ставок в день (лимит)',
-];
-
 export function DiaryPage() {
   const { bets, diary, settings, addDiaryEntry } = useBetsStore();
+  const { t, i18n } = useTranslation();
   const today = new Date().toISOString().split('T')[0] ?? '';
   const todayEntry = diary.find((d) => d.date === today);
 
   const [mood, setMood] = useState<1 | 2 | 3 | 4 | 5>(todayEntry?.mood ?? 3);
   const [text, setText] = useState(todayEntry?.text ?? '');
 
+  const MOOD_LABELS: Record<number, string> = {
+    1: `😤 ${t('discipline.moodTilt')}`,
+    2: `😟 ${t('discipline.moodBadLabel')}`,
+    3: `😐 ${t('discipline.moodNeutralLabel')}`,
+    4: `🙂 ${t('discipline.moodGoodLabel')}`,
+    5: `😎 ${t('discipline.moodFlow')}`,
+  };
+
+  const RULES = [
+    t('discipline.rule1'),
+    t('discipline.rule2'),
+    t('discipline.rule3'),
+    t('discipline.rule4'),
+    t('discipline.rule5'),
+    t('discipline.rule6'),
+    t('discipline.rule7'),
+    t('discipline.rule8'),
+  ];
+
   const inTilt = isInTilt(bets, settings.tiltThreshold);
-  const settled = bets.filter((b) => b.status !== 'pending');
   const lostStreak = (() => {
     let count = 0;
     for (const bet of [...bets].filter((b) => b.status === 'won' || b.status === 'lost').sort((a, b) => b.createdAt.localeCompare(a.createdAt))) {
@@ -71,12 +72,14 @@ export function DiaryPage() {
     addDiaryEntry(entry);
   }
 
+  const locale = i18n.language === 'en' ? 'en-US' : 'ru-RU';
+
   return (
     <div style={s.page}>
       <div style={s.header}>
         <div>
-          <h1 style={s.title}>Дисциплина</h1>
-          <div style={s.subtitle}>Дневник трейдера и тилт-контроль</div>
+          <h1 style={s.title}>{t('discipline.title')}</h1>
+          <div style={s.subtitle}>{t('discipline.subtitle')}</div>
         </div>
       </div>
 
@@ -85,10 +88,10 @@ export function DiaryPage() {
           <span style={{ fontSize: 22 }}>⚠️</span>
           <div>
             <div style={{ fontSize: 15, fontWeight: 700, color: colors.lost }}>
-              Тилт-алерт: {lostStreak} поражений подряд
+              {t('discipline.tiltBannerTitle', { count: lostStreak })}
             </div>
             <div style={{ fontSize: 13, color: colors.textSecondary, marginTop: 2 }}>
-              Рекомендуем сделать паузу и не ставить сегодня
+              {t('discipline.tiltBannerSub')}
             </div>
           </div>
         </div>
@@ -99,7 +102,7 @@ export function DiaryPage() {
         <div>
           {/* Mood picker */}
           <div style={s.card}>
-            <div style={s.cardTitle}>Настроение сегодня</div>
+            <div style={s.cardTitle}>{t('discipline.todayMood')}</div>
             <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
               {([1, 2, 3, 4, 5] as const).map((m) => (
                 <button
@@ -125,49 +128,49 @@ export function DiaryPage() {
 
             <textarea
               style={s.textarea}
-              placeholder="Заметки на сегодня: что повлияло на решения, что можно улучшить..."
+              placeholder={t('discipline.notesPlaceholder')}
               value={text}
               onChange={(e) => setText(e.target.value)}
               rows={4}
             />
 
             <button style={s.saveBtn} onClick={handleSave}>
-              {todayEntry ? 'Обновить запись' : 'Сохранить запись'}
+              {todayEntry ? t('discipline.updateEntry') : t('discipline.saveEntry')}
             </button>
           </div>
 
           {/* Tilt statistics */}
           <div style={s.card}>
-            <div style={s.cardTitle}>Тилт-статистика</div>
+            <div style={s.cardTitle}>{t('discipline.tiltStats')}</div>
             <div style={s.statsGrid}>
               <div style={s.statCell}>
                 <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'DM Mono', monospace", color: lostStreak > 0 ? colors.lost : colors.textPrimary }}>
                   {lostStreak}
                 </div>
-                <div style={s.statLabel}>Серия поражений</div>
+                <div style={s.statLabel}>{t('discipline.lostStreak')}</div>
               </div>
               <div style={s.statCell}>
                 <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'DM Mono', monospace", color: winStreak > 0 ? colors.won : colors.textPrimary }}>
                   {winStreak}
                 </div>
-                <div style={s.statLabel}>Серия побед</div>
+                <div style={s.statLabel}>{t('discipline.winStreak')}</div>
               </div>
               <div style={s.statCell}>
                 <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'DM Mono', monospace" }}>
                   {settings.tiltThreshold}
                 </div>
-                <div style={s.statLabel}>Порог тилта</div>
+                <div style={s.statLabel}>{t('discipline.tiltThresholdLabel')}</div>
               </div>
               <div style={s.statCell}>
                 <div style={{ fontSize: 22, fontWeight: 700, fontFamily: "'DM Mono', monospace", color: todayBets.length > 0 ? colors.accent : colors.textPrimary }}>
                   {todayBets.length}
                 </div>
-                <div style={s.statLabel}>Ставок сегодня</div>
+                <div style={s.statLabel}>{t('discipline.betsToday')}</div>
               </div>
             </div>
             {todayBets.length > 0 && (
               <div style={{ marginTop: 14, paddingTop: 12, borderTop: `1px solid ${colors.border}`, display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: 13, color: colors.textMuted }}>P&L сегодня</span>
+                <span style={{ fontSize: 13, color: colors.textMuted }}>{t('discipline.pnlToday')}</span>
                 <span style={{ fontSize: 14, fontWeight: 700, color: todayPnl >= 0 ? colors.won : colors.lost }}>
                   {todayPnl >= 0 ? '+' : ''}{formatMoney(todayPnl)}
                 </span>
@@ -179,7 +182,7 @@ export function DiaryPage() {
         {/* Right column: rules + diary history */}
         <div>
           <div style={s.card}>
-            <div style={s.cardTitle}>8 правил дисциплины</div>
+            <div style={s.cardTitle}>{t('discipline.rules')}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {RULES.map((rule, i) => (
                 <div key={i} style={s.ruleRow}>
@@ -192,19 +195,24 @@ export function DiaryPage() {
 
           {diary.length > 0 && (
             <div style={s.card}>
-              <div style={s.cardTitle}>История дневника</div>
+              <div style={s.cardTitle}>{t('discipline.diaryHistory')}</div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, maxHeight: 340, overflowY: 'auto' }}>
-                {[...diary].sort((a, b) => b.date.localeCompare(a.date)).map((entry) => (
-                  <div key={entry.id} style={s.diaryRow}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: entry.text ? 6 : 0 }}>
-                      <span style={{ fontSize: 12, color: colors.textMuted }}>
-                        {new Date(entry.date + 'T12:00:00').toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' })}
-                      </span>
-                      <span style={{ fontSize: 18 }}>{MOOD_LABELS[entry.mood]?.split(' ')[0]}</span>
+                {[...diary].sort((a, b) => b.date.localeCompare(a.date)).map((entry) => {
+                  const moodEmoji = {
+                    1: '😤', 2: '😟', 3: '😐', 4: '🙂', 5: '😎',
+                  }[entry.mood] ?? '😐';
+                  return (
+                    <div key={entry.id} style={s.diaryRow}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: entry.text ? 6 : 0 }}>
+                        <span style={{ fontSize: 12, color: colors.textMuted }}>
+                          {new Date(entry.date + 'T12:00:00').toLocaleDateString(locale, { day: 'numeric', month: 'short' })}
+                        </span>
+                        <span style={{ fontSize: 18 }}>{moodEmoji}</span>
+                      </div>
+                      {entry.text && <div style={{ fontSize: 13, color: colors.textSecondary }}>{entry.text}</div>}
                     </div>
-                    {entry.text && <div style={{ fontSize: 13, color: colors.textSecondary }}>{entry.text}</div>}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
