@@ -338,6 +338,16 @@ VITE_OWNER_PRO=true
 - [x] formatPercent() — добавляет + для положительных значений
 - [x] 12 vitest unit tests (все зелёные)
 
+### i18n / Локализация (обе платформы)
+- [x] 4 языка: ru / en / kz (казахский) / by (беларуский)
+- [x] Файлы переводов: `apps/desktop/src/i18n/locales/` + `apps/mobile/src/i18n/locales/`
+- [x] i18next + react-i18next; `compatibilityJSON: 'v4'`
+- [x] Desktop: `i18next-browser-languagedetector`; язык сохраняется в localStorage (`sharklog-lang`) и `AppSettings.language`
+- [x] Mobile: `applyLanguage()` читает device locale как fallback; смена через SettingsScreen
+- [x] Переведены все страницы десктопа: Dashboard, Bets, Analytics, Insights, Bankroll, Diary, Settings, Onboarding, StrategyBuilder, AppLayout
+- [x] Переведены все экраны мобилки (locale файлы синхронизированы с десктопом)
+- [x] Визуально проверено на всех 4 языках: нет fallback-ключей, нет обрезанного текста
+
 ### Mobile (React Native + Expo 51)
 - [x] Все экраны + OnboardingScreen (logo image вместо emoji)
 - [x] InsightsScreen: period filter + Tournaments table (Free) + Teams cards (PRO)
@@ -364,6 +374,7 @@ VITE_OWNER_PRO=true
 - [x] CI: tests + type-check (все зелёные)
 - [x] EAS: development/preview/production profiles
 - [x] 17 smoke tests
+- [x] Locale файлы синхронизированы с десктопом (ru/en/kz/by)
 
 ### Desktop (Tauri v2 + React + Vite)
 - [x] InsightsPage: period filter + TournamentsSection (Free) + TeamsSection (PRO)
@@ -390,6 +401,7 @@ VITE_OWNER_PRO=true
 - [x] roundAmounts: false в defaultSettings (type-safe)
 - [x] E2E tests (Playwright, continue-on-error): 40+ тестов
 - [x] 40 smoke tests (Vitest)
+- [x] Полный i18n: все страницы переведены на ru/en/kz/by через react-i18next
 
 ---
 
