@@ -6,12 +6,16 @@ import { useToastStore } from '../store/toastStore';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { colors } from '../theme/colors';
 import { importFromCSV, importFromXLSX } from '../utils/importBets';
+import { useTranslation } from 'react-i18next';
+import { LANGUAGES, type LangCode } from '../i18n/index';
+import i18n from '../i18n/index';
 
 const IS_TAURI = typeof window !== 'undefined' && !!(window as unknown as Record<string, unknown>).__TAURI_INTERNALS__;
 
 export function SettingsPage() {
   const { settings, updateSettings, bets, teams, deleteTeam, clearAll } = useBetsStore();
   const toast = useToastStore((s) => s.show);
+  const { t } = useTranslation();
   const [newBk, setNewBk] = useState('');
   const [confirmClear, setConfirmClear] = useState(false);
   const [clearMessage, setClearMessage] = useState('');
@@ -297,6 +301,36 @@ export function SettingsPage() {
           ) : (
             <span style={s.rowValue}>—</span>
           )}
+        </div>
+      </div>
+
+      {/* Language */}
+      <div style={s.card}>
+        <div style={s.cardTitle}>{t('settings.language')}</div>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          {LANGUAGES.map((lang) => {
+            const active = (settings.language ?? 'ru') === lang.code;
+            return (
+              <button
+                key={lang.code}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  padding: '8px 16px', borderRadius: 20, cursor: 'pointer',
+                  border: `1px solid ${active ? colors.purple : colors.border}`,
+                  backgroundColor: active ? colors.purple + '22' : colors.bgElevated,
+                  color: active ? colors.purple : colors.textSecondary,
+                  fontWeight: active ? 700 : 500, fontSize: 13,
+                }}
+                onClick={() => {
+                  updateSettings({ language: lang.code as LangCode });
+                  i18n.changeLanguage(lang.code);
+                }}
+              >
+                <span style={{ fontSize: 18 }}>{lang.flag}</span>
+                {lang.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 

@@ -14,6 +14,8 @@ import { scheduleDailyReminder } from './src/utils/notifications';
 import { initRevenueCat, syncEntitlement } from './src/services/revenueCat';
 import { initSentry } from './src/services/sentry';
 import { Analytics } from './src/services/analytics';
+import './src/i18n/index';
+import { applyLanguage } from './src/i18n/index';
 
 export default function App() {
   const load = useBetsStore((s) => s.load);
@@ -38,6 +40,7 @@ export default function App() {
       // Read reminderHour from store after load completes so we use the persisted value
       const { settings } = useBetsStore.getState();
       scheduleDailyReminder(settings.reminderHour);
+      applyLanguage(settings.language);
       const isPro = await syncEntitlement();
       // null = no network → keep current state; boolean = confirmed state → apply both ways
       if (isPro !== null) updateSettings({ isPro });
