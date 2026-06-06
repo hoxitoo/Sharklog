@@ -217,6 +217,9 @@
   },
   "settings": {
     "title": "Настройки",
+    "checklistEnabled": "Чек-лист перед ставкой",
+    "checklistEnabledOn": "5 вопросов (PRO)",
+    "checklistEnabledOff": "Отключён",
     "subscription": "Подписка",
     "proActive": "PRO активен",
     "proExpires": "до {{date}}",

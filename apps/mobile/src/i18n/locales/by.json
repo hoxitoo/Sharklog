@@ -217,6 +217,9 @@
   },
   "settings": {
     "title": "Налады",
+    "checklistEnabled": "Чэк-ліст перад стаўкай",
+    "checklistEnabledOn": "5 пытанняў (PRO)",
+    "checklistEnabledOff": "Адключаны",
     "subscription": "Падпіска",
     "proActive": "PRO актыўны",
     "proExpires": "да {{date}}",

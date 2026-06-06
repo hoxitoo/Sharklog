@@ -150,6 +150,7 @@ export interface AppSettings {
   generatedStrategy?: GeneratedStrategy;
   lastBackupAt?: string;
   language?: 'ru' | 'en' | 'kz' | 'by';
+  disableChecklist?: boolean;
 }
 
 export interface StorageSchema {

@@ -127,8 +127,8 @@ export function BetsScreen() {
       }
       return;
     }
-    // PRO users get the pre-bet discipline checklist
-    if (settings.isPro) {
+    // PRO users get the pre-bet discipline checklist (unless disabled in settings)
+    if (settings.isPro && !settings.disableChecklist) {
       setShowChecklist(true);
     } else {
       navigation.navigate('AddBet', {});
@@ -149,7 +149,6 @@ export function BetsScreen() {
       <ScreenHeader
         title="Ставки"
         subtitle={settings.isPro ? `${bets.length} ставок` : `${freeLeft} из 50 осталось`}
-        rightAction={{ label: '+ Добавить', onPress: handleAdd }}
       />
 
       <TextInput
@@ -248,7 +247,7 @@ export function BetsScreen() {
             <Image source={require('../../../assets/icon.png')} style={styles.emptyIcon} resizeMode="contain" />
             <Text style={styles.emptyTitle}>Ставок пока нет</Text>
             <Text style={styles.emptySubtitle}>
-              {search ? 'Ничего не найдено' : 'Нажми «+ Добавить» чтобы начать'}
+              {search ? 'Ничего не найдено' : 'Нажми кнопку + чтобы начать'}
             </Text>
           </View>
         }
