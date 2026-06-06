@@ -362,8 +362,8 @@ export function DashboardScreen() {
             <View style={styles.chartCard}>
               <LineChart
                 data={rawVals.map((v) => ({ value: v }))}
-                width={width - 72}
-                height={120}
+                width={width - 96}
+                height={180}
                 maxValue={chartMax}
                 mostNegativeValue={chartMin}
                 color={lineColor}
@@ -372,16 +372,21 @@ export function DashboardScreen() {
                 areaChart
                 startFillColor={lineColor}
                 endFillColor={colors.bgCard}
-                startOpacity={0.3}
+                startOpacity={0.35}
                 endOpacity={0}
                 backgroundColor={colors.bgCard}
                 xAxisColor={colors.border}
-                yAxisColor="transparent"
+                yAxisColor={colors.border + '66'}
                 rulesType="solid"
-                rulesColor={colors.border + '55'}
-                noOfSections={3}
-                yAxisTextStyle={{ color: colors.textMuted, fontSize: 9 }}
-                hideYAxisText
+                rulesColor={colors.border + '44'}
+                noOfSections={4}
+                yAxisTextStyle={{ color: colors.textMuted, fontSize: 10 }}
+                formatYLabel={(v: string) => {
+                  const n = parseFloat(v);
+                  if (isNaN(n)) return '';
+                  if (Math.abs(n) >= 1000) return `${(n / 1000).toFixed(1)}k`;
+                  return String(Math.round(n));
+                }}
               />
             </View>
           </View>

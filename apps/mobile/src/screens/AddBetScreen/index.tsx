@@ -214,6 +214,7 @@ function SingleTeamInput({
               style={ac.item}
               onPress={() => {
                 onChange(team.name);
+                setFocused(false);
                 onSubmitEditing?.();
               }}
               activeOpacity={0.7}
