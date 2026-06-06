@@ -20,7 +20,7 @@
       ::-webkit-scrollbar-track { background: transparent; }
       ::-webkit-scrollbar-thumb { background: #1C1C30; border-radius: 3px; }
       input, textarea, select { font-family: inherit; }
-      button { cursor: pointer; font-family: inherit; }
+      button { cursor: pointer; font-family: inherit; appearance: none; -webkit-appearance: none; }
 
       @keyframes slideInRight {
         from { transform: translateX(48px); opacity: 0; }
@@ -58,6 +58,9 @@
       }
       .sl-nav-item { transition: background 0.12s, color 0.12s; }
       .sl-nav-item:hover { background: rgba(91,106,240,0.1) !important; color: #c8ccf8 !important; }
+      .sl-nav-item:focus { outline: none; }
+      .sl-nav-item:focus-visible { outline: 2px solid rgba(91,106,240,0.45); outline-offset: -2px; }
+      .sl-nav-item:active { background: rgba(91,106,240,0.18) !important; }
       .sl-add-btn {
         transition: transform 0.12s, box-shadow 0.12s, background 0.12s;
       }
