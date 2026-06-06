@@ -189,6 +189,9 @@ _Обновлено: 2026-06-06 (UX/UI v2)_
 - [x] Лендинг + Privacy Policy на GitHub Pages (`gh-pages` ветка)
 - [x] README.md на русском
 - [x] GitHub Actions: CI + desktop release + EAS build workflows
+- [x] iOS Privacy Manifest (`privacyManifests` в `app.json`) — UserDefaults, FileTimestamp, SystemBootTime, DiskSpace
+- [x] Коучмарки при первом визите (BetsScreen, DashboardScreen) — `Coachmark` компонент с AsyncStorage
+- [x] Тег `v1.0.0` создан локально (запушить вручную: `git push origin v1.0.0`)
 
 ### 🔴 Критические блокеры (без них нельзя в сторы)
 
@@ -196,12 +199,13 @@ _Обновлено: 2026-06-06 (UX/UI v2)_
 |--------|-----|--------|
 | Финальные иконки (1024×1024, без placeholder) | Mobile | 1–2 дня |
 | Скриншоты для App Store / Google Play | Mobile | 1 день |
-| Privacy Policy URL в `app.json` / App Store Connect | Mobile | 30 мин |
+| Privacy Policy URL в App Store Connect | iOS | 30 мин |
 | Apple Developer account + App ID | iOS | — |
 | Google Play Console аккаунт | Android | — |
 | `eas.json`: Apple ID для `eas submit` | iOS | 30 мин |
 | RevenueCat: создать продукты iOS / Android | Mobile | 2 ч |
 | Sentry DSN в `eas.json` production | Mobile | 30 мин |
+| `git push origin v1.0.0` — опубликовать тег для desktop-апдейтера | Desktop | 5 мин |
 
 ### 🟡 Важно, но не блокируют первый релиз
 
