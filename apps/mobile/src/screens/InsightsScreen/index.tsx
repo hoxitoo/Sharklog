@@ -87,7 +87,7 @@ export function InsightsScreen() {
   }, [bets, period]);
 
   const tournaments = useMemo(() => calcByTournament(filteredBets), [filteredBets]);
-  const teams = useMemo(() => calcByTeam(filteredBets, 10), [filteredBets]);
+  const teams = useMemo(() => calcByTeam(filteredBets, 5), [filteredBets]);
 
   return (
     <View style={s.root}>
@@ -121,7 +121,7 @@ export function InsightsScreen() {
           <Text style={s.cardTitle}>Любимые команды</Text>
           <ProGate feature="Анализ любимых команд (10+ ставок)">
             {teams.length === 0 ? (
-              <Text style={s.empty}>Нужно минимум 10 ставок на одну команду</Text>
+              <Text style={s.empty}>Нужно минимум 5 ставок на одну команду</Text>
             ) : (
               teams.map((team) => <TeamCard key={team.name} team={team} />)
             )}

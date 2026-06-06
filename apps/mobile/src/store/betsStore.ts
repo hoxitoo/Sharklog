@@ -151,11 +151,14 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
 
   updateBet: (id, updates) => {
     set((s) => {
+      const old = s.bets.find((b) => b.id === id);
       const bets = s.bets.map((b) =>
         b.id === id ? { ...b, ...updates, updatedAt: new Date().toISOString() } : b,
       );
       const updated = bets.find((b) => b.id === id);
-      const teams = updated
+      // Only upsert teams when event or sport actually changed to avoid inflating usageCount
+      const eventChanged = updated && old && (old.event !== updated.event || old.sport !== updated.sport);
+      const teams = eventChanged
         ? upsertTeams(s.teams, extractTeamNames(updated.event), updated.sport, updated.discipline)
         : s.teams;
       return { bets, teams };
