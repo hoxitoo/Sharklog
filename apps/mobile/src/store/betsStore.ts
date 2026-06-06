@@ -94,6 +94,7 @@ export const defaultSettings: AppSettings = {
   reminderHour: 20,
   schemaVersion: CURRENT_SCHEMA_VERSION,
   roundAmounts: false,
+  disableChecklist: false,
 };
 
 export const defaultBankroll: Bankroll = {

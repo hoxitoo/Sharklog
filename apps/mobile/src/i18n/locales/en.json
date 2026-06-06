@@ -217,6 +217,9 @@
   },
   "settings": {
     "title": "Settings",
+    "checklistEnabled": "Pre-bet Checklist",
+    "checklistEnabledOn": "5 questions (PRO)",
+    "checklistEnabledOff": "Disabled",
     "subscription": "Subscription",
     "proActive": "PRO active",
     "proExpires": "until {{date}}",

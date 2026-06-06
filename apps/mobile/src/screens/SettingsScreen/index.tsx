@@ -3,6 +3,8 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, Alert, Modal, ActivityIndicator,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useDrawer } from '../../components/DrawerContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -91,6 +93,7 @@ export function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { settings, updateSettings, bets, clearAll } = useBetsStore();
+  const { openDrawer } = useDrawer();
   const { t } = useTranslation();
   const [newBookmaker, setNewBookmaker] = useState('');
   const [exporting, setExporting] = useState(false);
@@ -361,6 +364,9 @@ export function SettingsScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+          <TouchableOpacity onPress={openDrawer} activeOpacity={0.7} style={styles.hamburger} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Ionicons name="menu" size={24} color={colors.textSecondary} />
+          </TouchableOpacity>
           <Text style={styles.title}>Настройки</Text>
         </View>
 
@@ -460,6 +466,22 @@ export function SettingsScreen() {
               <Text style={styles.value}>Без лимита (Free)</Text>
             )}
           </Row>
+          {settings.isPro && (
+            <Row label="Чек-лист перед ставкой">
+              <View style={{ alignItems: 'flex-end', gap: 2 }}>
+                <TouchableOpacity
+                  onPress={() => updateSettings({ disableChecklist: !settings.disableChecklist })}
+                  activeOpacity={0.7}
+                  style={[styles.toggle, !settings.disableChecklist && styles.toggleOn]}
+                >
+                  <View style={[styles.toggleThumb, !settings.disableChecklist && styles.toggleThumbOn]} />
+                </TouchableOpacity>
+                <Text style={[styles.value, { fontSize: 10 }]}>
+                  {settings.disableChecklist ? 'Отключён' : '5 вопросов (PRO)'}
+                </Text>
+              </View>
+            </Row>
+          )}
         </Section>
 
         <Section title="Букмекеры">
@@ -604,19 +626,6 @@ export function SettingsScreen() {
           </TouchableOpacity>
         </Section>
 
-        <TouchableOpacity
-          style={styles.partnersBtn}
-          onPress={() => navigation.navigate('Partners')}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.strategyBtnIcon}>🤝</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.strategyBtnText}>Партнёры</Text>
-            <Text style={styles.strategyBtnSub}>Бонусы при регистрации у букмекеров</Text>
-          </View>
-          <Text style={styles.strategyBtnArrow}>→</Text>
-        </TouchableOpacity>
-
         <Section title="Опасная зона">
           <TouchableOpacity style={styles.dangerBtn} onPress={handleClearData}>
             <Text style={styles.dangerBtnText}>Очистить все данные</Text>
@@ -630,10 +639,13 @@ export function SettingsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   header: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    flexDirection: 'row', alignItems: 'center', gap: 12,
     paddingHorizontal: 16, paddingBottom: 16,
   },
-  title: { fontSize: 28, fontWeight: '700', color: colors.textPrimary, letterSpacing: -0.5 },
+  hamburger: {
+    width: 36, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 8,
+  },
+  title: { fontSize: 26, fontWeight: '700', color: colors.textPrimary, letterSpacing: -0.5 },
   strategyBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     marginHorizontal: 16, marginBottom: 16, padding: 14,

@@ -217,6 +217,9 @@
   },
   "settings": {
     "title": "Баптаулар",
+    "checklistEnabled": "Ставкаға дейінгі тізім",
+    "checklistEnabledOn": "5 сұрақ (PRO)",
+    "checklistEnabledOff": "Өшірілген",
     "subscription": "Жазылым",
     "proActive": "PRO белсенді",
     "proExpires": "{{date}} дейін",

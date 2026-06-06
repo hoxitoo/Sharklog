@@ -217,17 +217,28 @@ public/
 
 ```
 navigation/
-  RootNavigator.tsx        — Stack: Tabs + AddBet (modal) + Bankroll + StrategyBuilder
-                             Tabs (6): Ставки | Дашборд | Инсайты | Дисциплина | Аналитика | Настройки
+  RootNavigator.tsx        — Stack: Drawer + AddBet (modal) + Bankroll + StrategyBuilder + Partners
+  DrawerNavigator.tsx      — кастомный анимированный drawer (заменяет таббар с v2)
+                             Animated.spring (открытие) / Animated.timing с callback (закрытие)
+                             DrawerContext — openDrawer() доступен из любого экрана
+                             FAB «+» для добавления ставки (всегда виден)
+                             Разделы: Ставки | Дашборд | Инсайты | Аналитика | Дисциплина | Настройки
+                             Вторичные: Банкролл | Стратегии (PRO) | Партнёры (teal-карточка)
 screens/
   BetsScreen/              — SectionList + quick-result W/L/R/C (cashout)
   AddBetScreen/            — форма с полем Турнир/Лига, статус cashout
+                             collapsible доп. поля (стратегия, букмекер, дата, турнир, заметки, фрибет)
+                             автораскрытие при edit если доп. поля заполнены
   DashboardScreen/         — стратегия-плашка → navigate('StrategyBuilder')
+                             тепловая карта за collapsible toggle
+                             тилт-баннер с dismiss × (AsyncStorage @sharklog/tilt_dismiss_date)
+                             haptic.warning() при первом определении тилта
   InsightsScreen/          — TournamentRow (Free) + TeamCard (PRO via ProGate)
   AnalyticsScreen/         — 8 срезов (PRO via ProGate)
   BankrollScreen/          — equity curve, Kelly (PRO)
   DisciplineScreen/        — mood, тилт, дневник
   SettingsScreen/          — PRO settings + "Билдер стратегий" кнопка
+                             disableChecklist toggle (PRO) — отключить чек-лист перед ставкой
                              roundAmounts toggle (округление сумм)
                              "Проверить обновления" (GitHub latest release API)
                              7-tap Easter egg на строке "Подписка" → активация PRO (dev bypass)
@@ -236,6 +247,9 @@ screens/
 components/
   StatusBadge.tsx          — бейджи: pending/won/lost/refund ("Возврат")/cashout ("Выкуп")
   ProGate.tsx              — RevenueCat paywall
+  DrawerContext.tsx         — React Context: openDrawer() для всех экранов
+  ScreenHeader.tsx         — заголовок с hamburger (Ionicons «menu») + опциональный rightAction
+  ResponsibleGamblingBanner.tsx — коллапсируемый 18+ баннер (AsyncStorage @sharklog/responsible_expanded)
 assets/
   icon.png                 — 1024×1024 на тёмном фоне
   adaptive-icon.png        — 1024×1024 прозрачный фон (Android)
@@ -247,7 +261,7 @@ assets/
 ```
 types/bet.ts          — BetStatus: 'pending'|'won'|'lost'|'refund'|'cashout'
                         Bet: + tournament?: string
-                        AppSettings: + generatedStrategy?: GeneratedStrategy, + roundAmounts: boolean
+                        AppSettings: + generatedStrategy?: GeneratedStrategy, + roundAmounts: boolean, + disableChecklist?: boolean
                         GeneratedStrategy, StrategyAnswers, + 10 union types
 constants/index.ts    — SPORTS, BET_TYPES, STRATEGIES, FREE_LIMITS, ODDS_RANGES
 utils/

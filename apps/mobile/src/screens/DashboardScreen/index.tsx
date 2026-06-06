@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LineChart } from 'react-native-gifted-charts';
@@ -9,6 +10,7 @@ import { useBetsStore } from '../../store/betsStore';
 import { colors } from '../../theme/colors';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { StatCard } from './StatCard';
+import { ResponsibleGamblingBanner } from '../../components/ResponsibleGamblingBanner';
 import { haptic } from '../../utils/haptics';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { useFormatMoney } from '../../utils/useFormatMoney';
@@ -179,6 +181,16 @@ export function DashboardScreen() {
   const { bets, settings, bankroll } = useBetsStore();
   const fmt = useFormatMoney();
   const [period, setPeriod] = useState<PeriodFilter>('all');
+  const [showHeatmap, setShowHeatmap] = useState(false);
+  const [tiltDismissed, setTiltDismissed] = useState(false);
+  const prevInTilt = useRef(false);
+
+  useEffect(() => {
+    AsyncStorage.getItem('@sharklog/tilt_dismiss_date').then((saved) => {
+      const today = new Date().toISOString().split('T')[0] ?? '';
+      if (saved === today) setTiltDismissed(true);
+    });
+  }, []);
 
   const filteredBets = useMemo(() => {
     if (period === 'all') return bets;
@@ -191,6 +203,23 @@ export function DashboardScreen() {
 
   const stats = calcDashboard(filteredBets);
   const inTilt = isInTilt(bets, settings.tiltThreshold);
+
+  useEffect(() => {
+    if (inTilt && !prevInTilt.current) {
+      haptic.warning();
+      // Reset dismiss when a new tilt session starts
+      setTiltDismissed(false);
+      AsyncStorage.removeItem('@sharklog/tilt_dismiss_date');
+    }
+    prevInTilt.current = inTilt;
+  }, [inTilt]);
+
+  function dismissTilt() {
+    haptic.selection();
+    const today = new Date().toISOString().split('T')[0] ?? '';
+    AsyncStorage.setItem('@sharklog/tilt_dismiss_date', today);
+    setTiltDismissed(true);
+  }
 
   // Bank total always reflects all-time P&L + transactions
   const allTimePnl = period === 'all' ? stats.pnl : calcDashboard(bets).pnl;
@@ -255,7 +284,7 @@ export function DashboardScreen() {
         ))}
       </View>
 
-      {inTilt && (
+      {inTilt && !tiltDismissed && (
         <View style={styles.tiltAlert}>
           <Text style={styles.tiltIcon}>🔥</Text>
           <View style={{ flex: 1 }}>
@@ -264,6 +293,9 @@ export function DashboardScreen() {
               {stats.currentStreak.count} поражений подряд. Закрой приложение и отдохни.
             </Text>
           </View>
+          <TouchableOpacity onPress={dismissTilt} hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}>
+            <Text style={styles.tiltDismiss}>✕</Text>
+          </TouchableOpacity>
         </View>
       )}
 
@@ -315,31 +347,6 @@ export function DashboardScreen() {
       </View>
 
       <WLStrip bets={filteredBets} />
-
-      <View style={styles.streakRow}>
-        <View style={[
-          styles.streakCard,
-          stats.currentStreak.type === 'win' && styles.streakWin,
-          stats.currentStreak.type === 'loss' && styles.streakLoss,
-        ]}>
-          <Text style={styles.streakLabel}>Текущая серия</Text>
-          <Text style={styles.streakValue}>
-            {stats.currentStreak.type === 'none'
-              ? '—'
-              : `${stats.currentStreak.count} ${stats.currentStreak.type === 'win' ? '🏆' : '💸'}`}
-          </Text>
-        </View>
-        <TouchableOpacity
-          style={styles.bankCard}
-          onPress={() => navigation.navigate('Bankroll')}
-          activeOpacity={0.75}
-        >
-          <Text style={styles.streakLabel}>Банкролл →</Text>
-          <Text style={[styles.streakValue, { fontSize: 16 }]}>{formatMoney(bankTotal)}</Text>
-        </TouchableOpacity>
-      </View>
-
-      <Heatmap bets={filteredBets} />
 
       {stats.pnlCurve.length > 1 && (() => {
         const rawVals = stats.pnlCurve.map((p) => p.pnl / 100);
@@ -393,31 +400,39 @@ export function DashboardScreen() {
         );
       })()}
 
-      {(bestBet || worstBet) && (
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Лучшая / Худшая ставка</Text>
-          {bestBet && (
-            <View style={styles.extremeBet}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.extremeLabel}>Лучшая</Text>
-                <Text style={styles.recentEvent} numberOfLines={1}>{bestBet.event.split(' / ').map(p => p.split('|')[0] ?? p).join(' / ')}</Text>
-                <Text style={styles.recentPick}>{bestBet.pick} · ×{bestBet.odds}</Text>
-              </View>
-              <Text style={[styles.extremePnl, { color: colors.won }]}>+{formatMoney(bestBet.pnl)}</Text>
-            </View>
-          )}
-          {worstBet && (
-            <View style={[styles.extremeBet, { marginTop: 6 }]}>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.extremeLabel}>Худшая</Text>
-                <Text style={styles.recentEvent} numberOfLines={1}>{worstBet.event.split(' / ').map(p => p.split('|')[0] ?? p).join(' / ')}</Text>
-                <Text style={styles.recentPick}>{worstBet.pick} · ×{worstBet.odds}</Text>
-              </View>
-              <Text style={[styles.extremePnl, { color: colors.lost }]}>{formatMoney(worstBet.pnl)}</Text>
-            </View>
-          )}
+      <View style={styles.streakRow}>
+        <View style={[
+          styles.streakCard,
+          stats.currentStreak.type === 'win' && styles.streakWin,
+          stats.currentStreak.type === 'loss' && styles.streakLoss,
+        ]}>
+          <Text style={styles.streakLabel}>Текущая серия</Text>
+          <Text style={styles.streakValue}>
+            {stats.currentStreak.type === 'none'
+              ? '—'
+              : `${stats.currentStreak.count} ${stats.currentStreak.type === 'win' ? '🏆' : '💸'}`}
+          </Text>
         </View>
-      )}
+        <TouchableOpacity
+          style={styles.bankCard}
+          onPress={() => navigation.navigate('Bankroll')}
+          activeOpacity={0.75}
+        >
+          <Text style={styles.streakLabel}>Банкролл →</Text>
+          <Text style={[styles.streakValue, { fontSize: 16 }]}>{formatMoney(bankTotal)}</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Heatmap — collapsible */}
+      <TouchableOpacity
+        style={styles.heatmapToggle}
+        onPress={() => setShowHeatmap((v) => !v)}
+        activeOpacity={0.7}
+      >
+        <Text style={styles.heatmapToggleText}>Активность за 12 недель</Text>
+        <Text style={styles.heatmapToggleChevron}>{showHeatmap ? '▲' : '▼'}</Text>
+      </TouchableOpacity>
+      {showHeatmap && <Heatmap bets={filteredBets} />}
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Последние ставки</Text>
@@ -453,6 +468,8 @@ export function DashboardScreen() {
           ))
         )}
       </View>
+
+      <ResponsibleGamblingBanner />
     </ScrollView>
   );
 }
@@ -505,6 +522,7 @@ const styles = StyleSheet.create({
   tiltIcon: { fontSize: 28 },
   tiltTitle: { fontSize: 15, fontWeight: '700', color: colors.lost },
   tiltSub: { fontSize: 12, color: colors.textSecondary, marginTop: 3 },
+  tiltDismiss: { fontSize: 16, color: colors.textMuted, paddingLeft: 8 },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -573,6 +591,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  extremeLabel: { fontSize: 10, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 3 },
-  extremePnl: { fontSize: 16, fontWeight: '700' },
+  heatmapToggle: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginHorizontal: 16,
+    marginBottom: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    backgroundColor: colors.bgCard,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  heatmapToggleText: { fontSize: 13, fontWeight: '600', color: colors.textSecondary },
+  heatmapToggleChevron: { fontSize: 10, color: colors.textMuted },
 });

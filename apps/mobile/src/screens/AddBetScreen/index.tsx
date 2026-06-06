@@ -484,6 +484,9 @@ export function AddBetScreen() {
     : undefined;
 
   const [isFreebet, setIsFreebet] = useState(editBet?.isFreebet ?? false);
+  // Auto-expand extras when editing bet that has non-default values
+  const hasExtraValues = !!(editBet?.tournament || editBet?.notes || editBet?.isFreebet);
+  const [showExtra, setShowExtra] = useState(hasExtraValues);
 
   const now = new Date();
   const defaultDate = now.toISOString().split('T')[0] ?? '';
@@ -951,17 +954,6 @@ export function AddBetScreen() {
           </View>
         )}
 
-        {/* ── Freebet toggle ─── */}
-        <TouchableOpacity
-          style={[styles.freebetToggle, isFreebet && styles.freebetToggleActive]}
-          onPress={() => { haptic.selection(); setIsFreebet((v) => !v); }}
-          activeOpacity={0.8}
-        >
-          <Text style={[styles.freebetToggleText, isFreebet && styles.freebetToggleTextActive]}>
-            🎁 Фрибет{isFreebet ? ' ✓ (потеря = 0 ₽)' : ' — не свои деньги'}
-          </Text>
-        </TouchableOpacity>
-
         {/* ── Kelly calculator (single only) ─── */}
         {isSingle && singleOdds > 1 && (
           <TouchableOpacity
@@ -1198,88 +1190,144 @@ export function AddBetScreen() {
           </Field>
         )}
 
-        <Controller
-          control={control}
-          name="strategy"
-          render={({ field: { onChange, value } }) => (
-            <SegmentedControl label="Стратегия" options={strategyOptions} value={value} onChange={onChange} />
-          )}
-        />
+        {/* ── Extra fields toggle ─── */}
+        <TouchableOpacity
+          style={styles.extraToggle}
+          onPress={() => { haptic.selection(); setShowExtra((v) => !v); }}
+          activeOpacity={0.8}
+        >
+          <Text style={styles.extraToggleText}>
+            {showExtra ? '▲  Скрыть детали' : '▼  Стратегия, букмекер, турнир, заметки...'}
+          </Text>
+        </TouchableOpacity>
 
-        {watchedStrategy === 'other' && (
-          <Field label="Уточни стратегию">
+        {showExtra && (
+          <>
             <Controller
               control={control}
-              name="customStrategy"
+              name="strategy"
               render={({ field: { onChange, value } }) => (
-                <TextInput
-                  style={inputStyle}
-                  placeholder="Матч-ставка, Арбитраж..."
-                  placeholderTextColor={colors.textMuted}
-                  value={value}
-                  onChangeText={onChange}
-                />
+                <SegmentedControl label="Стратегия" options={strategyOptions} value={value} onChange={onChange} />
               )}
             />
-          </Field>
-        )}
 
-        {/* ── Bookmaker ─── */}
-        <Field label="Букмекер">
-          <Controller
-            control={control}
-            name="bookmaker"
-            render={({ field: { onChange, value } }) => (
-              <View style={styles.bookmakers}>
-                {settings.bookmakers.map((bk) => (
-                  <TouchableOpacity
-                    key={bk}
-                    style={[styles.bkBtn, value === bk && styles.bkBtnActive]}
-                    onPress={() => onChange(bk)}
-                  >
-                    <Text style={[styles.bkText, value === bk && styles.bkTextActive]}>{bk}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+            {watchedStrategy === 'other' && (
+              <Field label="Уточни стратегию">
+                <Controller
+                  control={control}
+                  name="customStrategy"
+                  render={({ field: { onChange, value } }) => (
+                    <TextInput
+                      style={inputStyle}
+                      placeholder="Матч-ставка, Арбитраж..."
+                      placeholderTextColor={colors.textMuted}
+                      value={value}
+                      onChangeText={onChange}
+                    />
+                  )}
+                />
+              </Field>
             )}
-          />
-        </Field>
 
-        {/* ── Date + Time ─── */}
-        <View style={styles.row2}>
-          <Field label="Дата">
-            <Controller
-              control={control}
-              name="date"
-              render={({ field: { onChange, value } }) => (
-                <TextInput
-                  style={[inputStyle, styles.halfInput]}
-                  placeholder="ГГГГ-ММ-ДД"
-                  placeholderTextColor={colors.textMuted}
-                  value={value}
-                  onChangeText={onChange}
-                  keyboardType="numbers-and-punctuation"
+            {/* ── Bookmaker ─── */}
+            <Field label="Букмекер">
+              <Controller
+                control={control}
+                name="bookmaker"
+                render={({ field: { onChange, value } }) => (
+                  <View style={styles.bookmakers}>
+                    {settings.bookmakers.map((bk) => (
+                      <TouchableOpacity
+                        key={bk}
+                        style={[styles.bkBtn, value === bk && styles.bkBtnActive]}
+                        onPress={() => onChange(bk)}
+                      >
+                        <Text style={[styles.bkText, value === bk && styles.bkTextActive]}>{bk}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              />
+            </Field>
+
+            {/* ── Date + Time ─── */}
+            <View style={styles.row2}>
+              <Field label="Дата">
+                <Controller
+                  control={control}
+                  name="date"
+                  render={({ field: { onChange, value } }) => (
+                    <TextInput
+                      style={[inputStyle, styles.halfInput]}
+                      placeholder="ГГГГ-ММ-ДД"
+                      placeholderTextColor={colors.textMuted}
+                      value={value}
+                      onChangeText={onChange}
+                      keyboardType="numbers-and-punctuation"
+                    />
+                  )}
                 />
-              )}
-            />
-          </Field>
-          <Field label="Время">
-            <Controller
-              control={control}
-              name="time"
-              render={({ field: { onChange, value } }) => (
-                <TextInput
-                  style={[inputStyle, styles.halfInput]}
-                  placeholder="ЧЧ:ММ"
-                  placeholderTextColor={colors.textMuted}
-                  value={value}
-                  onChangeText={onChange}
-                  keyboardType="numbers-and-punctuation"
+              </Field>
+              <Field label="Время">
+                <Controller
+                  control={control}
+                  name="time"
+                  render={({ field: { onChange, value } }) => (
+                    <TextInput
+                      style={[inputStyle, styles.halfInput]}
+                      placeholder="ЧЧ:ММ"
+                      placeholderTextColor={colors.textMuted}
+                      value={value}
+                      onChangeText={onChange}
+                      keyboardType="numbers-and-punctuation"
+                    />
+                  )}
                 />
-              )}
-            />
-          </Field>
-        </View>
+              </Field>
+            </View>
+
+            {/* ── Tournament + Notes ─── */}
+            <Field label="Турнир / Лига">
+              <Controller
+                control={control}
+                name="tournament"
+                render={({ field: { onChange, value } }) => (
+                  <TournamentInput value={value} onChange={onChange} />
+                )}
+              />
+            </Field>
+
+            <Field label="Заметки">
+              <Controller
+                control={control}
+                name="notes"
+                render={({ field: { onChange, value } }) => (
+                  <TextInput
+                    style={[inputStyle, styles.notes]}
+                    placeholder="Анализ, причины выбора..."
+                    placeholderTextColor={colors.textMuted}
+                    value={value}
+                    onChangeText={onChange}
+                    multiline
+                    numberOfLines={3}
+                    textAlignVertical="top"
+                  />
+                )}
+              />
+            </Field>
+
+            {/* ── Freebet toggle ─── */}
+            <TouchableOpacity
+              style={[styles.freebetToggle, isFreebet && styles.freebetToggleActive]}
+              onPress={() => { haptic.selection(); setIsFreebet((v) => !v); }}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.freebetToggleText, isFreebet && styles.freebetToggleTextActive]}>
+                🎁 Фрибет{isFreebet ? ' ✓ (потеря = 0 ₽)' : ' — не свои деньги'}
+              </Text>
+            </TouchableOpacity>
+          </>
+        )}
 
         {/* ── Status (edit only) ─── */}
         {editBet && (
@@ -1331,36 +1379,6 @@ export function AddBetScreen() {
             )}
           </>
         )}
-
-        {/* ── Tournament + Notes ─── */}
-        <Field label="Турнир / Лига">
-          <Controller
-            control={control}
-            name="tournament"
-            render={({ field: { onChange, value } }) => (
-              <TournamentInput value={value} onChange={onChange} />
-            )}
-          />
-        </Field>
-
-        <Field label="Заметки">
-          <Controller
-            control={control}
-            name="notes"
-            render={({ field: { onChange, value } }) => (
-              <TextInput
-                style={[inputStyle, styles.notes]}
-                placeholder="Анализ, причины выбора..."
-                placeholderTextColor={colors.textMuted}
-                value={value}
-                onChangeText={onChange}
-                multiline
-                numberOfLines={3}
-                textAlignVertical="top"
-              />
-            )}
-          />
-        </Field>
 
         <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit(onSubmit)} activeOpacity={0.85}>
           <Text style={styles.submitText}>
@@ -1457,6 +1475,21 @@ const styles = StyleSheet.create({
   winLabel: { fontSize: 13, color: colors.accent },
   winAmount: { fontSize: 16, fontWeight: '700', color: colors.accent },
 
+  extraToggle: {
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    backgroundColor: colors.bgElevated,
+    borderRadius: 10,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: colors.border,
+    alignItems: 'center',
+  },
+  extraToggleText: {
+    fontSize: 13,
+    color: colors.purple,
+    fontWeight: '600',
+  },
   freebetToggle: {
     alignSelf: 'flex-start',
     paddingHorizontal: 12,
