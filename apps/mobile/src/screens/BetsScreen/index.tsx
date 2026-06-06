@@ -11,6 +11,7 @@ import { colors } from '../../theme/colors';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { BetCard } from './BetCard';
 import { SwipeableRow } from './SwipeableRow';
+import { Coachmark } from '../../components/Coachmark';
 import { haptic } from '../../utils/haptics';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { useTranslation } from 'react-i18next';
@@ -235,6 +236,13 @@ export function BetsScreen() {
           </Text>
         </View>
       )}
+
+      <Coachmark
+        storageKey="@sharklog/tip_bets_seen"
+        title="Список ставок"
+        body="Свайп влево — удалить ставку. Тап по карточке — редактировать. Кнопка + внизу справа — добавить новую."
+        position="bottom"
+      />
     </View>
   );
 }

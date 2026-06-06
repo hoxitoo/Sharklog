@@ -11,6 +11,7 @@ import { colors } from '../../theme/colors';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { StatCard } from './StatCard';
 import { ResponsibleGamblingBanner } from '../../components/ResponsibleGamblingBanner';
+import { Coachmark } from '../../components/Coachmark';
 import { haptic } from '../../utils/haptics';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { useFormatMoney } from '../../utils/useFormatMoney';
@@ -247,6 +248,7 @@ export function DashboardScreen() {
     : null;
 
   return (
+    <View style={styles.flex}>
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <ScreenHeader
         title="Дашборд"
@@ -471,10 +473,18 @@ export function DashboardScreen() {
 
       <ResponsibleGamblingBanner />
     </ScrollView>
+    <Coachmark
+      storageKey="@sharklog/tip_dashboard_seen"
+      title="Дашборд"
+      body="Переключай период (7д / 30д / всё). Тепловая карта — под кнопкой ▼. Нажми на любую карточку — получи пояснение."
+      position="bottom"
+    />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  flex: { flex: 1 },
   container: { flex: 1, backgroundColor: colors.bg },
   strategyBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
