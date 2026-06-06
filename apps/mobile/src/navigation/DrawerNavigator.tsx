@@ -142,7 +142,7 @@ export function DrawerNavigator() {
           <DrawerContent
             currentScreen={screen}
             onNavigate={handleNavigate}
-            onClose={() => closeDrawer()}
+            onClose={closeDrawer}
             insets={insets}
           />
         </Animated.View>
@@ -163,7 +163,7 @@ export function DrawerNavigator() {
 interface DrawerContentProps {
   currentScreen: DrawerScreen;
   onNavigate: (s: DrawerScreen) => void;
-  onClose: () => void;
+  onClose: (callback?: () => void) => void;
   insets: { top: number; bottom: number };
 }
 
@@ -172,16 +172,15 @@ function DrawerContent({ currentScreen, onNavigate, onClose, insets }: DrawerCon
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { settings } = useBetsStore();
 
-  function goStack(name: keyof RootStackParamList) {
-    onClose();
-    setTimeout(() => navigation.navigate(name as any), 240);
+  function goStack(name: 'Bankroll' | 'StrategyBuilder' | 'Partners') {
+    onClose(() => navigation.navigate(name));
   }
 
   return (
     <View style={[styles.drawerInner, { paddingTop: insets.top + 12 }]}>
       {/* Logo */}
       <View style={styles.drawerLogo}>
-        <Image source={require('../assets/icon.png')} style={styles.logoImg} resizeMode="contain" />
+        <Image source={require('../../assets/icon.png')} style={styles.logoImg} resizeMode="contain" />
         <Text style={styles.logoText}>SharkLog</Text>
       </View>
 

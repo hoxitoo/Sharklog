@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import {
-  View, SectionList, StyleSheet, TouchableOpacity, Text, TextInput, ScrollView, Alert, RefreshControl, Image,
+  View, SectionList, StyleSheet, TouchableOpacity, Text, TextInput, ScrollView, RefreshControl, Image,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -9,7 +9,6 @@ import { formatMoney, isInTilt } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { colors } from '../../theme/colors';
 import { ScreenHeader } from '../../components/ScreenHeader';
-import { ChecklistModal } from '../../components/ChecklistModal';
 import { BetCard } from './BetCard';
 import { SwipeableRow } from './SwipeableRow';
 import { haptic } from '../../utils/haptics';
@@ -36,13 +35,12 @@ type SortKey = 'date_desc' | 'date_asc' | 'odds_desc' | 'odds_asc' | 'stake_desc
 
 export function BetsScreen() {
   const navigation = useNavigation<Nav>();
-  const { bets, settings, canAddBet, deleteBet } = useBetsStore();
+  const { bets, settings, deleteBet } = useBetsStore();
   const { t } = useTranslation();
   const inTilt = isInTilt(bets, settings.tiltThreshold);
   const [statusFilter, setStatusFilter] = useState<BetStatus | 'all'>('all');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortKey>('date_desc');
-  const [showChecklist, setShowChecklist] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = useCallback(() => {
@@ -115,37 +113,12 @@ export function BetsScreen() {
 
   const freeLeft = Math.max(0, 50 - bets.length);
 
-  function handleAdd() {
-    if (!canAddBet()) {
-      haptic.error();
-      if (!settings.isPro) {
-        Alert.alert('Лимит достигнут', 'Бесплатный план — до 50 ставок. Перейди на Pro для безлимитного трекинга.');
-      } else {
-        const today = new Date().toISOString().split('T')[0] ?? '';
-        const todayCount = bets.filter((b) => b.date === today).length;
-        Alert.alert('Дневной лимит', `Сегодня уже ${todayCount} ставок — установленный лимит ${settings.dailyBetLimit}. Измени лимит в Настройках.`);
-      }
-      return;
-    }
-    // PRO users get the pre-bet discipline checklist (unless disabled in settings)
-    if (settings.isPro && !settings.disableChecklist) {
-      setShowChecklist(true);
-    } else {
-      navigation.navigate('AddBet', {});
-    }
-  }
-
   function handleEdit(bet: Bet) {
     navigation.navigate('AddBet', { betId: bet.id });
   }
 
   return (
     <View style={styles.container}>
-      <ChecklistModal
-        visible={showChecklist}
-        onConfirm={() => { setShowChecklist(false); navigation.navigate('AddBet', {}); }}
-        onCancel={() => setShowChecklist(false)}
-      />
       <ScreenHeader
         title="Ставки"
         subtitle={settings.isPro ? `${bets.length} ставок` : `${freeLeft} из 50 осталось`}
