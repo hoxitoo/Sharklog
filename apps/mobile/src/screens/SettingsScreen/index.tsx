@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, Alert, Modal, ActivityIndicator,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { useDrawer } from '../../components/DrawerContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -364,9 +365,7 @@ export function SettingsScreen() {
       >
         <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
           <TouchableOpacity onPress={openDrawer} activeOpacity={0.7} style={styles.hamburger} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <View style={styles.hLine} />
-            <View style={styles.hLine} />
-            <View style={styles.hLine} />
+            <Ionicons name="menu" size={24} color={colors.textSecondary} />
           </TouchableOpacity>
           <Text style={styles.title}>Настройки</Text>
         </View>
@@ -644,9 +643,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16, paddingBottom: 16,
   },
   hamburger: {
-    width: 36, height: 36, alignItems: 'center', justifyContent: 'center', gap: 4, borderRadius: 8,
+    width: 36, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 8,
   },
-  hLine: { width: 20, height: 2, backgroundColor: colors.textSecondary, borderRadius: 1 },
   title: { fontSize: 26, fontWeight: '700', color: colors.textPrimary, letterSpacing: -0.5 },
   strategyBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 12,

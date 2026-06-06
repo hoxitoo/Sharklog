@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, Animated,
   Pressable, ScrollView, Image, Alert,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { ChecklistModal } from '../components/ChecklistModal';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -21,22 +22,25 @@ import type { RootStackParamList } from './RootNavigator';
 
 export type DrawerScreen = 'Bets' | 'Dashboard' | 'Insights' | 'Analytics' | 'Discipline' | 'Settings';
 
+type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
+
 const DRAWER_WIDTH = 272;
 
 interface NavItem {
   screen: DrawerScreen;
-  icon: string;
+  icon: IoniconsName;
+  iconActive: IoniconsName;
   labelKey: string;
   pro?: boolean;
 }
 
 const MAIN_ITEMS: NavItem[] = [
-  { screen: 'Bets', icon: '📋', labelKey: 'nav.bets' },
-  { screen: 'Dashboard', icon: '📊', labelKey: 'nav.dashboard' },
-  { screen: 'Insights', icon: '💡', labelKey: 'nav.insights' },
-  { screen: 'Analytics', icon: '🔬', labelKey: 'nav.analytics' },
-  { screen: 'Discipline', icon: '🧘', labelKey: 'nav.discipline' },
-  { screen: 'Settings', icon: '⚙️', labelKey: 'nav.settings' },
+  { screen: 'Bets',       icon: 'receipt-outline',   iconActive: 'receipt',        labelKey: 'nav.bets' },
+  { screen: 'Dashboard',  icon: 'bar-chart-outline',  iconActive: 'bar-chart',      labelKey: 'nav.dashboard' },
+  { screen: 'Insights',   icon: 'bulb-outline',       iconActive: 'bulb',           labelKey: 'nav.insights' },
+  { screen: 'Analytics',  icon: 'flask-outline',      iconActive: 'flask',          labelKey: 'nav.analytics' },
+  { screen: 'Discipline', icon: 'leaf-outline',       iconActive: 'leaf',           labelKey: 'nav.discipline' },
+  { screen: 'Settings',   icon: 'settings-outline',   iconActive: 'settings',       labelKey: 'nav.settings' },
 ];
 
 function ActiveScreen({ screen }: { screen: DrawerScreen }) {
@@ -196,7 +200,12 @@ function DrawerContent({ currentScreen, onNavigate, onClose, insets }: DrawerCon
                 onPress={() => onNavigate(item.screen)}
                 activeOpacity={0.75}
               >
-                <Text style={styles.navIcon}>{item.icon}</Text>
+                <Ionicons
+                  name={active ? item.iconActive : item.icon}
+                  size={20}
+                  color={active ? colors.purple : colors.textSecondary}
+                  style={styles.navIcon}
+                />
                 <Text style={[styles.navLabel, active && styles.navLabelActive]}>
                   {t(item.labelKey)}
                 </Text>
@@ -215,13 +224,13 @@ function DrawerContent({ currentScreen, onNavigate, onClose, insets }: DrawerCon
         {/* Secondary items */}
         <View style={styles.section}>
           <TouchableOpacity style={styles.navItem} onPress={() => goStack('Bankroll')} activeOpacity={0.75}>
-            <Text style={styles.navIcon}>💰</Text>
+            <Ionicons name="wallet-outline" size={20} color={colors.textSecondary} style={styles.navIcon} />
             <Text style={styles.navLabel}>{t('nav.bankroll')}</Text>
           </TouchableOpacity>
 
           {settings.isPro && (
             <TouchableOpacity style={styles.navItem} onPress={() => goStack('StrategyBuilder')} activeOpacity={0.75}>
-              <Text style={styles.navIcon}>🎯</Text>
+              <Ionicons name="options-outline" size={20} color={colors.textSecondary} style={styles.navIcon} />
               <Text style={styles.navLabel}>{t('nav.strategyBuilder')}</Text>
             </TouchableOpacity>
           )}
@@ -235,12 +244,12 @@ function DrawerContent({ currentScreen, onNavigate, onClose, insets }: DrawerCon
           onPress={() => goStack('Partners')}
           activeOpacity={0.8}
         >
-          <Text style={styles.partnersIcon}>🤝</Text>
+          <Ionicons name="gift-outline" size={22} color={colors.accent} />
           <View style={{ flex: 1 }}>
             <Text style={styles.partnersTitle}>{t('nav.partners')}</Text>
             <Text style={styles.partnersSub}>Бонусы при регистрации</Text>
           </View>
-          <Text style={styles.partnersArrow}>→</Text>
+          <Ionicons name="chevron-forward" size={16} color={colors.accent} />
         </TouchableOpacity>
       </ScrollView>
 
@@ -319,7 +328,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.purple + '1A',
   },
   navIcon: {
-    fontSize: 18,
     width: 24,
     textAlign: 'center',
   },
@@ -364,7 +372,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.accent + '44',
   },
-  partnersIcon: { fontSize: 22 },
   partnersTitle: {
     fontSize: 14,
     fontWeight: '700',
@@ -375,7 +382,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     marginTop: 2,
   },
-  partnersArrow: { fontSize: 16, color: colors.accent },
   drawerBottom: {
     paddingHorizontal: 16,
     paddingTop: 12,

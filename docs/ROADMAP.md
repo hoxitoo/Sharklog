@@ -1,6 +1,6 @@
 # SharkLog — Roadmap
 
-_Обновлено: 2026-06-03 (batch 9)_
+_Обновлено: 2026-06-06 (UX/UI v2)_
 
 ---
 
@@ -134,6 +134,49 @@ _Обновлено: 2026-06-03 (batch 9)_
 - Easter egg `handleDevTap()` защищён `if (!__DEV__) return`
 - E2E тесты: все 22 Playwright-теста зелёные
 - `test-results/`, `playwright-report/` добавлены в `.gitignore`
+
+---
+
+## ✅ Phase 2.5 — Mobile UX/UI v2 (done)
+
+> Точечная переработка интерфейса мобильного приложения без смены бизнес-логики.
+
+### Навигация
+- **Drawer-навигация**: таббар заменён на кастомный анимированный slide-out drawer (hamburger ≡ слева)
+  - `DrawerNavigator.tsx`: `Animated.spring` (открытие) + `Animated.timing` (закрытие с callback)
+  - `DrawerContext.tsx`: React Context — `openDrawer()` доступен из любого экрана
+  - `ScreenHeader.tsx`: hamburger кнопка интегрирована во все заголовки
+- **Векторные иконки**: emoji → `@expo/vector-icons` (Ionicons) во всём drawer
+  - Активное состояние: filled-вариант иконки + `colors.purple`
+  - Неактивное: outline-вариант + `colors.textSecondary`
+  - Иконки: `receipt`, `bar-chart`, `bulb`, `flask`, `leaf`, `settings`, `wallet`, `options`, `gift`, `menu`
+- **FAB «+»**: кнопка добавления ставки всегда видна (правый нижний угол, поверх всего контента)
+
+### Функционал
+- **Партнёры в drawer**: выделенная teal-карточка, всегда на виду (раньше — скрыто в Настройках)
+- **Отключение чек-листа**: PRO-toggle в Настройках (`disableChecklist` в `AppSettings`)
+  - `AppSettings.disableChecklist?: boolean` добавлено в `packages/core`
+  - По умолчанию — включён (обратная совместимость)
+- **ResponsibleGamblingBanner**: новый компонент (`components/ResponsibleGamblingBanner.tsx`)
+  - Коллапсируемый, AsyncStorage-персистентный (`@sharklog/responsible_expanded`)
+  - Required для App Store категории «Sports»
+
+### AddBetScreen
+- **Collapsible extra fields**: дополнительные поля (стратегия, букмекер, дата/время, турнир, заметки, фрибет) скрыты за toggle-кнопкой
+  - Автораскрывается при редактировании ставки с уже заполненными доп. полями
+  - Основные поля (событие, кэф, сумма, вид спорта, тип) всегда видны
+
+### DashboardScreen
+- **Иерархия блоков**: период → P&L KPI → W/L стрип → стат-грид → P&L кривая → серия/банк → последние ставки
+- **Тепловая карта** — вынесена за collapsible toggle (раньше всегда раскрыта)
+- **Тилт-баннер** — кнопка × dismiss, скрывается до следующего дня (AsyncStorage `@sharklog/tilt_dismiss_date`)
+- **haptic.warning()** — срабатывает в момент первого определения тилт-состояния (через `useRef` prev-value)
+- **haptic.success()** — при сохранении ставки в AddBetScreen (уже был, задокументировано)
+- Удалены блоки «лучшая / худшая ставка» (перегрузка)
+
+### Инфраструктура
+- `@expo/vector-icons` добавлен в зависимости (входит в Expo SDK)
+- TypeScript: 0 ошибок, 17/17 тестов зелёные
 
 ---
 
