@@ -1,5 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { View, Text, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, Alert } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LineChart } from 'react-native-gifted-charts';
@@ -181,6 +182,15 @@ export function DashboardScreen() {
   const fmt = useFormatMoney();
   const [period, setPeriod] = useState<PeriodFilter>('all');
   const [showHeatmap, setShowHeatmap] = useState(false);
+  const [tiltDismissed, setTiltDismissed] = useState(false);
+  const prevInTilt = useRef(false);
+
+  useEffect(() => {
+    AsyncStorage.getItem('@sharklog/tilt_dismiss_date').then((saved) => {
+      const today = new Date().toISOString().split('T')[0] ?? '';
+      if (saved === today) setTiltDismissed(true);
+    });
+  }, []);
 
   const filteredBets = useMemo(() => {
     if (period === 'all') return bets;
@@ -193,6 +203,23 @@ export function DashboardScreen() {
 
   const stats = calcDashboard(filteredBets);
   const inTilt = isInTilt(bets, settings.tiltThreshold);
+
+  useEffect(() => {
+    if (inTilt && !prevInTilt.current) {
+      haptic.warning();
+      // Reset dismiss when a new tilt session starts
+      setTiltDismissed(false);
+      AsyncStorage.removeItem('@sharklog/tilt_dismiss_date');
+    }
+    prevInTilt.current = inTilt;
+  }, [inTilt]);
+
+  function dismissTilt() {
+    haptic.selection();
+    const today = new Date().toISOString().split('T')[0] ?? '';
+    AsyncStorage.setItem('@sharklog/tilt_dismiss_date', today);
+    setTiltDismissed(true);
+  }
 
   // Bank total always reflects all-time P&L + transactions
   const allTimePnl = period === 'all' ? stats.pnl : calcDashboard(bets).pnl;
@@ -257,7 +284,7 @@ export function DashboardScreen() {
         ))}
       </View>
 
-      {inTilt && (
+      {inTilt && !tiltDismissed && (
         <View style={styles.tiltAlert}>
           <Text style={styles.tiltIcon}>🔥</Text>
           <View style={{ flex: 1 }}>
@@ -266,6 +293,9 @@ export function DashboardScreen() {
               {stats.currentStreak.count} поражений подряд. Закрой приложение и отдохни.
             </Text>
           </View>
+          <TouchableOpacity onPress={dismissTilt} hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}>
+            <Text style={styles.tiltDismiss}>✕</Text>
+          </TouchableOpacity>
         </View>
       )}
 
@@ -492,6 +522,7 @@ const styles = StyleSheet.create({
   tiltIcon: { fontSize: 28 },
   tiltTitle: { fontSize: 15, fontWeight: '700', color: colors.lost },
   tiltSub: { fontSize: 12, color: colors.textSecondary, marginTop: 3 },
+  tiltDismiss: { fontSize: 16, color: colors.textMuted, paddingLeft: 8 },
   statsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
