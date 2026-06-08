@@ -133,6 +133,13 @@ export interface GeneratedStrategy {
   tiltThreshold: number;     // suggested consecutive losses threshold
   betTypeAdvice: string;
   sportAdvice: string;
+  // Rich output fields (added in v2)
+  rationale?: string;              // why this strategy fits the profile
+  keyPrinciples?: string[];        // 3-4 actionable rules
+  recommendedApproaches?: Strategy[];  // value/stats/form/intuition/system
+  recommendedBetTypes?: BetType[];     // total_over/handicap/1X2 etc.
+  betTypeRationale?: string;       // why these bet markets
+  oddsRationale?: string;          // why this odds range
   createdAt: string;
   answers: StrategyAnswers;
 }

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert,
 } from 'react-native';
-import { STRATEGY_QUESTIONS, buildStrategy } from '@sharklog/core';
+import { STRATEGY_QUESTIONS, buildStrategy, STRATEGIES, BET_TYPES } from '@sharklog/core';
 import type { StrategyAnswers, GeneratedStrategy } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { colors } from '../../theme/colors';
@@ -40,6 +40,13 @@ function ResultScreen({ strategy, onReset }: { strategy: GeneratedStrategy; onRe
       <Text style={s.resultName}>{strategy.name}</Text>
       <Text style={s.resultDesc}>{strategy.description}</Text>
 
+      {strategy.rationale ? (
+        <View style={s.rationaleBox}>
+          <Text style={s.sectionTitle}>Почему эта стратегия подходит тебе</Text>
+          <Text style={s.rationaleText}>{strategy.rationale}</Text>
+        </View>
+      ) : null}
+
       {items.map((item) => (
         <View key={item.label} style={s.recItem}>
           <Text style={s.recIcon}>{item.icon}</Text>
@@ -49,6 +56,54 @@ function ResultScreen({ strategy, onReset }: { strategy: GeneratedStrategy; onRe
           </View>
         </View>
       ))}
+
+      {strategy.recommendedBetTypes && strategy.recommendedBetTypes.length > 0 ? (
+        <View style={s.sectionBox}>
+          <Text style={s.sectionTitle}>Рекомендуемые рынки</Text>
+          <View style={s.chipRow}>
+            {strategy.recommendedBetTypes.map((bt) => (
+              <View key={bt} style={[s.chip, s.chipGreen]}>
+                <Text style={s.chipTextGreen}>{BET_TYPES[bt]}</Text>
+              </View>
+            ))}
+          </View>
+          {strategy.betTypeRationale ? (
+            <Text style={s.subNote}>{strategy.betTypeRationale}</Text>
+          ) : null}
+        </View>
+      ) : null}
+
+      {strategy.recommendedApproaches && strategy.recommendedApproaches.length > 0 ? (
+        <View style={s.sectionBox}>
+          <Text style={s.sectionTitle}>Подходы к анализу</Text>
+          <View style={s.chipRow}>
+            {strategy.recommendedApproaches.map((app) => (
+              <View key={app} style={s.chip}>
+                <Text style={s.chipText}>{STRATEGIES[app]}</Text>
+              </View>
+            ))}
+          </View>
+        </View>
+      ) : null}
+
+      {strategy.oddsRationale ? (
+        <View style={s.sectionBox}>
+          <Text style={s.sectionTitle}>О диапазоне коэффициентов</Text>
+          <Text style={s.rationaleText}>{strategy.oddsRationale}</Text>
+        </View>
+      ) : null}
+
+      {strategy.keyPrinciples && strategy.keyPrinciples.length > 0 ? (
+        <View style={s.sectionBox}>
+          <Text style={s.sectionTitle}>Ключевые принципы</Text>
+          {strategy.keyPrinciples.map((rule, i) => (
+            <View key={i} style={s.principleRow}>
+              <Text style={s.principleNum}>{i + 1}</Text>
+              <Text style={s.principleText}>{rule}</Text>
+            </View>
+          ))}
+        </View>
+      ) : null}
 
       <View style={s.disclaimerBox}>
         <Text style={s.disclaimerText}>{DISCLAIMER}</Text>
@@ -206,4 +261,38 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: colors.border,
   },
   btnSecondaryText: { color: colors.textSecondary, fontWeight: '600', fontSize: 14 },
+  rationaleBox: {
+    backgroundColor: colors.bgCard, borderRadius: 10, padding: 14,
+    borderWidth: 1, borderColor: colors.border, marginBottom: 12,
+  },
+  sectionBox: {
+    backgroundColor: colors.bgCard, borderRadius: 10, padding: 14,
+    borderWidth: 1, borderColor: colors.border, marginBottom: 10,
+  },
+  sectionTitle: {
+    fontSize: 11, color: colors.textMuted, textTransform: 'uppercase',
+    letterSpacing: 0.5, marginBottom: 10, fontWeight: '700',
+  },
+  rationaleText: { fontSize: 13, color: colors.textSecondary, lineHeight: 20 },
+  subNote: { fontSize: 12, color: colors.textMuted, lineHeight: 18, marginTop: 8 },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  chip: {
+    backgroundColor: colors.purple + '22', borderRadius: 6,
+    paddingHorizontal: 10, paddingVertical: 4,
+    borderWidth: 1, borderColor: colors.purple + '44',
+  },
+  chipGreen: {
+    backgroundColor: colors.accent + '22',
+    borderColor: colors.accent + '44',
+  },
+  chipText: { fontSize: 12, fontWeight: '600', color: colors.purple },
+  chipTextGreen: { fontSize: 12, fontWeight: '600', color: colors.accent },
+  principleRow: {
+    flexDirection: 'row', gap: 10, alignItems: 'flex-start', marginBottom: 8,
+  },
+  principleNum: {
+    fontSize: 13, fontWeight: '700', color: colors.purple,
+    width: 18, textAlign: 'center', marginTop: 1,
+  },
+  principleText: { flex: 1, fontSize: 13, color: colors.textSecondary, lineHeight: 20 },
 });

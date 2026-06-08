@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import {
-  STRATEGY_QUESTIONS, buildStrategy, formatMoney,
+  STRATEGY_QUESTIONS, buildStrategy, formatMoney, STRATEGIES, BET_TYPES,
 } from '@sharklog/core';
 import type { StrategyAnswers, GeneratedStrategy } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
@@ -35,6 +35,13 @@ function ResultCard({ strategy, onReset }: { strategy: GeneratedStrategy; onRese
       <h2 style={s.resultName}>{strategy.name}</h2>
       <p style={s.resultDesc}>{strategy.description}</p>
 
+      {strategy.rationale && (
+        <div style={s.sectionBox}>
+          <div style={s.sectionLabel}>Почему эта стратегия подходит тебе</div>
+          <div style={s.sectionText}>{strategy.rationale}</div>
+        </div>
+      )}
+
       <div style={s.recGrid}>
         {items.map((item) => (
           <div key={item.label} style={s.recItem}>
@@ -46,6 +53,49 @@ function ResultCard({ strategy, onReset }: { strategy: GeneratedStrategy; onRese
           </div>
         ))}
       </div>
+
+      {strategy.recommendedBetTypes && strategy.recommendedBetTypes.length > 0 && (
+        <div style={s.sectionBox}>
+          <div style={s.sectionLabel}>Рекомендуемые рынки</div>
+          <div style={s.chipRow}>
+            {strategy.recommendedBetTypes.map((bt) => (
+              <span key={bt} style={{ ...s.chip, ...s.chipGreen }}>{BET_TYPES[bt]}</span>
+            ))}
+          </div>
+          {strategy.betTypeRationale && (
+            <div style={s.subNote}>{strategy.betTypeRationale}</div>
+          )}
+        </div>
+      )}
+
+      {strategy.recommendedApproaches && strategy.recommendedApproaches.length > 0 && (
+        <div style={s.sectionBox}>
+          <div style={s.sectionLabel}>Подходы к анализу</div>
+          <div style={s.chipRow}>
+            {strategy.recommendedApproaches.map((app) => (
+              <span key={app} style={s.chip}>{STRATEGIES[app]}</span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {strategy.oddsRationale && (
+        <div style={s.sectionBox}>
+          <div style={s.sectionLabel}>О диапазоне коэффициентов</div>
+          <div style={s.sectionText}>{strategy.oddsRationale}</div>
+        </div>
+      )}
+
+      {strategy.keyPrinciples && strategy.keyPrinciples.length > 0 && (
+        <div style={s.sectionBox}>
+          <div style={s.sectionLabel}>Ключевые принципы</div>
+          <ol style={s.principlesList}>
+            {strategy.keyPrinciples.map((rule, i) => (
+              <li key={i} style={s.principleItem}>{rule}</li>
+            ))}
+          </ol>
+        </div>
+      )}
 
       <div style={s.disclaimer}>{DISCLAIMER}</div>
 
@@ -251,4 +301,30 @@ const s: Record<string, React.CSSProperties> = {
     padding: '12px 24px', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer',
   },
   proGate: { textAlign: 'center' as const, paddingTop: 80 },
+  sectionBox: {
+    marginTop: 16, padding: '14px 16px', borderRadius: 10,
+    backgroundColor: colors.bgElevated, border: `1px solid ${colors.border}`,
+  },
+  sectionLabel: {
+    fontSize: 10, fontWeight: 700, color: colors.textMuted,
+    textTransform: 'uppercase' as const, letterSpacing: 0.6, marginBottom: 10,
+  },
+  sectionText: { fontSize: 13, color: colors.textSecondary, lineHeight: '1.6' },
+  subNote: { fontSize: 12, color: colors.textMuted, lineHeight: '1.6', marginTop: 10 },
+  chipRow: { display: 'flex', flexWrap: 'wrap' as const, gap: 6 },
+  chip: {
+    display: 'inline-block', padding: '3px 10px', borderRadius: 6,
+    backgroundColor: colors.purple + '22', border: `1px solid ${colors.purple}44`,
+    fontSize: 12, fontWeight: 600, color: colors.purple,
+  },
+  chipGreen: {
+    backgroundColor: colors.accent + '22', border: `1px solid ${colors.accent}44`,
+    color: colors.accent,
+  },
+  principlesList: {
+    margin: 0, paddingLeft: 20,
+  },
+  principleItem: {
+    fontSize: 13, color: colors.textSecondary, lineHeight: '1.6', marginBottom: 4,
+  },
 };
