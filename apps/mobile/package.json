@@ -33,6 +33,7 @@
     "expo-localization": "^56.0.6",
     "expo-notifications": "~56.0.14",
     "expo-sharing": "~56.0.14",
+    "expo-splash-screen": "^56.0.10",
     "expo-status-bar": "~56.0.4",
     "i18next": "^26.3.1",
     "promise": "^8.3.0",

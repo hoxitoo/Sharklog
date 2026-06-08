@@ -372,7 +372,7 @@ export function SettingsScreen() {
           <TouchableOpacity onPress={openDrawer} activeOpacity={0.7} style={styles.hamburger} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
             <Ionicons name="menu" size={24} color={colors.textSecondary} />
           </TouchableOpacity>
-          <Text style={styles.title}>Настройки</Text>
+          <Text style={styles.title}>{t('settings.title')}</Text>
         </View>
 
         {/* Backup reminder banner */}
@@ -441,8 +441,8 @@ export function SettingsScreen() {
           </TouchableOpacity>
         )}
 
-        <Section title="Тилт-контроль">
-          <Row label="Порог тилт-алерта">
+        <Section title={t('settings.tiltControl')}>
+          <Row label={t('settings.tiltAlertThreshold')}>
             {settings.isPro ? (
               <Stepper
                 value={settings.tiltThreshold}
@@ -454,7 +454,7 @@ export function SettingsScreen() {
               <Text style={styles.value}>{FREE_LIMITS.TILT_ALERT_THRESHOLD} поражений (Free)</Text>
             )}
           </Row>
-          <Row label="Дневной лимит ставок">
+          <Row label={t('settings.dailyLimit')}>
             {settings.isPro ? (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                 <Stepper
@@ -472,7 +472,7 @@ export function SettingsScreen() {
             )}
           </Row>
           {settings.isPro && (
-            <Row label="Чек-лист перед ставкой">
+            <Row label={t('settings.checklistEnabled')}>
               <View style={{ alignItems: 'flex-end', gap: 2 }}>
                 <TouchableOpacity
                   onPress={() => updateSettings({ disableChecklist: !settings.disableChecklist })}
@@ -489,18 +489,18 @@ export function SettingsScreen() {
           )}
         </Section>
 
-        <Section title="Букмекеры">
+        <Section title={t('settings.bookmakers')}>
           {settings.bookmakers.map((bk) => (
             <Row key={bk} label={bk}>
               <TouchableOpacity onPress={() => handleRemoveBookmaker(bk)}>
-                <Text style={styles.removeText}>Удалить</Text>
+                <Text style={styles.removeText}>{t('settings.removeBookmaker')}</Text>
               </TouchableOpacity>
             </Row>
           ))}
           <View style={styles.addBkRow}>
             <TextInput
               style={styles.addBkInput}
-              placeholder="Добавить букмекера..."
+              placeholder={t('settings.addBookmakerPlaceholder')}
               placeholderTextColor={colors.textMuted}
               value={newBookmaker}
               onChangeText={setNewBookmaker}
@@ -513,18 +513,18 @@ export function SettingsScreen() {
           </View>
         </Section>
 
-        <Section title="Данные">
-          <Row label="Всего ставок">
+        <Section title={t('settings.data')}>
+          <Row label={t('settings.totalBets')}>
             <Text style={styles.value}>{bets.length}</Text>
           </Row>
-          <Row label="Подписка">
+          <Row label={t('settings.subscription')}>
             <TouchableOpacity onPress={handleDevTap} activeOpacity={0.7}>
               <Text style={[styles.value, { color: settings.isPro ? colors.gold : colors.textSecondary }]}>
                 {settings.isPro ? 'Pro' : `Free · ${Math.max(0, 50 - bets.length)} ставок осталось`}
               </Text>
             </TouchableOpacity>
           </Row>
-          <Row label="Округлять суммы">
+          <Row label={t('settings.roundAmounts')}>
             <TouchableOpacity
               onPress={() => updateSettings({ roundAmounts: !settings.roundAmounts })}
               activeOpacity={0.7}
@@ -557,8 +557,8 @@ export function SettingsScreen() {
           </View>
         </Section>
 
-        <Section title="Обновления">
-          <Row label={`Версия ${APP_VERSION}`}>
+        <Section title={t('settings.updates')}>
+          <Row label={`${t('settings.version')} ${APP_VERSION}`}>
             {updateStatus === 'available' ? (
               <Text style={[styles.value, { color: colors.accent }]}>🆕 {latestVersion}</Text>
             ) : updateStatus === 'latest' ? (
@@ -571,7 +571,7 @@ export function SettingsScreen() {
             disabled={updateStatus === 'checking'}
           >
             <Text style={styles.actionBtnText}>
-              {updateStatus === 'checking' ? '⏳ Проверяем...' : '🔄 Проверить обновления'}
+              {updateStatus === 'checking' ? `⏳ ${t('settings.updateChecking')}` : `🔄 ${t('settings.checkUpdates')}`}
             </Text>
           </TouchableOpacity>
           {updateStatus === 'available' && (
@@ -586,8 +586,8 @@ export function SettingsScreen() {
           )}
         </Section>
 
-        <Section title="Уведомления">
-          <Row label="Время напоминания">
+        <Section title={t('settings.notifications')}>
+          <Row label={t('settings.reminderTime')}>
             {settings.isPro ? (
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
                 <Stepper
@@ -610,7 +610,7 @@ export function SettingsScreen() {
           </TouchableOpacity>
         </Section>
 
-        <Section title="Экспорт / Импорт">
+        <Section title={t('settings.exportImport')}>
           <TouchableOpacity style={styles.actionBtn} onPress={handleExport} disabled={exporting}>
             <Text style={styles.actionBtnText}>
               {exporting ? 'Экспортируется...' : '📤  Экспорт ставок в CSV'}
@@ -631,9 +631,9 @@ export function SettingsScreen() {
           </TouchableOpacity>
         </Section>
 
-        <Section title="Опасная зона">
+        <Section title={t('settings.dangerZone')}>
           <TouchableOpacity style={styles.dangerBtn} onPress={handleClearData}>
-            <Text style={styles.dangerBtnText}>Очистить все данные</Text>
+            <Text style={styles.dangerBtnText}>{t('settings.clearAll')}</Text>
           </TouchableOpacity>
         </Section>
       </ScrollView>

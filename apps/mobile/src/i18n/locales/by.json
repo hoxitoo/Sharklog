@@ -8,7 +8,8 @@
     "settings": "Налады",
     "bankroll": "Банкрол",
     "strategyBuilder": "Будаўнік стратэгій",
-    "partners": "Партнёры"
+    "partners": "Партнёры",
+    "partnersSub": "Бонусы пры рэгістрацыі"
   },
   "status": {
     "pending": "Чаканне",
@@ -66,6 +67,12 @@
     "newBet": "Новая стаўка",
     "sortNewest": "Новыя ↓",
     "sortOldest": "Старыя ↑",
+    "sortByOdds": "Каэф",
+    "sortByStake": "Сума",
+    "allBets": "Усе стаўкі",
+    "tiltTitle": "Стоп. Ты ў тылце.",
+    "tiltSub": "Зрабі паўзу перад наступнай стаўкай.",
+    "noBetsStart": "Націсні + каб пачаць",
     "limitReached": "🔒 Ліміт {{count}} стаўак дасягнуты — перайдзіце на Pro",
     "limitWarning": "⚠️ Засталося {{count}} бясплатных стаўак"
   },
@@ -255,7 +262,15 @@
     "strategyBuilder": "Будаўнік стратэгій",
     "partners": "Партнёры",
     "backupBanner": "Апошні бэкап даўно. Рэкамендуем захаваць рэзервовую копію.",
-    "backupNow": "Захаваць зараз"
+    "backupNow": "Захаваць зараз",
+    "tiltControl": "Тылт-кантроль",
+    "updates": "Абнаўленні",
+    "exportImport": "Экспарт / Імпарт",
+    "dangerZone": "Небяспечная зона",
+    "tiltAlertThreshold": "Парог тылт-алерта",
+    "totalBets": "Усяго стаўак",
+    "reminderTime": "Час нагадвання",
+    "removeBookmaker": "Выдаліць"
   },
   "onboarding": {
     "welcome": "Сардэчна запрашаем",

@@ -8,7 +8,8 @@
     "settings": "Settings",
     "bankroll": "Bankroll",
     "strategyBuilder": "Strategy Builder",
-    "partners": "Partners"
+    "partners": "Partners",
+    "partnersSub": "Registration bonuses"
   },
   "status": {
     "pending": "Pending",
@@ -66,6 +67,12 @@
     "newBet": "New bet",
     "sortNewest": "Newest ↓",
     "sortOldest": "Oldest ↑",
+    "sortByOdds": "Odds",
+    "sortByStake": "Stake",
+    "allBets": "All bets",
+    "tiltTitle": "Stop. You're on tilt.",
+    "tiltSub": "Take a break before your next bet.",
+    "noBetsStart": "Tap + to add your first bet",
     "limitReached": "🔒 Limit of {{count}} bets reached — upgrade to Pro",
     "limitWarning": "⚠️ {{count}} free bets remaining"
   },
@@ -255,7 +262,15 @@
     "strategyBuilder": "Strategy Builder",
     "partners": "Partners",
     "backupBanner": "Last backup was a while ago. We recommend saving a backup.",
-    "backupNow": "Save now"
+    "backupNow": "Save now",
+    "tiltControl": "Tilt control",
+    "updates": "Updates",
+    "exportImport": "Export / Import",
+    "dangerZone": "Danger zone",
+    "tiltAlertThreshold": "Tilt alert threshold",
+    "totalBets": "Total bets",
+    "reminderTime": "Reminder time",
+    "removeBookmaker": "Remove"
   },
   "onboarding": {
     "welcome": "Welcome",

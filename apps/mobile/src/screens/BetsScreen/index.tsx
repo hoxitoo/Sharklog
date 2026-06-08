@@ -15,19 +15,21 @@ import { Coachmark } from '../../components/Coachmark';
 import { haptic } from '../../utils/haptics';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { useTranslation } from 'react-i18next';
+import i18n from '../../i18n/index';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-function formatDateTitle(dateStr: string): string {
+function formatDateTitle(dateStr: string, todayLabel: string, yesterdayLabel: string): string {
   const todayStr = new Date().toISOString().split('T')[0] ?? '';
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
   const yesterdayStr = yesterday.toISOString().split('T')[0] ?? '';
-  if (dateStr === todayStr) return 'Сегодня';
-  if (dateStr === yesterdayStr) return 'Вчера';
+  if (dateStr === todayStr) return todayLabel;
+  if (dateStr === yesterdayStr) return yesterdayLabel;
   const parts = dateStr.split('-').map(Number);
   const d = new Date(parts[0] ?? 0, (parts[1] ?? 1) - 1, parts[2] ?? 1);
-  return d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+  const locale = i18n.language === 'en' ? 'en-US' : 'ru-RU';
+  return d.toLocaleDateString(locale, { day: 'numeric', month: 'long' });
 }
 
 const STATUS_FILTER_KEYS: Array<BetStatus | 'all'> = ['all', 'pending', 'won', 'lost', 'refund', 'cashout'];
@@ -38,6 +40,8 @@ export function BetsScreen() {
   const navigation = useNavigation<Nav>();
   const { bets, settings, deleteBet } = useBetsStore();
   const { t } = useTranslation();
+  const todayLabel = t('dashboard.today');
+  const yesterdayLabel = t('dashboard.yesterday');
   const inTilt = isInTilt(bets, settings.tiltThreshold);
   const [statusFilter, setStatusFilter] = useState<BetStatus | 'all'>('all');
   const [search, setSearch] = useState('');
@@ -82,7 +86,7 @@ export function BetsScreen() {
         if (b.status === 'cashout' && b.cashoutAmount != null) return sum + b.cashoutAmount - b.stake;
         return sum;
       }, 0);
-      return [{ title: 'Все ставки', date: '', dailyPnl: totalPnl, data: result }];
+      return [{ title: t('bet.allBets'), date: '', dailyPnl: totalPnl, data: result }];
     }
 
     // Group by date for date sorts
@@ -108,7 +112,7 @@ export function BetsScreen() {
         if (b.status === 'cashout' && b.cashoutAmount != null) return sum + b.cashoutAmount - b.stake;
         return sum;
       }, 0);
-      return { title: formatDateTitle(date), date, dailyPnl, data };
+      return { title: formatDateTitle(date, todayLabel, yesterdayLabel), date, dailyPnl, data };
     });
   }, [bets, statusFilter, search, sort]);
 
@@ -121,13 +125,13 @@ export function BetsScreen() {
   return (
     <View style={styles.container}>
       <ScreenHeader
-        title="Ставки"
-        subtitle={settings.isPro ? `${bets.length} ставок` : `${freeLeft} из 50 осталось`}
+        title={t('nav.bets')}
+        subtitle={settings.isPro ? `${bets.length} ${t('common.bets')}` : `${freeLeft} ${t('common.of')} 50`}
       />
 
       <TextInput
         style={styles.search}
-        placeholder="Поиск по событию или выбору..."
+        placeholder={t('bet.searchPlaceholder')}
         placeholderTextColor={colors.textMuted}
         value={search}
         onChangeText={setSearch}
@@ -156,10 +160,10 @@ export function BetsScreen() {
             (isOdds && sort === 'odds_asc') ||
             (isStake && sort === 'stake_asc');
           const label = isOdds
-            ? `Кэф ${sort === 'odds_asc' ? '↑' : '↓'}`
+            ? `${t('bet.sortByOdds')} ${sort === 'odds_asc' ? '↑' : '↓'}`
             : isStake
-            ? `Сумма ${sort === 'stake_asc' ? '↑' : '↓'}`
-            : key === 'date_desc' ? 'Новые' : 'Старые';
+            ? `${t('bet.sortByStake')} ${sort === 'stake_asc' ? '↑' : '↓'}`
+            : key === 'date_desc' ? t('bet.sortNewest') : t('bet.sortOldest');
           return (
             <TouchableOpacity
               key={key}
@@ -181,8 +185,8 @@ export function BetsScreen() {
         <View style={styles.tiltBanner}>
           <Text style={styles.tiltEmoji}>🔥</Text>
           <View style={{ flex: 1 }}>
-            <Text style={styles.tiltTitle}>Стоп. Ты в тилте.</Text>
-            <Text style={styles.tiltSub}>Сделай паузу перед следующей ставкой.</Text>
+            <Text style={styles.tiltTitle}>{t('bet.tiltTitle')}</Text>
+            <Text style={styles.tiltSub}>{t('bet.tiltSub')}</Text>
           </View>
         </View>
       )}
@@ -220,9 +224,9 @@ export function BetsScreen() {
         ListEmptyComponent={
           <View style={styles.empty}>
             <Image source={require('../../../assets/icon.png')} style={styles.emptyIcon} resizeMode="contain" />
-            <Text style={styles.emptyTitle}>Ставок пока нет</Text>
+            <Text style={styles.emptyTitle}>{t('bet.noBetsYet')}</Text>
             <Text style={styles.emptySubtitle}>
-              {search ? 'Ничего не найдено' : 'Нажми кнопку + чтобы начать'}
+              {search ? t('bet.notFound') : t('bet.noBetsStart')}
             </Text>
           </View>
         }
@@ -232,16 +236,16 @@ export function BetsScreen() {
         <View style={styles.limitBanner}>
           <Text style={styles.limitText}>
             {50 - bets.length <= 0
-              ? '🔒 Лимит 50 ставок достигнут — перейди на Pro'
-              : `⚠️ Осталось ${50 - bets.length} бесплатных ставок`}
+              ? t('bet.limitReached', { count: 50 })
+              : t('bet.limitWarning', { count: 50 - bets.length })}
           </Text>
         </View>
       )}
 
       <Coachmark
         storageKey="@sharklog/tip_bets_seen"
-        title="Список ставок"
-        body="Свайп влево — удалить ставку. Тап по карточке — редактировать. Кнопка + внизу справа — добавить новую."
+        title={t('nav.bets')}
+        body="Swipe left to delete · Tap to edit · + to add new"
         position="bottom"
       />
     </View>

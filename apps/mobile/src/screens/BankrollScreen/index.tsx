@@ -28,7 +28,6 @@ function uuid(): string {
 import type { BankrollTransaction } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { ProGate } from '../../components/ProGate';
-import { ScreenHeader } from '../../components/ScreenHeader';
 import { colors } from '../../theme/colors';
 import { FONTS } from '../../theme/typography';
 
@@ -482,7 +481,6 @@ const bk = StyleSheet.create({
 export function BankrollScreen() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <ScreenHeader title="Банкролл" subtitle="Управление капиталом" />
       <ProGate feature="Банкролл-трекер и калькулятор Келли">
         <BankrollContent />
       </ProGate>
