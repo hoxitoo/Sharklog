@@ -60,11 +60,11 @@ export default function App() {
     }
   }, [appReady]);
 
-  if (!splashDone || !appReady) {
+  if (!splashDone) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.bg }}>
         <StatusBar style="light" />
-        <AnimatedSplash appReady={appReady} onFinish={() => setSplashDone(true)} />
+        <AnimatedSplash onFinish={() => setSplashDone(true)} />
       </View>
     );
   }
