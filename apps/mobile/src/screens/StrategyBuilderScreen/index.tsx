@@ -6,7 +6,6 @@ import { STRATEGY_QUESTIONS, buildStrategy } from '@sharklog/core';
 import type { StrategyAnswers, GeneratedStrategy } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { colors } from '../../theme/colors';
-import { ScreenHeader } from '../../components/ScreenHeader';
 import { ProGate } from '../../components/ProGate';
 import { haptic } from '../../utils/haptics';
 
@@ -137,10 +136,6 @@ export function StrategyBuilderScreen() {
 
   return (
     <View style={s.root}>
-      <ScreenHeader
-        title="Билдер стратегий"
-        subtitle={building ? `Ответь на ${STRATEGY_QUESTIONS.length} вопросов` : 'Твоя стратегия'}
-      />
       <ProGate feature="Персональный билдер стратегий">
         {!building && result
           ? <ResultScreen strategy={result} onReset={handleReset} />

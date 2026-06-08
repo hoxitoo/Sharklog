@@ -8,7 +8,8 @@
     "settings": "Настройки",
     "bankroll": "Банкролл",
     "strategyBuilder": "Билдер стратегий",
-    "partners": "Партнёры"
+    "partners": "Партнёры",
+    "partnersSub": "Бонусы при регистрации"
   },
   "status": {
     "pending": "Ожидание",
@@ -66,6 +67,12 @@
     "newBet": "Новая ставка",
     "sortNewest": "Новые ↓",
     "sortOldest": "Старые ↑",
+    "sortByOdds": "Кэф",
+    "sortByStake": "Сумма",
+    "allBets": "Все ставки",
+    "tiltTitle": "Стоп. Ты в тилте.",
+    "tiltSub": "Сделай паузу перед следующей ставкой.",
+    "noBetsStart": "Нажми + чтобы начать",
     "limitReached": "🔒 Лимит {{count}} ставок достигнут — перейди на Pro",
     "limitWarning": "⚠️ Осталось {{count}} бесплатных ставок"
   },
@@ -255,7 +262,15 @@
     "strategyBuilder": "Билдер стратегий",
     "partners": "Партнёры",
     "backupBanner": "Последний бэкап давно. Рекомендуем сохранить резервную копию.",
-    "backupNow": "Сохранить сейчас"
+    "backupNow": "Сохранить сейчас",
+    "tiltControl": "Тилт-контроль",
+    "updates": "Обновления",
+    "exportImport": "Экспорт / Импорт",
+    "dangerZone": "Опасная зона",
+    "tiltAlertThreshold": "Порог тилт-алерта",
+    "totalBets": "Всего ставок",
+    "reminderTime": "Время напоминания",
+    "removeBookmaker": "Удалить"
   },
   "onboarding": {
     "welcome": "Добро пожаловать",

@@ -8,7 +8,8 @@
     "settings": "Баптаулар",
     "bankroll": "Банкролл",
     "strategyBuilder": "Стратегия құрушы",
-    "partners": "Серіктестер"
+    "partners": "Серіктестер",
+    "partnersSub": "Тіркелу бонустары"
   },
   "status": {
     "pending": "Күтуде",
@@ -66,6 +67,12 @@
     "newBet": "Жаңа ставка",
     "sortNewest": "Жаңалар ↓",
     "sortOldest": "Ескілер ↑",
+    "sortByOdds": "Коэф",
+    "sortByStake": "Сома",
+    "allBets": "Барлық ставкалар",
+    "tiltTitle": "Стоп. Тилтте.",
+    "tiltSub": "Келесі ставкадан бұрын үзіліс жасаңыз.",
+    "noBetsStart": "+ басыңыз",
     "limitReached": "🔒 {{count}} ставка шегіне жетті — Pro-ға өтіңіз",
     "limitWarning": "⚠️ {{count}} тегін ставка қалды"
   },
@@ -255,7 +262,15 @@
     "strategyBuilder": "Стратегия құрушы",
     "partners": "Серіктестер",
     "backupBanner": "Соңғы сақтық көшірме ескірген. Жаңасын сақтаңыз.",
-    "backupNow": "Қазір сақтау"
+    "backupNow": "Қазір сақтау",
+    "tiltControl": "Тилт бақылауы",
+    "updates": "Жаңартулар",
+    "exportImport": "Экспорт / Импорт",
+    "dangerZone": "Қауіпті аймақ",
+    "tiltAlertThreshold": "Тилт ескерту шегі",
+    "totalBets": "Барлық ставкалар",
+    "reminderTime": "Еске салу уақыты",
+    "removeBookmaker": "Жою"
   },
   "onboarding": {
     "welcome": "Қош келдіңіз",

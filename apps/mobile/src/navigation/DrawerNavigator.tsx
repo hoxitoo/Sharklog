@@ -267,7 +267,7 @@ function DrawerContent({ currentScreen, onNavigate, onClose, insets }: DrawerCon
           <Ionicons name="gift-outline" size={22} color={colors.accent} />
           <View style={{ flex: 1 }}>
             <Text style={styles.partnersTitle}>{t('nav.partners')}</Text>
-            <Text style={styles.partnersSub}>Бонусы при регистрации</Text>
+            <Text style={styles.partnersSub}>{t('nav.partnersSub')}</Text>
           </View>
           <Ionicons name="chevron-forward" size={16} color={colors.accent} />
         </TouchableOpacity>
