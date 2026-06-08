@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import * as SplashScreen from 'expo-splash-screen';
 import { NavigationContainer } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts, DMSans_400Regular, DMSans_500Medium, DMSans_600SemiBold, DMSans_700Bold } from '@expo-google-fonts/dm-sans';
@@ -17,6 +18,9 @@ import { initSentry } from './src/services/sentry';
 import { Analytics } from './src/services/analytics';
 import './src/i18n/index';
 import { applyLanguage } from './src/i18n/index';
+
+// Keep native splash visible until React Native is ready to render
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function App() {
   const load = useBetsStore((s) => s.load);
@@ -48,6 +52,13 @@ export default function App() {
   }, []);
 
   const appReady = isLoaded && fontsLoaded;
+
+  // Hide native splash once React Native is ready to show our custom JS splash
+  useEffect(() => {
+    if (appReady) {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [appReady]);
 
   if (!splashDone || !appReady) {
     return (
