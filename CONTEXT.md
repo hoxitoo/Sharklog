@@ -26,12 +26,21 @@ apps/mobile/src/
   components/
     ErrorBoundary.tsx        — React class component; friendly RN error screen + reload button
     ProGate.tsx              — пейвол с реальными RC offerings (monthly/annual), restore
-    ScreenHeader.tsx         — title + subtitle + optional right CTA
+    ScreenHeader.tsx         — title + subtitle + optional right CTA (не используется в stack-экранах)
     ChecklistModal.tsx       — 5 вопросов перед ставкой, только PRO
     StatusBadge.tsx          — цветной бейдж статуса ставки (pending/won/lost/refund/cashout)
+    DrawerContext.tsx        — React Context: openDrawer() для всех экранов
+    AnimatedSplash.tsx       — анимация "Сигнал": 3 staggered scaleX линии + типографика + 5 коэффициентов,
+                               2400ms фиксировано, все useNativeDriver:true, onFinish() callback
+    ResponsibleGamblingBanner.tsx — коллапсируемый 18+ баннер (AsyncStorage @sharklog/responsible_expanded)
   navigation/
-    RootNavigator.tsx        — Stack: Tabs + AddBet (modal) + Bankroll + StrategyBuilder
-                               Tabs (6): Ставки | Дашборд | Инсайты | Дисциплина | Аналитика | Настройки
+    RootNavigator.tsx        — Stack: Drawer + AddBet (modal) + Bankroll + StrategyBuilder
+    DrawerNavigator.tsx      — кастомный анимированный drawer (заменяет таббар)
+                               Animated.spring (открытие) / Animated.timing (закрытие)
+                               DrawerContext — openDrawer() доступен из любого экрана
+                               FAB «+» для добавления ставки (всегда виден)
+                               Разделы: Ставки | Дашборд | Инсайты | Аналитика | Дисциплина | Настройки
+                               Вторичные: Банкролл | Стратегии (PRO) | Партнёры
   services/
     revenueCat.ts            — initRevenueCat, getOfferings, purchasePackage, restorePurchases, syncEntitlement
     sentry.ts                — initSentry, captureException, setUserContext, clearUserContext
@@ -359,9 +368,11 @@ VITE_OWNER_PRO=true
 - [x] BetsScreen: filter chips refund + cashout; quick-result chip C (cashout);
                   sort by кэф/сумма — flat-section режим (нет groupby дат)
 - [x] AddBetScreen: поле "Турнир / Лига" + статус cashout; uuid() с Math.random fallback
-- [x] RootNavigator: Tabs (6): Bets/Dashboard/Insights/Discipline/Analytics/Settings
-                      Stack: Tabs + AddBet + Bankroll + StrategyBuilder
-- [x] Splash: использует icon.png (backgroundColor #080C12)
+- [x] RootNavigator: DrawerNavigator + Stack (AddBet + Bankroll + StrategyBuilder)
+- [x] DrawerNavigator: анимированный drawer с FAB «+», DrawerContext для открытия из любого экрана
+- [x] Splash: expo-splash-screen (preventAutoHideAsync/hideAsync), Android 12+ dark background #080C12
+- [x] AnimatedSplash: анимация "Сигнал" — 3 staggered scaleX линии + 5 коэффициентов, 2400ms, все nativeDriver
+- [x] ResponsibleGamblingBanner: коллапсируемый 18+ баннер на DashboardScreen
 - [x] OnboardingScreen: Image компонент (logo) вместо emoji
 - [x] Zustand store с полным CRUD + AsyncStorage persistence
 - [x] RevenueCat paywall (real offerings, purchase, restore)
@@ -371,6 +382,9 @@ VITE_OWNER_PRO=true
 - [x] Pre-bet checklist modal (PRO)
 - [x] useFormatMoney() хук — учитывает roundAmounts
 - [x] AnalyticsScreen: исправлен double-plus перед ROI (formatPercent уже добавляет +)
+- [x] i18n: BetsScreen и SettingsScreen — убраны все захардкоженные русские строки, добавлены t() вызовы
+- [x] i18n: DrawerNavigator — partnersSub и другие строки переведены
+- [x] ScreenHeader убран из BankrollScreen и StrategyBuilderScreen (stack-экраны вне DrawerContext)
 - [x] CI: tests + type-check (все зелёные)
 - [x] EAS: development/preview/production profiles
 - [x] 17 smoke tests
@@ -439,6 +453,11 @@ cd apps/desktop && npx tauri dev
 cd apps/desktop && npx tauri build
 
 git push -u origin claude/busy-shannon-jQgRK
+
+# Ветки
+# main  — продакшен
+# dev   — интеграция перед main
+# claude/busy-shannon-jQgRK — активная разработка (Claude sandbox)
 ```
 
 ---

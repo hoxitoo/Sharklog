@@ -227,7 +227,9 @@ EXPO_PUBLIC_ENV=production
 | Ветка | Назначение |
 |-------|-----------|
 | `main` | Продакшен — только через PR, CI должен быть зелёным |
-| `claude/busy-shannon-jQgRK` | Активная разработка |
+| `dev` | Интеграционная — PR из feature-веток сюда перед main |
+| `claude/busy-shannon-jQgRK` | Активная разработка (Claude AI sandbox) |
+| `gh-pages` | Лендинг-страница [hoxitoo.github.io/Sharklog](https://hoxitoo.github.io/Sharklog/) |
 
 **Никогда не пушить напрямую в `main`.**
 

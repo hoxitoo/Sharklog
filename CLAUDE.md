@@ -14,7 +14,9 @@ docs/            — ROADMAP.md, ANALYSIS.md, PRIVACY_POLICY.md
 ## Git-ветки
 
 - `claude/busy-shannon-jQgRK` — **песочница, вся разработка здесь**
+- `dev` — интеграционная, PR из feature-веток перед main
 - `main` — продакшен, только когда CI зелёный
+- `gh-pages` — лендинг, независимая ветка (только HTML/CSS)
 
 **Никогда не пушить напрямую в `main`.**
 
@@ -247,9 +249,12 @@ screens/
 components/
   StatusBadge.tsx          — бейджи: pending/won/lost/refund ("Возврат")/cashout ("Выкуп")
   ProGate.tsx              — RevenueCat paywall
-  DrawerContext.tsx         — React Context: openDrawer() для всех экранов
-  ScreenHeader.tsx         — заголовок с hamburger (Ionicons «menu») + опциональный rightAction
+  DrawerContext.tsx        — React Context: openDrawer() для всех экранов
+  ScreenHeader.tsx         — заголовок с hamburger + rightAction; НЕ используется в stack-экранах (Bankroll, StrategyBuilder)
   ResponsibleGamblingBanner.tsx — коллапсируемый 18+ баннер (AsyncStorage @sharklog/responsible_expanded)
+  AnimatedSplash.tsx       — анимация "Сигнал": 3 staggered scaleX-линии + "SharkLog" + слоган + 5 коэффициентов
+                             2400ms фиксировано; onFinish() callback; все Animated — useNativeDriver:true
+                             LoadingDots fallback если appReady задерживается
 assets/
   icon.png                 — 1024×1024 на тёмном фоне
   adaptive-icon.png        — 1024×1024 прозрачный фон (Android)
