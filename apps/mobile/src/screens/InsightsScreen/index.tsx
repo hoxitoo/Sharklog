@@ -21,7 +21,7 @@ const SPORT_ICONS: Record<string, string> = {
   esports: '🎮', volleyball: '🏐', baseball: '⚾', other: '🏅',
 };
 
-function TournamentRow({ t }: { t: TournamentStats }) {
+const TournamentRow = React.memo(function TournamentRow({ t }: { t: TournamentStats }) {
   const pnlColor = t.pnl > 0 ? colors.won : t.pnl < 0 ? colors.lost : colors.textSecondary;
   return (
     <View style={s.tRow}>
@@ -37,9 +37,9 @@ function TournamentRow({ t }: { t: TournamentStats }) {
       </View>
     </View>
   );
-}
+});
 
-function TeamCard({ team }: { team: TeamStats }) {
+const TeamCard = React.memo(function TeamCard({ team }: { team: TeamStats }) {
   const pnlColor = team.pnl > 0 ? colors.won : team.pnl < 0 ? colors.lost : colors.textSecondary;
   return (
     <View style={s.teamCard}>
@@ -71,7 +71,7 @@ function TeamCard({ team }: { team: TeamStats }) {
       </View>
     </View>
   );
-}
+});
 
 export function InsightsScreen() {
   const { bets, settings } = useBetsStore();
@@ -123,7 +123,7 @@ export function InsightsScreen() {
             {teams.length === 0 ? (
               <Text style={s.empty}>Нужно минимум 5 ставок на одну команду</Text>
             ) : (
-              teams.map((team) => <TeamCard key={team.name} team={team} />)
+              teams.map((team, idx) => <TeamCard key={`${team.name}-${idx}`} team={team} />)
             )}
           </ProGate>
         </View>

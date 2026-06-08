@@ -57,6 +57,8 @@ interface ExpressLeg {
   team2: string;
   odds: string;
   pick: string;
+  sport: Sport;
+  discipline: EsportsDiscipline;
 }
 
 function uuid(): string {
@@ -498,6 +500,8 @@ export function AddBetScreen() {
   const initialTeam2 = eventParts.slice(1).join(' vs ').trim();
 
   const buildInitialLegs = (): ExpressLeg[] => {
+    const defSport: Sport = editBet?.sport ?? 'football';
+    const defDiscipline: EsportsDiscipline = editBet?.discipline ?? 'csgo';
     if (editBet?.betType === 'express') {
       const eventParts = editBet.event.split(' / ');
       // pick field stores per-leg picks as "П1 / ТБ 2.5", OR legacy "Экспресс"
@@ -514,13 +518,15 @@ export function AddBetScreen() {
             team2: t[1]?.trim() ?? '',
             odds: storedOdds ?? '',
             pick: pickParts[i] ?? '',
+            sport: defSport,
+            discipline: defDiscipline,
           };
         });
       }
     }
     return [
-      { team1: '', team2: '', odds: '', pick: '' },
-      { team1: '', team2: '', odds: '', pick: '' },
+      { team1: '', team2: '', odds: '', pick: '', sport: defSport, discipline: defDiscipline },
+      { team1: '', team2: '', odds: '', pick: '', sport: defSport, discipline: defDiscipline },
     ];
   };
 
@@ -604,7 +610,7 @@ export function AddBetScreen() {
     clearErrors(['team1', 'odds', 'stake']);
   }, [betMode]);
 
-  function updateLeg(idx: number, key: keyof ExpressLeg, val: string) {
+  function updateLeg<K extends keyof ExpressLeg>(idx: number, key: K, val: ExpressLeg[K]) {
     setLegs((prev) => prev.map((l, i) => i === idx ? { ...l, [key]: val } : l));
   }
 
@@ -711,12 +717,20 @@ export function AddBetScreen() {
       const legPicks = validLegs.map(l => l.pick.trim() || '—');
       const pickStr = legPicks.every(p => p === '—') ? 'Экспресс' : legPicks.join(' / ');
 
+      // Use sport of first valid leg for the bet record
+      const expressSport = validLegs[0]?.sport ?? data.sport;
+      const expressDiscipline = validLegs[0]?.discipline ?? data.discipline;
+      const expressExtras = {
+        ...extras,
+        ...(expressSport === 'esports' ? { discipline: expressDiscipline } : {}),
+      };
+
       if (editBet) {
         updateBet(editBet.id, {
           event, pick: pickStr, odds: combinedOdds, stake: stakeVal,
-          sport: data.sport, betType: 'express', strategy: data.strategy,
+          sport: expressSport, betType: 'express', strategy: data.strategy,
           status: data.status, bookmaker: data.bookmaker,
-          date: dateVal, time: timeVal, ...extras, ...cashoutExtras,
+          date: dateVal, time: timeVal, ...expressExtras, ...cashoutExtras,
           ...(isFreebet ? { isFreebet: true } : {}),
         });
       } else {
@@ -724,9 +738,9 @@ export function AddBetScreen() {
           id: uuid(), createdAt: new Date().toISOString(), updatedAt: new Date().toISOString(),
           date: dateVal, time: timeVal,
           event, pick: pickStr, odds: combinedOdds, stake: stakeVal,
-          sport: data.sport, betType: 'express', strategy: data.strategy,
+          sport: expressSport, betType: 'express', strategy: data.strategy,
           status: data.status, bookmaker: data.bookmaker, schemaVersion: CURRENT_SCHEMA_VERSION,
-          ...extras, ...cashoutExtras, ...(isFreebet ? { isFreebet: true } : {}),
+          ...expressExtras, ...cashoutExtras, ...(isFreebet ? { isFreebet: true } : {}),
         });
       }
     }
@@ -875,22 +889,61 @@ export function AddBetScreen() {
                     </TouchableOpacity>
                   )}
                 </View>
-                <TextInput
-                  style={[inputStyle, { marginBottom: 8 }]}
-                  placeholder="Команда 1"
-                  placeholderTextColor={colors.textMuted}
-                  value={leg.team1}
-                  onChangeText={(v) => updateLeg(i, 'team1', v)}
-                  returnKeyType="next"
-                />
-                <TextInput
-                  style={[inputStyle, { marginBottom: 8 }]}
-                  placeholder="Команда 2"
-                  placeholderTextColor={colors.textMuted}
-                  value={leg.team2}
-                  onChangeText={(v) => updateLeg(i, 'team2', v)}
-                  returnKeyType="next"
-                />
+
+                {/* Per-leg sport chips */}
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
+                  <View style={{ flexDirection: 'row', gap: 5 }}>
+                    {sportOptions.map((opt) => (
+                      <TouchableOpacity
+                        key={opt.key}
+                        style={[styles.legSportChip, leg.sport === opt.key && styles.legSportChipActive]}
+                        onPress={() => updateLeg(i, 'sport', opt.key)}
+                      >
+                        <Text style={[styles.legSportChipText, leg.sport === opt.key && styles.legSportChipTextActive]}>
+                          {opt.label}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </ScrollView>
+
+                {/* Per-leg discipline (only when esports) */}
+                {leg.sport === 'esports' && (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
+                    <View style={{ flexDirection: 'row', gap: 5 }}>
+                      {disciplineOptions.map((opt) => (
+                        <TouchableOpacity
+                          key={opt.key}
+                          style={[styles.legSportChip, leg.discipline === opt.key && styles.legSportChipActive]}
+                          onPress={() => updateLeg(i, 'discipline', opt.key)}
+                        >
+                          <Text style={[styles.legSportChipText, leg.discipline === opt.key && styles.legSportChipTextActive]}>
+                            {opt.label}
+                          </Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </ScrollView>
+                )}
+
+                <View style={{ marginBottom: 8 }}>
+                  <SingleTeamInput
+                    value={leg.team1}
+                    onChange={(v) => updateLeg(i, 'team1', v)}
+                    placeholder="Команда 1"
+                    sport={leg.sport}
+                    discipline={leg.discipline}
+                  />
+                </View>
+                <View style={{ marginBottom: 8 }}>
+                  <SingleTeamInput
+                    value={leg.team2}
+                    onChange={(v) => updateLeg(i, 'team2', v)}
+                    placeholder="Команда 2"
+                    sport={leg.sport}
+                    discipline={leg.discipline}
+                  />
+                </View>
                 <View style={styles.legOddsRow}>
                   <TextInput
                     style={[inputStyle, { flex: 1 }]}
@@ -914,7 +967,7 @@ export function AddBetScreen() {
 
             <TouchableOpacity
               style={styles.addLegBtn}
-              onPress={() => setLegs((prev) => [...prev, { team1: '', team2: '', odds: '', pick: '' }])}
+              onPress={() => setLegs((prev) => [...prev, { team1: '', team2: '', odds: '', pick: '', sport: watchedSport, discipline: watchedDiscipline }])}
               activeOpacity={0.8}
             >
               <Text style={styles.addLegText}>+ Добавить матч</Text>
@@ -975,41 +1028,45 @@ export function AddBetScreen() {
           />
         )}
 
-        {/* ── Sport ─── */}
-        <Controller
-          control={control}
-          name="sport"
-          render={({ field: { onChange, value } }) => (
-            <SegmentedControl label="Вид спорта" options={sportOptions} value={value} onChange={onChange} />
-          )}
-        />
-
-        {watchedSport === 'other' && (
-          <Field label="Уточни вид спорта">
+        {/* ── Sport (single mode only; express uses per-leg sport) ─── */}
+        {isSingle && (
+          <>
             <Controller
               control={control}
-              name="customSport"
+              name="sport"
               render={({ field: { onChange, value } }) => (
-                <TextInput
-                  style={inputStyle}
-                  placeholder="МMA, Бокс, Формула-1..."
-                  placeholderTextColor={colors.textMuted}
-                  value={value}
-                  onChangeText={onChange}
-                />
+                <SegmentedControl label="Вид спорта" options={sportOptions} value={value} onChange={onChange} />
               )}
             />
-          </Field>
-        )}
 
-        {watchedSport === 'esports' && (
-          <Controller
-            control={control}
-            name="discipline"
-            render={({ field: { onChange, value } }) => (
-              <SegmentedControl label="Дисциплина" options={disciplineOptions} value={value} onChange={onChange} />
+            {watchedSport === 'other' && (
+              <Field label="Уточни вид спорта">
+                <Controller
+                  control={control}
+                  name="customSport"
+                  render={({ field: { onChange, value } }) => (
+                    <TextInput
+                      style={inputStyle}
+                      placeholder="МMA, Бокс, Формула-1..."
+                      placeholderTextColor={colors.textMuted}
+                      value={value}
+                      onChangeText={onChange}
+                    />
+                  )}
+                />
+              </Field>
             )}
-          />
+
+            {watchedSport === 'esports' && (
+              <Controller
+                control={control}
+                name="discipline"
+                render={({ field: { onChange, value } }) => (
+                  <SegmentedControl label="Дисциплина" options={disciplineOptions} value={value} onChange={onChange} />
+                )}
+              />
+            )}
+          </>
         )}
 
         {/* ── Bet type (single only, express option removed) ─── */}
@@ -1439,6 +1496,20 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   legRemove: { fontSize: 16, color: colors.lost },
+  legSportChip: {
+    paddingHorizontal: 9,
+    paddingVertical: 4,
+    borderRadius: 6,
+    backgroundColor: colors.bgElevated,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  legSportChipActive: {
+    backgroundColor: colors.purple,
+    borderColor: colors.purple,
+  },
+  legSportChipText: { fontSize: 11, color: colors.textSecondary },
+  legSportChipTextActive: { color: '#fff', fontWeight: '700' },
   addLegBtn: {
     paddingVertical: 12,
     borderRadius: 10,

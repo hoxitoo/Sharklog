@@ -244,10 +244,16 @@ export interface TeamStats {
 }
 
 export function parseEventTeams(event: string): string[] {
-  // Strip stored per-leg odds ("M80 vs NRG|1.10 / ...") before team parsing
-  const cleaned = event.split(' / ').map(p => p.split('|')[0] ?? p).join(' / ');
-  const parts = cleaned.split(/\s+(?:—|–|vs\.?|против|-)\s+/i);
-  return parts.map((p) => p.trim()).filter((p) => p.length >= 2 && p.length <= 50);
+  const teams: string[] = [];
+  for (const leg of event.split(' / ')) {
+    const cleaned = (leg.split('|')[0] ?? leg).trim();
+    const parts = cleaned.split(/\s+(?:—|–|vs\.?|против|-)\s+/i);
+    for (const p of parts) {
+      const t = p.trim();
+      if (t.length >= 2 && t.length <= 50) teams.push(t);
+    }
+  }
+  return teams;
 }
 
 export function calcByTeam(bets: Bet[], minBets = 10): TeamStats[] {
@@ -292,5 +298,13 @@ export function calcByTeam(bets: Bet[], minBets = 10): TeamStats[] {
     });
   }
 
-  return result.sort((a, b) => b.count - a.count);
+  const seen = new Set<string>();
+  return result
+    .filter((r) => {
+      const k = r.name.toLowerCase();
+      if (seen.has(k)) return false;
+      seen.add(k);
+      return true;
+    })
+    .sort((a, b) => b.count - a.count);
 }

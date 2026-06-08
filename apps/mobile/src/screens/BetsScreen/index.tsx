@@ -190,12 +190,13 @@ export function BetsScreen() {
       <SectionList
         sections={sections}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
+        renderItem={useCallback(({ item }: { item: import('@sharklog/core').Bet }) => (
           <SwipeableRow onDelete={() => { haptic.error(); deleteBet(item.id); }}>
             <BetCard bet={item} onEdit={handleEdit} />
           </SwipeableRow>
-        )}
-        renderSectionHeader={({ section }) => (
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        ), [deleteBet, handleEdit])}
+        renderSectionHeader={useCallback(({ section }: { section: { title: string; dailyPnl: number } }) => (
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionDate}>{section.title}</Text>
             {section.dailyPnl !== 0 && (
@@ -204,7 +205,7 @@ export function BetsScreen() {
               </Text>
             )}
           </View>
-        )}
+        ), [])}
         stickySectionHeadersEnabled={false}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}

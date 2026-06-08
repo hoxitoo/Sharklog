@@ -34,7 +34,7 @@ export function ResponsibleGamblingBanner() {
 
   const expandedHeight = animHeight.interpolate({
     inputRange: [0, 1],
-    outputRange: [0, 72],
+    outputRange: [0, 40],
   });
 
   return (
@@ -46,8 +46,7 @@ export function ResponsibleGamblingBanner() {
       </TouchableOpacity>
       <Animated.View style={[styles.body, { height: expandedHeight, overflow: 'hidden' }]}>
         <Text style={styles.text}>
-          Ставки должны быть развлечением, а не источником дохода.{'\n'}
-          Если ставки мешают жизни — обратись за помощью: 8-800-2000-122 (бесплатно).
+          Ставки должны быть развлечением, а не источником дохода.
         </Text>
       </Animated.View>
     </View>

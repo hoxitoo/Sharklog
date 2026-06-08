@@ -13,7 +13,7 @@ interface Props {
   onDelete: () => void;
 }
 
-export function SwipeableRow({ children, onDelete }: Props) {
+export const SwipeableRow = React.memo(function SwipeableRow({ children, onDelete }: Props) {
   const translateX = useRef(new Animated.Value(0)).current;
   const isOpenRef = useRef(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -88,7 +88,7 @@ export function SwipeableRow({ children, onDelete }: Props) {
       </Animated.View>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {

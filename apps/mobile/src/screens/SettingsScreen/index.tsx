@@ -117,6 +117,11 @@ export function SettingsScreen() {
     setUpdateStatus('checking');
     try {
       const res = await fetch('https://api.github.com/repos/hoxitoo/Sharklog/releases/latest');
+      if (res.status === 404) {
+        setUpdateStatus('latest');
+        Alert.alert('Обновления', 'Релизов пока нет. Установлена актуальная версия.');
+        return;
+      }
       if (!res.ok) throw new Error('network');
       const data = await res.json() as { tag_name?: unknown };
       const tag = typeof data?.tag_name === 'string' ? data.tag_name : '';

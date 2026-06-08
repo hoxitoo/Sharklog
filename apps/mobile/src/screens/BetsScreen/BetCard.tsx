@@ -18,7 +18,7 @@ function displayEvent(event: string): string {
   return event.split(' / ').map(p => p.split('|')[0] ?? p).join(' / ');
 }
 
-export function BetCard({ bet, onEdit }: Props) {
+export const BetCard = React.memo(function BetCard({ bet, onEdit }: Props) {
   const { updateBet } = useBetsStore();
   const { t } = useTranslation();
 
@@ -126,7 +126,7 @@ export function BetCard({ bet, onEdit }: Props) {
       ) : null}
     </TouchableOpacity>
   );
-}
+});
 
 const styles = StyleSheet.create({
   card: {

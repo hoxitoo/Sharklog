@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Animated,
-  Pressable, ScrollView, Image, Alert,
+  Pressable, ScrollView, Image, Alert, PanResponder,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ChecklistModal } from '../components/ChecklistModal';
@@ -82,6 +82,21 @@ export function DrawerNavigator() {
     ]).start();
   }
 
+  const drawerVisibleRef = useRef(false);
+  drawerVisibleRef.current = drawerVisible;
+
+  const edgePan = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: (e) =>
+        e.nativeEvent.pageX < 28 && !drawerVisibleRef.current,
+      onMoveShouldSetPanResponder: (_, g) =>
+        !drawerVisibleRef.current && g.dx > 8 && Math.abs(g.dy) < 60,
+      onPanResponderRelease: (e, g) => {
+        if (!drawerVisibleRef.current && g.dx > 20) openDrawer();
+      },
+    }),
+  ).current;
+
   function closeDrawer(callback?: () => void) {
     Animated.parallel([
       Animated.timing(translateX, {
@@ -130,6 +145,11 @@ export function DrawerNavigator() {
         <View style={styles.screen}>
           <ActiveScreen screen={screen} />
         </View>
+
+        {/* Left-edge swipe zone — opens drawer */}
+        {!drawerVisible && (
+          <View style={styles.swipeEdge} {...edgePan.panHandlers} />
+        )}
 
         {/* Drawer overlay */}
         {drawerVisible && (
@@ -392,6 +412,14 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.textMuted,
     textAlign: 'center',
+  },
+  swipeEdge: {
+    position: 'absolute',
+    left: 0,
+    top: 0,
+    bottom: 0,
+    width: 24,
+    zIndex: 9,
   },
   fab: {
     position: 'absolute',
