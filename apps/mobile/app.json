@@ -72,7 +72,12 @@
         {
           "android": {
             "compileSdkVersion": 36,
-            "targetSdkVersion": 35
+            "targetSdkVersion": 35,
+            "enableProguardInReleaseBuilds": true,
+            "enableShrinkResourcesInReleaseBuilds": true
+          },
+          "ios": {
+            "deploymentTarget": "15.1"
           }
         }
       ]
