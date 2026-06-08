@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { View, Text, Image, StyleSheet, Animated } from 'react-native';
+import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
 import { colors } from '../theme/colors';
 
 interface Props {
@@ -7,66 +7,106 @@ interface Props {
   onFinish: () => void;
 }
 
+const ND = { useNativeDriver: true } as const;
+
+const LINES = [
+  { width: 120, delay: 0 },
+  { width: 80,  delay: 80 },
+  { width: 50,  delay: 160 },
+];
+
+const COEFFS = [
+  { v: '1.85', top:  48, left:  24 },
+  { v: '2.40', top:  44, right: 22 },
+  { v: '3.10', top: 148, left:  38 },
+  { v: '1.65', top: 144, right: 36 },
+  { v: '2.75', top:  96, left:   8 },
+];
+
 export function AnimatedSplash({ appReady, onFinish }: Props) {
-  const logoScale   = useRef(new Animated.Value(0.55)).current;
-  const logoOpacity = useRef(new Animated.Value(0)).current;
-  const textOpacity = useRef(new Animated.Value(0)).current;
-  const exitOpacity = useRef(new Animated.Value(1)).current;
+  const line1Scale    = useRef(new Animated.Value(0)).current;
+  const line2Scale    = useRef(new Animated.Value(0)).current;
+  const line3Scale    = useRef(new Animated.Value(0)).current;
+  const textOpacity   = useRef(new Animated.Value(0)).current;
+  const textTranslate = useRef(new Animated.Value(12)).current;
+  const taglineOpacity = useRef(new Animated.Value(0)).current;
+  const coeffOpacity  = useRef(new Animated.Value(0)).current;
+  const exitOpacity   = useRef(new Animated.Value(1)).current;
+
   const [introsDone, setIntrosDone] = useState(false);
 
-  // Phase 1+2: intro animation (always plays immediately)
+  const lineScales = [line1Scale, line2Scale, line3Scale];
+
   useEffect(() => {
-    Animated.sequence([
-      Animated.parallel([
-        Animated.spring(logoScale, {
-          toValue: 1,
-          tension: 70,
-          friction: 7,
-          useNativeDriver: true,
-        }),
-        Animated.timing(logoOpacity, {
-          toValue: 1,
-          duration: 380,
-          useNativeDriver: true,
-        }),
+    Animated.parallel([
+      ...LINES.map((l, i) =>
+        Animated.sequence([
+          Animated.delay(l.delay),
+          Animated.timing(lineScales[i]!, {
+            toValue: 1, duration: 320,
+            easing: Easing.out(Easing.cubic), ...ND,
+          }),
+        ]),
+      ),
+      Animated.sequence([
+        Animated.delay(300),
+        Animated.parallel([
+          Animated.timing(textOpacity,   { toValue: 1, duration: 320, ...ND }),
+          Animated.timing(textTranslate, { toValue: 0, duration: 320, ...ND }),
+        ]),
       ]),
-      Animated.timing(textOpacity, {
-        toValue: 1,
-        duration: 280,
-        useNativeDriver: true,
-      }),
+      Animated.sequence([
+        Animated.delay(600),
+        Animated.timing(taglineOpacity, { toValue: 1, duration: 260, ...ND }),
+      ]),
+      Animated.sequence([
+        Animated.delay(700),
+        Animated.timing(coeffOpacity, { toValue: 1, duration: 500, ...ND }),
+      ]),
     ]).start(() => setIntrosDone(true));
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Phase 3: exit — waits for both intro done AND app data ready
   useEffect(() => {
     if (!introsDone || !appReady) return;
     Animated.sequence([
-      Animated.delay(320),
-      Animated.timing(exitOpacity, {
-        toValue: 0,
-        duration: 280,
-        useNativeDriver: true,
-      }),
+      Animated.delay(300),
+      Animated.timing(exitOpacity, { toValue: 0, duration: 300, ...ND }),
     ]).start(() => onFinish());
   }, [introsDone, appReady]);
 
-  return (
-    <Animated.View style={[styles.container, { opacity: exitOpacity }]}>
-      <Animated.Image
-        source={require('../../assets/icon.png')}
-        style={[
-          styles.logo,
-          { opacity: logoOpacity, transform: [{ scale: logoScale }] },
-        ]}
-        resizeMode="contain"
-      />
-      <Animated.View style={[styles.textBlock, { opacity: textOpacity }]}>
-        <Text style={styles.name}>SharkLog</Text>
-        <Text style={styles.tagline}>Трекер ставок</Text>
-      </Animated.View>
+  const coeffInterp = coeffOpacity.interpolate({ inputRange: [0, 1], outputRange: [0, 0.10] });
 
-      {/* Dots loader — visible only while waiting for app data after intro */}
+  return (
+    <Animated.View style={[s.container, { opacity: exitOpacity }]}>
+      {/* Coefficient watermarks */}
+      {COEFFS.map((c) => (
+        <Animated.Text
+          key={c.v}
+          style={[s.coeff, { opacity: coeffInterp, top: c.top, ...('left' in c ? { left: c.left } : { right: (c as any).right }) }]}
+        >
+          {c.v}
+        </Animated.Text>
+      ))}
+
+      {/* Signal lines */}
+      <View style={s.linesWrap}>
+        {LINES.map((l, i) => (
+          <Animated.View
+            key={i}
+            style={[s.line, { width: l.width, transform: [{ scaleX: lineScales[i]! }] }]}
+          />
+        ))}
+      </View>
+
+      {/* Brand text */}
+      <Animated.View style={{ opacity: textOpacity, transform: [{ translateY: textTranslate }] }}>
+        <Text style={s.name}>SharkLog</Text>
+      </Animated.View>
+      <Animated.Text style={[s.tagline, { opacity: taglineOpacity }]}>
+        Трекер ставок
+      </Animated.Text>
+
       {introsDone && !appReady && <LoadingDots />}
     </Animated.View>
   );
@@ -94,40 +134,50 @@ function LoadingDots() {
   }, []);
 
   return (
-    <View style={styles.dots}>
+    <View style={s.dots}>
       {[dot1, dot2, dot3].map((d, i) => (
-        <Animated.View key={i} style={[styles.dot, { opacity: d }]} />
+        <Animated.View key={i} style={[s.dot, { opacity: d }]} />
       ))}
     </View>
   );
 }
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
   container: {
     ...StyleSheet.absoluteFill,
     backgroundColor: colors.bg,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  logo: {
-    width: 110,
-    height: 110,
-    borderRadius: 22,
-    marginBottom: 22,
-  },
-  textBlock: {
+  linesWrap: {
     alignItems: 'center',
+    gap: 7,
+    marginBottom: 28,
+  },
+  line: {
+    height: 2,
+    borderRadius: 1,
+    backgroundColor: colors.accent,
   },
   name: {
-    fontSize: 30,
+    fontSize: 34,
     fontWeight: '800',
     color: colors.textPrimary,
-    letterSpacing: -0.8,
-    marginBottom: 4,
+    letterSpacing: -1,
+    textAlign: 'center',
   },
   tagline: {
-    fontSize: 14,
+    fontSize: 13,
     color: colors.textMuted,
+    letterSpacing: 0.5,
+    marginTop: 6,
+    textAlign: 'center',
+  },
+  coeff: {
+    position: 'absolute',
+    fontSize: 13,
+    fontWeight: '600',
+    color: colors.accent,
     letterSpacing: 0.3,
   },
   dots: {
