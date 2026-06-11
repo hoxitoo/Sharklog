@@ -282,7 +282,11 @@ const ac = StyleSheet.create({
 
 // ── Tournament Input with autocomplete ────────────────────────────────────────
 
-function TournamentInput({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function TournamentInput({ value, onChange, scrollRef }: {
+  value: string;
+  onChange: (v: string) => void;
+  scrollRef?: React.RefObject<ScrollView>;
+}) {
   const bets = useBetsStore((s) => s.bets);
   const [focused, setFocused] = useState(false);
 
@@ -309,7 +313,10 @@ function TournamentInput({ value, onChange }: { value: string; onChange: (v: str
         placeholderTextColor={colors.textMuted}
         value={value}
         onChangeText={onChange}
-        onFocus={() => setFocused(true)}
+        onFocus={() => {
+          setFocused(true);
+          setTimeout(() => scrollRef?.current?.scrollToEnd({ animated: true }), 120);
+        }}
         onBlur={() => setTimeout(() => setFocused(false), 180)}
         returnKeyType="next"
       />
@@ -480,6 +487,7 @@ export function AddBetScreen() {
   const { bets, addBet, updateBet, settings, bankroll, canAddBet } = useBetsStore();
   const [kellyOpen, setKellyOpen] = useState(false);
   const team2Ref = useRef<TextInput>(null);
+  const scrollRef = useRef<ScrollView>(null);
 
   const editBet = route.params?.betId
     ? bets.find((b) => b.id === route.params?.betId)
@@ -761,9 +769,10 @@ export function AddBetScreen() {
   return (
     <KeyboardAvoidingView
       style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView
+        ref={scrollRef}
         style={styles.container}
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
@@ -1349,7 +1358,7 @@ export function AddBetScreen() {
                 control={control}
                 name="tournament"
                 render={({ field: { onChange, value } }) => (
-                  <TournamentInput value={value} onChange={onChange} />
+                  <TournamentInput value={value} onChange={onChange} scrollRef={scrollRef} />
                 )}
               />
             </Field>

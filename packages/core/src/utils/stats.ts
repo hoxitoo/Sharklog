@@ -256,33 +256,60 @@ export function parseEventTeams(event: string): string[] {
   return teams;
 }
 
+// Returns only the teams the bettor actually backed, respecting П1/П2/Ф1/Ф2 notation
+// and direct team name picks. Skips Ничья/X and non-1x2 markets.
+function getPickedTeams(event: string, pick: string): string[] {
+  const result: string[] = [];
+  const eventLegs = event.split(' / ');
+  const pickLegs = pick.split(' / ');
+
+  for (let i = 0; i < eventLegs.length; i++) {
+    const leg = (eventLegs[i] ?? '').trim();
+    const legPick = (pickLegs[i] ?? pickLegs[0] ?? '').trim();
+
+    const legCleaned = (leg.split('|')[0] ?? leg).trim();
+    const parts = legCleaned.split(/\s+(?:—|–|vs\.?|против|-)\s+/i);
+    const team1 = parts[0]?.trim() ?? '';
+    const team2 = parts[1]?.trim() ?? '';
+
+    const pickUp = legPick.toUpperCase();
+
+    if (pickUp.startsWith('П1') || pickUp.startsWith('Ф1')) {
+      if (team1.length >= 2) result.push(team1);
+    } else if (pickUp.startsWith('П2') || pickUp.startsWith('Ф2')) {
+      if (team2.length >= 2) result.push(team2);
+    } else if (team1.length >= 2 && legPick.toLowerCase() === team1.toLowerCase()) {
+      result.push(team1);
+    } else if (team2.length >= 2 && legPick.toLowerCase() === team2.toLowerCase()) {
+      result.push(team2);
+    }
+    // Ничья / X / totals / exact score → no team attribution
+  }
+  return result;
+}
+
 export function calcByTeam(bets: Bet[], minBets = 10): TeamStats[] {
-  const teamBets = new Map<string, Bet[]>();
+  const teamData = new Map<string, { bets: Bet[]; name: string }>();
 
   for (const bet of bets) {
-    for (const team of parseEventTeams(bet.event)) {
+    for (const team of getPickedTeams(bet.event, bet.pick)) {
       const key = team.toLowerCase();
-      if (!teamBets.has(key)) teamBets.set(key, []);
-      teamBets.get(key)!.push(bet);
+      if (!teamData.has(key)) teamData.set(key, { bets: [], name: team });
+      teamData.get(key)!.bets.push(bet);
     }
   }
 
   const result: TeamStats[] = [];
 
-  for (const [, group] of teamBets.entries()) {
+  for (const [, { bets: group, name }] of teamData.entries()) {
     if (group.length < minBets) continue;
 
     const slice = calcSlice(group, '');
-    // Canonical name: from most recent bet's event part matching this team
-    const sorted = [...group].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-    const name = parseEventTeams(sorted[0]?.event ?? '').find(
-      (t) => group.some((b) => parseEventTeams(b.event).some((et) => et.toLowerCase() === t.toLowerCase()))
-    ) ?? sorted[0]?.event ?? '';
-
     const sportCount = new Map<string, number>();
     for (const b of group) sportCount.set(b.sport, (sportCount.get(b.sport) ?? 0) + 1);
     const sport = [...sportCount.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? '';
 
+    const sorted = [...group].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     const lastTournament = sorted.find((b) => b.tournament?.trim())?.tournament ?? '';
 
     result.push({
@@ -298,13 +325,5 @@ export function calcByTeam(bets: Bet[], minBets = 10): TeamStats[] {
     });
   }
 
-  const seen = new Set<string>();
-  return result
-    .filter((r) => {
-      const k = r.name.toLowerCase();
-      if (seen.has(k)) return false;
-      seen.add(k);
-      return true;
-    })
-    .sort((a, b) => b.count - a.count);
+  return result.sort((a, b) => b.count - a.count);
 }

@@ -255,10 +255,10 @@ function BankrollContent() {
   const [activeTxForm, setActiveTxForm] = useState<TxType | null>(null);
 
   const equityCurve = useMemo(() => {
-    const events: Array<{ date: string; delta: number }> = [];
+    const events: Array<{ date: string; delta: number; txType?: 'deposit' | 'withdrawal' }> = [];
     for (const tx of bankroll.transactions) {
       const date = (tx.date.split('T')[0]) ?? tx.date;
-      events.push({ date, delta: tx.type === 'deposit' ? tx.amount : -tx.amount });
+      events.push({ date, delta: tx.type === 'deposit' ? tx.amount : -tx.amount, txType: tx.type });
     }
     for (const bet of bets) {
       if (bet.status === 'pending') continue;
@@ -269,14 +269,20 @@ function BankrollContent() {
       events.push({ date: bet.date, delta: pnl });
     }
     if (events.length < 2) return [];
-    const byDate = new Map<string, number>();
+    const byDate = new Map<string, { delta: number; txType?: 'deposit' | 'withdrawal' }>();
     for (const e of events) {
-      byDate.set(e.date, (byDate.get(e.date) ?? 0) + e.delta);
+      const existing = byDate.get(e.date);
+      const txType = e.txType ?? existing?.txType;
+      byDate.set(e.date, {
+        delta: (existing?.delta ?? 0) + e.delta,
+        ...(txType != null ? { txType } : {}),
+      });
     }
     let balance = 0;
     return [...byDate.keys()].sort().map((date) => {
-      balance += byDate.get(date) ?? 0;
-      return { date, value: balance };
+      const entry = byDate.get(date)!;
+      balance += entry.delta;
+      return { date, value: balance, txType: entry.txType };
     });
   }, [bets, bankroll.transactions]);
 
@@ -385,33 +391,68 @@ function BankrollContent() {
       </View>
 
       {/* Equity curve */}
-      {equityCurve.length >= 2 && (
-        <View style={bk.chartCard}>
-          <Text style={bk.chartTitle}>Кривая банкролла</Text>
-          <LineChart
-            data={equityCurve.map((p) => ({ value: p.value / 100 }))}
-            width={width - 64}
-            height={100}
-            color={currentBank >= 0 ? colors.won : colors.lost}
-            thickness={2}
-            hideDataPoints
-            areaChart
-            startFillColor={currentBank >= 0 ? colors.won : colors.lost}
-            endFillColor={colors.bgCard}
-            startOpacity={0.2}
-            endOpacity={0}
-            backgroundColor={colors.bgCard}
-            xAxisColor={colors.border}
-            yAxisColor="transparent"
-            rulesType="solid"
-            rulesColor={colors.border + '55'}
-            noOfSections={3}
-            hideYAxisText
-            adjustToWidth
-            curved
-          />
-        </View>
-      )}
+      {equityCurve.length >= 2 && (() => {
+        const vals = equityCurve.map((p) => p.value / 100);
+        const dataMin = Math.min(...vals, 0);
+        const dataMax = Math.max(...vals, 0);
+        const pad = Math.max(Math.abs(dataMax), Math.abs(dataMin)) * 0.08 || 1;
+        const chartMax = Math.ceil(dataMax + pad);
+        const chartMin = Math.floor(dataMin - pad);
+        const txDates = new Set(equityCurve.filter((p) => p.txType).map((p) => p.date));
+        return (
+          <View style={bk.chartCard}>
+            <View style={bk.chartHeader}>
+              <Text style={bk.chartTitle}>Кривая банкролла</Text>
+              <Text style={[bk.chartCurrentBank, { color: currentBank >= 0 ? colors.won : colors.lost }]}>
+                {currentBank >= 0 ? '+' : ''}{formatMoney(currentBank)}
+              </Text>
+            </View>
+            {txDates.size > 0 && (
+              <Text style={bk.chartHint}>● депозит / ● вывод обозначены на графике</Text>
+            )}
+            <LineChart
+              data={equityCurve.map((p) => ({
+                value: p.value / 100,
+                ...(p.txType ? {
+                  customDataPoint: () => (
+                    <View style={[
+                      bk.txMarker,
+                      { backgroundColor: p.txType === 'deposit' ? colors.won : colors.lost },
+                    ]} />
+                  ),
+                } : {}),
+              }))}
+              width={width - 64}
+              height={140}
+              maxValue={chartMax}
+              mostNegativeValue={chartMin}
+              color={currentBank >= 0 ? colors.won : colors.lost}
+              thickness={2}
+              hideDataPoints
+              areaChart
+              startFillColor={currentBank >= 0 ? colors.won : colors.lost}
+              endFillColor={colors.bgCard}
+              startOpacity={0.2}
+              endOpacity={0}
+              backgroundColor={colors.bgCard}
+              xAxisColor={colors.border}
+              yAxisColor={colors.border + '66'}
+              rulesType="solid"
+              rulesColor={colors.border + '55'}
+              noOfSections={4}
+              yAxisTextStyle={{ color: colors.textMuted, fontSize: 10 }}
+              formatYLabel={(v: string) => {
+                const n = parseFloat(v);
+                if (isNaN(n)) return '';
+                if (Math.abs(n) >= 1000) return `${(n / 1000).toFixed(1)}k`;
+                return String(Math.round(n));
+              }}
+              adjustToWidth
+              curved
+            />
+          </View>
+        );
+      })()}
 
       {/* Kelly Calculator */}
       <KellyCalculator bankroll={currentBank} />
@@ -469,7 +510,11 @@ const bk = StyleSheet.create({
     marginHorizontal: 16, marginBottom: 14, borderWidth: 1, borderColor: colors.border,
     overflow: 'hidden',
   },
-  chartTitle: { fontSize: 13, fontWeight: '700', color: colors.textPrimary, marginBottom: 10 },
+  chartHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 },
+  chartTitle: { fontSize: 13, fontWeight: '700', color: colors.textPrimary },
+  chartCurrentBank: { fontSize: 14, fontWeight: '700' },
+  chartHint: { fontSize: 10, color: colors.textMuted, marginBottom: 8 },
+  txMarker: { width: 8, height: 8, borderRadius: 4, marginTop: -4, marginLeft: -4 },
   history: { paddingHorizontal: 16 },
   historyTitle: { fontSize: 16, fontWeight: '700', color: colors.textPrimary, marginBottom: 2 },
   historyHint: { fontSize: 11, color: colors.textMuted, marginBottom: 10 },
