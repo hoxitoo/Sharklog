@@ -13,11 +13,15 @@ apps/mobile/src/
                                swipe-to-delete, haptics; quick-result chips W/L/R/C
     AddBetScreen/            — react-hook-form, TeamAutocomplete, Kelly calculator (collapsible),
                                tournament/league TextInput field, status includes cashout
+                               KeyboardAvoidingView: 'padding' iOS / 'height' Android
+                               TournamentInput получает scrollRef → scrollToEnd при фокусе (клавиатура не перекрывает)
     DashboardScreen/         — period filter (7д/30д/Всё), stats grid, W/L strip, heatmap, P&L chart,
                                best/worst bet, strategy badge (кликабельная плашка → StrategyBuilder)
     AnalyticsScreen/         — period filter (7д/30д/Всё), SummaryCard + 8 срезов с барами (PRO via ProGate)
     InsightsScreen/          — period filter; Tournaments table (Free); Favorite Teams cards (PRO via ProGate)
-    BankrollScreen/          — equity curve LineChart, сводка банкролла, inline deposit/withdrawal, Kelly (PRO)
+    BankrollScreen/          — equity curve LineChart с Y-axis подписями, текущий банк в заголовке,
+                               маркеры депозита (зелёная точка) / вывода (красная точка) через customDataPoint;
+                               сводка банкролла, inline deposit/withdrawal, Kelly (PRO)
     DisciplineScreen/        — mood picker (1-5), тилт-стата (X/N лимит для PRO), 8 правил, diary
     SettingsScreen/          — Stepper для PRO настроек, paywall modal, clearAll, export, notifications,
                                "Билдер стратегий" кнопка для PRO → navigate('StrategyBuilder')
@@ -30,7 +34,9 @@ apps/mobile/src/
     ChecklistModal.tsx       — 5 вопросов перед ставкой, только PRO
     StatusBadge.tsx          — цветной бейдж статуса ставки (pending/won/lost/refund/cashout)
     DrawerContext.tsx        — React Context: openDrawer() для всех экранов
-    AnimatedSplash.tsx       — анимация "Сигнал": 3 staggered scaleX линии + типографика + 5 коэффициентов,
+    AnimatedSplash.tsx       — анимация "Сигнал": 3 staggered scaleX-линии + типографика
+                               + 6 строк × 4 коэффициента с волновым эффектом (rowOp0..rowOp5,
+                               строка ярко 0.22 → тускло 0 стаггером 380ms, свет бежит сверху вниз);
                                2400ms фиксировано, все useNativeDriver:true, onFinish() callback
     ResponsibleGamblingBanner.tsx — коллапсируемый 18+ баннер (AsyncStorage @sharklog/responsible_expanded)
   navigation/
@@ -38,7 +44,7 @@ apps/mobile/src/
     DrawerNavigator.tsx      — кастомный анимированный drawer (заменяет таббар)
                                Animated.spring (открытие) / Animated.timing (закрытие)
                                DrawerContext — openDrawer() доступен из любого экрана
-                               FAB «+» для добавления ставки (всегда виден)
+                               FAB «+» — виден ТОЛЬКО на экране Ставок ({screen === 'Bets'})
                                Разделы: Ставки | Дашборд | Инсайты | Аналитика | Дисциплина | Настройки
                                Вторичные: Банкролл | Стратегии (PRO) | Партнёры
   services/
@@ -135,6 +141,8 @@ packages/core/src/
   utils/
     stats.ts                 — calcDashboard, calcByField, calcByOddsRange, calcByDayOfWeek, calcByHour,
                                isInTilt, calcByTournament, calcByTeam, parseEventTeams
+                        getPickedTeams(event, pick) — внутренний хелпер для calcByTeam;
+                        атрибутирует ставку только команде, на которую ставил игрок (П1/П2/Ф1/Ф2 + прямые имена)
     kelly.ts                 — kellyFraction, halfKelly, expectedValue, impliedProbability, recommendedStake
     formatters.ts            — formatMoney(kopecks, currency='₽', maxDecimals=2), parseMoneyInput, formatOdds, formatPercent (adds + prefix)
     strategyBuilder.ts       — STRATEGY_QUESTIONS (10 вопросов), buildStrategy(answers) → GeneratedStrategy
@@ -194,6 +202,13 @@ interface GeneratedStrategy {
   sportAdvice: string;
   createdAt: string;
   answers: StrategyAnswers;
+  // Rich output (6 optional fields добавлены для детального результата)
+  rationale?: string;
+  keyPrinciples?: string[];
+  recommendedApproaches?: Strategy[];
+  recommendedBetTypes?: BetType[];
+  betTypeRationale?: string;
+  oddsRationale?: string;
 }
 
 interface TournamentStats {
@@ -238,7 +253,7 @@ interface TeamStats {
 11. **Onboarding**: новые пользователи видят OnboardingPage; существующие пользователи — `onboardingComplete ?? true` при load().
 12. **refund vs cashout**: refund = возврат букмекером (отмена матча); cashout = досрочный выкуп игроком. Это два разных статуса.
 13. **parseEventTeams(event)**: разбивает event по ` — `, ` – `, ` vs `, ` против `, ` - ` → массив имён команд.
-14. **calcByTeam(bets, minBets=10)**: возвращает только команды с ≥10 ставок (PRO "Любимые команды").
+14. **calcByTeam(bets, minBets=10)**: возвращает только команды с ≥10 ставок (PRO "Любимые команды"). Использует внутренний `getPickedTeams(event, pick)` — атрибутирует ставку только той команде, на которую поставил игрок.
 
 ---
 
@@ -321,7 +336,7 @@ VITE_OWNER_PRO=true
 
 ## CI / Build
 
-- **CI**: `.github/workflows/ci.yml` — `npm ci` → vitest (core 12 + desktop 40) → mobile tests (17) → tsc mobile+desktop
+- **CI**: `.github/workflows/ci.yml` — `npm ci` → vitest (core 57 + desktop 40) → mobile tests (17) → tsc mobile+desktop
 - **EAS Build**: `.github/workflows/eas-build.yml` — ручной `workflow_dispatch`
   - Требует: `EXPO_TOKEN` secret + реальный `projectId` в `app.json`
 - **EAS профили**: development / preview (APK) / production (autoIncrement)
@@ -338,14 +353,17 @@ VITE_OWNER_PRO=true
 - [x] AppSettings.generatedStrategy?: GeneratedStrategy
 - [x] calcByTournament(bets) → TournamentStats[] — статистика по турнирам
 - [x] calcByTeam(bets, minBets=10) → TeamStats[] — статистика по командам (≥10 ставок)
+- [x] getPickedTeams(event, pick) — атрибутирует ставку ТОЛЬКО команде игрока (П1/П2/Ф1/Ф2 + прямые имена)
 - [x] parseEventTeams(event) → string[] — парсинг команд из event string
 - [x] strategyBuilder.ts: STRATEGY_QUESTIONS (10 вопросов) + buildStrategy(answers)
+      buildStrategy возвращает 6 rich-полей: rationale, keyPrinciples, recommendedApproaches,
+      recommendedBetTypes, betTypeRationale, oddsRationale
 - [x] calcByHour() — статистика по часам дня
 - [x] SliceStats.cashout: number — подсчёт кешаутов
 - [x] Bugfix: totalStaked включает refund-ставки (ROI был завышен)
 - [x] Bugfix: period filter off-by-one (>= → >)
 - [x] formatPercent() — добавляет + для положительных значений
-- [x] 12 vitest unit tests (все зелёные)
+- [x] 57 vitest unit tests (stats x34, formatters x17, kelly x6 — все зелёные)
 
 ### i18n / Локализация (обе платформы)
 - [x] 4 языка: ru / en / kz (казахский) / by (беларуский)
@@ -369,9 +387,13 @@ VITE_OWNER_PRO=true
                   sort by кэф/сумма — flat-section режим (нет groupby дат)
 - [x] AddBetScreen: поле "Турнир / Лига" + статус cashout; uuid() с Math.random fallback
 - [x] RootNavigator: DrawerNavigator + Stack (AddBet + Bankroll + StrategyBuilder)
-- [x] DrawerNavigator: анимированный drawer с FAB «+», DrawerContext для открытия из любого экрана
+- [x] DrawerNavigator: анимированный drawer, FAB «+» только на экране Ставок, DrawerContext
 - [x] Splash: expo-splash-screen (preventAutoHideAsync/hideAsync), Android 12+ dark background #080C12
-- [x] AnimatedSplash: анимация "Сигнал" — 3 staggered scaleX линии + 5 коэффициентов, 2400ms, все nativeDriver
+- [x] AnimatedSplash: анимация "Сигнал" — 3 scaleX-линии + 6 строк × 4 коэффициента с волной, 2400ms, все nativeDriver
+- [x] AddBetScreen: клавиатура не перекрывает поле турнира (KeyboardAvoidingView 'height' Android + scrollToEnd)
+- [x] BankrollScreen: equity curve с Y-axis подписями, заголовок с текущим банком, маркеры депозит/вывод
+- [x] DashboardScreen: P&L кривая — исправлена шкала (padding = max(|max|,|min|) × 8%)
+- [x] StrategyBuilderScreen + StrategyBuilderPage: показывают все 6 rich-полей стратегии
 - [x] ResponsibleGamblingBanner: коллапсируемый 18+ баннер на DashboardScreen
 - [x] OnboardingScreen: Image компонент (logo) вместо emoji
 - [x] Zustand store с полным CRUD + AsyncStorage persistence
@@ -422,10 +444,10 @@ VITE_OWNER_PRO=true
 ## Тесты
 
 ```
-packages/core          12 vitest unit tests
+packages/core          57 vitest unit tests
 apps/desktop           40 vitest smoke tests (betsStore x25, importBets x15)
 apps/mobile            17 jest smoke tests (betsStore x17)
-ИТОГО                  69 тестов
+ИТОГО                  114 тестов
 ```
 
 ---
@@ -433,7 +455,7 @@ apps/mobile            17 jest smoke tests (betsStore x17)
 ## Команды
 
 ```bash
-cd packages/core && npx vitest run          # 12 тестов
+cd packages/core && npx vitest run          # 57 тестов
 cd apps/desktop && npx vitest run           # 40 тестов
 cd apps/mobile && npm test                  # 17 тестов
 
