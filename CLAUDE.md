@@ -105,7 +105,7 @@ new Date(str).toLocaleDateString(locale, { day: 'numeric', month: 'short' });
 
 ```bash
 # Тесты
-cd packages/core && npx vitest run        # 12 unit-тестов core
+cd packages/core && npx vitest run        # 57 unit-тестов core
 cd apps/desktop  && npm test              # 40 smoke-тестов desktop (Vitest)
 cd apps/mobile   && npm test              # 17 smoke-тестов mobile (Jest)
 
@@ -223,7 +223,7 @@ navigation/
   DrawerNavigator.tsx      — кастомный анимированный drawer (заменяет таббар с v2)
                              Animated.spring (открытие) / Animated.timing с callback (закрытие)
                              DrawerContext — openDrawer() доступен из любого экрана
-                             FAB «+» для добавления ставки (всегда виден)
+                             FAB «+» — виден ТОЛЬКО на экране Ставок ({screen === 'Bets' && ...})
                              Разделы: Ставки | Дашборд | Инсайты | Аналитика | Дисциплина | Настройки
                              Вторичные: Банкролл | Стратегии (PRO) | Партнёры (teal-карточка)
 screens/
@@ -231,13 +231,17 @@ screens/
   AddBetScreen/            — форма с полем Турнир/Лига, статус cashout
                              collapsible доп. поля (стратегия, букмекер, дата, турнир, заметки, фрибет)
                              автораскрытие при edit если доп. поля заполнены
+                             KeyboardAvoidingView: behavior='padding' iOS / 'height' Android
+                             TournamentInput: onFocus → scrollRef.scrollToEnd (поле не перекрывается клавиатурой)
   DashboardScreen/         — стратегия-плашка → navigate('StrategyBuilder')
                              тепловая карта за collapsible toggle
                              тилт-баннер с dismiss × (AsyncStorage @sharklog/tilt_dismiss_date)
                              haptic.warning() при первом определении тилта
   InsightsScreen/          — TournamentRow (Free) + TeamCard (PRO via ProGate)
   AnalyticsScreen/         — 8 срезов (PRO via ProGate)
-  BankrollScreen/          — equity curve, Kelly (PRO)
+  BankrollScreen/          — equity curve с Y-axis подписями и текущим банком в заголовке;
+                             маркеры депозита (зелёная точка) / вывода (красная точка) на кривой через customDataPoint;
+                             Kelly (PRO)
   DisciplineScreen/        — mood, тилт, дневник
   SettingsScreen/          — PRO settings + "Билдер стратегий" кнопка
                              disableChecklist toggle (PRO) — отключить чек-лист перед ставкой
@@ -252,9 +256,10 @@ components/
   DrawerContext.tsx        — React Context: openDrawer() для всех экранов
   ScreenHeader.tsx         — заголовок с hamburger + rightAction; НЕ используется в stack-экранах (Bankroll, StrategyBuilder)
   ResponsibleGamblingBanner.tsx — коллапсируемый 18+ баннер (AsyncStorage @sharklog/responsible_expanded)
-  AnimatedSplash.tsx       — анимация "Сигнал": 3 staggered scaleX-линии + "SharkLog" + слоган + 5 коэффициентов
+  AnimatedSplash.tsx       — анимация "Сигнал": 3 staggered scaleX-линии + "SharkLog" + слоган
+                             + 6 строк × 4 коэффициента с волновым эффектом (каждая строка — отдельный Animated.Value,
+                             rowOp0..rowOp5; яркость 0→0.22→0 стаггером 380ms, сметает сверху вниз)
                              2400ms фиксировано; onFinish() callback; все Animated — useNativeDriver:true
-                             LoadingDots fallback если appReady задерживается
 assets/
   icon.png                 — 1024×1024 на тёмном фоне
   adaptive-icon.png        — 1024×1024 прозрачный фон (Android)
@@ -267,11 +272,15 @@ assets/
 types/bet.ts          — BetStatus: 'pending'|'won'|'lost'|'refund'|'cashout'
                         Bet: + tournament?: string
                         AppSettings: + generatedStrategy?: GeneratedStrategy, + roundAmounts: boolean, + disableChecklist?: boolean
-                        GeneratedStrategy, StrategyAnswers, + 10 union types
+                        GeneratedStrategy: + rationale?, keyPrinciples?, recommendedApproaches?,
+                        recommendedBetTypes?, betTypeRationale?, oddsRationale? (6 rich output fields)
+                        StrategyAnswers, + 10 union types
 constants/index.ts    — SPORTS, BET_TYPES, STRATEGIES, FREE_LIMITS, ODDS_RANGES
 utils/
   stats.ts            — calcDashboard, calcByField, calcByOddsRange, calcByDayOfWeek,
                         calcByHour, isInTilt, calcByTournament, calcByTeam, parseEventTeams
+                        getPickedTeams(event, pick) — внутренний хелпер: возвращает только команды,
+                        на которые поставил игрок (П1/П2/Ф1/Ф2 и прямые имена); используется в calcByTeam
   kelly.ts            — kellyFraction, halfKelly, expectedValue, impliedProbability
   formatters.ts       — formatMoney(kopecks, currency='₽', maxDecimals=2), parseMoneyInput, formatOdds, formatPercent (adds + prefix)
   strategyBuilder.ts  — STRATEGY_QUESTIONS (10 вопросов), buildStrategy(answers)

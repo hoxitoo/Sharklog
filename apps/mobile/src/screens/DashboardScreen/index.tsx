@@ -352,13 +352,11 @@ export function DashboardScreen() {
 
       {stats.pnlCurve.length > 1 && (() => {
         const rawVals = stats.pnlCurve.map((p) => p.pnl / 100);
-        const dataMin = Math.min(...rawVals);
-        const dataMax = Math.max(...rawVals);
-        const yMax = Math.max(dataMax, 0);
-        const yMin = Math.min(dataMin, 0);
-        const range = yMax - yMin || 1;
-        const chartMax = Math.ceil(yMax + range * 0.12);
-        const chartMin = Math.floor(yMin - range * 0.12);
+        const dataMin = Math.min(...rawVals, 0);
+        const dataMax = Math.max(...rawVals, 0);
+        const padding = Math.max(Math.abs(dataMax), Math.abs(dataMin)) * 0.08 || 1;
+        const chartMax = Math.ceil(dataMax + padding);
+        const chartMin = Math.floor(dataMin - padding);
         const lineColor = stats.pnl >= 0 ? colors.won : colors.lost;
         return (
           <View style={styles.section}>

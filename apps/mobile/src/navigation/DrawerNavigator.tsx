@@ -171,14 +171,16 @@ export function DrawerNavigator() {
           />
         </Animated.View>
 
-        {/* FAB — Add Bet */}
-        <TouchableOpacity
-          style={[styles.fab, { bottom: insets.bottom + 20 }]}
-          onPress={handleAddBet}
-          activeOpacity={0.85}
-        >
-          <Text style={styles.fabText}>+</Text>
-        </TouchableOpacity>
+        {/* FAB — Add Bet (only on Bets screen) */}
+        {screen === 'Bets' && (
+          <TouchableOpacity
+            style={[styles.fab, { bottom: insets.bottom + 20 }]}
+            onPress={handleAddBet}
+            activeOpacity={0.85}
+          >
+            <Text style={styles.fabText}>+</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </DrawerContext.Provider>
   );
