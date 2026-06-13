@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
 import { colors } from '../theme/colors';
 
@@ -76,9 +76,11 @@ export function AnimatedSplash({ onFinish }: Props) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Interpolate each row: peak opacity 0.22, resting 0.07
-  const rowInterps = rowOps.map((op) =>
-    op.interpolate({ inputRange: [0, 1], outputRange: [0.07, 0.22] })
+  // Memoized: rowOps hold stable Animated.Value refs, so this allocates once
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const rowInterps = useMemo(
+    () => rowOps.map((op) => op.interpolate({ inputRange: [0, 1], outputRange: [0.07, 0.22] })),
+    [],
   );
 
   const ROW_TOP_START = 32;

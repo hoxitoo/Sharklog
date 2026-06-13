@@ -243,17 +243,15 @@ export interface TeamStats {
   lastTournament: string;
 }
 
+// Shared: extract team names from a single event leg (no pick filtering)
+function extractLegTeams(leg: string): string[] {
+  const cleaned = (leg.split('|')[0] ?? leg).trim();
+  const parts = cleaned.split(/\s+(?:—|–|vs\.?|против|-)\s+/i);
+  return parts.map((p) => p.trim()).filter((t) => t.length >= 2 && t.length <= 50);
+}
+
 export function parseEventTeams(event: string): string[] {
-  const teams: string[] = [];
-  for (const leg of event.split(' / ')) {
-    const cleaned = (leg.split('|')[0] ?? leg).trim();
-    const parts = cleaned.split(/\s+(?:—|–|vs\.?|против|-)\s+/i);
-    for (const p of parts) {
-      const t = p.trim();
-      if (t.length >= 2 && t.length <= 50) teams.push(t);
-    }
-  }
-  return teams;
+  return event.split(' / ').flatMap((leg) => extractLegTeams(leg));
 }
 
 // Returns only the teams the bettor actually backed, respecting П1/П2/Ф1/Ф2 notation
@@ -267,10 +265,9 @@ function getPickedTeams(event: string, pick: string): string[] {
     const leg = (eventLegs[i] ?? '').trim();
     const legPick = (pickLegs[i] ?? pickLegs[0] ?? '').trim();
 
-    const legCleaned = (leg.split('|')[0] ?? leg).trim();
-    const parts = legCleaned.split(/\s+(?:—|–|vs\.?|против|-)\s+/i);
-    const team1 = parts[0]?.trim() ?? '';
-    const team2 = parts[1]?.trim() ?? '';
+    const legTeams = extractLegTeams(leg);
+    const team1 = legTeams[0] ?? '';
+    const team2 = legTeams[1] ?? '';
 
     const pickUp = legPick.toUpperCase();
 
@@ -292,8 +289,12 @@ export function calcByTeam(bets: Bet[], minBets = 10): TeamStats[] {
   const teamData = new Map<string, { bets: Bet[]; name: string }>();
 
   for (const bet of bets) {
+    // Deduplicate per bet: same-team express (e.g. Team A in two legs) must not count twice
+    const seenTeamsThisBet = new Set<string>();
     for (const team of getPickedTeams(bet.event, bet.pick)) {
       const key = team.toLowerCase();
+      if (seenTeamsThisBet.has(key)) continue;
+      seenTeamsThisBet.add(key);
       if (!teamData.has(key)) teamData.set(key, { bets: [], name: team });
       teamData.get(key)!.bets.push(bet);
     }
