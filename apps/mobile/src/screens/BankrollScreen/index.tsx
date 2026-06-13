@@ -272,7 +272,8 @@ function BankrollContent() {
     const byDate = new Map<string, { delta: number; txType?: 'deposit' | 'withdrawal' }>();
     for (const e of events) {
       const existing = byDate.get(e.date);
-      const txType = e.txType ?? existing?.txType;
+      // Preserve the first transaction type seen for a date; bets have no txType
+      const txType = existing?.txType ?? e.txType;
       byDate.set(e.date, {
         delta: (existing?.delta ?? 0) + e.delta,
         ...(txType != null ? { txType } : {}),
@@ -290,6 +291,79 @@ function BankrollContent() {
   const withdrawn = bankroll.transactions.filter((t) => t.type === 'withdrawal').reduce((s, t) => s + t.amount, 0);
   const currentBank = deposited - withdrawn + stats.pnl;
   const unitAmount = Math.round(currentBank * bankroll.unitPercent / 100);
+
+  // Chart block memoized: avoids recreating customDataPoint functions on every render
+  const chartBlock = useMemo(() => {
+    if (equityCurve.length < 2) return null;
+    const vals = equityCurve.map((p) => p.value / 100);
+    // Use reduce to avoid spread-arg stack overflow on large arrays
+    const dataMin = vals.reduce((a, b) => Math.min(a, b), 0);
+    const dataMax = vals.reduce((a, b) => Math.max(a, b), 0);
+    const pad = Math.max(Math.abs(dataMax), Math.abs(dataMin)) * 0.08 || 1;
+    const chartMax = Math.ceil(dataMax + pad);
+    const chartMin = Math.floor(dataMin - pad);
+
+    const hasDeposit = equityCurve.some((p) => p.txType === 'deposit');
+    const hasWithdrawal = equityCurve.some((p) => p.txType === 'withdrawal');
+    const txHint = hasDeposit && hasWithdrawal
+      ? '● депозит  ●  вывод обозначены на графике'
+      : hasDeposit ? '● депозиты обозначены на графике'
+      : hasWithdrawal ? '● выводы обозначены на графике'
+      : '';
+
+    const chartData = equityCurve.map((p) => ({
+      value: p.value / 100,
+      ...(p.txType ? {
+        customDataPoint: () => (
+          <View style={[bk.txMarker, { backgroundColor: p.txType === 'deposit' ? colors.won : colors.lost }]} />
+        ),
+      } : {}),
+    }));
+
+    return (
+      <View style={bk.chartCard}>
+        <View style={bk.chartHeader}>
+          <Text style={bk.chartTitle}>Кривая банкролла</Text>
+          <Text style={[bk.chartCurrentBank, { color: currentBank >= 0 ? colors.won : colors.lost }]}>
+            {currentBank >= 0 ? '+' : ''}{formatMoney(currentBank)}
+          </Text>
+        </View>
+        {txHint.length > 0 && <Text style={bk.chartHint}>{txHint}</Text>}
+        <LineChart
+          data={chartData}
+          width={width - 64}
+          height={140}
+          maxValue={chartMax}
+          mostNegativeValue={chartMin}
+          color={currentBank >= 0 ? colors.won : colors.lost}
+          thickness={2}
+          hideDataPoints
+          areaChart
+          startFillColor={currentBank >= 0 ? colors.won : colors.lost}
+          endFillColor={colors.bgCard}
+          startOpacity={0.2}
+          endOpacity={0}
+          backgroundColor={colors.bgCard}
+          xAxisColor={colors.border}
+          yAxisColor={colors.border + '66'}
+          rulesType="solid"
+          rulesColor={colors.border + '55'}
+          noOfSections={4}
+          yAxisTextStyle={{ color: colors.textMuted, fontSize: 10 }}
+          formatYLabel={(v: string) => {
+            const n = parseFloat(v);
+            if (isNaN(n)) return '';
+            if (Math.abs(n) >= 1000) return `${(n / 1000).toFixed(1)}k`;
+            return String(Math.round(n));
+          }}
+          adjustToWidth
+          curved
+        />
+      </View>
+    );
+  // currentBank is derived from bets/transactions which drive equityCurve
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [equityCurve, currentBank]);
 
   function handleTxSubmit(type: TxType, amount: number, note: string) {
     if (type === 'withdrawal' && amount > currentBank) {
@@ -391,68 +465,7 @@ function BankrollContent() {
       </View>
 
       {/* Equity curve */}
-      {equityCurve.length >= 2 && (() => {
-        const vals = equityCurve.map((p) => p.value / 100);
-        const dataMin = Math.min(...vals, 0);
-        const dataMax = Math.max(...vals, 0);
-        const pad = Math.max(Math.abs(dataMax), Math.abs(dataMin)) * 0.08 || 1;
-        const chartMax = Math.ceil(dataMax + pad);
-        const chartMin = Math.floor(dataMin - pad);
-        const txDates = new Set(equityCurve.filter((p) => p.txType).map((p) => p.date));
-        return (
-          <View style={bk.chartCard}>
-            <View style={bk.chartHeader}>
-              <Text style={bk.chartTitle}>Кривая банкролла</Text>
-              <Text style={[bk.chartCurrentBank, { color: currentBank >= 0 ? colors.won : colors.lost }]}>
-                {currentBank >= 0 ? '+' : ''}{formatMoney(currentBank)}
-              </Text>
-            </View>
-            {txDates.size > 0 && (
-              <Text style={bk.chartHint}>● депозит / ● вывод обозначены на графике</Text>
-            )}
-            <LineChart
-              data={equityCurve.map((p) => ({
-                value: p.value / 100,
-                ...(p.txType ? {
-                  customDataPoint: () => (
-                    <View style={[
-                      bk.txMarker,
-                      { backgroundColor: p.txType === 'deposit' ? colors.won : colors.lost },
-                    ]} />
-                  ),
-                } : {}),
-              }))}
-              width={width - 64}
-              height={140}
-              maxValue={chartMax}
-              mostNegativeValue={chartMin}
-              color={currentBank >= 0 ? colors.won : colors.lost}
-              thickness={2}
-              hideDataPoints
-              areaChart
-              startFillColor={currentBank >= 0 ? colors.won : colors.lost}
-              endFillColor={colors.bgCard}
-              startOpacity={0.2}
-              endOpacity={0}
-              backgroundColor={colors.bgCard}
-              xAxisColor={colors.border}
-              yAxisColor={colors.border + '66'}
-              rulesType="solid"
-              rulesColor={colors.border + '55'}
-              noOfSections={4}
-              yAxisTextStyle={{ color: colors.textMuted, fontSize: 10 }}
-              formatYLabel={(v: string) => {
-                const n = parseFloat(v);
-                if (isNaN(n)) return '';
-                if (Math.abs(n) >= 1000) return `${(n / 1000).toFixed(1)}k`;
-                return String(Math.round(n));
-              }}
-              adjustToWidth
-              curved
-            />
-          </View>
-        );
-      })()}
+      {equityCurve.length >= 2 && chartBlock}
 
       {/* Kelly Calculator */}
       <KellyCalculator bankroll={currentBank} />

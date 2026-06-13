@@ -60,11 +60,14 @@ export default function App() {
     }
   }, [appReady]);
 
-  if (!splashDone) {
+  // Keep showing splash until BOTH animation is done AND store is loaded.
+  // Without the isLoaded guard, returning users briefly see OnboardingScreen
+  // (settings.onboardingComplete defaults to false before load() resolves).
+  if (!splashDone || !isLoaded) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.bg }}>
         <StatusBar style="light" />
-        <AnimatedSplash onFinish={() => setSplashDone(true)} />
+        {!splashDone && <AnimatedSplash onFinish={() => setSplashDone(true)} />}
       </View>
     );
   }

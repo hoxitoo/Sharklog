@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert,
 } from 'react-native';
 import { STRATEGY_QUESTIONS, buildStrategy, STRATEGIES, BET_TYPES } from '@sharklog/core';
+import i18n from '../../i18n';
 import type { StrategyAnswers, GeneratedStrategy } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { colors } from '../../theme/colors';
@@ -134,7 +135,7 @@ function WizardScreen({ onDone }: { onDone: (strategy: GeneratedStrategy) => voi
     if (step < total - 1) {
       setStep(step + 1);
     } else {
-      onDone(buildStrategy(next as StrategyAnswers));
+      onDone(buildStrategy(next as StrategyAnswers, i18n.language));
     }
   }
 

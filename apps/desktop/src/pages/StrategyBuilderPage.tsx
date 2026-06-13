@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   STRATEGY_QUESTIONS, buildStrategy, formatMoney, STRATEGIES, BET_TYPES,
 } from '@sharklog/core';
@@ -115,6 +116,7 @@ function ResultCard({ strategy, onReset }: { strategy: GeneratedStrategy; onRese
 
 export function StrategyBuilderPage() {
   const { settings, updateSettings } = useBetsStore();
+  const { i18n } = useTranslation();
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Partial<StrategyAnswers>>({});
   const [result, setResult] = useState<GeneratedStrategy | null>(
@@ -131,7 +133,7 @@ export function StrategyBuilderPage() {
     if (step < total - 1) {
       setStep(step + 1);
     } else {
-      const built = buildStrategy(next as StrategyAnswers);
+      const built = buildStrategy(next as StrategyAnswers, i18n.language);
       setResult(built);
       setBuilding(false);
     }

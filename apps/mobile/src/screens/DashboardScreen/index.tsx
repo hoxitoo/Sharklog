@@ -352,8 +352,8 @@ export function DashboardScreen() {
 
       {stats.pnlCurve.length > 1 && (() => {
         const rawVals = stats.pnlCurve.map((p) => p.pnl / 100);
-        const dataMin = Math.min(...rawVals, 0);
-        const dataMax = Math.max(...rawVals, 0);
+        const dataMin = rawVals.reduce((a, b) => Math.min(a, b), 0);
+        const dataMax = rawVals.reduce((a, b) => Math.max(a, b), 0);
         const padding = Math.max(Math.abs(dataMax), Math.abs(dataMin)) * 0.08 || 1;
         const chartMax = Math.ceil(dataMax + padding);
         const chartMin = Math.floor(dataMin - padding);
