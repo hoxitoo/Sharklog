@@ -104,6 +104,21 @@ describe('addBet', () => {
     expect(names).toContain('Arsenal');
   });
 
+  it('extracts clean team names from an express event (strips |odds and / legs)', () => {
+    // Express event format: "A vs B|1.45 / C vs D|1.70"
+    useBetsStore.getState().addBet(makeBet({
+      event: 'Nigma vs Yellow submarine|1.45 / Reconix vs Navi|1.70',
+      sport: 'esports', discipline: 'dota2', betType: 'express',
+    }));
+    const names = useBetsStore.getState().teams.map((t) => t.name);
+    expect(names).toContain('Nigma');
+    expect(names).toContain('Yellow submarine');
+    expect(names).toContain('Reconix');
+    expect(names).toContain('Navi');
+    // No polluted entries with encoding artifacts
+    expect(names.some((n) => n.includes('|') || n.includes(' / '))).toBe(false);
+  });
+
   it('increments usageCount on repeated team usage', () => {
     useBetsStore.getState().addBet(makeBet({ event: 'NaVi vs Virtus.pro', sport: 'esports', discipline: 'csgo' }));
     useBetsStore.getState().addBet(makeBet({ event: 'NaVi vs Team Spirit', sport: 'esports', discipline: 'csgo' }));
