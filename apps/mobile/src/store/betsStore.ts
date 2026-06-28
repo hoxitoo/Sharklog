@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Bet, AppSettings, Bankroll, DiaryEntry, Team, Sport, EsportsDiscipline } from '@sharklog/core';
-import { migrate, CURRENT_SCHEMA_VERSION, FREE_LIMITS, isInTilt, calcDashboard } from '@sharklog/core';
+import { migrate, CURRENT_SCHEMA_VERSION, FREE_LIMITS, isInTilt, calcDashboard, parseEventTeams } from '@sharklog/core';
 import { sendTiltNotification } from '../utils/notifications';
 
 const STORAGE_KEY = '@sharklog/data';
@@ -26,13 +26,17 @@ function uuid(): string {
   });
 }
 
+// Extract clean team names from an event string. Delegates to the shared core
+// parser so express events ("A vs B|1.45 / C vs D|1.70") yield individual team
+// names instead of the raw encoded string (pipe odds + " / " leg separators).
 function extractTeamNames(event: string): string[] {
-  for (const sep of [' vs ', ' VS ', ' — ', ' v ']) {
-    if (event.includes(sep)) {
-      return event.split(sep).map((s) => s.trim()).filter((s) => s.length > 1);
-    }
-  }
-  return event.trim().length > 1 ? [event.trim()] : [];
+  return parseEventTeams(event);
+}
+
+// A clean team name never contains the express encoding chars. Drop entries that
+// were polluted by the old extractTeamNames (e.g. "Yellow submarine|1.45 / Reconix").
+function sanitizeTeams(teams: Team[]): Team[] {
+  return teams.filter((t) => !t.name.includes('|') && !t.name.includes(' / '));
 }
 
 function upsertTeams(
@@ -127,7 +131,7 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
         settings: { ...defaultSettings, ...schema.settings },
         bankroll: { ...defaultBankroll, ...schema.bankroll },
         diary: schema.diary ?? [],
-        teams: schema.teams ?? [],
+        teams: sanitizeTeams(schema.teams ?? []),
         isLoaded: true,
       });
     } catch {
