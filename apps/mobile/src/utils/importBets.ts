@@ -37,6 +37,8 @@ const COL_ALIASES: Record<string, string> = {
   'тип ставки': 'betType', 'тип': 'betType', 'bet type': 'betType', 'bettype': 'betType',
   'заметки': 'notes', 'заметка': 'notes', 'notes': 'notes',
   'турнир': 'tournament', 'лига': 'tournament', 'tournament': 'tournament',
+  'дисциплина': 'discipline', 'discipline': 'discipline',
+  'фрибет': 'freebet', 'freebet': 'freebet', 'free bet': 'freebet',
   'время': 'time', 'time': 'time',
 };
 
@@ -83,8 +85,12 @@ const STRATEGY_MAP: Record<string, Strategy> = {
 const DISCIPLINE_MAP: Record<string, EsportsDiscipline> = {
   'dota 2': 'dota2', 'dota2': 'dota2', 'дота': 'dota2',
   'cs2': 'csgo', 'csgo': 'csgo', 'кс': 'csgo',
-  'lol': 'lol', 'valorant': 'valorant',
-  'pubg': 'pubg', 'r6': 'r6', 'apex': 'apex',
+  'lol': 'lol', 'league of legends': 'lol',
+  'valorant': 'valorant',
+  'pubg': 'pubg',
+  'r6': 'r6', 'rainbow six': 'r6',
+  'apex': 'apex', 'apex legends': 'apex',
+  'другая дисциплина': 'other_esports', 'other_esports': 'other_esports',
 };
 
 function normalizeHeader(h: string): string {
@@ -200,6 +206,9 @@ function mapRow(raw: Record<string, string>): Bet | null {
   const disciplineRaw = g('discipline')?.toLowerCase() ?? '';
   const discipline = DISCIPLINE_MAP[disciplineRaw] as EsportsDiscipline | undefined;
 
+  const freebetRaw = g('freebet').toLowerCase().trim();
+  const isFreebet = ['да', 'yes', 'true', '1', '+', 'freebet', 'фрибет'].includes(freebetRaw);
+
   const now = new Date().toISOString();
   return {
     id: uuid(),
@@ -220,6 +229,7 @@ function mapRow(raw: Record<string, string>): Bet | null {
     ...(g('notes') ? { notes: g('notes') } : {}),
     ...(g('tournament') ? { tournament: g('tournament') } : {}),
     ...(discipline ? { discipline } : {}),
+    ...(isFreebet ? { isFreebet: true } : {}),
   };
 }
 

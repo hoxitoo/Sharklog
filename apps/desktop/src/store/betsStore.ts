@@ -7,6 +7,9 @@ function uuid(): string {
   return crypto.randomUUID();
 }
 
+// Serialize all writes so rapid successive mutations can't race and clobber each other.
+let writeChain: Promise<void> = Promise.resolve();
+
 // Extract clean team names from an event string. Delegates to the shared core
 // parser so express events ("A vs B|1.45 / C vs D|1.70") yield individual team
 // names instead of the raw encoded string (pipe odds + " / " leg separators).
@@ -122,8 +125,8 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
 
   persist: () => {
     const { bets, settings, bankroll, diary, teams } = get();
-    saveData({ bets, settings, bankroll, diary, teams, version: CURRENT_SCHEMA_VERSION })
-      .catch(console.error);
+    const payload = { bets, settings, bankroll, diary, teams, version: CURRENT_SCHEMA_VERSION };
+    writeChain = writeChain.then(() => saveData(payload)).catch(console.error);
   },
 
   addBet: (bet) => {
@@ -134,11 +137,15 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
 
   updateBet: (id, updates) => {
     set((s) => {
+      const old = s.bets.find((b) => b.id === id);
       const bets = s.bets.map((b) =>
         b.id === id ? { ...b, ...updates, updatedAt: new Date().toISOString() } : b,
       );
       const updated = bets.find((b) => b.id === id);
-      const teams = updated
+      // Only upsert teams when event or sport actually changed — avoids inflating
+      // usageCount on every status/notes edit (mirrors the mobile store guard).
+      const eventChanged = updated && old && (old.event !== updated.event || old.sport !== updated.sport);
+      const teams = eventChanged
         ? upsertTeams(s.teams, extractTeamNames(updated.event), updated.sport, updated.discipline)
         : s.teams;
       return { bets, teams };
@@ -176,13 +183,14 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
   },
 
   clearAll: () => {
-    set({
+    // Clear DATA only — preserve user preferences and subscription state.
+    set((s) => ({
       bets: [],
       diary: [],
       teams: [],
       bankroll: { ...defaultBankroll, createdAt: new Date().toISOString() },
-      settings: { ...defaultSettings, onboardingComplete: true },
-    });
+      settings: { ...s.settings, onboardingComplete: true },
+    }));
     get().persist();
   },
 }));

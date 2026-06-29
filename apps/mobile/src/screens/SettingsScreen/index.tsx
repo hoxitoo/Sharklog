@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Alert, Modal, ActivityIndicator,
+  TextInput, Alert, Modal, ActivityIndicator, Pressable,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useDrawer } from '../../components/DrawerContext';
@@ -350,17 +350,18 @@ export function SettingsScreen() {
   return (
     <>
       {/* Paywall modal */}
-      <Modal visible={showPaywall} animationType="slide" transparent>
-        <View style={styles.paywallBg}>
-          <View style={styles.paywallSheet}>
+      <Modal visible={showPaywall} animationType="slide" transparent onRequestClose={() => setShowPaywall(false)}>
+        {/* Tap outside the sheet to dismiss (standard bottom-sheet behavior) */}
+        <Pressable style={styles.paywallBg} onPress={() => setShowPaywall(false)}>
+          <Pressable style={styles.paywallSheet} onPress={(e) => e.stopPropagation()}>
             <TouchableOpacity style={styles.paywallClose} onPress={() => setShowPaywall(false)}>
               <Text style={styles.paywallCloseText}>✕</Text>
             </TouchableOpacity>
             <ProGate feature="Настройки Pro">
               <View />
             </ProGate>
-          </View>
-        </View>
+          </Pressable>
+        </Pressable>
       </Modal>
 
       <ScrollView

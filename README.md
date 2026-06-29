@@ -85,10 +85,10 @@ cd apps/desktop && npx tauri dev
 ### Тесты
 
 ```bash
-cd packages/core && npx vitest run       # 57 unit-тестов
+cd packages/core && npx vitest run       # 65 unit-тестов
 cd apps/desktop  && npm test             # 40 smoke-тестов
 cd apps/desktop  && npx playwright test  # 22 E2E-тестов
-cd apps/mobile   && npm test             # 17 smoke-тестов
+cd apps/mobile   && npm test             # 19 smoke-тестов
 ```
 
 ### Проверка типов
@@ -151,7 +151,7 @@ eas submit -p ios
 | Шрифты | DM Sans + DM Mono | DM Sans + DM Mono |
 | Оплата | RevenueCat | — (планируется LemonSqueezy) |
 | Обновления | EAS OTA | Tauri updater (подписанные, GitHub Releases) |
-| Тесты | Jest (17 smoke) | Vitest (57 core + 40 smoke) + Playwright (22 E2E) |
+| Тесты | Jest (19 smoke) | Vitest (65 core + 40 smoke) + Playwright (22 E2E) |
 | Язык | TypeScript strict | TypeScript strict |
 
 ---

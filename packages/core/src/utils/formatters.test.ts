@@ -55,6 +55,23 @@ describe('parseMoneyInput', () => {
     const parsed = parseMoneyInput(formatted);
     expect(parsed).toBe(original);
   });
+
+  it('preserves leading minus (negative amounts)', () => {
+    expect(parseMoneyInput('-500')).toBe(-50_000);
+    expect(parseMoneyInput('-1 500,50')).toBe(-150_050);
+  });
+
+  it('parses multi-group thousands separators', () => {
+    expect(parseMoneyInput('1 000 000')).toBe(100_000_000);
+    expect(parseMoneyInput('1.000.000')).toBe(100_000_000);
+    expect(parseMoneyInput('1,000,000')).toBe(100_000_000);
+  });
+
+  it('parses grouped value with decimal tail', () => {
+    expect(parseMoneyInput('1 234 567,89')).toBe(123_456_789);
+    expect(parseMoneyInput('1,234.56')).toBe(123_456);
+    expect(parseMoneyInput('1.234,56')).toBe(123_456);
+  });
 });
 
 describe('formatOdds', () => {
@@ -81,6 +98,11 @@ describe('formatPercent', () => {
 
   it('no sign for zero', () => {
     expect(formatPercent(0)).toBe('0.0%');
+  });
+
+  it('does not show a negative zero for values that round to 0', () => {
+    expect(formatPercent(-0.02)).toBe('0.0%');
+    expect(formatPercent(0.02)).toBe('0.0%');
   });
 
   it('formats to 1 decimal place', () => {

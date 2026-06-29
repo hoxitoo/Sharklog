@@ -6,6 +6,7 @@ import { useToastStore } from '../store/toastStore';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { colors } from '../theme/colors';
 import { useTranslation } from 'react-i18next';
+import { dateLocale } from '../i18n';
 
 interface Props {
   onAdd: () => void;
@@ -52,7 +53,7 @@ export function BetsPage({ onAdd, onEdit }: Props) {
     const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0] ?? '';
     if (dateStr === today) return t('dashboard.today');
     if (dateStr === yesterday) return t('dashboard.yesterday');
-    const locale = i18n.language === 'en' ? 'en-US' : 'ru-RU';
+    const locale = dateLocale(i18n.language);
     return new Date(dateStr + 'T12:00:00').toLocaleDateString(locale, { day: 'numeric', month: 'long', year: 'numeric' });
   }
 

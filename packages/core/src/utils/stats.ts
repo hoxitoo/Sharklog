@@ -158,8 +158,10 @@ export function calcByDayOfWeek(bets: Bet[]): SliceStats[] {
   const groups: Bet[][] = Array.from({ length: 7 }, () => []);
 
   for (const bet of bets) {
-    const dow = new Date(bet.date).getDay();
-    groups[dow]?.push(bet);
+    // Parse as LOCAL midnight ("...T00:00:00"); bare "YYYY-MM-DD" parses as UTC,
+    // which shifts the weekday for users west of UTC (off-by-one bucketing).
+    const dow = new Date(`${bet.date}T00:00:00`).getDay();
+    if (dow >= 0 && dow <= 6) groups[dow]?.push(bet);
   }
 
   return groups.map((group, i) => calcSlice(group, days[i] ?? ''));
@@ -169,7 +171,9 @@ export function calcByHour(bets: Bet[]): SliceStats[] {
   const groups = new Map<number, Bet[]>();
 
   for (const bet of bets) {
-    const hour = parseInt(bet.time.split(':')[0] ?? '0', 10);
+    // `?? '0'` only guards undefined; an empty/malformed time yields NaN. Clamp it.
+    const parsed = parseInt((bet.time ?? '').split(':')[0] || '0', 10);
+    const hour = Number.isFinite(parsed) ? parsed : 0;
     if (!groups.has(hour)) groups.set(hour, []);
     groups.get(hour)!.push(bet);
   }

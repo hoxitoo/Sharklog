@@ -176,6 +176,16 @@ describe('clearAll', () => {
     expect(teams).toHaveLength(0);
     expect(settings.onboardingComplete).toBe(true);
   });
+
+  it('preserves subscription and locale preferences (no silent downgrade)', () => {
+    useBetsStore.getState().updateSettings({ isPro: true, language: 'en', dailyBetLimit: 7 });
+    useBetsStore.getState().addBet(makeBet());
+    useBetsStore.getState().clearAll();
+    const { settings } = useBetsStore.getState();
+    expect(settings.isPro).toBe(true);
+    expect(settings.language).toBe('en');
+    expect(settings.dailyBetLimit).toBe(7);
+  });
 });
 
 // ─── updateSettings / updateBankroll ─────────────────────────────────────────

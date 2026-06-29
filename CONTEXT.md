@@ -62,7 +62,7 @@ apps/mobile/src/
     exportCSV.ts             — CSV с UTF-8 BOM, expo-file-system + expo-sharing
     useFormatMoney.ts        — хук: useFormatMoney() → (kopecks) => string; учитывает settings.roundAmounts
   __tests__/
-    betsStore.test.ts        — 17 smoke tests (canAddBet, addBet, deleteBet, updateBet, clearAll)
+    betsStore.test.ts        — 19 smoke tests (canAddBet, addBet, deleteBet, updateBet, clearAll, express team extraction, clearAll preserves prefs)
     __mocks__/
       async-storage.ts       — in-memory AsyncStorage mock
       notifications.ts       — jest.fn() stubs for scheduleDailyReminder/sendTiltNotification
@@ -336,7 +336,7 @@ VITE_OWNER_PRO=true
 
 ## CI / Build
 
-- **CI**: `.github/workflows/ci.yml` — `npm ci` → vitest (core 57 + desktop 40) → mobile tests (17) → tsc mobile+desktop
+- **CI**: `.github/workflows/ci.yml` — `npm ci` → vitest (core 65 + desktop 40) → mobile tests (19) → tsc mobile+desktop
 - **EAS Build**: `.github/workflows/eas-build.yml` — ручной `workflow_dispatch`
   - Требует: `EXPO_TOKEN` secret + реальный `projectId` в `app.json`
 - **EAS профили**: development / preview (APK) / production (autoIncrement)
@@ -363,7 +363,7 @@ VITE_OWNER_PRO=true
 - [x] Bugfix: totalStaked включает refund-ставки (ROI был завышен)
 - [x] Bugfix: period filter off-by-one (>= → >)
 - [x] formatPercent() — добавляет + для положительных значений
-- [x] 57 vitest unit tests (stats x34, formatters x17, kelly x6 — все зелёные)
+- [x] 65 vitest unit tests (stats x35, formatters x21, kelly x6, migrations x3 — все зелёные)
 
 ### i18n / Локализация (обе платформы)
 - [x] 4 языка: ru / en / kz (казахский) / by (беларуский)
@@ -409,7 +409,7 @@ VITE_OWNER_PRO=true
 - [x] ScreenHeader убран из BankrollScreen и StrategyBuilderScreen (stack-экраны вне DrawerContext)
 - [x] CI: tests + type-check (все зелёные)
 - [x] EAS: development/preview/production profiles
-- [x] 17 smoke tests
+- [x] 19 smoke tests
 - [x] Locale файлы синхронизированы с десктопом (ru/en/kz/by)
 
 ### Desktop (Tauri v2 + React + Vite)
@@ -444,10 +444,10 @@ VITE_OWNER_PRO=true
 ## Тесты
 
 ```
-packages/core          57 vitest unit tests
+packages/core          65 vitest unit tests (stats, formatters, kelly, migrations)
 apps/desktop           40 vitest smoke tests (betsStore x25, importBets x15)
-apps/mobile            17 jest smoke tests (betsStore x17)
-ИТОГО                  114 тестов
+apps/mobile            19 jest smoke tests (betsStore x19)
+ИТОГО                  124 тестов
 ```
 
 ---
@@ -455,9 +455,9 @@ apps/mobile            17 jest smoke tests (betsStore x17)
 ## Команды
 
 ```bash
-cd packages/core && npx vitest run          # 57 тестов
+cd packages/core && npx vitest run          # 65 тестов
 cd apps/desktop && npx vitest run           # 40 тестов
-cd apps/mobile && npm test                  # 17 тестов
+cd apps/mobile && npm test                  # 19 тестов
 
 cd apps/mobile && npx tsc --noEmit          # type-check мобилки
 cd apps/desktop && npx tsc --noEmit         # type-check десктопа
@@ -496,3 +496,42 @@ git push -u origin claude/busy-shannon-jQgRK
 - [ ] LemonSqueezy для платежей (desktop)
 - [ ] Sentry DSN в production env
 - [ ] Задеплоить Privacy Policy URL
+
+---
+
+## Аудит кода — исправленные баги (раунд 2)
+
+Полный аудит логики, стора и UI/UX. Исправлено:
+
+**core (`packages/core`)**
+- `parseMoneyInput` — теперь сохраняет ведущий `-` (отрицательные суммы) и корректно парсит много-групповые разделители (`1 000 000`, `1.000.000`, `1 234 567,89`). Раньше минус терялся, а `parseFloat` обрывался на втором разделителе.
+- `formatPercent` — округляет до знака, не показывает обманчивый `-0.0%`.
+- `calcByDayOfWeek` — парсит дату как локальную полночь (`...T00:00:00`); раньше bare `YYYY-MM-DD` парсился как UTC → смещение дня недели для часовых поясов западнее UTC.
+- `calcByHour` — пустое/битое `time` → корзина 0, а не `NaN`.
+- `migrate(raw)` — guard `!Array.isArray`: старый экспорт-массив `Bet[]` больше не превращается в битую схему.
+
+**Сторы (mobile + desktop)**
+- Сериализация записей через единую промис-цепочку (`writeChain`) — быстрые подряд мутации больше не затирают снапшоты друг друга.
+- `clearAll` — теперь чистит только ДАННЫЕ (ставки/дневник/банк), сохраняя настройки и подписку (PRO/язык/букмекеры). Раньше молча сбрасывал PRO у платящего юзера.
+- Mobile: enforcement истечения триала (`proExpiresAt`) при загрузке — раньше был только на десктопе.
+- Mobile: `onboardingComplete ?? true` для существующих юзеров (не показывать онбординг повторно после апгрейда).
+- Mobile: тилт-уведомление только на переходе в `lost` (не на каждом ре-сейве уже проигранной ставки).
+- Desktop: `updateBet` больше не инфлейтит `usageCount` команд на каждом редактировании (guard по смене event/sport — как на мобилке).
+
+**Mobile UI/UX**
+- BetsScreen: `paddingBottom` списка увеличен — последняя карточка не перекрывается FAB.
+- BetsScreen: pull-to-refresh больше не стирает активные фильтры/поиск/сортировку.
+- DashboardScreen: тилт-баннер и «последние результаты» считаются из консистентного датасета; деньги через `useFormatMoney` (учёт `roundAmounts`); удалён мёртвый код (`bestBet`/`worstBet`/`extremeBet`).
+- SettingsScreen: тап по фону paywall-модалки закрывает её (+ `onRequestClose`).
+- Экспорт CSV: round-trip больше не теряет `tournament`/`discipline`/`freebet`; защита от CSV/formula-injection (`=`/`+`/`-`/`@`).
+- Импорт CSV: алиасы для дисциплины/фрибета, полные лейблы дисциплин в `DISCIPLINE_MAP`.
+
+**Desktop UI/UX**
+- DashboardPage: добавлен `cashout` в `statusColors` (раньше бейдж получал `undefined`-цвет → невалидный стиль).
+- Импорт: неизвестные значения sport/betType/strategy → безопасный дефолт вместо каста сырой строки (пустые ячейки).
+- Даты форматируются по реальной локали через `dateLocale(lang)` (`kk-KZ`/`be-BY`), а не всегда `ru-RU`.
+
+### Известный долг (не входило в этот раунд)
+- **i18n полных экранов**: `AddBetScreen`/`AddBetModal`, `ChecklistModal`, `ConfirmModal`, тосты `SettingsPage`, тилт-баннеры — большой объём хардкод-RU строк. EN/KZ/BY юзеры видят русский в этих местах. Требует добавления десятков ключей × 4 локали × 2 приложения — отдельная крупная задача.
+- Daily-лимит и `bet.date` используют UTC-дату (не локальную) — мелкое смещение границы дня; смена рискованна для существующих данных.
+- `kz`/`by` локали: часть значений — непереведённый русский (нужен проход носителя языка).
