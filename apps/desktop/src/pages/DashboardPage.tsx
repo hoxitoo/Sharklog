@@ -8,6 +8,7 @@ import { useBetsStore } from '../store/betsStore';
 import { useToastStore } from '../store/toastStore';
 import { colors } from '../theme/colors';
 import { useTranslation } from 'react-i18next';
+import { dateLocale } from '../i18n';
 
 type PeriodFilter = '7d' | '30d' | 'all';
 
@@ -180,7 +181,7 @@ export function DashboardPage({ onNavigate }: DashboardProps = {}) {
           <div>
             <h1 style={s.title}>{t('dashboard.title')}</h1>
             <div style={s.subtitle}>
-              {new Date().toLocaleDateString(i18n.language === 'en' ? 'en-US' : 'ru-RU', { weekday: 'long', day: 'numeric', month: 'long' })}
+              {new Date().toLocaleDateString(dateLocale(i18n.language), { weekday: 'long', day: 'numeric', month: 'long' })}
             </div>
           </div>
         </div>
@@ -422,8 +423,10 @@ export function DashboardPage({ onNavigate }: DashboardProps = {}) {
                   : bet.status === 'cashout' && bet.cashoutAmount != null ? bet.cashoutAmount - bet.stake
                   : null;
                 const statusColors: Record<string, string> = {
-                  won: colors.won, lost: colors.lost, pending: colors.pending, refund: colors.refund,
+                  won: colors.won, lost: colors.lost, pending: colors.pending,
+                  refund: colors.refund, cashout: colors.refund,
                 };
+                const badgeColor = statusColors[bet.status] ?? colors.textMuted;
                 return (
                   <tr key={bet.id} style={s.tr}>
                     <td style={s.td}><span style={s.eventCell}>{bet.event}</span></td>
@@ -434,7 +437,7 @@ export function DashboardPage({ onNavigate }: DashboardProps = {}) {
                       {pnl !== null ? (pnl >= 0 ? '+' : '') + formatMoney(pnl) : '—'}
                     </td>
                     <td style={s.td}>
-                      <span style={{ ...s.statusBadge, color: statusColors[bet.status], backgroundColor: statusColors[bet.status] + '22' }}>
+                      <span style={{ ...s.statusBadge, color: badgeColor, backgroundColor: badgeColor + '22' }}>
                         {t(`status.${bet.status}`)}
                       </span>
                     </td>

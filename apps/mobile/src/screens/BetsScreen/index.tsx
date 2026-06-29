@@ -49,13 +49,11 @@ export function BetsScreen() {
   const [refreshing, setRefreshing] = useState(false);
 
   const onRefresh = useCallback(() => {
+    // Data is local and reactive — there's nothing to fetch. Acknowledge the gesture
+    // but do NOT wipe the user's active search/filter/sort (that was destructive).
     setRefreshing(true);
     haptic.selection();
-    // Reset filters to show all bets fresh
-    setSearch('');
-    setStatusFilter('all');
-    setSort('date_desc');
-    setTimeout(() => setRefreshing(false), 400);
+    setTimeout(() => setRefreshing(false), 300);
   }, []);
 
   const sections = useMemo(() => {
@@ -311,7 +309,7 @@ const styles = StyleSheet.create({
   },
   sortText: { fontSize: 11, color: colors.textMuted },
   sortTextActive: { color: colors.accent, fontWeight: '600' },
-  list: { paddingBottom: 20 },
+  list: { paddingBottom: 96 }, // clear the floating "+" FAB so the last row isn't covered
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',

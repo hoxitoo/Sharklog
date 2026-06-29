@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { LineChart } from 'react-native-gifted-charts';
-import { calcDashboard, formatMoney, formatPercent, isInTilt } from '@sharklog/core';
+import { calcDashboard, formatPercent, isInTilt } from '@sharklog/core';
 import type { Bet } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { colors } from '../../theme/colors';
@@ -26,7 +26,13 @@ const PERIOD_OPTIONS: Array<{ key: PeriodFilter; label: string }> = [
 ];
 
 function WLStrip({ bets }: { bets: Bet[] }) {
-  const last7 = bets.filter((b) => b.status !== 'pending').slice(0, 7).reverse();
+  // Sort by recency first — store order isn't guaranteed chronological, so a bare
+  // slice(0,7) could show a stale, non-latest set of results.
+  const last7 = bets
+    .filter((b) => b.status !== 'pending')
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .slice(0, 7)
+    .reverse();
   if (last7.length === 0) return null;
 
   return (
@@ -203,6 +209,9 @@ export function DashboardScreen() {
   }, [bets, period]);
 
   const stats = calcDashboard(filteredBets);
+  // Tilt is an all-time discipline signal; compute the streak from the same (all-bets)
+  // dataset the banner is gated on, so the displayed count always matches `inTilt`.
+  const allTimeStats = period === 'all' ? stats : calcDashboard(bets);
   const inTilt = isInTilt(bets, settings.tiltThreshold);
 
   useEffect(() => {
@@ -223,29 +232,17 @@ export function DashboardScreen() {
   }
 
   // Bank total always reflects all-time P&L + transactions
-  const allTimePnl = period === 'all' ? stats.pnl : calcDashboard(bets).pnl;
+  const allTimePnl = allTimeStats.pnl;
   const bankTotal =
     bankroll.transactions.reduce(
       (sum, t) => (t.type === 'deposit' ? sum + t.amount : sum - t.amount),
       0,
     ) + allTimePnl;
 
-  const last5 = filteredBets.slice(0, 5);
-
-  const settledWithPnl = filteredBets
-    .filter((b) => b.status === 'won' || b.status === 'lost' || (b.status === 'cashout' && b.cashoutAmount != null))
-    .map((b) => ({
-      ...b,
-      pnl: b.status === 'won' ? Math.round(b.stake * b.odds) - b.stake
-        : b.status === 'cashout' && b.cashoutAmount != null ? b.cashoutAmount - b.stake
-        : b.isFreebet ? 0 : -b.stake,
-    }));
-  const bestBet = settledWithPnl.length > 0
-    ? settledWithPnl.reduce((a, b) => b.pnl > a.pnl ? b : a)
-    : null;
-  const worstBet = settledWithPnl.length > 1
-    ? settledWithPnl.reduce((a, b) => b.pnl < a.pnl ? b : a)
-    : null;
+  // Most-recent 5 settled-or-pending bets, newest first.
+  const last5 = [...filteredBets]
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .slice(0, 5);
 
   return (
     <View style={styles.flex}>
@@ -292,7 +289,7 @@ export function DashboardScreen() {
           <View style={{ flex: 1 }}>
             <Text style={styles.tiltTitle}>Стоп. Ты в тилте.</Text>
             <Text style={styles.tiltSub}>
-              {stats.currentStreak.count} поражений подряд. Закрой приложение и отдохни.
+              {allTimeStats.currentStreak.count} поражений подряд. Закрой приложение и отдохни.
             </Text>
           </View>
           <TouchableOpacity onPress={dismissTilt} hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}>
@@ -363,7 +360,7 @@ export function DashboardScreen() {
             <View style={styles.sectionRow}>
               <Text style={styles.sectionTitle}>P&L кривая</Text>
               <Text style={[styles.pnlChipText, { color: lineColor }]}>
-                {stats.pnl >= 0 ? '+' : ''}{formatMoney(stats.pnlCurve[stats.pnlCurve.length - 1]?.pnl ?? 0)}
+                {stats.pnl >= 0 ? '+' : ''}{fmt(stats.pnlCurve[stats.pnlCurve.length - 1]?.pnl ?? 0)}
               </Text>
             </View>
             <View style={styles.chartCard}>
@@ -419,7 +416,7 @@ export function DashboardScreen() {
           activeOpacity={0.75}
         >
           <Text style={styles.streakLabel}>Банкролл →</Text>
-          <Text style={[styles.streakValue, { fontSize: 16 }]}>{formatMoney(bankTotal)}</Text>
+          <Text style={[styles.streakValue, { fontSize: 16 }]}>{fmt(bankTotal)}</Text>
         </TouchableOpacity>
       </View>
 
@@ -589,15 +586,6 @@ const styles = StyleSheet.create({
   recentStatus: {
     width: 28, height: 28, borderRadius: 8,
     alignItems: 'center', justifyContent: 'center',
-  },
-  extremeBet: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.bgCard,
-    borderRadius: 10,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: colors.border,
   },
   heatmapToggle: {
     flexDirection: 'row',

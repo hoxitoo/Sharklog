@@ -272,3 +272,22 @@ describe('isInTilt — additional cases', () => {
     expect(isInTilt(bets, 2)).toBe(true);
   });
 });
+
+// ─────────────────────────────────────────────────────────
+// calcByHour — malformed time handling
+// ─────────────────────────────────────────────────────────
+
+describe('calcByHour — malformed time', () => {
+  it('buckets empty/malformed time into hour 0 instead of NaN', () => {
+    const bets = [
+      makeBet({ status: 'won', time: '' }),
+      makeBet({ status: 'lost', time: 'TBD' }),
+      makeBet({ status: 'won', time: '14:30' }),
+    ];
+    const result = calcByHour(bets);
+    // No bucket should have a NaN label
+    expect(result.every((r) => !r.label.startsWith('NaN'))).toBe(true);
+    const hour0 = result.find((r) => r.label === '0:00');
+    expect(hour0?.count).toBe(2);
+  });
+});

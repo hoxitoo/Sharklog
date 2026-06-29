@@ -16,7 +16,9 @@ const migrations: Record<number, MigrationFn> = {
 };
 
 export function migrate(raw: unknown): StorageSchema {
-  let data = (typeof raw === 'object' && raw !== null ? raw : {}) as Record<string, unknown>;
+  // Reject arrays and non-objects: an old `Bet[]`-only export is `typeof 'object'`
+  // but spreading it would corrupt the schema (numeric keys, no `bets` array).
+  let data = (typeof raw === 'object' && raw !== null && !Array.isArray(raw) ? raw : {}) as Record<string, unknown>;
   const fromVersion = typeof data['version'] === 'number' ? data['version'] : 0;
 
   for (let v = fromVersion + 1; v <= CURRENT_SCHEMA_VERSION; v++) {

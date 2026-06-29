@@ -150,14 +150,16 @@ function mapRow(raw: Record<string, string>, existingIds: Set<string>): Bet | nu
   const statusRaw = g('status').toLowerCase();
   const status: BetStatus = STATUS_MAP[resultRaw] ?? STATUS_MAP[statusRaw] ?? 'pending';
 
+  // Map known aliases to a valid enum; fall back to a safe default rather than
+  // casting an unrecognized raw string through (which renders as a blank cell).
   const sportRaw = g('sport').toLowerCase();
-  const sport: Sport = SPORT_MAP[sportRaw] ?? (sportRaw as Sport) ?? 'other';
+  const sport: Sport = SPORT_MAP[sportRaw] ?? 'other';
 
   const betTypeRaw = g('betType').toLowerCase();
-  const betType: BetType = BET_TYPE_MAP[betTypeRaw] ?? (betTypeRaw as BetType) ?? '1X2';
+  const betType: BetType = BET_TYPE_MAP[betTypeRaw] ?? '1X2';
 
   const strategyRaw = g('strategy').toLowerCase();
-  const strategy: Strategy = STRATEGY_MAP[strategyRaw] ?? (strategyRaw as Strategy) ?? 'other';
+  const strategy: Strategy = STRATEGY_MAP[strategyRaw] ?? 'other';
 
   const disciplineRaw = g('discipline').toLowerCase();
   const discipline = DISCIPLINE_MAP[disciplineRaw] as EsportsDiscipline | undefined;

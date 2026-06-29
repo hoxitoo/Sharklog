@@ -6,6 +6,10 @@ import { sendTiltNotification } from '../utils/notifications';
 
 const STORAGE_KEY = '@sharklog/data';
 
+// Serialize all writes through a single chain so rapid successive mutations
+// (e.g. quick W/L taps) can't race and clobber each other's snapshot.
+let writeChain: Promise<void> = Promise.resolve();
+
 function uuid(): string {
   const c = (globalThis as any).crypto;
   if (c && typeof c.getRandomValues === 'function') {
@@ -126,9 +130,19 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
         return;
       }
       const schema = migrate(JSON.parse(raw));
+      const savedSettings = schema.settings ?? {};
+      // Expire a lapsed free-trial / subscription so PRO gates don't stay open forever.
+      const trialExpired = savedSettings.proExpiresAt != null
+        && new Date(savedSettings.proExpiresAt) < new Date();
       set({
         bets: schema.bets ?? [],
-        settings: { ...defaultSettings, ...schema.settings },
+        settings: {
+          ...defaultSettings,
+          ...savedSettings,
+          // Existing users (data already present) shouldn't be re-onboarded on upgrade.
+          onboardingComplete: savedSettings.onboardingComplete ?? true,
+          ...(trialExpired && !IS_OWNER_PRO ? { isPro: false } : {}),
+        },
         bankroll: { ...defaultBankroll, ...schema.bankroll },
         diary: schema.diary ?? [],
         teams: sanitizeTeams(schema.teams ?? []),
@@ -141,10 +155,9 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
 
   persist: async () => {
     const { bets, settings, bankroll, diary, teams } = get();
-    await AsyncStorage.setItem(
-      STORAGE_KEY,
-      JSON.stringify({ bets, settings, bankroll, diary, teams, version: CURRENT_SCHEMA_VERSION }),
-    );
+    const payload = JSON.stringify({ bets, settings, bankroll, diary, teams, version: CURRENT_SCHEMA_VERSION });
+    writeChain = writeChain.then(() => AsyncStorage.setItem(STORAGE_KEY, payload)).catch(() => {});
+    return writeChain;
   },
 
   addBet: (bet) => {
@@ -155,6 +168,7 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
   },
 
   updateBet: (id, updates) => {
+    const prevStatus = get().bets.find((b) => b.id === id)?.status;
     set((s) => {
       const old = s.bets.find((b) => b.id === id);
       const bets = s.bets.map((b) =>
@@ -168,8 +182,9 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
         : s.teams;
       return { bets, teams };
     });
-    // Fire tilt notification after state update so we work with final bets array
-    if (updates.status === 'lost') {
+    // Fire tilt notification only on a real transition INTO lost (not on re-saving an
+    // already-lost bet), after the state update so we work with the final bets array.
+    if (updates.status === 'lost' && prevStatus !== 'lost') {
       const { bets, settings } = get();
       if (isInTilt(bets, settings.tiltThreshold)) {
         sendTiltNotification(calcDashboard(bets).currentStreak.count);
@@ -206,13 +221,15 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
   },
 
   clearAll: () => {
-    set({
+    // Clear DATA only — preserve user preferences and subscription state. Wiping
+    // bets must not silently downgrade a PRO user or reset their language/bookmakers.
+    set((s) => ({
       bets: [],
       diary: [],
       teams: [],
       bankroll: { ...defaultBankroll, createdAt: new Date().toISOString() },
-      settings: { ...defaultSettings, onboardingComplete: true },
-    });
+      settings: { ...s.settings, onboardingComplete: true },
+    }));
     get().persist();
   },
 

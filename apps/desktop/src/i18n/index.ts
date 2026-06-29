@@ -16,6 +16,11 @@ export const LANGUAGES = [
 
 export type LangCode = typeof LANGUAGES[number]['code'];
 
+/** Map an app language code to a BCP-47 locale for Intl date/number formatting. */
+export function dateLocale(lang: string): string {
+  return ({ ru: 'ru-RU', en: 'en-US', kz: 'kk-KZ', by: 'be-BY' } as Record<string, string>)[lang] ?? 'ru-RU';
+}
+
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)

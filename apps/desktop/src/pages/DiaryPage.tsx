@@ -4,6 +4,7 @@ import type { DiaryEntry } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
 import { colors } from '../theme/colors';
 import { useTranslation } from 'react-i18next';
+import { dateLocale } from '../i18n';
 
 function uuid(): string {
   return crypto.randomUUID();
@@ -72,7 +73,7 @@ export function DiaryPage() {
     addDiaryEntry(entry);
   }
 
-  const locale = i18n.language === 'en' ? 'en-US' : 'ru-RU';
+  const locale = dateLocale(i18n.language);
 
   return (
     <div style={s.page}>

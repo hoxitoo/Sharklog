@@ -31,6 +31,10 @@ docs/            — ROADMAP.md, ANALYSIS.md, PRIVACY_POLICY.md
 - `exactOptionalPropertyTypes: true` — нельзя писать `prop={undefined}`, нужен spread `{...(x ? { prop: x } : {})}`.
 - **refund ≠ cashout**: `refund` = букмекер вернул ставку (отмена матча); `cashout` = игрок сам выкупил досрочно. Это два разных `BetStatus`.
 - **formatPercent()** уже добавляет `+` для положительных значений — не добавляй префикс вручную.
+- **`parseMoneyInput`** сохраняет ведущий `-` и парсит много-групповые разделители (`1 000 000`, `1.000.000`). Отрицательные значения отбрасывай на уровне формы (`stake > 0`), а не в парсере.
+- **Запись в стор сериализована** через `writeChain` (промис-цепочка) в обоих `betsStore` — не вызывай `saveData`/`setItem` напрямую в обход `persist()`.
+- **`clearAll`** чистит только данные (ставки/дневник/банк), но СОХРАНЯЕТ настройки и подписку (PRO/язык/букмекеры) — не сбрасывай `settings` к дефолтам.
+- **Даты-строки `YYYY-MM-DD`** парсь как локальные (`new Date(\`${d}T00:00:00\`)`), bare-строка парсится как UTC и смещает день. На десктопе локаль для `toLocaleDateString` — через `dateLocale(lang)` из `i18n`.
 
 ## Цветовая система
 
@@ -105,9 +109,9 @@ new Date(str).toLocaleDateString(locale, { day: 'numeric', month: 'short' });
 
 ```bash
 # Тесты
-cd packages/core && npx vitest run        # 57 unit-тестов core
+cd packages/core && npx vitest run        # 65 unit-тестов core
 cd apps/desktop  && npm test              # 40 smoke-тестов desktop (Vitest)
-cd apps/mobile   && npm test              # 17 smoke-тестов mobile (Jest)
+cd apps/mobile   && npm test              # 19 smoke-тестов mobile (Jest)
 
 # Type-check
 cd apps/mobile  && npx tsc --noEmit
