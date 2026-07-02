@@ -15,6 +15,7 @@ import { Coachmark } from '../../components/Coachmark';
 import { haptic } from '../../utils/haptics';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { useFormatMoney } from '../../utils/useFormatMoney';
+import { chartScale, chartHeightForBudget, formatChartYLabel } from '../../utils/chartScale';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -349,11 +350,7 @@ export function DashboardScreen() {
 
       {stats.pnlCurve.length > 1 && (() => {
         const rawVals = stats.pnlCurve.map((p) => p.pnl / 100);
-        const dataMin = rawVals.reduce((a, b) => Math.min(a, b), 0);
-        const dataMax = rawVals.reduce((a, b) => Math.max(a, b), 0);
-        const padding = Math.max(Math.abs(dataMax), Math.abs(dataMin)) * 0.08 || 1;
-        const chartMax = Math.ceil(dataMax + padding);
-        const chartMin = Math.floor(dataMin - padding);
+        const scale = chartScale(rawVals);
         const lineColor = stats.pnl >= 0 ? colors.won : colors.lost;
         return (
           <View style={styles.section}>
@@ -367,9 +364,13 @@ export function DashboardScreen() {
               <LineChart
                 data={rawVals.map((v) => ({ value: v }))}
                 width={width - 96}
-                height={180}
-                maxValue={chartMax}
-                mostNegativeValue={chartMin}
+                height={chartHeightForBudget(180, scale)}
+                maxValue={scale.maxValue}
+                stepValue={scale.stepValue}
+                noOfSections={scale.noOfSections}
+                {...(scale.sectionsBelow > 0
+                  ? { mostNegativeValue: scale.mostNegativeValue, noOfSectionsBelowXAxis: scale.sectionsBelow }
+                  : {})}
                 color={lineColor}
                 thickness={2}
                 hideDataPoints
@@ -383,14 +384,9 @@ export function DashboardScreen() {
                 yAxisColor={colors.border + '66'}
                 rulesType="solid"
                 rulesColor={colors.border + '44'}
-                noOfSections={4}
                 yAxisTextStyle={{ color: colors.textMuted, fontSize: 10 }}
-                formatYLabel={(v: string) => {
-                  const n = parseFloat(v);
-                  if (isNaN(n)) return '';
-                  if (Math.abs(n) >= 1000) return `${(n / 1000).toFixed(1)}k`;
-                  return String(Math.round(n));
-                }}
+                formatYLabel={formatChartYLabel}
+                adjustToWidth
               />
             </View>
           </View>

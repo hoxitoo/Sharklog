@@ -35,8 +35,8 @@ apps/mobile/src/
     StatusBadge.tsx          — цветной бейдж статуса ставки (pending/won/lost/refund/cashout)
     DrawerContext.tsx        — React Context: openDrawer() для всех экранов
     AnimatedSplash.tsx       — анимация "Сигнал": 3 staggered scaleX-линии + типографика
-                               + 6 строк × 4 коэффициента с волновым эффектом (rowOp0..rowOp5,
-                               строка ярко 0.22 → тускло 0 стаггером 380ms, свет бежит сверху вниз);
+                               + 12 строк × 4 коэффициента на всю высоту экрана (top 3%…93%, rowOps в одном useRef,
+                               строка ярко 0.22 → тускло 0 стаггером 170ms, свет бежит сверху вниз);
                                2400ms фиксировано, все useNativeDriver:true, onFinish() callback
     ResponsibleGamblingBanner.tsx — коллапсируемый 18+ баннер (AsyncStorage @sharklog/responsible_expanded)
   navigation/
@@ -61,6 +61,10 @@ apps/mobile/src/
     notifications.ts         — scheduleDailyReminder (20:00), sendTiltNotification, requestNotificationPermission
     exportCSV.ts             — CSV с UTF-8 BOM, expo-file-system + expo-sharing
     useFormatMoney.ts        — хук: useFormatMoney() → (kopecks) => string; учитывает settings.roundAmounts
+    chartScale.ts            — chartScale(vals) → nice-шкала для gifted-charts (maxValue/stepValue/noOfSections,
+                               negative-квадрант ТОЛЬКО при отрицательных данных), chartHeightForBudget, formatChartYLabel
+                               ВАЖНО: не передавать mostNegativeValue вручную — библиотека рисует полную секцию
+                               ниже нуля и добавляет её высоту к контейнеру (переполнение карточки)
   __tests__/
     betsStore.test.ts        — 19 smoke tests (canAddBet, addBet, deleteBet, updateBet, clearAll, express team extraction, clearAll preserves prefs)
     __mocks__/
@@ -336,7 +340,7 @@ VITE_OWNER_PRO=true
 
 ## CI / Build
 
-- **CI**: `.github/workflows/ci.yml` — `npm ci` → vitest (core 65 + desktop 40) → mobile tests (19) → tsc mobile+desktop
+- **CI**: `.github/workflows/ci.yml` — `npm ci` → vitest (core 66 + desktop 40) → mobile tests (25) → tsc mobile+desktop
 - **EAS Build**: `.github/workflows/eas-build.yml` — ручной `workflow_dispatch`
   - Требует: `EXPO_TOKEN` secret + реальный `projectId` в `app.json`
 - **EAS профили**: development / preview (APK) / production (autoIncrement)
@@ -363,7 +367,7 @@ VITE_OWNER_PRO=true
 - [x] Bugfix: totalStaked включает refund-ставки (ROI был завышен)
 - [x] Bugfix: period filter off-by-one (>= → >)
 - [x] formatPercent() — добавляет + для положительных значений
-- [x] 65 vitest unit tests (stats x35, formatters x21, kelly x6, migrations x3 — все зелёные)
+- [x] 66 vitest unit tests (stats x36, formatters x21, kelly x6, migrations x3 — все зелёные)
 
 ### i18n / Локализация (обе платформы)
 - [x] 4 языка: ru / en / kz (казахский) / by (беларуский)
@@ -389,7 +393,7 @@ VITE_OWNER_PRO=true
 - [x] RootNavigator: DrawerNavigator + Stack (AddBet + Bankroll + StrategyBuilder)
 - [x] DrawerNavigator: анимированный drawer, FAB «+» только на экране Ставок, DrawerContext
 - [x] Splash: expo-splash-screen (preventAutoHideAsync/hideAsync), Android 12+ dark background #080C12
-- [x] AnimatedSplash: анимация "Сигнал" — 3 scaleX-линии + 6 строк × 4 коэффициента с волной, 2400ms, все nativeDriver
+- [x] AnimatedSplash: анимация "Сигнал" — 3 scaleX-линии + 12 строк × 4 коэффициента на всю высоту с волной, все nativeDriver
 - [x] AddBetScreen: клавиатура не перекрывает поле турнира (KeyboardAvoidingView 'height' Android + scrollToEnd)
 - [x] BankrollScreen: equity curve с Y-axis подписями, заголовок с текущим банком, маркеры депозит/вывод
 - [x] DashboardScreen: P&L кривая — исправлена шкала (padding = max(|max|,|min|) × 8%)
@@ -409,7 +413,7 @@ VITE_OWNER_PRO=true
 - [x] ScreenHeader убран из BankrollScreen и StrategyBuilderScreen (stack-экраны вне DrawerContext)
 - [x] CI: tests + type-check (все зелёные)
 - [x] EAS: development/preview/production profiles
-- [x] 19 smoke tests
+- [x] 25 smoke tests
 - [x] Locale файлы синхронизированы с десктопом (ru/en/kz/by)
 
 ### Desktop (Tauri v2 + React + Vite)
@@ -444,10 +448,10 @@ VITE_OWNER_PRO=true
 ## Тесты
 
 ```
-packages/core          65 vitest unit tests (stats, formatters, kelly, migrations)
+packages/core          66 vitest unit tests (stats, formatters, kelly, migrations)
 apps/desktop           40 vitest smoke tests (betsStore x25, importBets x15)
-apps/mobile            19 jest smoke tests (betsStore x19)
-ИТОГО                  124 тестов
+apps/mobile            25 jest smoke tests (betsStore x19, chartScale x6)
+ИТОГО                  131 тест
 ```
 
 ---
@@ -455,9 +459,9 @@ apps/mobile            19 jest smoke tests (betsStore x19)
 ## Команды
 
 ```bash
-cd packages/core && npx vitest run          # 65 тестов
+cd packages/core && npx vitest run          # 66 тестов
 cd apps/desktop && npx vitest run           # 40 тестов
-cd apps/mobile && npm test                  # 19 тестов
+cd apps/mobile && npm test                  # 25 тестов
 
 cd apps/mobile && npx tsc --noEmit          # type-check мобилки
 cd apps/desktop && npx tsc --noEmit         # type-check десктопа

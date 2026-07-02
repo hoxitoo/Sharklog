@@ -30,6 +30,7 @@ import { useBetsStore } from '../../store/betsStore';
 import { ProGate } from '../../components/ProGate';
 import { colors } from '../../theme/colors';
 import { FONTS } from '../../theme/typography';
+import { chartScale, chartHeightForBudget, formatChartYLabel } from '../../utils/chartScale';
 
 // ── Kelly Calculator ──────────────────────────────────────────────────────────
 
@@ -296,12 +297,7 @@ function BankrollContent() {
   const chartBlock = useMemo(() => {
     if (equityCurve.length < 2) return null;
     const vals = equityCurve.map((p) => p.value / 100);
-    // Use reduce to avoid spread-arg stack overflow on large arrays
-    const dataMin = vals.reduce((a, b) => Math.min(a, b), 0);
-    const dataMax = vals.reduce((a, b) => Math.max(a, b), 0);
-    const pad = Math.max(Math.abs(dataMax), Math.abs(dataMin)) * 0.08 || 1;
-    const chartMax = Math.ceil(dataMax + pad);
-    const chartMin = Math.floor(dataMin - pad);
+    const scale = chartScale(vals);
 
     const hasDeposit = equityCurve.some((p) => p.txType === 'deposit');
     const hasWithdrawal = equityCurve.some((p) => p.txType === 'withdrawal');
@@ -332,9 +328,13 @@ function BankrollContent() {
         <LineChart
           data={chartData}
           width={width - 64}
-          height={140}
-          maxValue={chartMax}
-          mostNegativeValue={chartMin}
+          height={chartHeightForBudget(140, scale)}
+          maxValue={scale.maxValue}
+          stepValue={scale.stepValue}
+          noOfSections={scale.noOfSections}
+          {...(scale.sectionsBelow > 0
+            ? { mostNegativeValue: scale.mostNegativeValue, noOfSectionsBelowXAxis: scale.sectionsBelow }
+            : {})}
           color={currentBank >= 0 ? colors.won : colors.lost}
           thickness={2}
           hideDataPoints
@@ -348,14 +348,8 @@ function BankrollContent() {
           yAxisColor={colors.border + '66'}
           rulesType="solid"
           rulesColor={colors.border + '55'}
-          noOfSections={4}
           yAxisTextStyle={{ color: colors.textMuted, fontSize: 10 }}
-          formatYLabel={(v: string) => {
-            const n = parseFloat(v);
-            if (isNaN(n)) return '';
-            if (Math.abs(n) >= 1000) return `${(n / 1000).toFixed(1)}k`;
-            return String(Math.round(n));
-          }}
+          formatYLabel={formatChartYLabel}
           adjustToWidth
           curved
         />
