@@ -8,7 +8,7 @@ interface Props {
 
 const ND = { useNativeDriver: true } as const;
 
-// 6 rows × 4 coefficients — wave sweeps top → bottom
+// 12 rows × 4 coefficients — wave sweeps top → bottom across the FULL screen
 const COEFF_ROWS = [
   ['1.85', '2.40', '3.10', '1.65'],
   ['2.75', '1.55', '4.20', '2.10'],
@@ -16,10 +16,20 @@ const COEFF_ROWS = [
   ['2.60', '1.48', '3.80', '1.95'],
   ['1.75', '2.85', '1.60', '3.20'],
   ['2.15', '4.50', '1.88', '2.45'],
+  ['3.40', '1.62', '2.05', '1.78'],
+  ['1.52', '2.95', '1.70', '4.10'],
+  ['2.25', '1.44', '3.60', '2.80'],
+  ['1.98', '2.55', '1.58', '3.05'],
+  ['2.70', '1.82', '2.35', '1.50'],
+  ['1.68', '3.90', '2.20', '2.65'],
 ];
 
-// Horizontal positions for each of 4 coefficients in a row
-const COL_X = [8, 28, 56, 78]; // percent of screen width approximated via left/right
+// Rows are distributed over the whole screen height (percent `top` positions)
+const ROW_TOP_PCT = (i: number) => 3 + (i * 90) / (COEFF_ROWS.length - 1); // 3% … 93%
+
+// Horizontal positions; odd rows are shifted for an organic layout
+const COL_X_EVEN = [8, 28, 56, 78];
+const COL_X_ODD = [14, 36, 62, 84];
 
 export function AnimatedSplash({ onFinish }: Props) {
   const line1Scale    = useRef(new Animated.Value(0)).current;
@@ -30,19 +40,14 @@ export function AnimatedSplash({ onFinish }: Props) {
   const taglineOpacity = useRef(new Animated.Value(0)).current;
   const exitOpacity   = useRef(new Animated.Value(1)).current;
 
-  // Per-row animated values for the wave effect
-  const rowOp0 = useRef(new Animated.Value(0)).current;
-  const rowOp1 = useRef(new Animated.Value(0)).current;
-  const rowOp2 = useRef(new Animated.Value(0)).current;
-  const rowOp3 = useRef(new Animated.Value(0)).current;
-  const rowOp4 = useRef(new Animated.Value(0)).current;
-  const rowOp5 = useRef(new Animated.Value(0)).current;
-  const rowOps = [rowOp0, rowOp1, rowOp2, rowOp3, rowOp4, rowOp5];
+  // Per-row animated values for the wave effect (single stable ref — row count is constant)
+  const rowOps = useRef(COEFF_ROWS.map(() => new Animated.Value(0))).current;
 
   useEffect(() => {
-    const WAVE_STAGGER = 380; // ms between each row lighting up
-    const ROW_RISE = 260;     // ms to reach peak opacity
-    const ROW_DIM  = 360;     // ms to dim to resting
+    // 12 rows must sweep within the main sequence (~3.1s): 11×170 + 240 + 340 ≈ 2.5s
+    const WAVE_STAGGER = 170; // ms between each row lighting up
+    const ROW_RISE = 240;     // ms to reach peak opacity
+    const ROW_DIM  = 340;     // ms to dim to resting
 
     // Wave: each row brightens then dims as next row lights up
     const waveAnimations = rowOps.map((op, i) =>
@@ -83,24 +88,24 @@ export function AnimatedSplash({ onFinish }: Props) {
     [],
   );
 
-  const ROW_TOP_START = 32;
-  const ROW_GAP = 38;
-
   return (
     <Animated.View style={[s.container, { opacity: exitOpacity }]}>
-      {/* Wave coefficients — 6 rows × 4 values */}
-      {COEFF_ROWS.map((row, ri) => (
-        <Animated.View
-          key={ri}
-          style={[s.coeffRow, { top: ROW_TOP_START + ri * ROW_GAP, opacity: rowInterps[ri] }]}
-        >
-          {row.map((v, ci) => (
-            <Text key={ci} style={[s.coeff, { left: `${COL_X[ci]}%` as any }]}>
-              {v}
-            </Text>
-          ))}
-        </Animated.View>
-      ))}
+      {/* Wave coefficients — 12 rows × 4 values covering the full screen height */}
+      {COEFF_ROWS.map((row, ri) => {
+        const cols = ri % 2 === 0 ? COL_X_EVEN : COL_X_ODD;
+        return (
+          <Animated.View
+            key={ri}
+            style={[s.coeffRow, { top: `${ROW_TOP_PCT(ri)}%` as any, opacity: rowInterps[ri] }]}
+          >
+            {row.map((v, ci) => (
+              <Text key={ci} style={[s.coeff, { left: `${cols[ci]}%` as any }]}>
+                {v}
+              </Text>
+            ))}
+          </Animated.View>
+        );
+      })}
 
       <View style={s.linesWrap}>
         <Animated.View style={[s.line, { width: 120, transform: [{ scaleX: line1Scale }] }]} />

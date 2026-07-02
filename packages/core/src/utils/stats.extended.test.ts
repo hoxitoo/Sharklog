@@ -291,3 +291,23 @@ describe('calcByHour — malformed time', () => {
     expect(hour0?.count).toBe(2);
   });
 });
+
+// ─────────────────────────────────────────────────────────
+// pnlCurve — consistency with headline pnl
+// ─────────────────────────────────────────────────────────
+
+describe('pnlCurve — endpoint consistency', () => {
+  it('final curve value equals stats.pnl (chip and chart endpoint agree)', () => {
+    const bets = [
+      makeBet({ status: 'won', stake: 100_00, odds: 2.0, createdAt: '2024-01-01T10:00:00Z' }),
+      makeBet({ status: 'lost', stake: 50_00, createdAt: '2024-01-02T10:00:00Z' }),
+      makeBet({ status: 'lost', stake: 30_00, isFreebet: true, createdAt: '2024-01-03T10:00:00Z' }),
+      makeBet({ status: 'cashout', stake: 100_00, cashoutAmount: 80_00, createdAt: '2024-01-04T10:00:00Z' }),
+      makeBet({ status: 'refund', stake: 40_00, createdAt: '2024-01-05T10:00:00Z' }),
+      makeBet({ status: 'pending', stake: 20_00, createdAt: '2024-01-06T10:00:00Z' }),
+    ];
+    const s = calcDashboard(bets);
+    const last = s.pnlCurve[s.pnlCurve.length - 1];
+    expect(last?.pnl).toBe(s.pnl);
+  });
+});

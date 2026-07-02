@@ -109,9 +109,9 @@ new Date(str).toLocaleDateString(locale, { day: 'numeric', month: 'short' });
 
 ```bash
 # Тесты
-cd packages/core && npx vitest run        # 65 unit-тестов core
+cd packages/core && npx vitest run        # 66 unit-тестов core
 cd apps/desktop  && npm test              # 40 smoke-тестов desktop (Vitest)
-cd apps/mobile   && npm test              # 19 smoke-тестов mobile (Jest)
+cd apps/mobile   && npm test              # 25 smoke-тестов mobile (Jest)
 
 # Type-check
 cd apps/mobile  && npx tsc --noEmit
@@ -261,8 +261,8 @@ components/
   ScreenHeader.tsx         — заголовок с hamburger + rightAction; НЕ используется в stack-экранах (Bankroll, StrategyBuilder)
   ResponsibleGamblingBanner.tsx — коллапсируемый 18+ баннер (AsyncStorage @sharklog/responsible_expanded)
   AnimatedSplash.tsx       — анимация "Сигнал": 3 staggered scaleX-линии + "SharkLog" + слоган
-                             + 6 строк × 4 коэффициента с волновым эффектом (каждая строка — отдельный Animated.Value,
-                             rowOp0..rowOp5; яркость 0→0.22→0 стаггером 380ms, сметает сверху вниз)
+                             + 12 строк × 4 коэффициента НА ВСЮ ВЫСОТУ экрана (процентные top-позиции 3%…93%,
+                             массив rowOps в одном useRef; яркость 0→0.22→0 стаггером 170ms, волна сверху вниз)
                              2400ms фиксировано; onFinish() callback; все Animated — useNativeDriver:true
 assets/
   icon.png                 — 1024×1024 на тёмном фоне
