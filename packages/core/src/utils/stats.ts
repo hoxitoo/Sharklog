@@ -29,6 +29,14 @@ export interface DashboardStats {
   pnlCurve: Array<{ index: number; pnl: number }>;
 }
 
+/** Realized P&L for a single bet, in kopecks. 0 for pending/refund and lost freebets. */
+export function betPnl(bet: Bet): number {
+  if (bet.status === 'won') return Math.round(bet.stake * bet.odds) - bet.stake;
+  if (bet.status === 'lost') return bet.isFreebet ? 0 : -bet.stake;
+  if (bet.status === 'cashout' && bet.cashoutAmount != null) return bet.cashoutAmount - bet.stake;
+  return 0;
+}
+
 function calcSlice(bets: Bet[], label: string): SliceStats {
   const settled = bets.filter((b) => b.status === 'won' || b.status === 'lost');
   const won = bets.filter((b) => b.status === 'won').length;

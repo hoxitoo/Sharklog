@@ -60,6 +60,7 @@ export interface Bet {
   betType: BetType;
   pick: string;
   odds: number;            // decimal, e.g. 1.85
+  closingOdds?: number;    // closing line (decimal); enables CLV analytics
   stake: number;           // in user currency (kopecks as integer to avoid float issues)
   status: BetStatus;
   strategy: Strategy;
