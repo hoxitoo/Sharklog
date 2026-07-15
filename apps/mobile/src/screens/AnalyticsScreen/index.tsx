@@ -4,6 +4,7 @@ import { PieChart, LineChart } from 'react-native-gifted-charts';
 import {
   calcByField, calcByOddsRange, calcByDayOfWeek, calcDashboard,
   calcStreaks, calcExtremes, calcLastFullMonth, calcTimeStats, calcCLV,
+  calcMaxDrawdown, calcEdge, calcMonthlyPnl, RELIABLE_SAMPLE_MIN,
   SPORTS, BET_TYPES, STRATEGIES, formatPercent,
 } from '@sharklog/core';
 import type { SliceStats, Bet } from '@sharklog/core';
@@ -21,6 +22,7 @@ const { width } = Dimensions.get('window');
 const BUCKET_COLORS = ['#3B4A8C', '#5B6AF0', '#22D3A0', '#F59E0B', '#A78BFA', '#546E9C'];
 
 const MONTHS_RU = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
+const MONTHS_SHORT_RU = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
 
 // ── Small building blocks ────────────────────────────────────────────────────
 
@@ -116,11 +118,13 @@ const hero = StyleSheet.create({
 // ── Two-tile row (streaks, extremes) ─────────────────────────────────────────
 
 function MiniTile({ label, value, color, sub }: { label: string; value: string; color: string; sub?: string }) {
+  // Fixed label/value/sub bands so the value numbers align across tiles
+  // regardless of 1- vs 2-line labels (fixes the "jumping numbers" look).
   return (
     <View style={tile.box}>
-      <Text style={tile.label}>{label}</Text>
+      <Text style={tile.label} numberOfLines={2}>{label}</Text>
       <Text style={[tile.value, { color }]} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
-      {sub ? <Text style={tile.sub} numberOfLines={1}>{sub}</Text> : null}
+      <Text style={tile.sub} numberOfLines={1}>{sub ?? ''}</Text>
     </View>
   );
 }
@@ -130,9 +134,9 @@ const tile = StyleSheet.create({
     flex: 1, backgroundColor: colors.bgElevated, borderRadius: 12, padding: 12,
     borderWidth: 1, borderColor: colors.border,
   },
-  label: { fontSize: 11, color: colors.textMuted, marginBottom: 4 },
-  value: { fontSize: 20, fontWeight: '800' },
-  sub: { fontSize: 10, color: colors.textMuted, marginTop: 3 },
+  label: { fontSize: 11, color: colors.textMuted, marginBottom: 6, lineHeight: 14, height: 28 }, // reserve 2 lines
+  value: { fontSize: 20, fontWeight: '800', height: 26, textAlignVertical: 'center' },
+  sub: { fontSize: 10, color: colors.textMuted, marginTop: 4, height: 13 }, // always reserved
 });
 
 function StreaksCard({ bets }: { bets: Bet[] }) {
@@ -187,6 +191,88 @@ const row = StyleSheet.create({
   wrap: { flexDirection: 'row' },
 });
 
+// ── Edge & risk: win-rate-vs-breakeven + max drawdown + sample reliability ───
+
+function EdgeRiskCard({ bets }: { bets: Bet[] }) {
+  const fmt = useFormatMoney();
+  const e = useMemo(() => calcEdge(bets), [bets]);
+  const dd = useMemo(() => calcMaxDrawdown(bets), [bets]);
+  const hasEdge = e.edge >= 0;
+  const lowSample = e.sampleSize > 0 && e.sampleSize < RELIABLE_SAMPLE_MIN;
+
+  return (
+    <Card title="Перевес и риск">
+      <View style={row.wrap}>
+        <MiniTile
+          label="Перевес над безубытком"
+          value={e.sampleSize === 0 ? '—' : `${hasEdge ? '+' : ''}${e.edge.toFixed(1)}%`}
+          color={e.sampleSize === 0 ? colors.textMuted : hasEdge ? colors.won : colors.lost}
+          sub={e.sampleSize === 0 ? '' : `WR ${e.winRate.toFixed(0)}% · б/у ${e.breakEvenRate.toFixed(0)}%`}
+        />
+        <View style={{ width: 10 }} />
+        <MiniTile
+          label="Макс. просадка"
+          value={dd.maxDrawdown > 0 ? `−${fmt(dd.maxDrawdown)}` : fmt(0)}
+          color={dd.maxDrawdown > 0 ? colors.lost : colors.textMuted}
+          sub={dd.maxDrawdownPct > 0 ? `−${dd.maxDrawdownPct.toFixed(0)}% от пика` : 'нет просадки'}
+        />
+      </View>
+      {lowSample && (
+        <Text style={edge.caption}>
+          Выборка мала ({e.sampleSize}/{RELIABLE_SAMPLE_MIN}) — перевес и % ещё нестабильны
+        </Text>
+      )}
+    </Card>
+  );
+}
+
+const edge = StyleSheet.create({
+  caption: { fontSize: 11, color: colors.textMuted, marginTop: 10, lineHeight: 15 },
+});
+
+// ── Monthly P&L trend (6 compact bars) ───────────────────────────────────────
+
+function MonthlyBars({ bets }: { bets: Bet[] }) {
+  const data = useMemo(() => calcMonthlyPnl(bets, new Date(), 6), [bets]);
+  const maxAbs = Math.max(...data.map((d) => Math.abs(d.pnl)), 1);
+  const HALF = 34;
+
+  return (
+    <View style={mbars.wrap}>
+      {data.map((d, i) => {
+        const isCurrent = i === data.length - 1;
+        const frac = Math.abs(d.pnl) / maxAbs;
+        const barH = d.count === 0 ? 0 : Math.max(frac * HALF, 3);
+        const pos = d.pnl >= 0;
+        const barColor = (pos ? colors.won : colors.lost) + (isCurrent ? '' : 'AA');
+        return (
+          <View key={`${d.year}-${d.month}`} style={mbars.col}>
+            <View style={mbars.top}>
+              {pos && barH > 0 && <View style={[mbars.bar, { height: barH, backgroundColor: barColor }]} />}
+            </View>
+            <View style={mbars.mid} />
+            <View style={mbars.bottom}>
+              {!pos && barH > 0 && <View style={[mbars.bar, { height: barH, backgroundColor: barColor }]} />}
+            </View>
+            <Text style={[mbars.label, isCurrent && mbars.labelCurrent]}>{MONTHS_SHORT_RU[d.month]}</Text>
+          </View>
+        );
+      })}
+    </View>
+  );
+}
+
+const mbars = StyleSheet.create({
+  wrap: { flexDirection: 'row', marginTop: 16 },
+  col: { flex: 1, alignItems: 'center' },
+  top: { height: 34, justifyContent: 'flex-end', width: '100%', alignItems: 'center' },
+  bottom: { height: 34, justifyContent: 'flex-start', width: '100%', alignItems: 'center' },
+  mid: { height: 1, backgroundColor: colors.border, alignSelf: 'stretch' },
+  bar: { width: 14, borderRadius: 3 },
+  label: { fontSize: 10, color: colors.textMuted, marginTop: 5 },
+  labelCurrent: { color: colors.textPrimary, fontWeight: '700' },
+});
+
 // ── Last full month ──────────────────────────────────────────────────────────
 
 function LastMonthCard({ bets }: { bets: Bet[] }) {
@@ -216,6 +302,9 @@ function LastMonthCard({ bets }: { bets: Bet[] }) {
           </View>
         </View>
       )}
+      {/* 6-month trend for context — is this one good month or steady form? */}
+      <MonthlyBars bets={bets} />
+      <Text style={month.barsCaption}>Последние 6 месяцев</Text>
     </Card>
   );
 }
@@ -229,6 +318,7 @@ const month = StyleSheet.create({
   roi: { fontSize: 16, fontWeight: '700' },
   trend: { fontSize: 12, marginTop: 4, fontWeight: '600' },
   empty: { fontSize: 13, color: colors.textMuted },
+  barsCaption: { fontSize: 10, color: colors.textMuted, textAlign: 'center', marginTop: 8 },
 });
 
 // ── Time of day: top hours + donut ───────────────────────────────────────────
@@ -450,6 +540,7 @@ function AnalyticsContent() {
       <HeroPnl bets={filteredBets} />
       <StreaksCard bets={filteredBets} />
       <ExtremesCard bets={filteredBets} />
+      <EdgeRiskCard bets={filteredBets} />
       <LastMonthCard bets={bets} />
       <TimeCard bets={filteredBets} />
       <ClvCard bets={filteredBets} />

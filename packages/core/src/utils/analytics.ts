@@ -213,3 +213,81 @@ export function calcCLV(bets: Bet[]): CLVStats {
     beatCloseRate: Math.round((beat / withClose.length) * 1000) / 10,
   };
 }
+
+// ── Max drawdown (worst peak-to-trough of the cumulative P&L) ─────────────────
+
+export interface DrawdownStats {
+  maxDrawdown: number;    // kopecks, >= 0 — depth of the worst peak-to-trough drop
+  maxDrawdownPct: number; // % of the peak where it happened (0 if that peak <= 0)
+  current: number;        // kopecks, >= 0 — how far below the all-time peak we are now
+}
+
+export function calcMaxDrawdown(bets: Bet[]): DrawdownStats {
+  const settled = [...bets]
+    .filter((b) => b.status === 'won' || b.status === 'lost' || (b.status === 'cashout' && b.cashoutAmount != null))
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+
+  let cum = 0;
+  let peak = 0;
+  let maxDD = 0;
+  let maxDDPeak = 0;
+  for (const b of settled) {
+    cum += betPnl(b);
+    if (cum > peak) peak = cum;
+    const dd = peak - cum;
+    if (dd > maxDD) { maxDD = dd; maxDDPeak = peak; }
+  }
+
+  return {
+    maxDrawdown: maxDD,
+    maxDrawdownPct: maxDDPeak > 0 ? Math.round((maxDD / maxDDPeak) * 1000) / 10 : 0,
+    current: peak - cum,
+  };
+}
+
+// ── Edge: actual win rate vs the break-even implied by average odds ───────────
+
+export interface EdgeStats {
+  winRate: number;        // % of settled (won/lost) bets won
+  breakEvenRate: number;  // % needed to break even at the average odds (100 / avgOdds)
+  edge: number;           // winRate - breakEvenRate (positive = long-term +EV, approx.)
+  avgOdds: number;
+  sampleSize: number;     // settled won+lost bets (basis for reliability)
+}
+
+export function calcEdge(bets: Bet[]): EdgeStats {
+  const d = calcDashboard(bets);
+  const breakEvenRate = d.avgOdds > 0 ? Math.round((100 / d.avgOdds) * 10) / 10 : 0;
+  return {
+    winRate: d.winRate,
+    breakEvenRate,
+    edge: Math.round((d.winRate - breakEvenRate) * 10) / 10,
+    avgOdds: d.avgOdds,
+    sampleSize: d.wonBets + d.lostBets,
+  };
+}
+
+// ── Monthly P&L trend (last N calendar months incl. current) ─────────────────
+
+export interface MonthlyPnl {
+  year: number;
+  month: number;  // 0-11
+  pnl: number;
+  count: number;  // total bets in the month
+}
+
+export function calcMonthlyPnl(bets: Bet[], now: Date, months = 6): MonthlyPnl[] {
+  const out: MonthlyPnl[] = [];
+  for (let i = months - 1; i >= 0; i--) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    const y = d.getFullYear();
+    const m = d.getMonth();
+    const mb = betsInMonth(bets, y, m);
+    const dash = calcDashboard(mb);
+    out.push({ year: y, month: m, pnl: dash.pnl, count: dash.totalBets });
+  }
+  return out;
+}
+
+/** Below this many settled bets, ROI/win-rate/edge are noise, not signal. */
+export const RELIABLE_SAMPLE_MIN = 100;
