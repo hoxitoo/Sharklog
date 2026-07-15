@@ -18,9 +18,12 @@ apps/mobile/src/
                                TournamentInput получает scrollRef → scrollToEnd при фокусе (клавиатура не перекрывает)
     DashboardScreen/         — period filter (7д/30д/Всё), stats grid, W/L strip, heatmap, P&L chart,
                                best/worst bet, strategy badge (кликабельная плашка → StrategyBuilder)
-    AnalyticsScreen/         — РЕДИЗАЙН: hero-состояние (P&L+спарклайн, серии, рекорды, прошлый месяц с трендом,
-                               время-донат 6 промежутков + топ-4 часа с P&L 12/24h, CLV) + collapsible
-                               «Расширенная статистика» (sport/betType/bookmaker/strategy/odds/day). PRO via ProGate
+    AnalyticsScreen/         — РЕДИЗАЙН: hero-состояние (P&L+спарклайн, серии, рекорды,
+                               «Перевес и риск» = WR vs безубыток + макс.просадка + бейдж малой выборки,
+                               прошлый месяц с трендом + 6-мес бары, время-донат 6 промежутков + топ-4 часа
+                               с P&L 12/24h, CLV) + collapsible «Расширенная статистика»
+                               (sport/betType/bookmaker/strategy/odds/day). PRO via ProGate.
+                               MiniTile: фикс. полосы label(2 строки)/value/sub — числа не «скачут» по высоте
     InsightsScreen/          — period filter; Tournaments table (Free); Favorite Teams cards (PRO via ProGate)
     BankrollScreen/          — equity curve LineChart с Y-axis подписями, текущий банк в заголовке,
                                маркеры депозита (зелёная точка) / вывода (красная точка) через customDataPoint;
@@ -152,7 +155,9 @@ packages/core/src/
                         getPickedTeams(event, pick) — внутренний хелпер для calcByTeam;
                         атрибутирует ставку только команде, на которую ставил игрок (П1/П2/Ф1/Ф2 + прямые имена)
     analytics.ts             — calcStreaks, calcExtremes, calcLastFullMonth(bets, now), calcCLV,
-                               calcTimeStats(bets, use12h) — 6 промежутков для доната + топ-4 часа с P&L
+                               calcTimeStats(bets, use12h) — 6 промежутков для доната + топ-4 часа с P&L,
+                               calcMaxDrawdown (пик→дно кумулятивного P&L), calcEdge (WR vs безубыток 100/avgOdds),
+                               calcMonthlyPnl(bets, now, months), RELIABLE_SAMPLE_MIN=100
     kelly.ts                 — kellyFraction, halfKelly, expectedValue, impliedProbability, recommendedStake
     formatters.ts            — formatMoney(kopecks, currency='₽', maxDecimals=2), parseMoneyInput, formatOdds, formatPercent (adds + prefix)
     strategyBuilder.ts       — STRATEGY_QUESTIONS (10 вопросов), buildStrategy(answers) → GeneratedStrategy
@@ -346,7 +351,7 @@ VITE_OWNER_PRO=true
 
 ## CI / Build
 
-- **CI**: `.github/workflows/ci.yml` — `npm ci` → vitest (core 80 + desktop 40) → mobile tests (25) → tsc mobile+desktop
+- **CI**: `.github/workflows/ci.yml` — `npm ci` → vitest (core 86 + desktop 40) → mobile tests (25) → tsc mobile+desktop
 - **EAS Build**: `.github/workflows/eas-build.yml` — ручной `workflow_dispatch`
   - Требует: `EXPO_TOKEN` secret + реальный `projectId` в `app.json`
 - **EAS профили**: development / preview (APK) / production (autoIncrement)
@@ -373,7 +378,7 @@ VITE_OWNER_PRO=true
 - [x] Bugfix: totalStaked включает refund-ставки (ROI был завышен)
 - [x] Bugfix: period filter off-by-one (>= → >)
 - [x] formatPercent() — добавляет + для положительных значений
-- [x] 80 vitest unit tests (stats x36, analytics x14, formatters x21, kelly x6, migrations x3 — все зелёные)
+- [x] 86 vitest unit tests (stats x36, analytics x20, formatters x21, kelly x6, migrations x3 — все зелёные)
 
 ### i18n / Локализация (обе платформы)
 - [x] 4 языка: ru / en / kz (казахский) / by (беларуский)
@@ -454,10 +459,10 @@ VITE_OWNER_PRO=true
 ## Тесты
 
 ```
-packages/core          80 vitest unit tests (stats, analytics, formatters, kelly, migrations)
+packages/core          86 vitest unit tests (stats, analytics, formatters, kelly, migrations)
 apps/desktop           40 vitest smoke tests (betsStore x25, importBets x15)
 apps/mobile            25 jest smoke tests (betsStore x19, chartScale x6)
-ИТОГО                  145 тестов
+ИТОГО                  151 тест
 ```
 
 ---

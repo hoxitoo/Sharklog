@@ -111,7 +111,7 @@ new Date(str).toLocaleDateString(locale, { day: 'numeric', month: 'short' });
 
 ```bash
 # Тесты
-cd packages/core && npx vitest run        # 80 unit-тестов core
+cd packages/core && npx vitest run        # 86 unit-тестов core
 cd apps/desktop  && npm test              # 40 smoke-тестов desktop (Vitest)
 cd apps/mobile   && npm test              # 25 smoke-тестов mobile (Jest)
 
@@ -294,7 +294,9 @@ utils/
                         на которые поставил игрок (П1/П2/Ф1/Ф2 и прямые имена); используется в calcByTeam
   analytics.ts        — calcStreaks (лучшая W / худшая L / текущая), calcExtremes (макс выигрыш/проигрыш),
                         calcLastFullMonth(bets, now) (прошлый полный месяц + тренд), calcCLV (closingOdds),
-                        calcTimeStats(bets, use12h) (6 4-часовых промежутков для доната + топ-4 часа с P&L)
+                        calcTimeStats(bets, use12h) (6 4-часовых промежутков для доната + топ-4 часа с P&L),
+                        calcMaxDrawdown (пик→дно кумулятивного P&L), calcEdge (WR vs безубыток),
+                        calcMonthlyPnl(bets, now, months), RELIABLE_SAMPLE_MIN=100
   kelly.ts            — kellyFraction, halfKelly, expectedValue, impliedProbability
   formatters.ts       — formatMoney(kopecks, currency='₽', maxDecimals=2), parseMoneyInput, formatOdds, formatPercent (adds + prefix)
   strategyBuilder.ts  — STRATEGY_QUESTIONS (10 вопросов), buildStrategy(answers)
