@@ -109,7 +109,7 @@ new Date(str).toLocaleDateString(locale, { day: 'numeric', month: 'short' });
 
 ```bash
 # Тесты
-cd packages/core && npx vitest run        # 66 unit-тестов core
+cd packages/core && npx vitest run        # 79 unit-тестов core
 cd apps/desktop  && npm test              # 40 smoke-тестов desktop (Vitest)
 cd apps/mobile   && npm test              # 25 smoke-тестов mobile (Jest)
 
@@ -242,7 +242,11 @@ screens/
                              тилт-баннер с dismiss × (AsyncStorage @sharklog/tilt_dismiss_date)
                              haptic.warning() при первом определении тилта
   InsightsScreen/          — TournamentRow (Free) + TeamCard (PRO via ProGate)
-  AnalyticsScreen/         — 8 срезов (PRO via ProGate)
+  AnalyticsScreen/         — РЕДИЗАЙН: hero-состояние сверху + collapsible «Расширенная статистика».
+                             Hero: P&L+спарклайн, серии (лучшая/худшая/текущая), рекорды (макс выигрыш/проигрыш),
+                             прошлый месяц с трендом, время ставок (донат 6 промежутков + топ-4 часа с P&L,
+                             12h/24h через uses12HourClock()), CLV-карточка. Всё PRO via ProGate.
+                             Расширенная (collapsible): sport/betType/bookmaker/strategy/odds/day срезы
   BankrollScreen/          — equity curve с Y-axis подписями и текущим банком в заголовке;
                              маркеры депозита (зелёная точка) / вывода (красная точка) на кривой через customDataPoint;
                              Kelly (PRO)
@@ -274,7 +278,7 @@ assets/
 
 ```
 types/bet.ts          — BetStatus: 'pending'|'won'|'lost'|'refund'|'cashout'
-                        Bet: + tournament?: string
+                        Bet: + tournament?: string, + closingOdds?: number (для CLV)
                         AppSettings: + generatedStrategy?: GeneratedStrategy, + roundAmounts: boolean, + disableChecklist?: boolean
                         GeneratedStrategy: + rationale?, keyPrinciples?, recommendedApproaches?,
                         recommendedBetTypes?, betTypeRationale?, oddsRationale? (6 rich output fields)
@@ -282,9 +286,13 @@ types/bet.ts          — BetStatus: 'pending'|'won'|'lost'|'refund'|'cashout'
 constants/index.ts    — SPORTS, BET_TYPES, STRATEGIES, FREE_LIMITS, ODDS_RANGES
 utils/
   stats.ts            — calcDashboard, calcByField, calcByOddsRange, calcByDayOfWeek,
-                        calcByHour, isInTilt, calcByTournament, calcByTeam, parseEventTeams
+                        calcByHour, isInTilt, calcByTournament, calcByTeam, parseEventTeams, betPnl
+                        betPnl(bet) — реализованный P&L одной ставки в копейках (общий хелпер)
                         getPickedTeams(event, pick) — внутренний хелпер: возвращает только команды,
                         на которые поставил игрок (П1/П2/Ф1/Ф2 и прямые имена); используется в calcByTeam
+  analytics.ts        — calcStreaks (лучшая W / худшая L / текущая), calcExtremes (макс выигрыш/проигрыш),
+                        calcLastFullMonth(bets, now) (прошлый полный месяц + тренд), calcCLV (closingOdds),
+                        calcTimeStats(bets, use12h) (6 4-часовых промежутков для доната + топ-4 часа с P&L)
   kelly.ts            — kellyFraction, halfKelly, expectedValue, impliedProbability
   formatters.ts       — formatMoney(kopecks, currency='₽', maxDecimals=2), parseMoneyInput, formatOdds, formatPercent (adds + prefix)
   strategyBuilder.ts  — STRATEGY_QUESTIONS (10 вопросов), buildStrategy(answers)
