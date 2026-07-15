@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   calcStreaks, calcExtremes, calcLastFullMonth, calcTimeStats, calcCLV,
+  calcMaxDrawdown, calcEdge, calcMonthlyPnl,
 } from './analytics';
 import type { Bet } from '../types/bet';
 
@@ -159,5 +160,72 @@ describe('calcCLV', () => {
 
   it('no closing lines → zeros', () => {
     expect(calcCLV([makeBet({ status: 'won' })])).toEqual({ count: 0, avgClvPercent: 0, beatCloseRate: 0 });
+  });
+});
+
+describe('calcMaxDrawdown', () => {
+  it('measures the worst peak-to-trough drop in cumulative P&L', () => {
+    // chronological cum: +100, +150(peak), +50, +30(trough) → maxDD 120 from peak 150
+    const bets = [
+      makeBet({ status: 'won', stake: 100_00, odds: 2.0, createdAt: '2024-05-01T10:00:00Z' }), // +100
+      makeBet({ status: 'won', stake: 50_00, odds: 2.0, createdAt: '2024-05-02T10:00:00Z' }),  // +50 → 150
+      makeBet({ status: 'lost', stake: 100_00, createdAt: '2024-05-03T10:00:00Z' }),           // -100 → 50
+      makeBet({ status: 'lost', stake: 20_00, createdAt: '2024-05-04T10:00:00Z' }),            // -20 → 30
+    ];
+    const d = calcMaxDrawdown(bets);
+    expect(d.maxDrawdown).toBe(120_00);
+    expect(d.maxDrawdownPct).toBe(80); // 120 / 150
+    expect(d.current).toBe(120_00);    // still 120 below the 150 peak
+  });
+
+  it('all wins → no drawdown', () => {
+    const bets = [
+      makeBet({ status: 'won', stake: 100_00, odds: 2.0, createdAt: '2024-05-01T10:00:00Z' }),
+      makeBet({ status: 'won', stake: 100_00, odds: 2.0, createdAt: '2024-05-02T10:00:00Z' }),
+    ];
+    expect(calcMaxDrawdown(bets).maxDrawdown).toBe(0);
+  });
+
+  it('empty → zeros, no NaN', () => {
+    expect(calcMaxDrawdown([])).toEqual({ maxDrawdown: 0, maxDrawdownPct: 0, current: 0 });
+  });
+});
+
+describe('calcEdge', () => {
+  it('compares win rate to the break-even implied by average odds', () => {
+    // 3 wins / 2 losses at odds 2.0 → WR 60%, break-even 50%, edge +10%
+    const bets = [
+      makeBet({ status: 'won', odds: 2.0 }),
+      makeBet({ status: 'won', odds: 2.0 }),
+      makeBet({ status: 'won', odds: 2.0 }),
+      makeBet({ status: 'lost', odds: 2.0 }),
+      makeBet({ status: 'lost', odds: 2.0 }),
+    ];
+    const e = calcEdge(bets);
+    expect(e.winRate).toBe(60);
+    expect(e.breakEvenRate).toBe(50);
+    expect(e.edge).toBe(10);
+    expect(e.sampleSize).toBe(5);
+  });
+
+  it('no settled bets → zeros', () => {
+    expect(calcEdge([makeBet({ status: 'pending' })])).toEqual({
+      winRate: 0, breakEvenRate: 0, edge: 0, avgOdds: 0, sampleSize: 0,
+    });
+  });
+});
+
+describe('calcMonthlyPnl', () => {
+  it('returns N months oldest→newest incl. current with per-month P&L', () => {
+    const now = new Date(2024, 5, 15); // June
+    const bets = [
+      makeBet({ status: 'won', stake: 100_00, odds: 2.0, date: '2024-06-05' }), // +100 June
+      makeBet({ status: 'lost', stake: 40_00, date: '2024-05-20' }),            // -40 May
+    ];
+    const r = calcMonthlyPnl(bets, now, 6);
+    expect(r).toHaveLength(6);
+    expect(r[r.length - 1]).toMatchObject({ year: 2024, month: 5, pnl: 100_00 }); // June (current)
+    expect(r[r.length - 2]).toMatchObject({ year: 2024, month: 4, pnl: -40_00 }); // May
+    expect(r[0]).toMatchObject({ month: 0 }); // January (6 months back from June)
   });
 });
