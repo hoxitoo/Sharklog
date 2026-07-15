@@ -93,6 +93,10 @@ export function calcLastFullMonth(bets: Bet[], now: Date): MonthResult {
 
   const monthBets = betsInMonth(bets, y, m);
   const d = calcDashboard(monthBets);
+  // "Settled" is consistent with pnl/roi, which include cashouts (see calcDashboard).
+  const settledCount = monthBets.filter(
+    (b) => b.status === 'won' || b.status === 'lost' || (b.status === 'cashout' && b.cashoutAmount != null),
+  ).length;
 
   // Month before, for the trend delta
   const before = new Date(y, m - 1, 1);
@@ -105,7 +109,7 @@ export function calcLastFullMonth(bets: Bet[], now: Date): MonthResult {
     label: `${y}-${String(m + 1).padStart(2, '0')}`,
     pnl: d.pnl,
     roi: d.roi,
-    count: d.wonBets + d.lostBets,
+    count: settledCount,
     winRate: d.winRate,
     deltaPnl: d.pnl - beforePnl,
   };
