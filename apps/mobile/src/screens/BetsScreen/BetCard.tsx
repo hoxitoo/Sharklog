@@ -53,8 +53,10 @@ export const BetCard = React.memo(function BetCard({ bet, onEdit }: Props) {
   return (
     <TouchableOpacity
       style={styles.card}
-      onPress={() => onEdit(bet)}
-      activeOpacity={0.8}
+      // While entering a cashout amount, don't let a stray tap on the card body
+      // navigate to the editor and discard the in-progress input.
+      onPress={cashoutOpen ? undefined : () => onEdit(bet)}
+      activeOpacity={cashoutOpen ? 1 : 0.8}
     >
       <View style={styles.row}>
         <View style={styles.left}>

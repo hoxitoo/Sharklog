@@ -211,6 +211,7 @@ export function BetsScreen() {
         stickySectionHeadersEnabled={false}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
