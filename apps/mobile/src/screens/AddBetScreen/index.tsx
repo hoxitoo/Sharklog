@@ -7,7 +7,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { Sport, BetType, Strategy, BetStatus, EsportsDiscipline, Team } from '@sharklog/core';
+import type { Sport, BetType, Strategy, BetStatus, EsportsDiscipline, Team, Bet } from '@sharklog/core';
 import {
   SPORTS, BET_TYPES, STRATEGIES, ESPORTS_DISCIPLINES, parseMoneyInput, formatMoney,
   impliedProbability, halfKelly, expectedValue, recommendedStake, CURRENT_SCHEMA_VERSION, FREE_LIMITS,
@@ -496,7 +496,7 @@ export function AddBetScreen() {
 
   const [isFreebet, setIsFreebet] = useState(editBet?.isFreebet ?? false);
   // Auto-expand extras when editing bet that has non-default values
-  const hasExtraValues = !!(editBet?.tournament || editBet?.notes || editBet?.isFreebet);
+  const hasExtraValues = !!(editBet?.tournament || editBet?.notes || editBet?.isFreebet || editBet?.closingOdds != null);
   const [showExtra, setShowExtra] = useState(hasExtraValues);
 
   const now = new Date();
@@ -651,6 +651,9 @@ export function AddBetScreen() {
       ...(data.betType === 'other' && data.customBetType.trim() ? { customBetType: data.customBetType.trim() } : {}),
       ...(data.strategy === 'other' && data.customStrategy.trim() ? { customStrategy: data.customStrategy.trim() } : {}),
     };
+    // On EDIT, an emptied closing-odds field must actively clear the stored value —
+    // a plain {...bet, ...updates} merge would otherwise keep the old one.
+    const closingOddsClear = { closingOdds: closingOddsVal > 1 ? closingOddsVal : undefined } as Partial<Bet>;
     const cashoutExtras = data.status === 'cashout' && data.cashoutAmount
       ? { cashoutAmount: parseMoneyInput(data.cashoutAmount) }
       : {};
@@ -692,7 +695,7 @@ export function AddBetScreen() {
           event, pick, odds: oddsVal, stake: stakeVal,
           sport: data.sport, betType: data.betType, strategy: data.strategy,
           status: data.status, bookmaker: data.bookmaker,
-          date: dateVal, time: timeVal, ...extras, ...cashoutExtras,
+          date: dateVal, time: timeVal, ...extras, ...closingOddsClear, ...cashoutExtras,
           ...(isFreebet ? { isFreebet: true } : {}),
         });
       } else {
@@ -742,7 +745,7 @@ export function AddBetScreen() {
           event, pick: pickStr, odds: combinedOdds, stake: stakeVal,
           sport: expressSport, betType: 'express', strategy: data.strategy,
           status: data.status, bookmaker: data.bookmaker,
-          date: dateVal, time: timeVal, ...expressExtras, ...cashoutExtras,
+          date: dateVal, time: timeVal, ...expressExtras, ...closingOddsClear, ...cashoutExtras,
           ...(isFreebet ? { isFreebet: true } : {}),
         });
       } else {

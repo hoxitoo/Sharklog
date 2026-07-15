@@ -105,6 +105,14 @@ describe('calcLastFullMonth', () => {
     expect(r.label).toBe('2023-12');
     expect(r.pnl).toBe(100_00);
   });
+
+  it('counts cashouts as settled (consistent with pnl)', () => {
+    const now = new Date(2024, 5, 15); // June → May
+    const bets = [makeBet({ status: 'cashout', stake: 100_00, cashoutAmount: 150_00, date: '2024-05-10' })];
+    const r = calcLastFullMonth(bets, now);
+    expect(r.pnl).toBe(50_00);
+    expect(r.count).toBe(1); // cashout is a settled bet
+  });
 });
 
 describe('calcTimeStats', () => {
