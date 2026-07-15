@@ -60,6 +60,7 @@
     "pickOdds": "Коэф",
     "pickOutcome": "Исход",
     "searchPlaceholder": "Поиск по событию или выбору...",
+    "cashoutPrompt": "Сумма выкупа ₽",
     "notFound": "Ничего не найдено",
     "tryOtherSearch": "Попробуй другой запрос или очисти фильтр",
     "noBetsYet": "Ставок пока нет",

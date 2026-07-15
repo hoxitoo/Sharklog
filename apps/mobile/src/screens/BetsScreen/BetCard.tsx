@@ -1,7 +1,7 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
 import type { Bet } from '@sharklog/core';
-import { SPORTS, BET_TYPES, formatMoney, formatOdds } from '@sharklog/core';
+import { SPORTS, BET_TYPES, formatMoney, formatOdds, parseMoneyInput } from '@sharklog/core';
 import { colors } from '../../theme/colors';
 import { StatusBadge } from '../../components/StatusBadge';
 import { useBetsStore } from '../../store/betsStore';
@@ -21,6 +21,18 @@ function displayEvent(event: string): string {
 export const BetCard = React.memo(function BetCard({ bet, onEdit }: Props) {
   const { updateBet } = useBetsStore();
   const { t } = useTranslation();
+  // Inline cashout entry: tapping "C" reveals an amount field instead of opening the full editor.
+  const [cashoutOpen, setCashoutOpen] = useState(false);
+  const [cashoutText, setCashoutText] = useState('');
+
+  function confirmCashout() {
+    const amount = parseMoneyInput(cashoutText);
+    if (amount <= 0) { haptic.error(); return; }
+    haptic.success();
+    updateBet(bet.id, { status: 'cashout', cashoutAmount: amount });
+    setCashoutOpen(false);
+    setCashoutText('');
+  }
 
   const potentialWin = Math.round(bet.stake * bet.odds);
   const pnl = bet.status === 'won'
@@ -83,7 +95,7 @@ export const BetCard = React.memo(function BetCard({ bet, onEdit }: Props) {
         ) : null}
       </View>
 
-      {bet.status === 'pending' && (
+      {bet.status === 'pending' && !cashoutOpen && (
         <View style={styles.quickResultRow}>
           <TouchableOpacity
             style={[styles.resultChip, styles.chipWon]}
@@ -108,16 +120,42 @@ export const BetCard = React.memo(function BetCard({ bet, onEdit }: Props) {
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.resultChip, styles.chipRefund]}
-            onPress={() => {
-              haptic.warning();
-              updateBet(bet.id, { status: 'cashout' });
-              onEdit(bet);
-            }}
+            onPress={() => { haptic.selection(); setCashoutOpen(true); }}
             activeOpacity={0.75}
           >
             <Text style={[styles.chipText, { color: colors.refund }]}>C</Text>
           </TouchableOpacity>
           <Text style={styles.quickResultHint}>{t('bet.edit')}</Text>
+        </View>
+      )}
+
+      {bet.status === 'pending' && cashoutOpen && (
+        <View style={styles.cashoutRow}>
+          <TextInput
+            style={styles.cashoutInput}
+            placeholder={t('bet.cashoutPrompt')}
+            placeholderTextColor={colors.textMuted}
+            value={cashoutText}
+            onChangeText={setCashoutText}
+            keyboardType="numeric"
+            autoFocus
+            returnKeyType="done"
+            onSubmitEditing={confirmCashout}
+          />
+          <TouchableOpacity
+            style={[styles.cashoutBtn, styles.cashoutConfirm]}
+            onPress={confirmCashout}
+            activeOpacity={0.75}
+          >
+            <Text style={[styles.cashoutBtnText, { color: colors.won }]}>✓</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.cashoutBtn, styles.cashoutCancel]}
+            onPress={() => { haptic.selection(); setCashoutOpen(false); setCashoutText(''); }}
+            activeOpacity={0.75}
+          >
+            <Text style={[styles.cashoutBtnText, { color: colors.textMuted }]}>✕</Text>
+          </TouchableOpacity>
         </View>
       )}
 
@@ -180,6 +218,37 @@ const styles = StyleSheet.create({
   chipRefund: { backgroundColor: colors.refund + '18', borderColor: colors.refund + '55' },
   chipText: { fontSize: 13, fontWeight: '700' },
   quickResultHint: { fontSize: 11, color: colors.textMuted, marginLeft: 4 },
+  cashoutRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  cashoutInput: {
+    flex: 1,
+    height: 36,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    backgroundColor: colors.bgElevated,
+    borderWidth: 1,
+    borderColor: colors.refund + '55',
+    color: colors.textPrimary,
+    fontSize: 14,
+  },
+  cashoutBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  cashoutConfirm: { backgroundColor: colors.won + '18', borderColor: colors.won + '55' },
+  cashoutCancel: { backgroundColor: colors.bgElevated, borderColor: colors.border },
+  cashoutBtnText: { fontSize: 16, fontWeight: '700' },
   notes: { fontSize: 12, color: colors.textMuted, marginTop: 6, fontStyle: 'italic' },
   cashoutAmt: { fontSize: 11, color: colors.refund, marginTop: 1 },
   freebetBadge: {

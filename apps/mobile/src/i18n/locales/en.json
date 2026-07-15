@@ -60,6 +60,7 @@
     "pickOdds": "Odds",
     "pickOutcome": "Pick",
     "searchPlaceholder": "Search by event or pick...",
+    "cashoutPrompt": "Cashout amount ₽",
     "notFound": "Nothing found",
     "tryOtherSearch": "Try a different query or clear filter",
     "noBetsYet": "No bets yet",
