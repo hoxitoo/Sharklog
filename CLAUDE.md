@@ -35,6 +35,8 @@ docs/            — ROADMAP.md, ANALYSIS.md, PRIVACY_POLICY.md
 - **Запись в стор сериализована** через `writeChain` (промис-цепочка) в обоих `betsStore` — не вызывай `saveData`/`setItem` напрямую в обход `persist()`.
 - **`clearAll`** чистит только данные (ставки/дневник/банк), но СОХРАНЯЕТ настройки и подписку (PRO/язык/букмекеры) — не сбрасывай `settings` к дефолтам.
 - **Даты-строки `YYYY-MM-DD`** парсь как локальные (`new Date(\`${d}T00:00:00\`)`), bare-строка парсится как UTC и смещает день. На десктопе локаль для `toLocaleDateString` — через `dateLocale(lang)` из `i18n`.
+- **Очистка опциональных полей на edit**: `updateBet` делает merge `{...bet, ...updates}`, поэтому пустое поле, просто *опущенное* из `updates`, НЕ стирает старое значение. Чтобы очистить (напр. `closingOdds`/`cashoutAmount`), передавай ключ явно как `undefined` (через `... as Partial<Bet>`), а не опускай его.
+- **Inline-инпуты в списках**: у `SectionList`/`FlatList` с полем ввода внутри строки ставь `keyboardShouldPersistTaps="handled"`, иначе первый тап по кнопке при открытой клавиатуре съедается (двойной тап). Пример — inline-выкуп в `BetCard`.
 
 ## Цветовая система
 
@@ -109,7 +111,7 @@ new Date(str).toLocaleDateString(locale, { day: 'numeric', month: 'short' });
 
 ```bash
 # Тесты
-cd packages/core && npx vitest run        # 79 unit-тестов core
+cd packages/core && npx vitest run        # 80 unit-тестов core
 cd apps/desktop  && npm test              # 40 smoke-тестов desktop (Vitest)
 cd apps/mobile   && npm test              # 25 smoke-тестов mobile (Jest)
 

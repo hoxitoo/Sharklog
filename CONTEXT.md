@@ -346,7 +346,7 @@ VITE_OWNER_PRO=true
 
 ## CI / Build
 
-- **CI**: `.github/workflows/ci.yml` — `npm ci` → vitest (core 79 + desktop 40) → mobile tests (25) → tsc mobile+desktop
+- **CI**: `.github/workflows/ci.yml` — `npm ci` → vitest (core 80 + desktop 40) → mobile tests (25) → tsc mobile+desktop
 - **EAS Build**: `.github/workflows/eas-build.yml` — ручной `workflow_dispatch`
   - Требует: `EXPO_TOKEN` secret + реальный `projectId` в `app.json`
 - **EAS профили**: development / preview (APK) / production (autoIncrement)
@@ -373,7 +373,7 @@ VITE_OWNER_PRO=true
 - [x] Bugfix: totalStaked включает refund-ставки (ROI был завышен)
 - [x] Bugfix: period filter off-by-one (>= → >)
 - [x] formatPercent() — добавляет + для положительных значений
-- [x] 79 vitest unit tests (stats x36, analytics x13, formatters x21, kelly x6, migrations x3 — все зелёные)
+- [x] 80 vitest unit tests (stats x36, analytics x14, formatters x21, kelly x6, migrations x3 — все зелёные)
 
 ### i18n / Локализация (обе платформы)
 - [x] 4 языка: ru / en / kz (казахский) / by (беларуский)
@@ -454,10 +454,10 @@ VITE_OWNER_PRO=true
 ## Тесты
 
 ```
-packages/core          79 vitest unit tests (stats, analytics, formatters, kelly, migrations)
+packages/core          80 vitest unit tests (stats, analytics, formatters, kelly, migrations)
 apps/desktop           40 vitest smoke tests (betsStore x25, importBets x15)
 apps/mobile            25 jest smoke tests (betsStore x19, chartScale x6)
-ИТОГО                  144 теста
+ИТОГО                  145 тестов
 ```
 
 ---
