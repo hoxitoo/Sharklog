@@ -11,13 +11,16 @@ apps/mobile/src/
   screens/
     BetsScreen/              — SectionList с датами + daily P&L, search, status filter (scroll), sort row,
                                swipe-to-delete, haptics; quick-result chips W/L/R/C
+                               BetCard: тап «C» раскрывает inline-поле суммы выкупа (не открывает полный редактор)
     AddBetScreen/            — react-hook-form, TeamAutocomplete, Kelly calculator (collapsible),
-                               tournament/league TextInput field, status includes cashout
+                               tournament/league TextInput field, «Кэф закрытия (CLV)» optional field, status includes cashout
                                KeyboardAvoidingView: 'padding' iOS / 'height' Android
                                TournamentInput получает scrollRef → scrollToEnd при фокусе (клавиатура не перекрывает)
     DashboardScreen/         — period filter (7д/30д/Всё), stats grid, W/L strip, heatmap, P&L chart,
                                best/worst bet, strategy badge (кликабельная плашка → StrategyBuilder)
-    AnalyticsScreen/         — period filter (7д/30д/Всё), SummaryCard + 8 срезов с барами (PRO via ProGate)
+    AnalyticsScreen/         — РЕДИЗАЙН: hero-состояние (P&L+спарклайн, серии, рекорды, прошлый месяц с трендом,
+                               время-донат 6 промежутков + топ-4 часа с P&L 12/24h, CLV) + collapsible
+                               «Расширенная статистика» (sport/betType/bookmaker/strategy/odds/day). PRO via ProGate
     InsightsScreen/          — period filter; Tournaments table (Free); Favorite Teams cards (PRO via ProGate)
     BankrollScreen/          — equity curve LineChart с Y-axis подписями, текущий банк в заголовке,
                                маркеры депозита (зелёная точка) / вывода (красная точка) через customDataPoint;
@@ -65,6 +68,7 @@ apps/mobile/src/
                                negative-квадрант ТОЛЬКО при отрицательных данных), chartHeightForBudget, formatChartYLabel
                                ВАЖНО: не передавать mostNegativeValue вручную — библиотека рисует полную секцию
                                ниже нуля и добавляет её высоту к контейнеру (переполнение карточки)
+    clockFormat.ts           — uses12HourClock() → true если система в 12h (Intl.formatToParts dayPeriod)
   __tests__/
     betsStore.test.ts        — 19 smoke tests (canAddBet, addBet, deleteBet, updateBet, clearAll, express team extraction, clearAll preserves prefs)
     __mocks__/
@@ -137,16 +141,18 @@ apps/desktop/src/            — React+Vite frontend (TypeScript strict), Tauri 
     logo-512.png             — high-res version
 
 packages/core/src/
-  types/bet.ts               — Bet (+ tournament? field), Team, EsportsDiscipline, Bankroll, DiaryEntry,
+  types/bet.ts               — Bet (+ tournament?, + closingOdds? для CLV), Team, EsportsDiscipline, Bankroll, DiaryEntry,
                                AppSettings (+ generatedStrategy?), StorageSchema
                                BetStatus: 'pending'|'won'|'lost'|'refund'|'cashout'
                                Strategy types: StrategyAnswers, GeneratedStrategy + 10 answer union types
   constants/index.ts         — SPORTS, BET_TYPES, STRATEGIES, ESPORTS_DISCIPLINES, FREE_LIMITS, ODDS_RANGES
   utils/
     stats.ts                 — calcDashboard, calcByField, calcByOddsRange, calcByDayOfWeek, calcByHour,
-                               isInTilt, calcByTournament, calcByTeam, parseEventTeams
+                               isInTilt, calcByTournament, calcByTeam, parseEventTeams, betPnl
                         getPickedTeams(event, pick) — внутренний хелпер для calcByTeam;
                         атрибутирует ставку только команде, на которую ставил игрок (П1/П2/Ф1/Ф2 + прямые имена)
+    analytics.ts             — calcStreaks, calcExtremes, calcLastFullMonth(bets, now), calcCLV,
+                               calcTimeStats(bets, use12h) — 6 промежутков для доната + топ-4 часа с P&L
     kelly.ts                 — kellyFraction, halfKelly, expectedValue, impliedProbability, recommendedStake
     formatters.ts            — formatMoney(kopecks, currency='₽', maxDecimals=2), parseMoneyInput, formatOdds, formatPercent (adds + prefix)
     strategyBuilder.ts       — STRATEGY_QUESTIONS (10 вопросов), buildStrategy(answers) → GeneratedStrategy
@@ -340,7 +346,7 @@ VITE_OWNER_PRO=true
 
 ## CI / Build
 
-- **CI**: `.github/workflows/ci.yml` — `npm ci` → vitest (core 66 + desktop 40) → mobile tests (25) → tsc mobile+desktop
+- **CI**: `.github/workflows/ci.yml` — `npm ci` → vitest (core 79 + desktop 40) → mobile tests (25) → tsc mobile+desktop
 - **EAS Build**: `.github/workflows/eas-build.yml` — ручной `workflow_dispatch`
   - Требует: `EXPO_TOKEN` secret + реальный `projectId` в `app.json`
 - **EAS профили**: development / preview (APK) / production (autoIncrement)
@@ -367,7 +373,7 @@ VITE_OWNER_PRO=true
 - [x] Bugfix: totalStaked включает refund-ставки (ROI был завышен)
 - [x] Bugfix: period filter off-by-one (>= → >)
 - [x] formatPercent() — добавляет + для положительных значений
-- [x] 66 vitest unit tests (stats x36, formatters x21, kelly x6, migrations x3 — все зелёные)
+- [x] 79 vitest unit tests (stats x36, analytics x13, formatters x21, kelly x6, migrations x3 — все зелёные)
 
 ### i18n / Локализация (обе платформы)
 - [x] 4 языка: ru / en / kz (казахский) / by (беларуский)
@@ -448,10 +454,10 @@ VITE_OWNER_PRO=true
 ## Тесты
 
 ```
-packages/core          66 vitest unit tests (stats, formatters, kelly, migrations)
+packages/core          79 vitest unit tests (stats, analytics, formatters, kelly, migrations)
 apps/desktop           40 vitest smoke tests (betsStore x25, importBets x15)
 apps/mobile            25 jest smoke tests (betsStore x19, chartScale x6)
-ИТОГО                  131 тест
+ИТОГО                  144 теста
 ```
 
 ---

@@ -38,6 +38,7 @@ interface FormData {
   status: BetStatus;
   notes: string;
   cashoutAmount: string;
+  closingOdds: string;
   bookmaker: string;
   tournament: string;
   date: string;
@@ -557,6 +558,7 @@ export function AddBetScreen() {
       status: editBet?.status ?? 'pending',
       notes: editBet?.notes ?? '',
       cashoutAmount: editBet?.cashoutAmount != null ? String(editBet.cashoutAmount / 100) : '',
+      closingOdds: editBet?.closingOdds != null ? String(editBet.closingOdds) : '',
       bookmaker: editBet?.bookmaker ?? (settings.bookmakers[0] ?? ''),
       tournament: editBet?.tournament ?? '',
       date: editBet?.date ?? defaultDate,
@@ -639,10 +641,12 @@ export function AddBetScreen() {
       return;
     }
 
+    const closingOddsVal = parseFloat(nd(data.closingOdds));
     const extras = {
       ...(data.sport === 'esports' ? { discipline: data.discipline } : {}),
       ...(data.notes ? { notes: data.notes } : {}),
       ...(data.tournament?.trim() ? { tournament: data.tournament.trim() } : {}),
+      ...(!isNaN(closingOddsVal) && closingOddsVal > 1 ? { closingOdds: closingOddsVal } : {}),
       ...(data.sport === 'other' && data.customSport.trim() ? { customSport: data.customSport.trim() } : {}),
       ...(data.betType === 'other' && data.customBetType.trim() ? { customBetType: data.customBetType.trim() } : {}),
       ...(data.strategy === 'other' && data.customStrategy.trim() ? { customStrategy: data.customStrategy.trim() } : {}),
@@ -1359,6 +1363,23 @@ export function AddBetScreen() {
                 name="tournament"
                 render={({ field: { onChange, value } }) => (
                   <TournamentInput value={value} onChange={onChange} scrollRef={scrollRef} />
+                )}
+              />
+            </Field>
+
+            <Field label="Кэф закрытия (CLV) — необязательно">
+              <Controller
+                control={control}
+                name="closingOdds"
+                render={({ field: { onChange, value } }) => (
+                  <TextInput
+                    style={inputStyle}
+                    placeholder="Напр. 1.95 — коэф перед стартом матча"
+                    placeholderTextColor={colors.textMuted}
+                    value={value}
+                    onChangeText={onChange}
+                    keyboardType="decimal-pad"
+                  />
                 )}
               />
             </Field>
