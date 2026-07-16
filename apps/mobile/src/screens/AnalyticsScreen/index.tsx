@@ -1,13 +1,13 @@
 import React, { useState, useMemo } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Alert } from 'react-native';
 import { PieChart, LineChart } from 'react-native-gifted-charts';
 import {
   calcByField, calcByOddsRange, calcByDayOfWeek, calcDashboard,
-  calcStreaks, calcExtremes, calcLastFullMonth, calcTimeStats, calcCLV,
+  calcStreaks, calcExtremes, calcLastFullMonth, calcMonthResult, calcTimeStats, calcCLV,
   calcMaxDrawdown, calcEdge, calcMonthlyPnl, RELIABLE_SAMPLE_MIN,
   SPORTS, BET_TYPES, STRATEGIES, formatPercent,
 } from '@sharklog/core';
-import type { SliceStats, Bet } from '@sharklog/core';
+import type { SliceStats, Bet, MonthlyPnl } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { ProGate } from '../../components/ProGate';
 import { ScreenHeader } from '../../components/ScreenHeader';
@@ -117,14 +117,28 @@ const hero = StyleSheet.create({
 
 // ── Two-tile row (streaks, extremes) ─────────────────────────────────────────
 
-function MiniTile({ label, value, color, sub }: { label: string; value: string; color: string; sub?: string }) {
+interface TileInfo { title: string; text: string }
+
+function MiniTile({ label, value, color, sub, info }: {
+  label: string; value: string; color: string; sub?: string; info?: TileInfo;
+}) {
   // Fixed label/value/sub bands so the value numbers align across tiles
   // regardless of 1- vs 2-line labels (fixes the "jumping numbers" look).
   return (
     <View style={tile.box}>
-      <Text style={tile.label} numberOfLines={2}>{label}</Text>
+      <Text style={[tile.label, info ? tile.labelWithInfo : null]} numberOfLines={2}>{label}</Text>
       <Text style={[tile.value, { color }]} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
       <Text style={tile.sub} numberOfLines={1}>{sub ?? ''}</Text>
+      {info && (
+        <TouchableOpacity
+          style={tile.infoBtn}
+          onPress={() => Alert.alert(info.title, info.text)}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+          activeOpacity={0.7}
+        >
+          <Text style={tile.infoBtnText}>?</Text>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -135,8 +149,16 @@ const tile = StyleSheet.create({
     borderWidth: 1, borderColor: colors.border,
   },
   label: { fontSize: 11, color: colors.textMuted, marginBottom: 6, lineHeight: 14, height: 28 }, // reserve 2 lines
+  labelWithInfo: { paddingRight: 18 }, // keep clear of the "?" badge
   value: { fontSize: 20, fontWeight: '800', height: 26, textAlignVertical: 'center' },
   sub: { fontSize: 10, color: colors.textMuted, marginTop: 4, height: 13 }, // always reserved
+  infoBtn: {
+    position: 'absolute', top: 8, right: 8,
+    width: 16, height: 16, borderRadius: 8,
+    backgroundColor: colors.bgCard, borderWidth: 1, borderColor: colors.border,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  infoBtnText: { fontSize: 10, color: colors.textMuted, fontWeight: '700' },
 });
 
 function StreaksCard({ bets }: { bets: Bet[] }) {
@@ -174,6 +196,10 @@ function ExtremesCard({ bets }: { bets: Bet[] }) {
           value={e.biggestWin ? `+${fmt(e.biggestWin.pnl)}` : '—'}
           color={colors.won}
           {...(e.biggestWin ? { sub: cleanEvent(e.biggestWin.bet.event) } : {})}
+          info={{
+            title: 'Самый большой выигрыш',
+            text: 'Лучшая ставка за выбранный период: максимальный чистый выигрыш по одной ставке (выплата минус сумма ставки).\n\nПод значением — событие, на котором он случился.',
+          }}
         />
         <View style={{ width: 10 }} />
         <MiniTile
@@ -181,6 +207,10 @@ function ExtremesCard({ bets }: { bets: Bet[] }) {
           value={e.biggestLoss ? fmt(e.biggestLoss.pnl) : '—'}
           color={colors.lost}
           {...(e.biggestLoss ? { sub: cleanEvent(e.biggestLoss.bet.event) } : {})}
+          info={{
+            title: 'Самый большой проигрыш',
+            text: 'Худшая ставка за выбранный период: максимальная чистая потеря по одной ставке.\n\nПроигранные фрибеты не учитываются — их P&L равен 0, это были не твои деньги.',
+          }}
         />
       </View>
     </Card>
@@ -208,6 +238,10 @@ function EdgeRiskCard({ bets }: { bets: Bet[] }) {
           value={e.sampleSize === 0 ? '—' : `${hasEdge ? '+' : ''}${e.edge.toFixed(1)}%`}
           color={e.sampleSize === 0 ? colors.textMuted : hasEdge ? colors.won : colors.lost}
           sub={e.sampleSize === 0 ? '' : `WR ${e.winRate.toFixed(0)}% · б/у ${e.breakEvenRate.toFixed(0)}%`}
+          info={{
+            title: 'Перевес над безубытком',
+            text: 'Сравнивает твой процент побед (WR) с безубыточным при твоём среднем кэфе.\n\nБезубыток (б/у) = 100 / средний кэф. Пример: средний кэф 2.20 → нужно выигрывать 45.5% ставок, чтобы выйти в ноль. Если WR выше — у тебя перевес, и на дистанции ты в плюсе.\n\nЭто приближённая оценка: она становится надёжной от ~100 закрытых ставок.',
+          }}
         />
         <View style={{ width: 10 }} />
         <MiniTile
@@ -215,6 +249,10 @@ function EdgeRiskCard({ bets }: { bets: Bet[] }) {
           value={dd.maxDrawdown > 0 ? `−${fmt(dd.maxDrawdown)}` : fmt(0)}
           color={dd.maxDrawdown > 0 ? colors.lost : colors.textMuted}
           sub={dd.maxDrawdownPct > 0 ? `−${dd.maxDrawdownPct.toFixed(0)}% от пика` : 'нет просадки'}
+          info={{
+            title: 'Макс. просадка',
+            text: 'Самое глубокое падение накопленного P&L от пика до дна за историю ставок.\n\nЭто главная мера риска: она показывает худший «провал» в деньгах, который ты пережил. «−88% от пика» значит, что в худший момент ты растерял 88% накопленной прибыли.\n\nЧем меньше просадка при том же ROI — тем стабильнее стратегия и ниже риск слить банк.',
+          }}
         />
       </View>
       {lowSample && (
@@ -232,21 +270,29 @@ const edge = StyleSheet.create({
 
 // ── Monthly P&L trend (6 compact bars) ───────────────────────────────────────
 
-function MonthlyBars({ bets }: { bets: Bet[] }) {
-  const data = useMemo(() => calcMonthlyPnl(bets, new Date(), 6), [bets]);
+function MonthlyBars({ data, selected, onSelect }: {
+  data: MonthlyPnl[];
+  selected: { y: number; m: number };
+  onSelect: (y: number, m: number) => void;
+}) {
   const maxAbs = Math.max(...data.map((d) => Math.abs(d.pnl)), 1);
   const HALF = 34;
 
   return (
     <View style={mbars.wrap}>
-      {data.map((d, i) => {
-        const isCurrent = i === data.length - 1;
+      {data.map((d) => {
+        const isSelected = d.year === selected.y && d.month === selected.m;
         const frac = Math.abs(d.pnl) / maxAbs;
         const barH = d.count === 0 ? 0 : Math.max(frac * HALF, 3);
         const pos = d.pnl >= 0;
-        const barColor = (pos ? colors.won : colors.lost) + (isCurrent ? '' : 'AA');
+        const barColor = (pos ? colors.won : colors.lost) + (isSelected ? '' : 'AA');
         return (
-          <View key={`${d.year}-${d.month}`} style={mbars.col}>
+          <TouchableOpacity
+            key={`${d.year}-${d.month}`}
+            style={[mbars.col, isSelected && mbars.colSelected]}
+            onPress={() => { haptic.selection(); onSelect(d.year, d.month); }}
+            activeOpacity={0.7}
+          >
             <View style={mbars.top}>
               {pos && barH > 0 && <View style={[mbars.bar, { height: barH, backgroundColor: barColor }]} />}
             </View>
@@ -254,8 +300,8 @@ function MonthlyBars({ bets }: { bets: Bet[] }) {
             <View style={mbars.bottom}>
               {!pos && barH > 0 && <View style={[mbars.bar, { height: barH, backgroundColor: barColor }]} />}
             </View>
-            <Text style={[mbars.label, isCurrent && mbars.labelCurrent]}>{MONTHS_SHORT_RU[d.month]}</Text>
-          </View>
+            <Text style={[mbars.label, isSelected && mbars.labelSelected]}>{MONTHS_SHORT_RU[d.month]}</Text>
+          </TouchableOpacity>
         );
       })}
     </View>
@@ -264,28 +310,42 @@ function MonthlyBars({ bets }: { bets: Bet[] }) {
 
 const mbars = StyleSheet.create({
   wrap: { flexDirection: 'row', marginTop: 16 },
-  col: { flex: 1, alignItems: 'center' },
+  col: { flex: 1, alignItems: 'center', borderRadius: 8, paddingVertical: 2 },
+  colSelected: { backgroundColor: colors.bgElevated },
   top: { height: 34, justifyContent: 'flex-end', width: '100%', alignItems: 'center' },
   bottom: { height: 34, justifyContent: 'flex-start', width: '100%', alignItems: 'center' },
   mid: { height: 1, backgroundColor: colors.border, alignSelf: 'stretch' },
   bar: { width: 14, borderRadius: 3 },
   label: { fontSize: 10, color: colors.textMuted, marginTop: 5 },
-  labelCurrent: { color: colors.textPrimary, fontWeight: '700' },
+  labelSelected: { color: colors.textPrimary, fontWeight: '700' },
 });
 
-// ── Last full month ──────────────────────────────────────────────────────────
+// ── Month summary (last full month by default; bars select any of the last 6) ─
 
 function LastMonthCard({ bets }: { bets: Bet[] }) {
   const fmt = useFormatMoney();
-  const m = useMemo(() => calcLastFullMonth(bets, new Date()), [bets]);
+  // null → default (last full month); set by tapping a bar. Tapping again resets.
+  const [sel, setSel] = useState<{ y: number; m: number } | null>(null);
+  const trend = useMemo(() => calcMonthlyPnl(bets, new Date(), 6), [bets]);
+  const m = useMemo(
+    () => (sel ? calcMonthResult(bets, sel.y, sel.m) : calcLastFullMonth(bets, new Date())),
+    [bets, sel],
+  );
   const positive = m.pnl >= 0;
   const pnlColor = positive ? colors.won : colors.lost;
   const trendUp = m.deltaPnl >= 0;
 
+  const now = new Date();
+  const isCurrentMonth = m.year === now.getFullYear() && m.month === now.getMonth();
+  const monthName = `${MONTHS_RU[m.month]}${m.year !== now.getFullYear() ? ` ${m.year}` : ''}`;
+  const title = sel
+    ? `Итог месяца · ${monthName}${isCurrentMonth ? ' (идёт)' : ''}`
+    : `Прошлый месяц · ${monthName}`;
+
   return (
-    <Card title={`Прошлый месяц · ${MONTHS_RU[m.month]}`}>
+    <Card title={title}>
       {m.count === 0 ? (
-        <Text style={month.empty}>Нет закрытых ставок за {MONTHS_RU[m.month]}</Text>
+        <Text style={month.empty}>Нет закрытых ставок за {monthName}</Text>
       ) : (
         <View style={month.rowWrap}>
           <View style={month.main}>
@@ -302,9 +362,13 @@ function LastMonthCard({ bets }: { bets: Bet[] }) {
           </View>
         </View>
       )}
-      {/* 6-month trend for context — is this one good month or steady form? */}
-      <MonthlyBars bets={bets} />
-      <Text style={month.barsCaption}>Последние 6 месяцев</Text>
+      {/* 6-month trend for context — tap a bar to see that month's summary */}
+      <MonthlyBars
+        data={trend}
+        selected={{ y: m.year, m: m.month }}
+        onSelect={(y, mo) => setSel((prev) => (prev && prev.y === y && prev.m === mo ? null : { y, m: mo }))}
+      />
+      <Text style={month.barsCaption}>Последние 6 месяцев · нажми на месяц</Text>
     </Card>
   );
 }
@@ -427,6 +491,10 @@ function ClvCard({ bets }: { bets: Bet[] }) {
           value={`${good ? '+' : ''}${c.avgClvPercent.toFixed(1)}%`}
           color={good ? colors.won : colors.lost}
           sub={`по ${c.count} ставкам`}
+          info={{
+            title: 'Средний CLV',
+            text: 'Closing Line Value — насколько твой кэф в среднем лучше кэфа закрытия линии.\n\nCLV = (твой кэф / кэф закрытия − 1) × 100%. Пример: взял 2.10, линия закрылась на 2.00 → CLV +5%.\n\nСтабильно положительный CLV — главный признак того, что ты обыгрываешь линию, а не просто ловишь удачу. Заполняй «кэф закрытия» при вводе ставки.',
+          }}
         />
         <View style={{ width: 10 }} />
         <MiniTile
@@ -434,6 +502,10 @@ function ClvCard({ bets }: { bets: Bet[] }) {
           value={`${c.beatCloseRate.toFixed(0)}%`}
           color={c.beatCloseRate >= 50 ? colors.won : colors.textPrimary}
           sub="кэф выше закрытия"
+          info={{
+            title: 'Обыграл линию',
+            text: 'Доля ставок, в которых твой кэф оказался выше кэфа закрытия.\n\nСтабильно выше 50% — ты берёшь цену лучше рынка: находишь value раньше, чем линия сдвигается.',
+          }}
         />
       </View>
     </Card>

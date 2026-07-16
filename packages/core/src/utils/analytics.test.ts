@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   calcStreaks, calcExtremes, calcLastFullMonth, calcTimeStats, calcCLV,
-  calcMaxDrawdown, calcEdge, calcMonthlyPnl,
+  calcMaxDrawdown, calcEdge, calcMonthlyPnl, calcMonthResult,
 } from './analytics';
 import type { Bet } from '../types/bet';
 
@@ -227,5 +227,19 @@ describe('calcMonthlyPnl', () => {
     expect(r[r.length - 1]).toMatchObject({ year: 2024, month: 5, pnl: 100_00 }); // June (current)
     expect(r[r.length - 2]).toMatchObject({ year: 2024, month: 4, pnl: -40_00 }); // May
     expect(r[0]).toMatchObject({ month: 0 }); // January (6 months back from June)
+  });
+});
+
+describe('calcMonthResult', () => {
+  it('returns the summary for an arbitrary month with trend vs the month before', () => {
+    const bets = [
+      makeBet({ status: 'won', stake: 100_00, odds: 2.0, date: '2024-03-10' }), // +100 March
+      makeBet({ status: 'lost', stake: 30_00, date: '2024-02-20' }),            // -30 February
+    ];
+    const r = calcMonthResult(bets, 2024, 2); // March
+    expect(r.label).toBe('2024-03');
+    expect(r.pnl).toBe(100_00);
+    expect(r.count).toBe(1);
+    expect(r.deltaPnl).toBe(100_00 - (-30_00));
   });
 });

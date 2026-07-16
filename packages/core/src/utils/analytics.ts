@@ -85,13 +85,9 @@ function betsInMonth(bets: Bet[], y: number, m: number): Bet[] {
   return bets.filter((b) => b.date >= start && b.date <= end);
 }
 
-/** Result for the previous full calendar month relative to `now`. */
-export function calcLastFullMonth(bets: Bet[], now: Date): MonthResult {
-  const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const y = prev.getFullYear();
-  const m = prev.getMonth();
-
-  const monthBets = betsInMonth(bets, y, m);
+/** Result for an arbitrary calendar month (trend delta vs the month before it). */
+export function calcMonthResult(bets: Bet[], year: number, month: number): MonthResult {
+  const monthBets = betsInMonth(bets, year, month);
   const d = calcDashboard(monthBets);
   // "Settled" is consistent with pnl/roi, which include cashouts (see calcDashboard).
   const settledCount = monthBets.filter(
@@ -99,20 +95,26 @@ export function calcLastFullMonth(bets: Bet[], now: Date): MonthResult {
   ).length;
 
   // Month before, for the trend delta
-  const before = new Date(y, m - 1, 1);
+  const before = new Date(year, month - 1, 1);
   const beforeBets = betsInMonth(bets, before.getFullYear(), before.getMonth());
   const beforePnl = calcDashboard(beforeBets).pnl;
 
   return {
-    year: y,
-    month: m,
-    label: `${y}-${String(m + 1).padStart(2, '0')}`,
+    year,
+    month,
+    label: `${year}-${String(month + 1).padStart(2, '0')}`,
     pnl: d.pnl,
     roi: d.roi,
     count: settledCount,
     winRate: d.winRate,
     deltaPnl: d.pnl - beforePnl,
   };
+}
+
+/** Result for the previous full calendar month relative to `now`. */
+export function calcLastFullMonth(bets: Bet[], now: Date): MonthResult {
+  const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+  return calcMonthResult(bets, prev.getFullYear(), prev.getMonth());
 }
 
 // ── Time-of-day distribution ─────────────────────────────────────────────────
