@@ -111,7 +111,7 @@ new Date(str).toLocaleDateString(locale, { day: 'numeric', month: 'short' });
 
 ```bash
 # Тесты
-cd packages/core && npx vitest run        # 87 unit-тестов core
+cd packages/core && npx vitest run        # 98 unit-тестов core
 cd apps/desktop  && npm test              # 40 smoke-тестов desktop (Vitest)
 cd apps/mobile   && npm test              # 25 smoke-тестов mobile (Jest)
 
@@ -239,7 +239,10 @@ screens/
                              автораскрытие при edit если доп. поля заполнены
                              KeyboardAvoidingView: behavior='padding' iOS / 'height' Android
                              TournamentInput: onFocus → scrollRef.scrollToEnd (поле не перекрывается клавиатурой)
-  DashboardScreen/         — стратегия-плашка → navigate('StrategyBuilder')
+  DashboardScreen/         — ПЕРЕРАБОТАН (не дублирует аналитику): сверху оборот по периоду + банкролл;
+                             главный блок — интерактивный график по дням (10 дней, тап → детали дня),
+                             «Развернуть» → ландшафтная таблица с фильтрами (rotate-трансформ, без нативных зависимостей)
+                             стратегия-плашка → navigate('StrategyBuilder')
                              тепловая карта за collapsible toggle
                              тилт-баннер с dismiss × (AsyncStorage @sharklog/tilt_dismiss_date)
                              haptic.warning() при первом определении тилта
@@ -292,6 +295,8 @@ utils/
                         betPnl(bet) — реализованный P&L одной ставки в копейках (общий хелпер)
                         getPickedTeams(event, pick) — внутренний хелпер: возвращает только команды,
                         на которые поставил игрок (П1/П2/Ф1/Ф2 и прямые имена); используется в calcByTeam
+  daily.ts            — calcDailyBreakdown/summarizeDays/toYmd — подневная статистика для дашборда
+                        (cumPnl/balance всегда по всей истории; toYmd — локальная дата, не toISOString)
   analytics.ts        — calcStreaks (лучшая W / худшая L / текущая), calcExtremes (макс выигрыш/проигрыш),
                         calcLastFullMonth(bets, now) (прошлый полный месяц + тренд), calcCLV (closingOdds),
                         calcTimeStats(bets, use12h) (6 4-часовых промежутков для доната + топ-4 часа с P&L),

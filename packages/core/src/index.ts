@@ -2,6 +2,7 @@ export * from './types/bet';
 export * from './constants/index';
 export * from './utils/stats';
 export * from './utils/analytics';
+export * from './utils/daily';
 export * from './utils/kelly';
 export * from './utils/formatters';
 export * from './utils/migrations';
