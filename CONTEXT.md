@@ -16,8 +16,18 @@ apps/mobile/src/
                                tournament/league TextInput field, «Кэф закрытия (CLV)» optional field, status includes cashout
                                KeyboardAvoidingView: 'padding' iOS / 'height' Android
                                TournamentInput получает scrollRef → scrollToEnd при фокусе (клавиатура не перекрывает)
-    DashboardScreen/         — period filter (7д/30д/Всё), stats grid, W/L strip, heatmap, P&L chart,
-                               best/worst bet, strategy badge (кликабельная плашка → StrategyBuilder)
+    DashboardScreen/         — ПЕРЕРАБОТАН: убраны дублирующие аналитику блоки (P&L/ROI/винрейт/банк-плитки,
+                               P&L-кривая, текущая серия). Сверху TurnoverCard: оборот по фильтру периода
+                               + банкролл (тап → Bankroll). Главный блок — DailyDashboardCard: интерактивный
+                               график за 10 календарных дней (бары выигрыш/проигрыш + линия P&L + маркеры
+                               деп/выводов), тап по дню → оборот/выигрыш/проигрыш/профит, сводка окна.
+                               Кнопка «Развернуть» → ExpandedDashboard (ландшафт через rotate-трансформ,
+                               БЕЗ нативной зависимости): фильтры дней (без ставок / без результата),
+                               тумблеры графика (P&L / Баланс / Деп-выводы), полная таблица по дням.
+                               Ниже: W/L strip, тепловая карта (collapsible), последние ставки
+    DashboardScreen/DailyChart.tsx      — бары (View) + линии P&L/баланса и маркеры кэша (react-native-svg);
+                               SERIES — палитра серий; ChartLegend
+    DashboardScreen/ExpandedDashboard.tsx — ландшафтная модалка (rotate 90°), фильтры + таблица дней
     AnalyticsScreen/         — РЕДИЗАЙН: hero-состояние (P&L+спарклайн, серии, рекорды,
                                «Перевес и риск» = WR vs безубыток + макс.просадка + бейдж малой выборки,
                                прошлый месяц с трендом + 6-мес бары, время-донат 6 промежутков + топ-4 часа
@@ -154,6 +164,9 @@ packages/core/src/
                                isInTilt, calcByTournament, calcByTeam, parseEventTeams, betPnl
                         getPickedTeams(event, pick) — внутренний хелпер для calcByTeam;
                         атрибутирует ставку только команде, на которую ставил игрок (П1/П2/Ф1/Ф2 + прямые имена)
+    daily.ts                 — calcDailyBreakdown(bets, transactions, {days?, endDate?}) → DayStats[]
+                               (непрерывный календарь; cumPnl/balance считаются по ВСЕЙ истории, а не по окну),
+                               summarizeDays() → оборот/профит/лучший-худший день/активные дни, toYmd() — ЛОКАЛЬНАЯ дата
     analytics.ts             — calcStreaks, calcExtremes, calcLastFullMonth(bets, now), calcCLV,
                                calcTimeStats(bets, use12h) — 6 промежутков для доната + топ-4 часа с P&L,
                                calcMaxDrawdown (пик→дно кумулятивного P&L), calcEdge (WR vs безубыток 100/avgOdds),
@@ -351,7 +364,7 @@ VITE_OWNER_PRO=true
 
 ## CI / Build
 
-- **CI**: `.github/workflows/ci.yml` — `npm ci` → vitest (core 87 + desktop 40) → mobile tests (25) → tsc mobile+desktop
+- **CI**: `.github/workflows/ci.yml` — `npm ci` → vitest (core 98 + desktop 40) → mobile tests (25) → tsc mobile+desktop
 - **EAS Build**: `.github/workflows/eas-build.yml` — ручной `workflow_dispatch`
   - Требует: `EXPO_TOKEN` secret + реальный `projectId` в `app.json`
 - **EAS профили**: development / preview (APK) / production (autoIncrement)
@@ -378,7 +391,7 @@ VITE_OWNER_PRO=true
 - [x] Bugfix: totalStaked включает refund-ставки (ROI был завышен)
 - [x] Bugfix: period filter off-by-one (>= → >)
 - [x] formatPercent() — добавляет + для положительных значений
-- [x] 87 vitest unit tests (stats x36, analytics x21, formatters x21, kelly x6, migrations x3 — все зелёные)
+- [x] 98 vitest unit tests (stats x36, analytics x21, daily x11, formatters x21, kelly x6, migrations x3 — все зелёные)
 
 ### i18n / Локализация (обе платформы)
 - [x] 4 языка: ru / en / kz (казахский) / by (беларуский)
@@ -459,10 +472,10 @@ VITE_OWNER_PRO=true
 ## Тесты
 
 ```
-packages/core          87 vitest unit tests (stats, analytics, formatters, kelly, migrations)
+packages/core          98 vitest unit tests (stats, analytics, daily, formatters, kelly, migrations)
 apps/desktop           40 vitest smoke tests (betsStore x25, importBets x15)
 apps/mobile            25 jest smoke tests (betsStore x19, chartScale x6)
-ИТОГО                  152 теста
+ИТОГО                  163 теста
 ```
 
 ---

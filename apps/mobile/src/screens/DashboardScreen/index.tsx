@@ -1,21 +1,20 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { View, Text, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions, Alert } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { LineChart } from 'react-native-gifted-charts';
-import { calcDashboard, formatPercent, isInTilt } from '@sharklog/core';
-import type { Bet } from '@sharklog/core';
+import { calcDashboard, isInTilt, calcDailyBreakdown, summarizeDays, toYmd } from '@sharklog/core';
+import type { Bet, DayStats } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { colors } from '../../theme/colors';
 import { ScreenHeader } from '../../components/ScreenHeader';
-import { StatCard } from './StatCard';
 import { ResponsibleGamblingBanner } from '../../components/ResponsibleGamblingBanner';
 import { Coachmark } from '../../components/Coachmark';
 import { haptic } from '../../utils/haptics';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { useFormatMoney } from '../../utils/useFormatMoney';
-import { chartScale, chartHeightForBudget, formatChartYLabel } from '../../utils/chartScale';
+import { DailyChart, ChartLegend, SERIES } from './DailyChart';
+import { ExpandedDashboard } from './ExpandedDashboard';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -114,7 +113,7 @@ function Heatmap({ bets }: { bets: Bet[] }) {
   for (let i = totalDays - 1; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(today.getDate() - i);
-    const dateStr = d.toISOString().split('T')[0] ?? '';
+    const dateStr = toYmd(d); // local date — toISOString shifts the day west of UTC
     days.push({
       dateStr,
       pnl: pnlByDate[dateStr] ?? 0,
@@ -183,6 +182,194 @@ const hm = StyleSheet.create({
   legendText: { fontSize: 10, color: colors.textMuted },
 });
 
+// ── Top card: period turnover + current bank ─────────────────────────────────
+
+function TurnoverCard({ turnover, bank, betCount, activeDays, pendingCount, periodLabel, onBankPress }: {
+  turnover: number; bank: number; betCount: number; activeDays: number;
+  pendingCount: number; periodLabel: string; onBankPress: () => void;
+}) {
+  const fmt = useFormatMoney();
+  return (
+    <View style={tc.card}>
+      <View style={tc.topRow}>
+        <View style={tc.left}>
+          <Text style={tc.label}>Оборот · {periodLabel}</Text>
+          <Text style={tc.value} numberOfLines={1} adjustsFontSizeToFit>{fmt(turnover)}</Text>
+        </View>
+        <TouchableOpacity style={tc.bankBtn} onPress={onBankPress} activeOpacity={0.75}>
+          <Text style={tc.bankLabel}>Банкролл →</Text>
+          <Text style={[tc.bankValue, { color: bank >= 0 ? colors.textPrimary : colors.lost }]} numberOfLines={1} adjustsFontSizeToFit>
+            {fmt(bank)}
+          </Text>
+        </TouchableOpacity>
+      </View>
+      <View style={tc.metaRow}>
+        <Text style={tc.meta}>{betCount} ставок</Text>
+        <Text style={tc.metaDot}>·</Text>
+        <Text style={tc.meta}>{activeDays} дней со ставками</Text>
+        {pendingCount > 0 && (
+          <>
+            <Text style={tc.metaDot}>·</Text>
+            <Text style={[tc.meta, { color: colors.pending }]}>{pendingCount} в ожидании</Text>
+          </>
+        )}
+      </View>
+    </View>
+  );
+}
+
+const tc = StyleSheet.create({
+  card: {
+    backgroundColor: colors.bgCard, borderRadius: 16, padding: 18,
+    marginHorizontal: 16, marginBottom: 12, borderWidth: 1, borderColor: colors.border,
+  },
+  topRow: { flexDirection: 'row', alignItems: 'flex-start' },
+  left: { flex: 1, marginRight: 12 },
+  label: { fontSize: 12, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
+  value: { fontSize: 32, fontWeight: '800', color: colors.textPrimary, marginTop: 4 },
+  bankBtn: {
+    backgroundColor: colors.bgElevated, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10,
+    borderWidth: 1, borderColor: colors.border, minWidth: 118, alignItems: 'flex-end',
+  },
+  bankLabel: { fontSize: 10, color: colors.textMuted },
+  bankValue: { fontSize: 17, fontWeight: '700', marginTop: 3 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 },
+  meta: { fontSize: 11, color: colors.textMuted },
+  metaDot: { fontSize: 11, color: colors.border },
+});
+
+// ── Main block: interactive per-day dashboard ────────────────────────────────
+
+function DailyDashboardCard({ days, onExpand }: { days: DayStats[]; onExpand: () => void }) {
+  const fmt = useFormatMoney();
+  const { width } = useWindowDimensions();
+  const [selected, setSelected] = useState<number | null>(null);
+  const summary = useMemo(() => summarizeDays(days), [days]);
+  const sel = selected != null ? days[selected] ?? null : null;
+  const chartW = width - 64; // card margins (16×2) + padding (16×2)
+
+  return (
+    <View style={dd.card}>
+      <View style={dd.header}>
+        <View style={{ flex: 1 }}>
+          <Text style={dd.title}>Активность по дням</Text>
+          <Text style={dd.subtitle}>последние {days.length} дней</Text>
+        </View>
+        <TouchableOpacity style={dd.expandBtn} onPress={onExpand} activeOpacity={0.75}>
+          <Text style={dd.expandText}>⤢ Развернуть</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={dd.chartWrap}>
+        <DailyChart
+          days={days}
+          width={chartW}
+          height={128}
+          toggles={{ pnl: true, balance: false, cash: true }}
+          selected={selected}
+          onSelect={(i) => { haptic.selection(); setSelected(i === selected ? null : i); }}
+          labelEvery={1}
+        />
+      </View>
+
+      {/* Tapped day detail — the four numbers per day */}
+      {sel ? (
+        <View style={dd.detail}>
+          <Text style={dd.detailDate}>
+            {sel.date.split('-').reverse().slice(0, 2).join('.')}
+            {sel.betCount > 0 ? ` · ${sel.betCount} ст.` : ' · нет ставок'}
+          </Text>
+          <View style={dd.detailGrid}>
+            <View style={dd.detailCell}>
+              <Text style={dd.detailLabel}>Оборот</Text>
+              <Text style={dd.detailValue}>{fmt(sel.turnover)}</Text>
+            </View>
+            <View style={dd.detailCell}>
+              <Text style={dd.detailLabel}>Выигрыш</Text>
+              <Text style={[dd.detailValue, { color: SERIES.win }]}>{fmt(sel.wonAmount)}</Text>
+            </View>
+            <View style={dd.detailCell}>
+              <Text style={dd.detailLabel}>Проигрыш</Text>
+              <Text style={[dd.detailValue, { color: SERIES.loss }]}>{fmt(sel.lostAmount)}</Text>
+            </View>
+            <View style={dd.detailCell}>
+              <Text style={dd.detailLabel}>Профит</Text>
+              <Text style={[dd.detailValue, { color: sel.pnl >= 0 ? SERIES.win : SERIES.loss }]}>
+                {sel.pnl >= 0 ? '+' : ''}{fmt(sel.pnl)}
+              </Text>
+            </View>
+          </View>
+          {(sel.deposits > 0 || sel.withdrawals > 0) && (
+            <Text style={dd.detailCash}>
+              {sel.deposits > 0 ? `Депозит ${fmt(sel.deposits)}` : ''}
+              {sel.deposits > 0 && sel.withdrawals > 0 ? ' · ' : ''}
+              {sel.withdrawals > 0 ? `Вывод ${fmt(sel.withdrawals)}` : ''}
+            </Text>
+          )}
+        </View>
+      ) : (
+        <Text style={dd.hint}>Нажми на день — покажу оборот, выигрыш, проигрыш и профит</Text>
+      )}
+
+      <ChartLegend toggles={{ pnl: true, balance: false, cash: true }} />
+
+      {/* Context strip for the visible window */}
+      <View style={dd.summaryRow}>
+        <View style={dd.sumCell}>
+          <Text style={dd.sumLabel}>Профит</Text>
+          <Text style={[dd.sumValue, { color: summary.pnl >= 0 ? SERIES.win : SERIES.loss }]}>
+            {summary.pnl >= 0 ? '+' : ''}{fmt(summary.pnl)}
+          </Text>
+        </View>
+        <View style={dd.sumCell}>
+          <Text style={dd.sumLabel}>Лучший день</Text>
+          <Text style={[dd.sumValue, { color: summary.bestDay ? SERIES.win : colors.textMuted }]}>
+            {summary.bestDay ? `+${fmt(summary.bestDay.pnl)}` : '—'}
+          </Text>
+        </View>
+        <View style={dd.sumCell}>
+          <Text style={dd.sumLabel}>Со ставками</Text>
+          <Text style={dd.sumValue}>{summary.activeDays}/{days.length}</Text>
+        </View>
+      </View>
+    </View>
+  );
+}
+
+const dd = StyleSheet.create({
+  card: {
+    backgroundColor: colors.bgCard, borderRadius: 16, padding: 16,
+    marginHorizontal: 16, marginBottom: 14, borderWidth: 1, borderColor: colors.border,
+  },
+  header: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 },
+  title: { fontSize: 15, fontWeight: '700', color: colors.textPrimary },
+  subtitle: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
+  expandBtn: {
+    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
+    backgroundColor: colors.bgElevated, borderWidth: 1, borderColor: colors.purple + '66',
+  },
+  expandText: { fontSize: 11, color: colors.purple, fontWeight: '700' },
+  chartWrap: { alignItems: 'center' },
+  hint: { fontSize: 11, color: colors.textMuted, marginTop: 12, textAlign: 'center' },
+  detail: {
+    marginTop: 12, padding: 12, borderRadius: 10,
+    backgroundColor: colors.bgElevated, borderWidth: 1, borderColor: colors.border,
+  },
+  detailDate: { fontSize: 12, fontWeight: '700', color: colors.textPrimary, marginBottom: 8 },
+  detailGrid: { flexDirection: 'row', justifyContent: 'space-between' },
+  detailCell: { flex: 1 },
+  detailLabel: { fontSize: 10, color: colors.textMuted },
+  detailValue: { fontSize: 13, fontWeight: '700', color: colors.textPrimary, marginTop: 2 },
+  detailCash: { fontSize: 10, color: colors.textMuted, marginTop: 8 },
+  summaryRow: {
+    flexDirection: 'row', marginTop: 14, paddingTop: 12,
+    borderTopWidth: 1, borderTopColor: colors.border,
+  },
+  sumCell: { flex: 1 },
+  sumLabel: { fontSize: 10, color: colors.textMuted },
+  sumValue: { fontSize: 14, fontWeight: '700', color: colors.textPrimary, marginTop: 3 },
+});
+
 export function DashboardScreen() {
   const navigation = useNavigation<Nav>();
   const { width } = useWindowDimensions();
@@ -190,6 +377,7 @@ export function DashboardScreen() {
   const fmt = useFormatMoney();
   const [period, setPeriod] = useState<PeriodFilter>('all');
   const [showHeatmap, setShowHeatmap] = useState(false);
+  const [expanded, setExpanded] = useState(false);
   const [tiltDismissed, setTiltDismissed] = useState(false);
   const prevInTilt = useRef(false);
 
@@ -205,9 +393,29 @@ export function DashboardScreen() {
     const days = period === '7d' ? 7 : 30;
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - days);
-    const cutoffStr = cutoff.toISOString().split('T')[0] ?? '';
+    const cutoffStr = toYmd(cutoff); // local date — toISOString would shift the day
     return bets.filter((b) => b.date > cutoffStr);
   }, [bets, period]);
+
+  // Per-day series drives the main dashboard. Running totals always span the full
+  // history, so a 10-day window still shows the true balance.
+  const fullDays = useMemo(
+    () => calcDailyBreakdown(bets, bankroll.transactions),
+    [bets, bankroll.transactions],
+  );
+  const last10 = useMemo(
+    () => calcDailyBreakdown(bets, bankroll.transactions, { days: 10 }),
+    [bets, bankroll.transactions],
+  );
+  const periodDays = useMemo(() => {
+    if (period === 'all') return fullDays;
+    const n = period === '7d' ? 7 : 30;
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - (n - 1));
+    const from = toYmd(cutoff);
+    return fullDays.filter((d) => d.date >= from);
+  }, [fullDays, period]);
+  const periodSummary = useMemo(() => summarizeDays(periodDays), [periodDays]);
 
   const stats = calcDashboard(filteredBets);
   // Tilt is an all-time discipline signal; compute the streak from the same (all-bets)
@@ -232,13 +440,8 @@ export function DashboardScreen() {
     setTiltDismissed(true);
   }
 
-  // Bank total always reflects all-time P&L + transactions
-  const allTimePnl = allTimeStats.pnl;
-  const bankTotal =
-    bankroll.transactions.reduce(
-      (sum, t) => (t.type === 'deposit' ? sum + t.amount : sum - t.amount),
-      0,
-    ) + allTimePnl;
+  // Bank = deposits − withdrawals + all-time P&L (last day of the full series).
+  const bankTotal = fullDays.length > 0 ? fullDays[fullDays.length - 1]!.balance : 0;
 
   // Most-recent 5 settled-or-pending bets, newest first.
   const last5 = [...filteredBets]
@@ -299,122 +502,19 @@ export function DashboardScreen() {
         </View>
       )}
 
-      <View style={styles.statsGrid}>
-        <StatCard
-          label="P&L"
-          value={fmt(stats.pnl)}
-          sub="чистая прибыль"
-          positive={stats.pnl > 0}
-          negative={stats.pnl < 0}
-          onInfo={() => Alert.alert(
-            'P&L — прибыль и убыток',
-            'Чистый финансовый результат всех ставок.\n\nПример: поставил 1 000 ₽ × коэф 2.0 → выиграл 1 000 ₽ прибыли. Проиграл ещё 500 ₽ → итого P&L = +500 ₽.\n\nФрибеты учитываются только в части выигрыша — потеря фрибета P&L не уменьшает.',
-          )}
-        />
-        <StatCard
-          label="ROI"
-          value={formatPercent(stats.roi)}
-          sub="возврат инвестиций"
-          positive={stats.roi > 0}
-          negative={stats.roi < 0}
-          onInfo={() => Alert.alert(
-            'ROI — возврат инвестиций',
-            'ROI = P&L ÷ суммарный оборот × 100%\n\nПример: поставил 10 000 ₽, заработал 1 500 ₽ → ROI = +15%.\n\nROI > 0% — прибыльная игра. Стабильный ROI 5–10% считается отличным результатом в долгосроке.',
-          )}
-        />
-        <StatCard
-          label="Винрейт"
-          value={`${stats.winRate.toFixed(1)}%`}
-          sub={`${stats.wonBets}W / ${stats.lostBets}L`}
-          accent
-        />
-        <StatCard
-          label="Банк"
-          value={fmt(bankTotal)}
-          sub="текущий баланс"
-        />
-        <StatCard
-          label="Поставлено"
-          value={fmt(stats.totalStaked)}
-          sub={`ср. кэф ${stats.avgOdds > 0 ? stats.avgOdds.toFixed(2) : '—'}`}
-        />
-        <StatCard
-          label="В ожидании"
-          value={String(stats.pendingCount)}
-          sub={stats.pendingCount === 0 ? 'открытых ставок нет' : 'ставок не закрыто'}
-          {...(stats.pendingCount > 0 ? { accent: true } : {})}
-        />
-      </View>
+      <TurnoverCard
+        turnover={periodSummary.turnover}
+        bank={bankTotal}
+        betCount={periodSummary.betCount}
+        activeDays={periodSummary.activeDays}
+        pendingCount={stats.pendingCount}
+        periodLabel={PERIOD_OPTIONS.find((p) => p.key === period)?.label ?? ''}
+        onBankPress={() => { haptic.selection(); navigation.navigate('Bankroll'); }}
+      />
+
+      <DailyDashboardCard days={last10} onExpand={() => { haptic.selection(); setExpanded(true); }} />
 
       <WLStrip bets={filteredBets} />
-
-      {stats.pnlCurve.length > 1 && (() => {
-        const rawVals = stats.pnlCurve.map((p) => p.pnl / 100);
-        const scale = chartScale(rawVals);
-        const lineColor = stats.pnl >= 0 ? colors.won : colors.lost;
-        return (
-          <View style={styles.section}>
-            <View style={styles.sectionRow}>
-              <Text style={styles.sectionTitle}>P&L кривая</Text>
-              <Text style={[styles.pnlChipText, { color: lineColor }]}>
-                {stats.pnl >= 0 ? '+' : ''}{fmt(stats.pnlCurve[stats.pnlCurve.length - 1]?.pnl ?? 0)}
-              </Text>
-            </View>
-            <View style={styles.chartCard}>
-              <LineChart
-                data={rawVals.map((v) => ({ value: v }))}
-                width={width - 96}
-                height={chartHeightForBudget(180, scale)}
-                maxValue={scale.maxValue}
-                stepValue={scale.stepValue}
-                noOfSections={scale.noOfSections}
-                {...(scale.sectionsBelow > 0
-                  ? { mostNegativeValue: scale.mostNegativeValue, noOfSectionsBelowXAxis: scale.sectionsBelow }
-                  : {})}
-                color={lineColor}
-                thickness={2}
-                hideDataPoints
-                areaChart
-                startFillColor={lineColor}
-                endFillColor={colors.bgCard}
-                startOpacity={0.35}
-                endOpacity={0}
-                backgroundColor={colors.bgCard}
-                xAxisColor={colors.border}
-                yAxisColor={colors.border + '66'}
-                rulesType="solid"
-                rulesColor={colors.border + '44'}
-                yAxisTextStyle={{ color: colors.textMuted, fontSize: 10 }}
-                formatYLabel={formatChartYLabel}
-                adjustToWidth
-              />
-            </View>
-          </View>
-        );
-      })()}
-
-      <View style={styles.streakRow}>
-        <View style={[
-          styles.streakCard,
-          stats.currentStreak.type === 'win' && styles.streakWin,
-          stats.currentStreak.type === 'loss' && styles.streakLoss,
-        ]}>
-          <Text style={styles.streakLabel}>Текущая серия</Text>
-          <Text style={styles.streakValue}>
-            {stats.currentStreak.type === 'none'
-              ? '—'
-              : `${stats.currentStreak.count} ${stats.currentStreak.type === 'win' ? '🏆' : '💸'}`}
-          </Text>
-        </View>
-        <TouchableOpacity
-          style={styles.bankCard}
-          onPress={() => navigation.navigate('Bankroll')}
-          activeOpacity={0.75}
-        >
-          <Text style={styles.streakLabel}>Банкролл →</Text>
-          <Text style={[styles.streakValue, { fontSize: 16 }]}>{fmt(bankTotal)}</Text>
-        </TouchableOpacity>
-      </View>
 
       {/* Heatmap — collapsible */}
       <TouchableOpacity
@@ -464,10 +564,11 @@ export function DashboardScreen() {
 
       <ResponsibleGamblingBanner />
     </ScrollView>
+    <ExpandedDashboard visible={expanded} days={fullDays} onClose={() => setExpanded(false)} />
     <Coachmark
       storageKey="@sharklog/tip_dashboard_seen"
       title="Дашборд"
-      body="Переключай период (7д / 30д / всё). Тепловая карта — под кнопкой ▼. Нажми на любую карточку — получи пояснение."
+      body="Оборот сверху меняется с периодом (7д / 30д / всё). Нажми на день в графике — увидишь оборот, выигрыш, проигрыш и профит. Кнопка «Развернуть» открывает полную таблицу по дням с фильтрами."
       position="bottom"
     />
     </View>
@@ -524,48 +625,8 @@ const styles = StyleSheet.create({
   tiltTitle: { fontSize: 15, fontWeight: '700', color: colors.lost },
   tiltSub: { fontSize: 12, color: colors.textSecondary, marginTop: 3 },
   tiltDismiss: { fontSize: 16, color: colors.textMuted, paddingLeft: 8 },
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    paddingHorizontal: 16,
-    marginBottom: 12,
-  },
-  streakRow: { flexDirection: 'row', gap: 10, paddingHorizontal: 16, marginBottom: 14 },
-  streakCard: {
-    flex: 2,
-    backgroundColor: colors.bgCard,
-    borderRadius: 12,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  streakWin: { borderColor: colors.won + '66', backgroundColor: colors.won + '11' },
-  streakLoss: { borderColor: colors.lost + '66', backgroundColor: colors.lost + '11' },
-  streakLabel: { fontSize: 11, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
-  streakValue: { fontSize: 24, fontWeight: '700', color: colors.textPrimary, marginTop: 4 },
-  bankCard: {
-    flex: 1,
-    backgroundColor: colors.purpleDim,
-    borderRadius: 12,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: colors.purple + '44',
-  },
   section: { paddingHorizontal: 16, marginBottom: 20 },
-  sectionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.textPrimary },
-  pnlChipText: { fontSize: 14, fontWeight: '700' },
-  chartCard: {
-    backgroundColor: colors.bgCard,
-    borderRadius: 12,
-    paddingTop: 8,
-    paddingBottom: 4,
-    paddingLeft: 4,
-    borderWidth: 1,
-    borderColor: colors.border,
-    overflow: 'hidden',
-  },
   emptyText: { fontSize: 14, color: colors.textMuted },
   recentBet: {
     flexDirection: 'row',
