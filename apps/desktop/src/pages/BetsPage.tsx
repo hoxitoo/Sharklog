@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import type { Bet, BetStatus } from '@sharklog/core';
-import { SPORTS, BET_TYPES, formatMoney, formatOdds, FREE_LIMITS, isInTilt } from '@sharklog/core';
+import { SPORTS, BET_TYPES, formatMoney, formatOdds, FREE_LIMITS, isInTilt, toYmd } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
 import { useToastStore } from '../store/toastStore';
 import { ConfirmModal } from '../components/ConfirmModal';
@@ -49,8 +49,8 @@ export function BetsPage({ onAdd, onEdit }: Props) {
   ];
 
   function formatDateTitle(dateStr: string): string {
-    const today = new Date().toISOString().split('T')[0] ?? '';
-    const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0] ?? '';
+    const today = toYmd(new Date());
+    const yesterday = toYmd(new Date(Date.now() - 86400000));
     if (dateStr === today) return t('dashboard.today');
     if (dateStr === yesterday) return t('dashboard.yesterday');
     const locale = dateLocale(i18n.language);

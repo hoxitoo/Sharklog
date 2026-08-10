@@ -5,7 +5,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { Bet, BetStatus } from '@sharklog/core';
-import { formatMoney, isInTilt, calcDailyBreakdown, calcDashboard } from '@sharklog/core';
+import { formatMoney, isInTilt, calcDailyBreakdown, calcDashboard, toYmd } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { colors } from '../../theme/colors';
 import { ScreenHeader } from '../../components/ScreenHeader';
@@ -20,10 +20,10 @@ import i18n from '../../i18n/index';
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 function formatDateTitle(dateStr: string, todayLabel: string, yesterdayLabel: string): string {
-  const todayStr = new Date().toISOString().split('T')[0] ?? '';
+  const todayStr = toYmd(new Date());
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayStr = yesterday.toISOString().split('T')[0] ?? '';
+  const yesterdayStr = toYmd(yesterday);
   if (dateStr === todayStr) return todayLabel;
   if (dateStr === yesterdayStr) return yesterdayLabel;
   const parts = dateStr.split('-').map(Number);

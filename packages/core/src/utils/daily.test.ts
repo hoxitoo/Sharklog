@@ -33,6 +33,20 @@ describe('toYmd', () => {
     expect(toYmd(new Date(2024, 0, 1, 0, 30))).toBe('2024-01-01');
     expect(toYmd(new Date(2024, 11, 31, 23, 59))).toBe('2024-12-31');
   });
+
+  it('at exactly local midnight returns TODAY, not the day that just ended', () => {
+    // The reported bug: logging a bet at 00:00 stamped yesterday's date, because
+    // toISOString() reports the UTC day, which is still "yesterday" east of UTC.
+    const midnight = new Date(2024, 5, 10, 0, 0, 0);
+    expect(toYmd(midnight)).toBe('2024-06-10');
+    expect(toYmd(new Date(2024, 5, 10, 23, 59, 59))).toBe('2024-06-10'); // same day all day
+  });
+
+  it('stays on the local day for every hour of it', () => {
+    for (let h = 0; h < 24; h++) {
+      expect(toYmd(new Date(2024, 5, 10, h, 30))).toBe('2024-06-10');
+    }
+  });
 });
 
 describe('calcDailyBreakdown', () => {

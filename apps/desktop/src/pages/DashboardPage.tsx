@@ -3,7 +3,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import type { Bet, BetStatus } from '@sharklog/core';
-import { calcDashboard, formatMoney, formatOdds, formatPercent, isInTilt } from '@sharklog/core';
+import { calcDashboard, formatMoney, formatOdds, formatPercent, isInTilt, toYmd } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
 import { useToastStore } from '../store/toastStore';
 import { colors } from '../theme/colors';
@@ -76,7 +76,7 @@ function Heatmap({ bets }: { bets: Bet[] }) {
   for (let i = totalDays - 1; i >= 0; i--) {
     const d = new Date(today);
     d.setDate(today.getDate() - i);
-    const dateStr = d.toISOString().split('T')[0] ?? '';
+    const dateStr = toYmd(d);
     days.push({ dateStr, pnl: pnlByDate[dateStr] ?? 0, count: countByDate[dateStr] ?? 0 });
   }
 
@@ -143,7 +143,7 @@ export function DashboardPage({ onNavigate }: DashboardProps = {}) {
     const days = period === '7d' ? 7 : 30;
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - days);
-    const cutoffStr = cutoff.toISOString().split('T')[0] ?? '';
+    const cutoffStr = toYmd(cutoff);
     return bets.filter((b) => b.date > cutoffStr);
   }, [bets, period]);
 

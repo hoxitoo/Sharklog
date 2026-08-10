@@ -1,5 +1,6 @@
 import * as XLSX from '@e965/xlsx';
 import type { Bet, BetStatus, Sport, BetType, Strategy, EsportsDiscipline } from '@sharklog/core';
+import { toYmd } from '@sharklog/core';
 
 function uuid(): string {
   return crypto.randomUUID();
@@ -137,7 +138,7 @@ function mapRow(raw: Record<string, string>, existingIds: Set<string>): Bet | nu
     const [d, m, y] = dateRaw.split('/');
     date = `${y}-${m}-${d}`;
   }
-  if (!date) date = new Date().toISOString().split('T')[0] ?? '';
+  if (!date) date = toYmd(new Date());
 
   const odds = parseAmount(g('odds'));
   if (isNaN(odds) || odds <= 1) return null;

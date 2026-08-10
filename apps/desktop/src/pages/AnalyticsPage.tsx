@@ -4,8 +4,7 @@ import {
 } from 'recharts';
 import {
   calcByField, calcByOddsRange, calcByDayOfWeek, calcByHour, calcDashboard,
-  calcByTournament, SPORTS, BET_TYPES, STRATEGIES, formatMoney, formatPercent,
-} from '@sharklog/core';
+  calcByTournament, SPORTS, BET_TYPES, STRATEGIES, formatMoney, formatPercent, toYmd } from '@sharklog/core';
 import type { SliceStats } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
 import { colors } from '../theme/colors';
@@ -136,7 +135,7 @@ export function AnalyticsPage() {
     const days = period === '7d' ? 7 : 30;
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - days);
-    const cutoffStr = cutoff.toISOString().split('T')[0] ?? '';
+    const cutoffStr = toYmd(cutoff);
     return bets.filter((b) => b.date > cutoffStr);
   }, [bets, period]);
 

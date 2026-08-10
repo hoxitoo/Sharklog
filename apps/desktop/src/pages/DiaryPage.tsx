@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { isInTilt, formatMoney } from '@sharklog/core';
+import { isInTilt, formatMoney, toYmd } from '@sharklog/core';
 import type { DiaryEntry } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
 import { colors } from '../theme/colors';
@@ -13,7 +13,7 @@ function uuid(): string {
 export function DiaryPage() {
   const { bets, diary, settings, addDiaryEntry } = useBetsStore();
   const { t, i18n } = useTranslation();
-  const today = new Date().toISOString().split('T')[0] ?? '';
+  const today = toYmd(new Date());
   const todayEntry = diary.find((d) => d.date === today);
 
   const [mood, setMood] = useState<1 | 2 | 3 | 4 | 5>(todayEntry?.mood ?? 3);

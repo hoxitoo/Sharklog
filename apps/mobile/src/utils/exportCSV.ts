@@ -1,7 +1,7 @@
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import type { Bet } from '@sharklog/core';
-import { SPORTS, BET_TYPES, STRATEGIES, ESPORTS_DISCIPLINES } from '@sharklog/core';
+import { SPORTS, BET_TYPES, STRATEGIES, ESPORTS_DISCIPLINES, toYmd } from '@sharklog/core';
 
 function escape(value: string | number): string {
   let str = String(value);
@@ -57,7 +57,7 @@ export async function exportBetsCSV(bets: Bet[]): Promise<void> {
     .join('\n');
 
   const bom = '﻿'; // UTF-8 BOM for Excel compatibility
-  const filename = `sharklog_${new Date().toISOString().split('T')[0]}.csv`;
+  const filename = `sharklog_${toYmd(new Date())}.csv`;
   const uri = FileSystem.documentDirectory + filename;
 
   await FileSystem.writeAsStringAsync(uri, bom + csv, {
