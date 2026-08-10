@@ -271,7 +271,8 @@
     "tiltAlertThreshold": "Порог тилт-алерта",
     "totalBets": "Всего ставок",
     "reminderTime": "Время напоминания",
-    "removeBookmaker": "Удалить"
+    "removeBookmaker": "Удалить",
+    "betResultReminders": "Напоминать о результате"
   },
   "onboarding": {
     "welcome": "Добро пожаловать",
