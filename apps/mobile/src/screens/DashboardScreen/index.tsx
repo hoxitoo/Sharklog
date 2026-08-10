@@ -334,8 +334,13 @@ function DailyDashboardCard({ days, onExpand }: { days: DayStats[]; onExpand: ()
         </View>
         <View style={dd.sumCell}>
           <Text style={dd.sumLabel}>Лучший день</Text>
-          <Text style={[dd.sumValue, { color: summary.bestDay ? SERIES.win : colors.textMuted }]}>
-            {summary.bestDay ? `+${fmt(summary.bestDay.pnl)}` : '—'}
+          <Text style={[dd.sumValue, {
+            color: !summary.bestDay ? colors.textMuted
+              : summary.bestDay.pnl >= 0 ? SERIES.win : SERIES.loss,
+          }]}>
+            {summary.bestDay
+              ? `${summary.bestDay.pnl >= 0 ? '+' : ''}${fmt(summary.bestDay.pnl)}`
+              : '—'}
           </Text>
         </View>
         <View style={dd.sumCell}>
@@ -432,6 +437,9 @@ export function DashboardScreen() {
     return fullDays.filter((d) => d.date >= from);
   }, [fullDays, period]);
   const periodSummary = useMemo(() => summarizeDays(periodDays), [periodDays]);
+  // Cap the expanded view: one tappable column per day, so years of history would
+  // render hundreds of 1px columns and stall the modal.
+  const expandedDays = useMemo(() => fullDays.slice(-365), [fullDays]);
 
   const stats = calcDashboard(filteredBets);
   // Tilt is an all-time discipline signal; compute the streak from the same (all-bets)
@@ -580,7 +588,7 @@ export function DashboardScreen() {
 
       <ResponsibleGamblingBanner />
     </ScrollView>
-    <ExpandedDashboard visible={expanded} days={fullDays} onClose={() => setExpanded(false)} />
+    <ExpandedDashboard visible={expanded} days={expandedDays} onClose={() => setExpanded(false)} />
     <Coachmark
       storageKey="@sharklog/tip_dashboard_seen"
       title="Дашборд"

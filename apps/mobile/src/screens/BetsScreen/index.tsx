@@ -128,7 +128,7 @@ export function BetsScreen({ dateFilter, onClearDateFilter }: {
       }, 0);
       return { title: formatDateTitle(date, todayLabel, yesterdayLabel), date, dailyPnl, data };
     });
-  }, [bets, statusFilter, search, sort, dateFilter]);
+  }, [bets, statusFilter, search, sort, dateFilter, todayLabel, yesterdayLabel, t]);
 
   const freeLeft = Math.max(0, 50 - bets.length);
 

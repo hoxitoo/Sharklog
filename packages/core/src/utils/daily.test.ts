@@ -145,3 +145,32 @@ describe('summarizeDays', () => {
     expect(s.avgBetsPerActiveDay).toBe(0);
   });
 });
+
+describe('calcDailyBreakdown — malformed input', () => {
+  const end = new Date(2024, 4, 5);
+
+  it('ignores a malformed bet date instead of returning an empty series', () => {
+    const bets = [
+      makeBet({ status: 'won', date: '10.08.2026', stake: 100_00, odds: 2.0 }), // free-text typo
+      makeBet({ status: 'won', date: '2024-05-04', stake: 100_00, odds: 2.0 }),
+    ];
+    const days = calcDailyBreakdown(bets, [], { days: 3, endDate: end });
+    expect(days).toHaveLength(3);
+    expect(days.find((d) => d.date === '2024-05-04')?.pnl).toBe(100_00);
+  });
+
+  it('buckets transactions by LOCAL day, not the UTC day of the timestamp', () => {
+    // 23:30 local on 2024-05-05 — in UTC- zones toISOString would roll to the 6th
+    const local = new Date(2024, 4, 5, 23, 30).toISOString();
+    const days = calcDailyBreakdown([], [tx(local, 'deposit', 500_00)], { days: 2, endDate: end });
+    expect(days[days.length - 1]!.deposits).toBe(500_00);
+    expect(days[days.length - 1]!.balance).toBe(500_00);
+  });
+
+  it('clamps an absurd start year to the safety window', () => {
+    const bets = [makeBet({ status: 'won', date: '1026-08-10', stake: 100_00, odds: 2.0 })];
+    const days = calcDailyBreakdown(bets, [], { endDate: end });
+    expect(days.length).toBeLessThanOrEqual(3650);
+    expect(days[days.length - 1]!.date).toBe('2024-05-05'); // still ends today
+  });
+});

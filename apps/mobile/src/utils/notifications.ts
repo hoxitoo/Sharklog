@@ -90,6 +90,20 @@ import type { Bet } from '@sharklog/core';
 
 export const BET_RESULT_CATEGORY = 'bet_result';
 
+/** Deterministic id per bet — makes scheduling idempotent and cancelling O(1). */
+const reminderId = (betId: string) => `bet-result-${betId}`;
+
+/** iOS only keeps the 64 soonest pending local notifications; stay well under it. */
+const MAX_SCHEDULED = 50;
+
+// Notification writes are serialized so a cancel can't overtake a schedule for the
+// same bet (both are fire-and-forget from the store).
+let notifChain: Promise<void> = Promise.resolve();
+function enqueue(task: () => Promise<void>): Promise<void> {
+  notifChain = notifChain.then(task).catch(() => {});
+  return notifChain;
+}
+
 /** Rough time-to-finish per sport, minutes from kick-off (incl. breaks + settling lag). */
 const END_OFFSET_MIN: Record<string, number> = {
   football: 135,
@@ -120,18 +134,26 @@ function displayEvent(event: string): string {
 }
 
 export async function cancelBetResultReminder(betId: string): Promise<void> {
-  dismissBetResultNotification(betId); // also clear it if it already reached the tray
-  try {
-    const scheduled = await Notifications.getAllScheduledNotificationsAsync();
-    for (const n of scheduled) {
-      const d = n.content.data as Record<string, unknown> | undefined;
-      if (d?.['type'] === 'bet_result' && d?.['betId'] === betId) {
-        await Notifications.cancelScheduledNotificationAsync(n.identifier);
-      }
+  return enqueue(async () => {
+    try {
+      await Notifications.cancelScheduledNotificationAsync(reminderId(betId));
+    } catch {
+      // not scheduled under the deterministic id
     }
-  } catch {
-    // nothing scheduled / permissions revoked
-  }
+    // Legacy entries scheduled before deterministic ids existed.
+    try {
+      const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+      for (const n of scheduled) {
+        const d = n.content.data as Record<string, unknown> | undefined;
+        if (d?.['type'] === 'bet_result' && d?.['betId'] === betId) {
+          await Notifications.cancelScheduledNotificationAsync(n.identifier);
+        }
+      }
+    } catch {
+      // nothing scheduled / permissions revoked
+    }
+    await dismissBetResultNotification(betId); // also clear it if it already reached the tray
+  });
 }
 
 export async function cancelAllBetResultReminders(): Promise<void> {
@@ -153,32 +175,33 @@ export async function cancelAllBetResultReminders(): Promise<void> {
  * the "Ждут результата" screen covers the backlog.
  */
 export async function scheduleBetResultReminder(bet: Bet): Promise<void> {
-  try {
-    await cancelBetResultReminder(bet.id);
-    if (bet.status !== 'pending') return;
+  if (bet.status !== 'pending') return cancelBetResultReminder(bet.id);
+  return enqueue(async () => {
+    try {
+      const { status } = await Notifications.getPermissionsAsync();
+      if (status !== 'granted') return;
 
-    const { status } = await Notifications.getPermissionsAsync();
-    if (status !== 'granted') return;
+      // Parse as LOCAL time — a bare "YYYY-MM-DD" string would be read as UTC.
+      const start = new Date(`${bet.date}T${(bet.time || '12:00')}:00`);
+      if (isNaN(start.getTime())) return;
+      const offset = END_OFFSET_MIN[bet.sport] ?? END_OFFSET_MIN['other']!;
+      const fireAt = new Date(start.getTime() + offset * 60_000);
+      if (fireAt.getTime() <= Date.now() + 60_000) return;
 
-    // Parse as LOCAL time — a bare "YYYY-MM-DD" string would be read as UTC.
-    const start = new Date(`${bet.date}T${(bet.time || '12:00')}:00`);
-    if (isNaN(start.getTime())) return;
-    const offset = END_OFFSET_MIN[bet.sport] ?? END_OFFSET_MIN['other']!;
-    const fireAt = new Date(start.getTime() + offset * 60_000);
-    if (fireAt.getTime() <= Date.now() + 60_000) return;
-
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: 'Матч завершён — какой результат?',
-        body: `${displayEvent(bet.event)} · ${bet.pick} × ${bet.odds}`,
-        categoryIdentifier: BET_RESULT_CATEGORY,
-        data: { type: 'bet_result', betId: bet.id },
-      },
-      trigger: { type: 'date', date: fireAt } as Notifications.DateTriggerInput,
-    });
-  } catch {
-    // scheduling unavailable — silently skip
-  }
+      await Notifications.scheduleNotificationAsync({
+        identifier: reminderId(bet.id), // replaces any existing reminder for this bet
+        content: {
+          title: 'Матч завершён — какой результат?',
+          body: `${displayEvent(bet.event)} · ${bet.pick} × ${bet.odds}`,
+          categoryIdentifier: BET_RESULT_CATEGORY,
+          data: { type: 'bet_result', betId: bet.id },
+        },
+        trigger: { type: 'date', date: fireAt } as Notifications.DateTriggerInput,
+      });
+    } catch {
+      // scheduling unavailable — silently skip
+    }
+  });
 }
 
 /** Removes an already-delivered reminder from the tray (cancelling only kills pending ones). */
@@ -230,13 +253,15 @@ export async function syncBetResultReminders(bets: Bet[], enabled: boolean): Pro
       }
     }
 
-    // Arm anything that is pending but has no reminder (e.g. added on another install path).
+    // Arm anything pending that has no reminder. iOS keeps only the 64 soonest pending
+    // local notifications and silently drops the rest, so arm the nearest kick-offs first
+    // and cap well under that ceiling (the daily reminder shares the budget).
     if (enabled) {
-      for (const bet of bets) {
-        if (bet.status === 'pending' && !scheduledIds.has(bet.id)) {
-          await scheduleBetResultReminder(bet);
-        }
-      }
+      const missing = bets
+        .filter((b) => b.status === 'pending' && !scheduledIds.has(b.id))
+        .sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`))
+        .slice(0, Math.max(0, MAX_SCHEDULED - scheduledIds.size));
+      for (const bet of missing) await scheduleBetResultReminder(bet);
     }
   } catch {
     // permissions revoked / API unavailable — skip silently

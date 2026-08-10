@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Bet, AppSettings, Bankroll, DiaryEntry, Team, Sport, EsportsDiscipline } from '@sharklog/core';
-import { migrate, CURRENT_SCHEMA_VERSION, FREE_LIMITS, isInTilt, calcDashboard, parseEventTeams } from '@sharklog/core';
+import { migrate, CURRENT_SCHEMA_VERSION, FREE_LIMITS, isInTilt, calcDashboard, parseEventTeams, toYmd } from '@sharklog/core';
 import {
   sendTiltNotification, scheduleBetResultReminder,
   cancelBetResultReminder, cancelAllBetResultReminders,
@@ -253,7 +253,7 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
     const { bets, settings } = get();
     if (!settings.isPro) return bets.length < FREE_LIMITS.MAX_BETS;
     if (settings.dailyBetLimit > 0) {
-      const today = new Date().toISOString().split('T')[0] ?? '';
+      const today = toYmd(new Date()); // local day — the daily limit must roll at local midnight
       const todayCount = bets.filter((b) => b.date === today).length;
       if (todayCount >= settings.dailyBetLimit) return false;
     }

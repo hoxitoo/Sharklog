@@ -16,7 +16,16 @@ import { LANGUAGES, type LangCode } from '../../i18n/index';
 import i18n from '../../i18n/index';
 import { exportBetsCSV } from '../../utils/exportCSV';
 import { importFromCSV, importFromJSON } from '../../utils/importBets';
-import { requestNotificationPermission, scheduleDailyReminder } from '../../utils/notifications';
+import {
+  requestNotificationPermission, scheduleDailyReminder,
+  syncBetResultReminders, cancelAllBetResultReminders,
+} from '../../utils/notifications';
+
+/** Re-arm / clear bet reminders from the store's current state. */
+function resyncReminders(): void {
+  const { bets, settings } = useBetsStore.getState();
+  syncBetResultReminders(bets, settings.betResultReminders !== false);
+}
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
@@ -195,6 +204,7 @@ export function SettingsScreen() {
               const store = useBetsStore.getState();
               useBetsStore.setState({ bets: [...imported, ...store.bets] });
               store.persist();
+              resyncReminders(); // imported bets bypass addBet, so arm them here
               Alert.alert('Готово', `Импортировано ${imported.length} ставок`);
             },
           },
@@ -234,6 +244,7 @@ export function SettingsScreen() {
               const store = useBetsStore.getState();
               useBetsStore.setState({ bets: [...backup.bets, ...store.bets] });
               store.persist();
+              resyncReminders();
               Alert.alert('Готово', `Добавлено ${backup.bets.length} ставок`);
             },
           },
@@ -249,6 +260,7 @@ export function SettingsScreen() {
                 ...(backup.teams ? { teams: backup.teams as typeof store.teams } : {}),
               });
               store.persist();
+              resyncReminders(); // replaced bets: drop orphan reminders, arm the new ones
               Alert.alert('Готово', `Восстановлено ${backup.bets.length} ставок`);
             },
           },
@@ -265,6 +277,7 @@ export function SettingsScreen() {
     const granted = await requestNotificationPermission();
     if (granted) {
       await scheduleDailyReminder(settings.reminderHour);
+      resyncReminders(); // bets logged before permission was granted had no reminder
       Alert.alert('Готово', `Ежедневное напоминание в ${String(settings.reminderHour).padStart(2, '0')}:00 включено`);
     } else {
       Alert.alert('Нет разрешения', 'Разреши уведомления в настройках телефона');
@@ -536,7 +549,12 @@ export function SettingsScreen() {
           </Row>
           <Row label={t('settings.betResultReminders')}>
             <TouchableOpacity
-              onPress={() => updateSettings({ betResultReminders: settings.betResultReminders === false })}
+              onPress={() => {
+                const turningOn = settings.betResultReminders === false;
+                updateSettings({ betResultReminders: turningOn });
+                if (turningOn) resyncReminders();
+                else cancelAllBetResultReminders(); // clear the already-armed ones
+              }}
               activeOpacity={0.7}
               style={[styles.toggle, settings.betResultReminders !== false && styles.toggleOn]}
             >
