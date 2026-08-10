@@ -36,7 +36,10 @@ const STATUS_FILTER_KEYS: Array<BetStatus | 'all'> = ['all', 'pending', 'won', '
 
 type SortKey = 'date_desc' | 'date_asc' | 'odds_desc' | 'odds_asc' | 'stake_desc' | 'stake_asc';
 
-export function BetsScreen() {
+export function BetsScreen({ dateFilter, onClearDateFilter }: {
+  dateFilter?: string | null;
+  onClearDateFilter?: () => void;
+} = {}) {
   const navigation = useNavigation<Nav>();
   const { bets, settings, bankroll, deleteBet } = useBetsStore();
   const { t } = useTranslation();
@@ -70,6 +73,7 @@ export function BetsScreen() {
 
   const sections = useMemo(() => {
     let result = [...bets];
+    if (dateFilter) result = result.filter((b) => b.date === dateFilter);
     if (statusFilter !== 'all') result = result.filter((b) => b.status === statusFilter);
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -124,7 +128,7 @@ export function BetsScreen() {
       }, 0);
       return { title: formatDateTitle(date, todayLabel, yesterdayLabel), date, dailyPnl, data };
     });
-  }, [bets, statusFilter, search, sort]);
+  }, [bets, statusFilter, search, sort, dateFilter]);
 
   const freeLeft = Math.max(0, 50 - bets.length);
 
@@ -138,6 +142,19 @@ export function BetsScreen() {
         title={t('nav.bets')}
         subtitle={settings.isPro ? `${bets.length} ${t('common.bets')}` : `${freeLeft} ${t('common.of')} 50`}
       />
+
+      {dateFilter && (
+        <TouchableOpacity
+          style={styles.dateChip}
+          onPress={() => { haptic.selection(); onClearDateFilter?.(); }}
+          activeOpacity={0.75}
+        >
+          <Text style={styles.dateChipText}>
+            Только {dateFilter.split('-').reverse().slice(0, 2).join('.')}
+          </Text>
+          <Text style={styles.dateChipX}>✕</Text>
+        </TouchableOpacity>
+      )}
 
       <View style={styles.todayStrip}>
         <View style={styles.todayCell}>
@@ -154,13 +171,17 @@ export function BetsScreen() {
           <Text style={styles.todaySub}>{today?.betCount ?? 0} ст. · {formatMoney(today?.turnover ?? 0)}</Text>
         </View>
         <View style={styles.todayDivider} />
-        <View style={styles.todayCell}>
-          <Text style={styles.todayLabel}>В игре</Text>
+        <TouchableOpacity
+          style={styles.todayCell}
+          onPress={() => { haptic.selection(); navigation.navigate('Pending'); }}
+          activeOpacity={0.75}
+        >
+          <Text style={styles.todayLabel}>В игре →</Text>
           <Text style={[styles.todayValue, { color: exposure > 0 ? colors.pending : colors.textMuted }]} numberOfLines={1} adjustsFontSizeToFit>
             {exposure > 0 ? formatMoney(exposure) : '—'}
           </Text>
-          <Text style={styles.todaySub}>незакрытых ставок</Text>
-        </View>
+          <Text style={styles.todaySub}>закрыть результаты</Text>
+        </TouchableOpacity>
         <View style={styles.todayDivider} />
         <TouchableOpacity style={styles.todayCell} onPress={() => { haptic.selection(); navigation.navigate('Bankroll'); }} activeOpacity={0.75}>
           <Text style={styles.todayLabel}>Банк →</Text>
@@ -354,6 +375,14 @@ const styles = StyleSheet.create({
   },
   sortText: { fontSize: 11, color: colors.textMuted },
   sortTextActive: { color: colors.accent, fontWeight: '600' },
+  dateChip: {
+    flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start',
+    marginHorizontal: 16, marginBottom: 10, paddingHorizontal: 12, paddingVertical: 7,
+    backgroundColor: colors.purpleDim, borderRadius: 20,
+    borderWidth: 1, borderColor: colors.purple,
+  },
+  dateChipText: { fontSize: 12, color: colors.purple, fontWeight: '700' },
+  dateChipX: { fontSize: 12, color: colors.purple, fontWeight: '700' },
   todayStrip: {
     flexDirection: 'row', alignItems: 'stretch',
     marginHorizontal: 16, marginBottom: 12, padding: 12,

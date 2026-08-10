@@ -534,6 +534,15 @@ export function SettingsScreen() {
               <View style={[styles.toggleThumb, settings.roundAmounts && styles.toggleThumbOn]} />
             </TouchableOpacity>
           </Row>
+          <Row label={t('settings.betResultReminders')}>
+            <TouchableOpacity
+              onPress={() => updateSettings({ betResultReminders: settings.betResultReminders === false })}
+              activeOpacity={0.7}
+              style={[styles.toggle, settings.betResultReminders !== false && styles.toggleOn]}
+            >
+              <View style={[styles.toggleThumb, settings.betResultReminders !== false && styles.toggleThumbOn]} />
+            </TouchableOpacity>
+          </Row>
         </Section>
 
         <Section title={t('settings.language')}>

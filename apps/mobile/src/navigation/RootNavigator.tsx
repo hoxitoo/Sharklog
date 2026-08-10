@@ -6,6 +6,7 @@ import { BankrollScreen } from '../screens/BankrollScreen';
 import { AddBetScreen } from '../screens/AddBetScreen';
 import { StrategyBuilderScreen } from '../screens/StrategyBuilderScreen';
 import { PartnersScreen } from '../screens/PartnersScreen';
+import { PendingScreen } from '../screens/PendingScreen';
 import { DrawerNavigator } from './DrawerNavigator';
 
 export type RootStackParamList = {
@@ -14,6 +15,7 @@ export type RootStackParamList = {
   Bankroll: undefined;
   StrategyBuilder: undefined;
   Partners: undefined;
+  Pending: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -42,6 +44,11 @@ export function RootNavigator() {
         name="StrategyBuilder"
         component={StrategyBuilderScreen}
         options={{ headerShown: true, ...headerOpts, title: t('nav.strategyBuilder') }}
+      />
+      <Stack.Screen
+        name="Pending"
+        component={PendingScreen}
+        options={{ headerShown: true, ...headerOpts, title: 'Ждут результата' }}
       />
       <Stack.Screen
         name="Partners"

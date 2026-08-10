@@ -14,6 +14,9 @@ apps/mobile/src/
                                SectionList с датами + daily P&L, search, status filter (scroll), sort row,
                                swipe-to-delete, haptics; quick-result chips W/L/R/C
                                BetCard: тап «C» раскрывает inline-поле суммы выкупа (не открывает полный редактор)
+    PendingScreen/           — «Ждут результата»: незакрытые ставки по времени матча (старые сверху),
+                               шапка: экспозиция / потенциальный возврат / «пора закрыть» (матч давно прошёл),
+                               строки = BetCard (W/L/R/C + inline-выкуп). Вход: тап «В игре» на Ставках
     AddBetScreen/            — react-hook-form, TeamAutocomplete, Kelly calculator (collapsible),
                                tournament/league TextInput field, «Кэф закрытия (CLV)» optional field, status includes cashout
                                KeyboardAvoidingView: 'padding' iOS / 'height' Android
@@ -78,6 +81,9 @@ apps/mobile/src/
   utils/
     haptics.ts               — haptic.selection/light/medium/heavy/success/warning/error
     notifications.ts         — scheduleDailyReminder (20:00), sendTiltNotification, requestNotificationPermission
+                               + напоминание о результате: registerBetResultCategory (кнопки Выиграла/Проиграла/Позже),
+                               scheduleBetResultReminder(bet) на время конца матча (старт + END_OFFSET_MIN по спорту),
+                               cancel(All)BetResultReminder — стор сам ставит/снимает их в addBet/updateBet/deleteBet
     exportCSV.ts             — CSV с UTF-8 BOM, expo-file-system + expo-sharing
     useFormatMoney.ts        — хук: useFormatMoney() → (kopecks) => string; учитывает settings.roundAmounts
     chartScale.ts            — chartScale(vals) → nice-шкала для gifted-charts (maxValue/stepValue/noOfSections,

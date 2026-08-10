@@ -11,6 +11,7 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { ResponsibleGamblingBanner } from '../../components/ResponsibleGamblingBanner';
 import { Coachmark } from '../../components/Coachmark';
 import { haptic } from '../../utils/haptics';
+import { useDrawer } from '../../components/DrawerContext';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { useFormatMoney } from '../../utils/useFormatMoney';
 import { DailyChart, ChartLegend, SERIES } from './DailyChart';
@@ -242,6 +243,7 @@ const tc = StyleSheet.create({
 
 function DailyDashboardCard({ days, onExpand }: { days: DayStats[]; onExpand: () => void }) {
   const fmt = useFormatMoney();
+  const { goToBets } = useDrawer();
   const { width } = useWindowDimensions();
   const [selected, setSelected] = useState<number | null>(null);
   const summary = useMemo(() => summarizeDays(days), [days]);
@@ -299,6 +301,15 @@ function DailyDashboardCard({ days, onExpand }: { days: DayStats[]; onExpand: ()
               </Text>
             </View>
           </View>
+          {sel.betCount > 0 && (
+            <TouchableOpacity
+              style={dd.detailLink}
+              onPress={() => { haptic.selection(); goToBets(sel.date); }}
+              activeOpacity={0.75}
+            >
+              <Text style={dd.detailLinkText}>Показать ставки за этот день →</Text>
+            </TouchableOpacity>
+          )}
           {(sel.deposits > 0 || sel.withdrawals > 0) && (
             <Text style={dd.detailCash}>
               {sel.deposits > 0 ? `Депозит ${fmt(sel.deposits)}` : ''}
@@ -361,6 +372,11 @@ const dd = StyleSheet.create({
   detailLabel: { fontSize: 10, color: colors.textMuted },
   detailValue: { fontSize: 13, fontWeight: '700', color: colors.textPrimary, marginTop: 2 },
   detailCash: { fontSize: 10, color: colors.textMuted, marginTop: 8 },
+  detailLink: {
+    marginTop: 10, paddingVertical: 8, borderRadius: 8, alignItems: 'center',
+    backgroundColor: colors.purpleDim, borderWidth: 1, borderColor: colors.purple + '66',
+  },
+  detailLinkText: { fontSize: 12, color: colors.purple, fontWeight: '700' },
   summaryRow: {
     flexDirection: 'row', marginTop: 14, paddingTop: 12,
     borderTopWidth: 1, borderTopColor: colors.border,

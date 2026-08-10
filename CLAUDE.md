@@ -39,6 +39,8 @@ docs/            — ROADMAP.md, ANALYSIS.md, PRIVACY_POLICY.md
 - **gifted-charts: `hideDataPoints` убивает `customDataPoint`** — маркеры на линии не отрисуются. Для линий с метками (депозиты/выводы) рисуй свой SVG (`components/BalanceChart.tsx`), а не борись с библиотекой.
 - **Палитра графиков — одна на всё приложение**: `theme/chartColors.ts` (`SERIES`: win/loss/pnl/balance/deposit/withdrawal). Не заводи цвета серий по месту.
 - **Ландшафтный режим через rotate-трансформ** (`ExpandedDashboard`): экран поворачивается на 90° по часовой, поэтому отступы безопасной зоны надо ПЕРЕСТАВЛЯТЬ — `paddingRight ← insets.bottom` (там наэкранные кнопки), `paddingLeft ← insets.top`. Иначе контент лезет под системную навигацию.
+- **Действия из уведомления применяй ТОЛЬКО после `isLoaded`** — на холодном старте стор ещё пуст, и `updateBet` по пустому массиву затем запишет пустой снапшот поверх реальных данных. В `App.tsx` действие буферизуется в ref и применяется в эффекте по `isLoaded`.
+- **Новую функцию в `utils/notifications.ts` добавляй и в мок** `src/__tests__/__mocks__/notifications.ts`, иначе падают тесты стора.
 - **Inline-инпуты в списках**: у `SectionList`/`FlatList` с полем ввода внутри строки ставь `keyboardShouldPersistTaps="handled"`, иначе первый тап по кнопке при открытой клавиатуре съедается (двойной тап). Пример — inline-выкуп в `BetCard`.
 
 ## Цветовая система

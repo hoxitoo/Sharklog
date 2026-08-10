@@ -271,7 +271,8 @@
     "tiltAlertThreshold": "Тилт ескерту шегі",
     "totalBets": "Барлық ставкалар",
     "reminderTime": "Еске салу уақыты",
-    "removeBookmaker": "Жою"
+    "removeBookmaker": "Жою",
+    "betResultReminders": "Нәтиже туралы еске салу"
   },
   "onboarding": {
     "welcome": "Қош келдіңіз",

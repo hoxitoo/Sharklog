@@ -159,6 +159,7 @@ export interface AppSettings {
   lastBackupAt?: string;
   language?: 'ru' | 'en' | 'kz' | 'by';
   disableChecklist?: boolean;
+  betResultReminders?: boolean; // local reminder with W/L buttons when a match should be over (default: on)
 }
 
 export interface StorageSchema {

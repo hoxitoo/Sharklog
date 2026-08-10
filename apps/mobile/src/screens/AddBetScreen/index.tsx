@@ -10,7 +10,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { Sport, BetType, Strategy, BetStatus, EsportsDiscipline, Team, Bet } from '@sharklog/core';
 import {
   SPORTS, BET_TYPES, STRATEGIES, ESPORTS_DISCIPLINES, parseMoneyInput, formatMoney,
-  impliedProbability, halfKelly, expectedValue, recommendedStake, CURRENT_SCHEMA_VERSION, FREE_LIMITS,
+  impliedProbability, halfKelly, expectedValue, recommendedStake, CURRENT_SCHEMA_VERSION, FREE_LIMITS, calcDashboard,
 } from '@sharklog/core';
 import { colors } from '../../theme/colors';
 import { useBetsStore } from '../../store/betsStore';
@@ -589,6 +589,17 @@ export function AddBetScreen() {
   const cashoutKopecks = parseMoneyInput(cashoutRaw || '0');
   const cashoutPnl = stakeKopecks > 0 && cashoutKopecks > 0 ? cashoutKopecks - stakeKopecks : null;
 
+  // Stake as a share of the bank — discipline feedback at the moment of the decision,
+  // not in a report afterwards. Compared against the generated strategy's limit if set.
+  const bankTotal = useMemo(() => {
+    const cash = bankroll.transactions.reduce(
+      (sum, t) => (t.type === 'deposit' ? sum + t.amount : sum - t.amount), 0);
+    return cash + calcDashboard(bets).pnl;
+  }, [bets, bankroll.transactions]);
+  const bankShare = bankTotal > 0 && stakeKopecks > 0 ? (stakeKopecks / bankTotal) * 100 : null;
+  const strategyLimit = settings.generatedStrategy?.stakePercent ?? null;
+  const overLimit = bankShare != null && strategyLimit != null && bankShare > strategyLimit;
+
   const expressOdds = legs.reduce((p, l) => {
     const o = parseFloat(nd(l.odds || '0'));
     return o > 1 ? p * o : p;
@@ -1020,6 +1031,25 @@ export function AddBetScreen() {
           <View style={styles.winPreview}>
             <Text style={styles.winLabel}>Прибыль при победе</Text>
             <Text style={styles.winAmount}>{potentialProfit}</Text>
+          </View>
+        )}
+
+        {bankShare != null && (
+          <View style={[styles.bankShare, overLimit && styles.bankShareWarn]}>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.bankShareLabel}>Доля банка</Text>
+              <Text style={styles.bankShareBank}>банк {formatMoney(bankTotal)}</Text>
+            </View>
+            <View style={{ alignItems: 'flex-end' }}>
+              <Text style={[styles.bankShareValue, { color: overLimit ? colors.lost : colors.accent }]}>
+                {bankShare.toFixed(1)}%
+              </Text>
+              {strategyLimit != null && (
+                <Text style={[styles.bankShareHint, overLimit && { color: colors.lost }]}>
+                  {overLimit ? `выше лимита ${strategyLimit}%` : `лимит ${strategyLimit}%`}
+                </Text>
+              )}
+            </View>
           </View>
         )}
 
@@ -1631,6 +1661,16 @@ const styles = StyleSheet.create({
   bkText: { fontSize: 13, color: colors.textSecondary },
   bkTextActive: { color: '#fff', fontWeight: '700' },
   notes: { height: 80 },
+  bankShare: {
+    flexDirection: 'row', alignItems: 'center',
+    marginBottom: 16, padding: 14, borderRadius: 12,
+    backgroundColor: colors.bgCard, borderWidth: 1, borderColor: colors.border,
+  },
+  bankShareWarn: { borderColor: colors.lost + '77', backgroundColor: colors.lost + '11' },
+  bankShareLabel: { fontSize: 12, color: colors.textSecondary, fontWeight: '600' },
+  bankShareBank: { fontSize: 10, color: colors.textMuted, marginTop: 2 },
+  bankShareValue: { fontSize: 20, fontWeight: '800' },
+  bankShareHint: { fontSize: 10, color: colors.textMuted, marginTop: 2 },
   outcomePicker: {
     flexDirection: 'row',
     gap: 8,

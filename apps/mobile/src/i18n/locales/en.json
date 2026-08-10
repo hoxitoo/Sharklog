@@ -271,7 +271,8 @@
     "tiltAlertThreshold": "Tilt alert threshold",
     "totalBets": "Total bets",
     "reminderTime": "Reminder time",
-    "removeBookmaker": "Remove"
+    "removeBookmaker": "Remove",
+    "betResultReminders": "Remind me of results"
   },
   "onboarding": {
     "welcome": "Welcome",

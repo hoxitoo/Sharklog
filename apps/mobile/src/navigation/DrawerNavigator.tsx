@@ -43,9 +43,13 @@ const MAIN_ITEMS: NavItem[] = [
   { screen: 'Settings',   icon: 'settings-outline',   iconActive: 'settings',       labelKey: 'nav.settings' },
 ];
 
-function ActiveScreen({ screen }: { screen: DrawerScreen }) {
+function ActiveScreen({ screen, betsDateFilter, onClearBetsDateFilter }: {
+  screen: DrawerScreen;
+  betsDateFilter: string | null;
+  onClearBetsDateFilter: () => void;
+}) {
   switch (screen) {
-    case 'Bets': return <BetsScreen />;
+    case 'Bets': return <BetsScreen dateFilter={betsDateFilter} onClearDateFilter={onClearBetsDateFilter} />;
     case 'Dashboard': return <DashboardScreen />;
     case 'Insights': return <InsightsScreen />;
     case 'Analytics': return <AnalyticsScreen />;
@@ -56,6 +60,7 @@ function ActiveScreen({ screen }: { screen: DrawerScreen }) {
 
 export function DrawerNavigator() {
   const [screen, setScreen] = useState<DrawerScreen>('Bets');
+  const [betsDateFilter, setBetsDateFilter] = useState<string | null>(null);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [showChecklist, setShowChecklist] = useState(false);
   const translateX = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
@@ -115,7 +120,13 @@ export function DrawerNavigator() {
     });
   }
 
+  function goToBets(date?: string) {
+    setBetsDateFilter(date ?? null);
+    setScreen('Bets');
+  }
+
   function handleNavigate(s: DrawerScreen) {
+    setBetsDateFilter(null); // explicit navigation clears any day drill-down
     closeDrawer(() => setScreen(s));
   }
 
@@ -132,7 +143,7 @@ export function DrawerNavigator() {
   }
 
   return (
-    <DrawerContext.Provider value={{ openDrawer }}>
+    <DrawerContext.Provider value={{ openDrawer, goToBets }}>
       <View style={styles.root}>
         {/* Checklist modal (PRO pre-bet) */}
         <ChecklistModal
@@ -143,7 +154,11 @@ export function DrawerNavigator() {
 
         {/* Active screen */}
         <View style={styles.screen}>
-          <ActiveScreen screen={screen} />
+          <ActiveScreen
+            screen={screen}
+            betsDateFilter={betsDateFilter}
+            onClearBetsDateFilter={() => setBetsDateFilter(null)}
+          />
         </View>
 
         {/* Left-edge swipe zone — opens drawer */}

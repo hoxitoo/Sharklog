@@ -271,7 +271,8 @@
     "tiltAlertThreshold": "Парог тылт-алерта",
     "totalBets": "Усяго стаўак",
     "reminderTime": "Час нагадвання",
-    "removeBookmaker": "Выдаліць"
+    "removeBookmaker": "Выдаліць",
+    "betResultReminders": "Нагадваць пра вынік"
   },
   "onboarding": {
     "welcome": "Сардэчна запрашаем",

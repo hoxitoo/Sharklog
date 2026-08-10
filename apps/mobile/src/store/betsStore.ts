@@ -2,7 +2,10 @@ import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Bet, AppSettings, Bankroll, DiaryEntry, Team, Sport, EsportsDiscipline } from '@sharklog/core';
 import { migrate, CURRENT_SCHEMA_VERSION, FREE_LIMITS, isInTilt, calcDashboard, parseEventTeams } from '@sharklog/core';
-import { sendTiltNotification } from '../utils/notifications';
+import {
+  sendTiltNotification, scheduleBetResultReminder,
+  cancelBetResultReminder, cancelAllBetResultReminders,
+} from '../utils/notifications';
 
 const STORAGE_KEY = '@sharklog/data';
 
@@ -164,6 +167,9 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
     const names = extractTeamNames(bet.event);
     const updatedTeams = upsertTeams(get().teams, names, bet.sport, bet.discipline);
     set((s) => ({ bets: [bet, ...s.bets], teams: updatedTeams }));
+    if (bet.status === 'pending' && get().settings.betResultReminders !== false) {
+      scheduleBetResultReminder(bet);
+    }
     get().persist();
   },
 
@@ -184,6 +190,14 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
     });
     // Fire tilt notification only on a real transition INTO lost (not on re-saving an
     // already-lost bet), after the state update so we work with the final bets array.
+    // Keep the settle reminder in sync: drop it once settled, re-arm if the bet
+    // went back to pending or its kick-off moved.
+    const after = get().bets.find((b) => b.id === id);
+    if (after) {
+      if (after.status !== 'pending') cancelBetResultReminder(id);
+      else if (get().settings.betResultReminders !== false) scheduleBetResultReminder(after);
+    }
+
     if (updates.status === 'lost' && prevStatus !== 'lost') {
       const { bets, settings } = get();
       if (isInTilt(bets, settings.tiltThreshold)) {
@@ -194,6 +208,7 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
   },
 
   deleteBet: (id) => {
+    cancelBetResultReminder(id);
     set((s) => ({ bets: s.bets.filter((b) => b.id !== id) }));
     get().persist();
   },
@@ -221,6 +236,7 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
   },
 
   clearAll: () => {
+    cancelAllBetResultReminders();
     // Clear DATA only — preserve user preferences and subscription state. Wiping
     // bets must not silently downgrade a PRO user or reset their language/bookmakers.
     set((s) => ({
