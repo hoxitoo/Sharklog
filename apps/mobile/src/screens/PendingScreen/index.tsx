@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, FlatList } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -13,7 +13,9 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 /** Kick-off timestamp, parsed as LOCAL time (a bare date string would read as UTC). */
 function startedAt(bet: Bet): number {
-  const t = new Date(`${bet.date}T${(bet.time || '00:00')}:00`).getTime();
+  // Same default as the reminder scheduler ('12:00'), otherwise a bet with no time
+  // is flagged "матч давно прошёл" from 03:00 while its reminder assumed midday.
+  const t = new Date(`${bet.date}T${(bet.time || '12:00')}:00`).getTime();
   return isNaN(t) ? 0 : t;
 }
 
@@ -40,7 +42,13 @@ export function PendingScreen() {
     () => pending.reduce((sum, b) => sum + Math.round(b.stake * b.odds), 0),
     [pending],
   );
-  const now = Date.now();
+  // Ticking clock — otherwise "2 ч назад" and the overdue count freeze on an open screen.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 60_000);
+    return () => clearInterval(id);
+  }, []);
+
   const overdue = pending.filter((b) => startedAt(b) > 0 && startedAt(b) < now - 3 * 3_600_000).length;
 
   return (

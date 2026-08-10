@@ -10,7 +10,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { Sport, BetType, Strategy, BetStatus, EsportsDiscipline, Team, Bet } from '@sharklog/core';
 import {
   SPORTS, BET_TYPES, STRATEGIES, ESPORTS_DISCIPLINES, parseMoneyInput, formatMoney,
-  impliedProbability, halfKelly, expectedValue, recommendedStake, CURRENT_SCHEMA_VERSION, FREE_LIMITS, calcDashboard,
+  impliedProbability, halfKelly, expectedValue, recommendedStake, CURRENT_SCHEMA_VERSION, FREE_LIMITS, calcDashboard, toYmd,
 } from '@sharklog/core';
 import { colors } from '../../theme/colors';
 import { useBetsStore } from '../../store/betsStore';
@@ -500,7 +500,7 @@ export function AddBetScreen() {
   const [showExtra, setShowExtra] = useState(hasExtraValues);
 
   const now = new Date();
-  const defaultDate = now.toISOString().split('T')[0] ?? '';
+  const defaultDate = toYmd(now); // LOCAL day — toISOString would stamp tomorrow's UTC date
   const defaultTime = now.toTimeString().slice(0, 5);
 
   const initialBetMode: BetMode = editBet?.betType === 'express' ? 'express' : 'single';

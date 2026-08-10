@@ -25,6 +25,7 @@ export function toYmd(d: Date): string {
 }
 
 const MAX_DAYS = 3650; // safety cap (10 years) so a stray old date can't explode the range
+const YMD = /^\d{4}-\d{2}-\d{2}$/;
 
 interface Bucket {
   betCount: number; settledCount: number; turnover: number;
@@ -62,7 +63,9 @@ export function calcDailyBreakdown(
   };
 
   for (const bet of bets) {
-    if (!bet.date || bet.date > endStr) continue; // ignore future-dated rows
+    // A malformed date (the field is free text) would break the calendar walk and
+    // return an EMPTY series — dropping the row is far better than losing everything.
+    if (!YMD.test(bet.date) || bet.date > endStr) continue;
     const b = touch(bet.date);
     b.betCount++;
     if (!bet.isFreebet) b.turnover += bet.stake;
@@ -76,7 +79,10 @@ export function calcDailyBreakdown(
   }
 
   for (const tx of transactions) {
-    const date = (tx.date.split('T')[0]) ?? tx.date;
+    // tx.date is a full ISO timestamp — splitting it yields the UTC day, which can
+    // land on tomorrow and get dropped. Convert to the LOCAL day instead.
+    const parsed = new Date(tx.date);
+    const date = isNaN(parsed.getTime()) ? '' : toYmd(parsed);
     if (!date || date > endStr) continue;
     const b = touch(date);
     if (tx.type === 'deposit') b.deposits += tx.amount;
@@ -93,6 +99,10 @@ export function calcDailyBreakdown(
   } else if (firstData) {
     const [y, m, d] = firstData.split('-').map(Number);
     startDate = new Date(y!, (m! - 1), d!);
+    // Never start further back than MAX_DAYS — a typo'd year would otherwise walk
+    // centuries and end before today, making `balance` meaningless.
+    const earliest = new Date(end.getFullYear(), end.getMonth(), end.getDate() - (MAX_DAYS - 1));
+    if (startDate.getTime() < earliest.getTime()) startDate = earliest;
   } else {
     startDate = new Date(end.getFullYear(), end.getMonth(), end.getDate());
   }

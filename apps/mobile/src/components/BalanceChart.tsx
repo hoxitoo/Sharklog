@@ -33,7 +33,9 @@ export function BalanceChart({ days, width, height, color = SERIES.balance }: Pr
     const span = top - bottom || 1;
 
     const y = (rub: number) => ((top - rub) / span) * height;
-    const x = (i: number) => (i / (days.length - 1)) * plotW;
+    // Inset by the marker radius so the first/last dots aren't clipped by the viewport.
+    const R = 4;
+    const x = (i: number) => R + (i / (days.length - 1)) * Math.max(plotW - 2 * R, 1);
 
     const pts = days.map((d, i) => `${x(i)},${y(d.balance / 100)}`).join(' ');
     const baselineY = y(Math.max(bottom, 0));
@@ -56,7 +58,12 @@ export function BalanceChart({ days, width, height, color = SERIES.balance }: Pr
         both: d.deposits > 0 && d.withdrawals > 0,
       }));
 
-    return { pts, area, ticks, markers, zeroY: bottom < 0 ? y(0) : null, lastY: y(days[days.length - 1]!.balance / 100) };
+    return {
+      pts, area, ticks, markers,
+      zeroY: bottom < 0 ? y(0) : null,
+      lastX: x(days.length - 1),
+      lastY: y(days[days.length - 1]!.balance / 100),
+    };
   }, [days, plotW, height]);
 
   if (!geom) {
@@ -102,7 +109,7 @@ export function BalanceChart({ days, width, height, color = SERIES.balance }: Pr
               <Circle cx={m.cx} cy={m.cy} r={3.5} fill={m.fill} stroke={colors.bgCard} strokeWidth={1} />
             </React.Fragment>
           ))}
-          <Circle cx={plotW} cy={geom.lastY} r={3.5} fill={color} />
+          <Circle cx={geom.lastX} cy={geom.lastY} r={3.5} fill={color} />
         </Svg>
       </View>
     </View>
