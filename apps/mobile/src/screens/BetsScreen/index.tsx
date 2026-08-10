@@ -5,7 +5,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { Bet, BetStatus } from '@sharklog/core';
-import { formatMoney, isInTilt } from '@sharklog/core';
+import { formatMoney, isInTilt, calcDailyBreakdown, calcDashboard } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { colors } from '../../theme/colors';
 import { ScreenHeader } from '../../components/ScreenHeader';
@@ -38,7 +38,7 @@ type SortKey = 'date_desc' | 'date_asc' | 'odds_desc' | 'odds_asc' | 'stake_desc
 
 export function BetsScreen() {
   const navigation = useNavigation<Nav>();
-  const { bets, settings, deleteBet } = useBetsStore();
+  const { bets, settings, bankroll, deleteBet } = useBetsStore();
   const { t } = useTranslation();
   const todayLabel = t('dashboard.today');
   const yesterdayLabel = t('dashboard.yesterday');
@@ -47,6 +47,18 @@ export function BetsScreen() {
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortKey>('date_desc');
   const [refreshing, setRefreshing] = useState(false);
+
+  // Working context while logging bets: today's result, money currently at risk, bank.
+  const today = useMemo(() => calcDailyBreakdown(bets, [], { days: 1 })[0] ?? null, [bets]);
+  const exposure = useMemo(
+    () => bets.filter((b) => b.status === 'pending').reduce((sum, b) => sum + b.stake, 0),
+    [bets],
+  );
+  const bank = useMemo(() => {
+    const cash = bankroll.transactions.reduce(
+      (sum, t) => (t.type === 'deposit' ? sum + t.amount : sum - t.amount), 0);
+    return cash + calcDashboard(bets).pnl;
+  }, [bets, bankroll.transactions]);
 
   const onRefresh = useCallback(() => {
     // Data is local and reactive — there's nothing to fetch. Acknowledge the gesture
@@ -126,6 +138,38 @@ export function BetsScreen() {
         title={t('nav.bets')}
         subtitle={settings.isPro ? `${bets.length} ${t('common.bets')}` : `${freeLeft} ${t('common.of')} 50`}
       />
+
+      <View style={styles.todayStrip}>
+        <View style={styles.todayCell}>
+          <Text style={styles.todayLabel}>Сегодня</Text>
+          <Text style={[
+            styles.todayValue,
+            { color: !today || today.settledCount === 0 ? colors.textMuted
+              : today.pnl >= 0 ? colors.won : colors.lost },
+          ]} numberOfLines={1} adjustsFontSizeToFit>
+            {today && today.settledCount > 0
+              ? `${today.pnl >= 0 ? '+' : ''}${formatMoney(today.pnl)}`
+              : '—'}
+          </Text>
+          <Text style={styles.todaySub}>{today?.betCount ?? 0} ст. · {formatMoney(today?.turnover ?? 0)}</Text>
+        </View>
+        <View style={styles.todayDivider} />
+        <View style={styles.todayCell}>
+          <Text style={styles.todayLabel}>В игре</Text>
+          <Text style={[styles.todayValue, { color: exposure > 0 ? colors.pending : colors.textMuted }]} numberOfLines={1} adjustsFontSizeToFit>
+            {exposure > 0 ? formatMoney(exposure) : '—'}
+          </Text>
+          <Text style={styles.todaySub}>незакрытых ставок</Text>
+        </View>
+        <View style={styles.todayDivider} />
+        <TouchableOpacity style={styles.todayCell} onPress={() => { haptic.selection(); navigation.navigate('Bankroll'); }} activeOpacity={0.75}>
+          <Text style={styles.todayLabel}>Банк →</Text>
+          <Text style={[styles.todayValue, { color: bank >= 0 ? colors.textPrimary : colors.lost }]} numberOfLines={1} adjustsFontSizeToFit>
+            {formatMoney(bank)}
+          </Text>
+          <Text style={styles.todaySub}>текущий баланс</Text>
+        </TouchableOpacity>
+      </View>
 
       <TextInput
         style={styles.search}
@@ -310,6 +354,17 @@ const styles = StyleSheet.create({
   },
   sortText: { fontSize: 11, color: colors.textMuted },
   sortTextActive: { color: colors.accent, fontWeight: '600' },
+  todayStrip: {
+    flexDirection: 'row', alignItems: 'stretch',
+    marginHorizontal: 16, marginBottom: 12, padding: 12,
+    backgroundColor: colors.bgCard, borderRadius: 12,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  todayCell: { flex: 1, paddingHorizontal: 4 },
+  todayDivider: { width: 1, backgroundColor: colors.border, marginHorizontal: 4 },
+  todayLabel: { fontSize: 10, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.4 },
+  todayValue: { fontSize: 16, fontWeight: '800', marginTop: 3 },
+  todaySub: { fontSize: 9, color: colors.textMuted, marginTop: 2 },
   list: { paddingBottom: 96 }, // clear the floating "+" FAB so the last row isn't covered
   sectionHeader: {
     flexDirection: 'row',

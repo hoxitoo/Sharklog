@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Modal, FlatList, useWindowDimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { DayStats } from '@sharklog/core';
 import { summarizeDays } from '@sharklog/core';
 import { useFormatMoney } from '../../utils/useFormatMoney';
@@ -37,6 +38,7 @@ function Chip({ active, label, color, onPress }: {
 
 export function ExpandedDashboard({ visible, days, onClose }: Props) {
   const { width: W, height: H } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const fmt = useFormatMoney();
 
   const [hideEmpty, setHideEmpty] = useState(false);
@@ -58,7 +60,16 @@ export function ExpandedDashboard({ visible, days, onClose }: Props) {
   // (adding one would force a fresh native build).
   const LW = H;
   const LH = W;
-  const chartW = LW - 48;
+
+  // The canvas is rotated 90° CLOCKWISE, so the phone's edges map onto different
+  // sides of our layout: phone-bottom (nav bar) becomes our RIGHT edge, phone-top
+  // (status bar / notch) becomes our LEFT. Pad accordingly or controls sit under
+  // the system buttons.
+  const padTop = 12 + insets.right;
+  const padRight = 16 + insets.bottom;
+  const padBottom = 12 + insets.left;
+  const padLeft = 16 + insets.top;
+  const chartW = LW - padLeft - padRight;
 
   return (
     <Modal
@@ -76,8 +87,10 @@ export function ExpandedDashboard({ visible, days, onClose }: Props) {
             left: (W - LW) / 2,
             top: (H - LH) / 2,
             transform: [{ rotate: '90deg' }],
-            paddingHorizontal: 24,
-            paddingVertical: 12,
+            paddingTop: padTop,
+            paddingRight: padRight,
+            paddingBottom: padBottom,
+            paddingLeft: padLeft,
           }}
         >
           {/* Header */}

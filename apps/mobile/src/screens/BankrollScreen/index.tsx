@@ -3,8 +3,7 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, Alert, useWindowDimensions,
 } from 'react-native';
-import { LineChart } from 'react-native-gifted-charts';
-import { calcDashboard, formatMoney, parseMoneyInput, kellyFraction, expectedValue, impliedProbability } from '@sharklog/core';
+import { calcDashboard, formatMoney, parseMoneyInput, kellyFraction, expectedValue, impliedProbability, calcDailyBreakdown } from '@sharklog/core';
 
 function uuid(): string {
   const c = (globalThis as any).crypto;
@@ -30,7 +29,8 @@ import { useBetsStore } from '../../store/betsStore';
 import { ProGate } from '../../components/ProGate';
 import { colors } from '../../theme/colors';
 import { FONTS } from '../../theme/typography';
-import { chartScale, chartHeightForBudget, formatChartYLabel } from '../../utils/chartScale';
+import { BalanceChart } from '../../components/BalanceChart';
+import { SERIES } from '../../theme/chartColors';
 
 // ── Kelly Calculator ──────────────────────────────────────────────────────────
 
@@ -255,67 +255,25 @@ function BankrollContent() {
   const stats = calcDashboard(bets);
   const [activeTxForm, setActiveTxForm] = useState<TxType | null>(null);
 
-  const equityCurve = useMemo(() => {
-    const events: Array<{ date: string; delta: number; txType?: 'deposit' | 'withdrawal' }> = [];
-    for (const tx of bankroll.transactions) {
-      const date = (tx.date.split('T')[0]) ?? tx.date;
-      events.push({ date, delta: tx.type === 'deposit' ? tx.amount : -tx.amount, txType: tx.type });
-    }
-    for (const bet of bets) {
-      if (bet.status === 'pending') continue;
-      const pnl = bet.status === 'won' ? Math.round(bet.stake * bet.odds) - bet.stake
-        : bet.status === 'lost' ? (bet.isFreebet ? 0 : -bet.stake)
-        : bet.status === 'cashout' && bet.cashoutAmount != null ? bet.cashoutAmount - bet.stake
-        : 0;
-      events.push({ date: bet.date, delta: pnl });
-    }
-    if (events.length < 2) return [];
-    const byDate = new Map<string, { delta: number; txType?: 'deposit' | 'withdrawal' }>();
-    for (const e of events) {
-      const existing = byDate.get(e.date);
-      // Preserve the first transaction type seen for a date; bets have no txType
-      const txType = existing?.txType ?? e.txType;
-      byDate.set(e.date, {
-        delta: (existing?.delta ?? 0) + e.delta,
-        ...(txType != null ? { txType } : {}),
-      });
-    }
-    let balance = 0;
-    return [...byDate.keys()].sort().map((date) => {
-      const entry = byDate.get(date)!;
-      balance += entry.delta;
-      return { date, value: balance, txType: entry.txType };
-    });
-  }, [bets, bankroll.transactions]);
+
 
   const deposited = bankroll.transactions.filter((t) => t.type === 'deposit').reduce((s, t) => s + t.amount, 0);
   const withdrawn = bankroll.transactions.filter((t) => t.type === 'withdrawal').reduce((s, t) => s + t.amount, 0);
   const currentBank = deposited - withdrawn + stats.pnl;
   const unitAmount = Math.round(currentBank * bankroll.unitPercent / 100);
 
-  // Chart block memoized: avoids recreating customDataPoint functions on every render
+  // Bank curve, aggregated per DAY (readable trend, not a spike storm) with real
+  // deposit/withdrawal markers — gifted-charts swallowed customDataPoint under
+  // hideDataPoints, so those markers never rendered.
+  const dailySeries = useMemo(
+    () => calcDailyBreakdown(bets, bankroll.transactions),
+    [bets, bankroll.transactions],
+  );
+
   const chartBlock = useMemo(() => {
-    if (equityCurve.length < 2) return null;
-    const vals = equityCurve.map((p) => p.value / 100);
-    const scale = chartScale(vals);
-
-    const hasDeposit = equityCurve.some((p) => p.txType === 'deposit');
-    const hasWithdrawal = equityCurve.some((p) => p.txType === 'withdrawal');
-    const txHint = hasDeposit && hasWithdrawal
-      ? '● депозит  ●  вывод обозначены на графике'
-      : hasDeposit ? '● депозиты обозначены на графике'
-      : hasWithdrawal ? '● выводы обозначены на графике'
-      : '';
-
-    const chartData = equityCurve.map((p) => ({
-      value: p.value / 100,
-      ...(p.txType ? {
-        customDataPoint: () => (
-          <View style={[bk.txMarker, { backgroundColor: p.txType === 'deposit' ? colors.won : colors.lost }]} />
-        ),
-      } : {}),
-    }));
-
+    if (dailySeries.length < 2) return null;
+    const hasDeposit = dailySeries.some((d) => d.deposits > 0);
+    const hasWithdrawal = dailySeries.some((d) => d.withdrawals > 0);
     return (
       <View style={bk.chartCard}>
         <View style={bk.chartHeader}>
@@ -324,40 +282,27 @@ function BankrollContent() {
             {currentBank >= 0 ? '+' : ''}{formatMoney(currentBank)}
           </Text>
         </View>
-        {txHint.length > 0 && <Text style={bk.chartHint}>{txHint}</Text>}
-        <LineChart
-          data={chartData}
-          width={width - 64}
-          height={chartHeightForBudget(140, scale)}
-          maxValue={scale.maxValue}
-          stepValue={scale.stepValue}
-          noOfSections={scale.noOfSections}
-          {...(scale.sectionsBelow > 0
-            ? { mostNegativeValue: scale.mostNegativeValue, noOfSectionsBelowXAxis: scale.sectionsBelow }
-            : {})}
-          color={currentBank >= 0 ? colors.won : colors.lost}
-          thickness={2}
-          hideDataPoints
-          areaChart
-          startFillColor={currentBank >= 0 ? colors.won : colors.lost}
-          endFillColor={colors.bgCard}
-          startOpacity={0.2}
-          endOpacity={0}
-          backgroundColor={colors.bgCard}
-          xAxisColor={colors.border}
-          yAxisColor={colors.border + '66'}
-          rulesType="solid"
-          rulesColor={colors.border + '55'}
-          yAxisTextStyle={{ color: colors.textMuted, fontSize: 10 }}
-          formatYLabel={formatChartYLabel}
-          adjustToWidth
-          curved
-        />
+        <BalanceChart days={dailySeries} width={width - 64} height={150} />
+        <View style={bk.legendRow}>
+          <Text style={bk.legendPeriod}>
+            {dailySeries.length} дней · с {dailySeries[0]!.date.split('-').reverse().slice(0, 2).join('.')}
+          </Text>
+          {hasDeposit && (
+            <View style={bk.legendItem}>
+              <View style={[bk.legendDot, { backgroundColor: SERIES.deposit }]} />
+              <Text style={bk.legendText}>депозит</Text>
+            </View>
+          )}
+          {hasWithdrawal && (
+            <View style={bk.legendItem}>
+              <View style={[bk.legendDot, { backgroundColor: SERIES.withdrawal }]} />
+              <Text style={bk.legendText}>вывод</Text>
+            </View>
+          )}
+        </View>
       </View>
     );
-  // currentBank is derived from bets/transactions which drive equityCurve
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [equityCurve, currentBank]);
+  }, [dailySeries, currentBank, width]);
 
   function handleTxSubmit(type: TxType, amount: number, note: string) {
     if (type === 'withdrawal' && amount > currentBank) {
@@ -459,7 +404,7 @@ function BankrollContent() {
       </View>
 
       {/* Equity curve */}
-      {equityCurve.length >= 2 && chartBlock}
+      {chartBlock}
 
       {/* Kelly Calculator */}
       <KellyCalculator bankroll={currentBank} />
@@ -521,6 +466,11 @@ const bk = StyleSheet.create({
   chartTitle: { fontSize: 13, fontWeight: '700', color: colors.textPrimary },
   chartCurrentBank: { fontSize: 14, fontWeight: '700' },
   chartHint: { fontSize: 10, color: colors.textMuted, marginBottom: 8 },
+  legendRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 10 },
+  legendPeriod: { fontSize: 10, color: colors.textMuted, flex: 1 },
+  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  legendDot: { width: 8, height: 8, borderRadius: 4 },
+  legendText: { fontSize: 10, color: colors.textMuted },
   txMarker: { width: 8, height: 8, borderRadius: 4, marginTop: -4, marginLeft: -4 },
   history: { paddingHorizontal: 16 },
   historyTitle: { fontSize: 16, fontWeight: '700', color: colors.textPrimary, marginBottom: 2 },
