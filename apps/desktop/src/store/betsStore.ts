@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { Bet, AppSettings, Bankroll, DiaryEntry, Team, Sport, EsportsDiscipline } from '@sharklog/core';
-import { migrate, CURRENT_SCHEMA_VERSION, FREE_LIMITS, isInTilt, parseEventTeams } from '@sharklog/core';
+import { migrate, CURRENT_SCHEMA_VERSION, FREE_LIMITS, isInTilt, parseEventTeams, toYmd } from '@sharklog/core';
 import { loadData, saveData } from '../storage/storageService';
 
 function uuid(): string {
@@ -175,7 +175,7 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
     const { bets, settings } = get();
     if (!settings.isPro) return bets.length < FREE_LIMITS.MAX_BETS;
     if (settings.dailyBetLimit > 0) {
-      const today = new Date().toISOString().split('T')[0] ?? '';
+      const today = toYmd(new Date());
       const todayCount = bets.filter((b) => b.date === today).length;
       return todayCount < settings.dailyBetLimit;
     }

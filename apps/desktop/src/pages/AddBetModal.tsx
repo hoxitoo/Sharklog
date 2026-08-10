@@ -3,8 +3,7 @@ import type { Sport, BetType, Strategy, BetStatus, EsportsDiscipline, Team } fro
 import {
   SPORTS, BET_TYPES, STRATEGIES, ESPORTS_DISCIPLINES,
   parseMoneyInput, formatMoney, CURRENT_SCHEMA_VERSION, FREE_LIMITS,
-  impliedProbability, expectedValue, halfKelly, recommendedStake,
-} from '@sharklog/core';
+  impliedProbability, expectedValue, halfKelly, recommendedStake, toYmd } from '@sharklog/core';
 import type { Bet } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
 import { ChecklistModal } from '../components/ChecklistModal';
@@ -236,7 +235,7 @@ export function AddBetModal({ editBet, onClose }: Props) {
     [bets],
   );
   const now = new Date();
-  const defaultDate = now.toISOString().split('T')[0] ?? '';
+  const defaultDate = toYmd(now);
   const defaultTime = now.toTimeString().slice(0, 5);
 
   // Split event into team1 / team2

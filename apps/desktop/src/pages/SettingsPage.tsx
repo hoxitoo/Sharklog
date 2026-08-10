@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { DEFAULT_BOOKMAKERS, FREE_LIMITS, SPORTS } from '@sharklog/core';
+import { DEFAULT_BOOKMAKERS, FREE_LIMITS, SPORTS, toYmd } from '@sharklog/core';
 import type { Sport } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
 import { useToastStore } from '../store/toastStore';
@@ -43,7 +43,7 @@ export function SettingsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `sharklog-backup-${new Date().toISOString().split('T')[0]}.json`;
+    a.download = `sharklog-backup-${toYmd(new Date())}.json`;
     a.click();
     URL.revokeObjectURL(url);
     updateSettings({ lastBackupAt: new Date().toISOString() });
@@ -64,7 +64,7 @@ export function SettingsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `sharklog-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `sharklog-${toYmd(new Date())}.csv`;
     a.click();
     URL.revokeObjectURL(url);
     toast(`CSV экспортирован (${allBets.length} ставок)`, 'success');

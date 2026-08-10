@@ -1,7 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import {
-  calcByTournament, calcByTeam, formatMoney, formatPercent, SPORTS,
-} from '@sharklog/core';
+  calcByTournament, calcByTeam, formatMoney, formatPercent, SPORTS, toYmd } from '@sharklog/core';
 import type { TournamentStats, TeamStats } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
 import { colors } from '../theme/colors';
@@ -170,7 +169,7 @@ export function InsightsPage() {
     const days = period === '7d' ? 7 : 30;
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - days);
-    const cutoffStr = cutoff.toISOString().split('T')[0] ?? '';
+    const cutoffStr = toYmd(cutoff);
     return bets.filter((b) => b.date > cutoffStr);
   }, [bets, period]);
 

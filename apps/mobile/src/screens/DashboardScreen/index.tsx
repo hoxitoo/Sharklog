@@ -404,7 +404,7 @@ export function DashboardScreen() {
 
   useEffect(() => {
     AsyncStorage.getItem('@sharklog/tilt_dismiss_date').then((saved) => {
-      const today = new Date().toISOString().split('T')[0] ?? '';
+      const today = toYmd(new Date());
       if (saved === today) setTiltDismissed(true);
     });
   }, []);
@@ -459,7 +459,7 @@ export function DashboardScreen() {
 
   function dismissTilt() {
     haptic.selection();
-    const today = new Date().toISOString().split('T')[0] ?? '';
+    const today = toYmd(new Date());
     AsyncStorage.setItem('@sharklog/tilt_dismiss_date', today);
     setTiltDismissed(true);
   }

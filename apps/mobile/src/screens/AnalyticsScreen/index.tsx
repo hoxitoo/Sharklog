@@ -5,8 +5,7 @@ import {
   calcByField, calcByOddsRange, calcByDayOfWeek, calcDashboard,
   calcStreaks, calcExtremes, calcLastFullMonth, calcMonthResult, calcTimeStats, calcCLV,
   calcMaxDrawdown, calcEdge, calcMonthlyPnl, RELIABLE_SAMPLE_MIN,
-  SPORTS, BET_TYPES, STRATEGIES, formatPercent,
-} from '@sharklog/core';
+  SPORTS, BET_TYPES, STRATEGIES, formatPercent, toYmd } from '@sharklog/core';
 import type { SliceStats, Bet, MonthlyPnl } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { ProGate } from '../../components/ProGate';
@@ -581,7 +580,7 @@ function AnalyticsContent() {
     const days = period === '7d' ? 7 : 30;
     const cutoff = new Date();
     cutoff.setDate(cutoff.getDate() - days);
-    const cutoffStr = cutoff.toISOString().split('T')[0] ?? '';
+    const cutoffStr = toYmd(cutoff);
     return bets.filter((b) => b.date > cutoffStr);
   }, [bets, period]);
 

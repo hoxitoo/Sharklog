@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, Alert,
 } from 'react-native';
-import { calcDashboard, isInTilt } from '@sharklog/core';
+import { calcDashboard, isInTilt, toYmd } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { colors } from '../../theme/colors';
@@ -50,7 +50,7 @@ function uuid(): string {
 }
 
 function todayStr(): string {
-  return new Date().toISOString().split('T')[0] ?? '';
+  return toYmd(new Date());
 }
 
 function MoodPicker({
@@ -146,7 +146,7 @@ export function DisciplineScreen() {
   const todayBets = bets.filter((b) => b.date === today);
   const weekAgo = new Date();
   weekAgo.setDate(weekAgo.getDate() - 7);
-  const weekStr = weekAgo.toISOString().split('T')[0] ?? '';
+  const weekStr = toYmd(weekAgo);
   const weekLosses = bets.filter((b) => b.date >= weekStr && b.status === 'lost').length;
 
   return (

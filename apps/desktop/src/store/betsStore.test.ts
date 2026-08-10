@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { useBetsStore, defaultSettings, defaultBankroll } from './betsStore';
 import type { Bet } from '@sharklog/core';
+import { toYmd } from '@sharklog/core';
 
 function makeBet(overrides: Partial<Bet> = {}): Bet {
   const now = new Date().toISOString();
@@ -8,7 +9,7 @@ function makeBet(overrides: Partial<Bet> = {}): Bet {
     id: crypto.randomUUID(),
     createdAt: now,
     updatedAt: now,
-    date: new Date().toISOString().split('T')[0]!,
+    date: toYmd(new Date()),
     time: '12:00',
     sport: 'football',
     bookmaker: '1xBet',
@@ -68,7 +69,7 @@ describe('canAddBet – free tier', () => {
 });
 
 describe('canAddBet – PRO daily limit', () => {
-  const today = new Date().toISOString().split('T')[0]!;
+  const today = toYmd(new Date());
 
   it('allows first bet of the day when limit is 5', () => {
     useBetsStore.setState({
@@ -87,7 +88,7 @@ describe('canAddBet – PRO daily limit', () => {
   });
 
   it('does not count yesterday bets against today limit', () => {
-    const yesterday = new Date(Date.now() - 86_400_000).toISOString().split('T')[0]!;
+    const yesterday = toYmd(new Date(Date.now() - 86_400_000));
     const bets = Array.from({ length: 5 }, () => makeBet({ date: yesterday }));
     useBetsStore.setState({
       bets,

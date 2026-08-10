@@ -1,5 +1,5 @@
 import type { Bet, BetStatus, Sport, BetType, Strategy, EsportsDiscipline } from '@sharklog/core';
-import { CURRENT_SCHEMA_VERSION } from '@sharklog/core';
+import { CURRENT_SCHEMA_VERSION, toYmd } from '@sharklog/core';
 
 function uuid(): string {
   const c = (globalThis as any).crypto;
@@ -182,7 +182,7 @@ function mapRow(raw: Record<string, string>): Bet | null {
     const [d, m, y] = dateRaw.split('/');
     date = `${y}-${m}-${d}`;
   }
-  if (!date) date = new Date().toISOString().split('T')[0] ?? '';
+  if (!date) date = toYmd(new Date());
 
   const odds = parseAmount(g('odds'));
   if (isNaN(odds) || odds <= 1) return null;

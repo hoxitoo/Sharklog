@@ -1,5 +1,6 @@
 import { useBetsStore, defaultSettings, defaultBankroll } from '../store/betsStore';
 import type { Bet } from '@sharklog/core';
+import { toYmd } from '@sharklog/core';
 
 function makeBet(overrides: Partial<Bet> = {}): Bet {
   const now = new Date().toISOString();
@@ -7,7 +8,7 @@ function makeBet(overrides: Partial<Bet> = {}): Bet {
     id: Math.random().toString(36).slice(2),
     createdAt: now,
     updatedAt: now,
-    date: new Date().toISOString().split('T')[0]!,
+    date: toYmd(new Date()),
     time: '12:00',
     sport: 'football',
     bookmaker: '1xBet',
@@ -60,7 +61,7 @@ describe('canAddBet – free tier', () => {
 // ─── canAddBet – PRO daily limit ─────────────────────────────────────────────
 
 describe('canAddBet – PRO daily limit', () => {
-  const today = new Date().toISOString().split('T')[0]!;
+  const today = toYmd(new Date());
 
   it('allows first bet of the day when limit is 5', () => {
     useBetsStore.setState({ settings: { ...defaultSettings, isPro: true, dailyBetLimit: 5, onboardingComplete: true } });
@@ -74,7 +75,7 @@ describe('canAddBet – PRO daily limit', () => {
   });
 
   it('ignores yesterday bets for today limit', () => {
-    const yesterday = new Date(Date.now() - 86_400_000).toISOString().split('T')[0]!;
+    const yesterday = toYmd(new Date(Date.now() - 86_400_000));
     const bets = Array.from({ length: 5 }, () => makeBet({ date: yesterday }));
     useBetsStore.setState({ bets, settings: { ...defaultSettings, isPro: true, dailyBetLimit: 5, onboardingComplete: true } });
     expect(useBetsStore.getState().canAddBet()).toBe(true);
