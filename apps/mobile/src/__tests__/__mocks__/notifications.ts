@@ -6,3 +6,6 @@ export const cancelBetResultReminder = jest.fn();
 export const cancelAllBetResultReminders = jest.fn();
 export const requestNotificationPermission = jest.fn(async () => true);
 export const BET_RESULT_CATEGORY = 'bet_result';
+export const dismissBetResultNotification = jest.fn();
+export const syncBetResultReminders = jest.fn();
+export const setBetPendingResolver = jest.fn();

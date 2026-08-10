@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { View } from 'react-native';
+import { AppState, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { NavigationContainer } from '@react-navigation/native';
@@ -13,7 +13,10 @@ import { AnimatedSplash } from './src/components/AnimatedSplash';
 import { useBetsStore } from './src/store/betsStore';
 import { colors } from './src/theme/colors';
 import * as Notifications from 'expo-notifications';
-import { scheduleDailyReminder, registerBetResultCategory } from './src/utils/notifications';
+import {
+  scheduleDailyReminder, registerBetResultCategory,
+  setBetPendingResolver, syncBetResultReminders,
+} from './src/utils/notifications';
 import { initRevenueCat, syncEntitlement } from './src/services/revenueCat';
 import { initSentry } from './src/services/sentry';
 import { Analytics } from './src/services/analytics';
@@ -57,6 +60,11 @@ export default function App() {
 
   useEffect(() => {
     registerBetResultCategory();
+    // Foreground guard: never surface a reminder for a bet that is already settled.
+    setBetPendingResolver((betId) => {
+      const bet = useBetsStore.getState().bets.find((b) => b.id === betId);
+      return !!bet && bet.status === 'pending';
+    });
 
     const handle = (response: Notifications.NotificationResponse | null) => {
       const data = response?.notification?.request?.content?.data as
@@ -78,6 +86,21 @@ export default function App() {
   }, [flushQueuedAction]);
 
   useEffect(() => { flushQueuedAction(); }, [isLoaded, flushQueuedAction]);
+
+  // Cancelling on settle is fire-and-forget and can be lost (app killed mid-write,
+  // CSV import, edits). Re-reconcile reminders on launch and on every foreground.
+  useEffect(() => {
+    if (!isLoaded) return;
+    const reconcile = () => {
+      const { bets, settings } = useBetsStore.getState();
+      syncBetResultReminders(bets, settings.betResultReminders !== false);
+    };
+    reconcile();
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') reconcile();
+    });
+    return () => sub.remove();
+  }, [isLoaded]);
 
   useEffect(() => {
     initSentry();

@@ -84,6 +84,10 @@ apps/mobile/src/
                                + напоминание о результате: registerBetResultCategory (кнопки Выиграла/Проиграла/Позже),
                                scheduleBetResultReminder(bet) на время конца матча (старт + END_OFFSET_MIN по спорту),
                                cancel(All)BetResultReminder — стор сам ставит/снимает их в addBet/updateBet/deleteBet
+                               dismissBetResultNotification — убрать уже доставленное из шторки
+                               syncBetResultReminders(bets, enabled) — сверка расписания с реальностью
+                               (запуск + каждый возврат в foreground); setBetPendingResolver — глушилка показа
+                               в foreground, чтобы напоминание НЕ пришло по уже закрытой ставке
     exportCSV.ts             — CSV с UTF-8 BOM, expo-file-system + expo-sharing
     useFormatMoney.ts        — хук: useFormatMoney() → (kopecks) => string; учитывает settings.roundAmounts
     chartScale.ts            — chartScale(vals) → nice-шкала для gifted-charts (maxValue/stepValue/noOfSections,
