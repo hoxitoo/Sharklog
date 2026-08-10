@@ -9,7 +9,9 @@ Read this at the start of every session. Always develop on `claude/busy-shannon-
 ```
 apps/mobile/src/
   screens/
-    BetsScreen/              — SectionList с датами + daily P&L, search, status filter (scroll), sort row,
+    BetsScreen/              — полоса контекста сверху: Сегодня (P&L/ставок/оборот) · В игре (сумма незакрытых
+                               ставок = экспозиция) · Банк (тап → Bankroll)
+                               SectionList с датами + daily P&L, search, status filter (scroll), sort row,
                                swipe-to-delete, haptics; quick-result chips W/L/R/C
                                BetCard: тап «C» раскрывает inline-поле суммы выкупа (не открывает полный редактор)
     AddBetScreen/            — react-hook-form, TeamAutocomplete, Kelly calculator (collapsible),
@@ -35,8 +37,9 @@ apps/mobile/src/
                                (sport/betType/bookmaker/strategy/odds/day). PRO via ProGate.
                                MiniTile: фикс. полосы label(2 строки)/value/sub — числа не «скачут» по высоте
     InsightsScreen/          — period filter; Tournaments table (Free); Favorite Teams cards (PRO via ProGate)
-    BankrollScreen/          — equity curve LineChart с Y-axis подписями, текущий банк в заголовке,
-                               маркеры депозита (зелёная точка) / вывода (красная точка) через customDataPoint;
+    BankrollScreen/          — кривая банкролла через components/BalanceChart (свой SVG): подневная агрегация
+                               (читаемый тренд вместо пиков по каждой ставке), nice-шкала по Y,
+                               РАБОЧИЕ метки депозитов/выводов — gifted-charts глотал customDataPoint под hideDataPoints;
                                сводка банкролла, inline deposit/withdrawal, Kelly (PRO)
     DisciplineScreen/        — mood picker (1-5), тилт-стата (X/N лимит для PRO), 8 правил, diary
     SettingsScreen/          — Stepper для PRO настроек, paywall modal, clearAll, export, notifications,
@@ -81,6 +84,9 @@ apps/mobile/src/
                                negative-квадрант ТОЛЬКО при отрицательных данных), chartHeightForBudget, formatChartYLabel
                                ВАЖНО: не передавать mostNegativeValue вручную — библиотека рисует полную секцию
                                ниже нуля и добавляет её высоту к контейнеру (переполнение карточки)
+    ../components/BalanceChart.tsx — SVG-график баланса по дням: area+линия, Y-подписи (chartScale),
+                               маркеры депозит/вывод точками прямо на линии
+    ../theme/chartColors.ts  — SERIES: единая палитра серий для всех графиков
     clockFormat.ts           — uses12HourClock() → true если система в 12h (Intl.formatToParts dayPeriod)
   __tests__/
     betsStore.test.ts        — 19 smoke tests (canAddBet, addBet, deleteBet, updateBet, clearAll, express team extraction, clearAll preserves prefs)

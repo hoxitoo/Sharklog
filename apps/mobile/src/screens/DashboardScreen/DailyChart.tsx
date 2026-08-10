@@ -3,16 +3,9 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import Svg, { Polyline, Circle, Rect } from 'react-native-svg';
 import type { DayStats } from '@sharklog/core';
 import { colors } from '../../theme/colors';
+import { SERIES } from '../../theme/chartColors';
 
-/** Distinct, high-contrast series colors (dark background). */
-export const SERIES = {
-  win: '#22D3A0',       // teal   — daily win amount (bar up)
-  loss: '#F4455A',      // red    — daily loss amount (bar down)
-  pnl: '#F59E0B',       // amber  — cumulative P&L line
-  balance: '#A78BFA',   // violet — bank balance line
-  deposit: '#5B6AF0',   // blue   — deposit marker
-  withdrawal: '#EC4899',// pink   — withdrawal marker
-} as const;
+export { SERIES } from '../../theme/chartColors';
 
 export interface ChartToggles {
   pnl: boolean;

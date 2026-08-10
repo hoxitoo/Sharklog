@@ -36,6 +36,9 @@ docs/            — ROADMAP.md, ANALYSIS.md, PRIVACY_POLICY.md
 - **`clearAll`** чистит только данные (ставки/дневник/банк), но СОХРАНЯЕТ настройки и подписку (PRO/язык/букмекеры) — не сбрасывай `settings` к дефолтам.
 - **Даты-строки `YYYY-MM-DD`** парсь как локальные (`new Date(\`${d}T00:00:00\`)`), bare-строка парсится как UTC и смещает день. На десктопе локаль для `toLocaleDateString` — через `dateLocale(lang)` из `i18n`.
 - **Очистка опциональных полей на edit**: `updateBet` делает merge `{...bet, ...updates}`, поэтому пустое поле, просто *опущенное* из `updates`, НЕ стирает старое значение. Чтобы очистить (напр. `closingOdds`/`cashoutAmount`), передавай ключ явно как `undefined` (через `... as Partial<Bet>`), а не опускай его.
+- **gifted-charts: `hideDataPoints` убивает `customDataPoint`** — маркеры на линии не отрисуются. Для линий с метками (депозиты/выводы) рисуй свой SVG (`components/BalanceChart.tsx`), а не борись с библиотекой.
+- **Палитра графиков — одна на всё приложение**: `theme/chartColors.ts` (`SERIES`: win/loss/pnl/balance/deposit/withdrawal). Не заводи цвета серий по месту.
+- **Ландшафтный режим через rotate-трансформ** (`ExpandedDashboard`): экран поворачивается на 90° по часовой, поэтому отступы безопасной зоны надо ПЕРЕСТАВЛЯТЬ — `paddingRight ← insets.bottom` (там наэкранные кнопки), `paddingLeft ← insets.top`. Иначе контент лезет под системную навигацию.
 - **Inline-инпуты в списках**: у `SectionList`/`FlatList` с полем ввода внутри строки ставь `keyboardShouldPersistTaps="handled"`, иначе первый тап по кнопке при открытой клавиатуре съедается (двойной тап). Пример — inline-выкуп в `BetCard`.
 
 ## Цветовая система
@@ -252,7 +255,8 @@ screens/
                              прошлый месяц с трендом, время ставок (донат 6 промежутков + топ-4 часа с P&L,
                              12h/24h через uses12HourClock()), CLV-карточка. Всё PRO via ProGate.
                              Расширенная (collapsible): sport/betType/bookmaker/strategy/odds/day срезы
-  BankrollScreen/          — equity curve с Y-axis подписями и текущим банком в заголовке;
+  BankrollScreen/          — кривая банкролла = BalanceChart (свой SVG, подневная агрегация, читаемый тренд,
+                             рабочие метки депозитов/выводов на линии);
                              маркеры депозита (зелёная точка) / вывода (красная точка) на кривой через customDataPoint;
                              Kelly (PRO)
   DisciplineScreen/        — mood, тилт, дневник
