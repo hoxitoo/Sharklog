@@ -375,7 +375,7 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   navLabelActive: {
-    color: colors.purple,
+    color: colors.purpleText,
     fontWeight: '700',
   },
   proBadge: {

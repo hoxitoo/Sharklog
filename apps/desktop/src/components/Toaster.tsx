@@ -5,7 +5,7 @@ import { colors } from '../theme/colors';
 const TYPE_STYLES: Record<string, { bg: string; border: string; color: string; icon: string }> = {
   success: { bg: colors.won + '18', border: colors.won + '55', color: colors.won, icon: '✓' },
   error:   { bg: colors.lost + '18', border: colors.lost + '55', color: colors.lost, icon: '✕' },
-  info:    { bg: colors.purple + '18', border: colors.purple + '55', color: colors.purple, icon: 'ℹ' },
+  info:    { bg: colors.purple + '18', border: colors.purple + '55', color: colors.purpleText, icon: 'ℹ' },
 };
 
 export function Toaster() {

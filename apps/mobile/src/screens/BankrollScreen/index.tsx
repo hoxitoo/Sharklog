@@ -27,7 +27,7 @@ function uuid(): string {
 import type { BankrollTransaction } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { ProGate } from '../../components/ProGate';
-import { colors, alpha } from '../../theme/colors';
+import { colors, toneSurface } from '../../theme/colors';
 import { FONTS } from '../../theme/typography';
 import { BalanceChart } from '../../components/BalanceChart';
 import { SERIES } from '../../theme/chartColors';
@@ -255,8 +255,6 @@ function BankrollContent() {
   const stats = calcDashboard(bets);
   const [activeTxForm, setActiveTxForm] = useState<TxType | null>(null);
 
-
-
   const deposited = bankroll.transactions.filter((t) => t.type === 'deposit').reduce((s, t) => s + t.amount, 0);
   const withdrawn = bankroll.transactions.filter((t) => t.type === 'withdrawal').reduce((s, t) => s + t.amount, 0);
   const currentBank = deposited - withdrawn + stats.pnl;
@@ -428,8 +426,8 @@ function BankrollContent() {
 const bk = StyleSheet.create({
   summaryCard: {
     borderRadius: 18, padding: 18, marginHorizontal: 16, marginBottom: 14,
-    backgroundColor: alpha(colors.accent, 0.07),
-    borderWidth: 1, borderColor: alpha(colors.accent, 0.32),
+    ...toneSurface('profit'),
+    borderWidth: 1,
     shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 }, elevation: 3,
   },
@@ -462,9 +460,8 @@ const bk = StyleSheet.create({
   withdrawBtnText: { fontSize: 15, fontWeight: '700', color: colors.lost },
   chartCard: {
     borderRadius: 18, padding: 16, marginHorizontal: 16, marginBottom: 14,
-    backgroundColor: alpha(colors.violet, 0.07),
-    borderWidth: 1, borderColor: alpha(colors.violet, 0.32),
-    overflow: 'hidden',
+    ...toneSurface('violet'),
+    borderWidth: 1,
     shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 }, elevation: 3,
   },

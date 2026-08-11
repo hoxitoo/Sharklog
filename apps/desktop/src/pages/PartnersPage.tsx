@@ -125,7 +125,7 @@ const s: Record<string, React.CSSProperties> = {
   cardInfo: {},
   partnerName: { fontSize: 17, fontWeight: 700, color: colors.textPrimary },
   category: {
-    fontSize: 11, color: colors.purple, fontWeight: 600,
+    fontSize: 11, color: colors.purpleText, fontWeight: 600,
     backgroundColor: colors.purpleDim, borderRadius: 4, padding: '2px 6px',
     display: 'inline-block', marginTop: 2,
   },

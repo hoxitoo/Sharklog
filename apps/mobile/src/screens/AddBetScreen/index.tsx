@@ -277,7 +277,7 @@ const ac = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.purple + '44',
   },
-  badgeText: { fontSize: 10, color: colors.purple, fontWeight: '600' },
+  badgeText: { fontSize: 10, color: colors.purpleText, fontWeight: '600' },
   count: { fontSize: 11, color: colors.textMuted },
 });
 
@@ -1582,7 +1582,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  addLegText: { fontSize: 14, fontWeight: '600', color: colors.purple },
+  addLegText: { fontSize: 14, fontWeight: '600', color: colors.purpleText },
   expressOddsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1594,8 +1594,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.purple + '44',
   },
-  expressOddsLabel: { fontSize: 13, color: colors.purple },
-  expressOddsValue: { fontSize: 18, fontWeight: '700', color: colors.purple },
+  expressOddsLabel: { fontSize: 13, color: colors.purpleText },
+  expressOddsValue: { fontSize: 18, fontWeight: '700', color: colors.purpleText },
 
   winPreview: {
     flexDirection: 'row',
@@ -1621,7 +1621,7 @@ const styles = StyleSheet.create({
   },
   extraToggleText: {
     fontSize: 13,
-    color: colors.purple,
+    color: colors.purpleText,
     fontWeight: '600',
   },
   freebetToggle: {

@@ -131,7 +131,7 @@ const ac: Record<string, React.CSSProperties> = {
   },
   name: { fontSize: 13, color: colors.textPrimary },
   badge: {
-    fontSize: 10, color: colors.purple,
+    fontSize: 10, color: colors.purpleText,
     backgroundColor: colors.purpleDim, padding: '2px 6px', borderRadius: 5,
   },
   count: { fontSize: 11, color: colors.textMuted },

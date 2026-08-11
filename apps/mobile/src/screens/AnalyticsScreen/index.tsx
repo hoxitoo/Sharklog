@@ -13,7 +13,10 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { useFormatMoney } from '../../utils/useFormatMoney';
 import { uses12HourClock } from '../../utils/clockFormat';
 import { haptic } from '../../utils/haptics';
-import { colors, alpha } from '../../theme/colors';
+import { colors, alpha, toneSurface } from '../../theme/colors';
+
+/** The donut lives in a pink-toned Card, so its hole must match that surface. */
+const DONUT_SURFACE = toneSurface('pink').backgroundColor;
 import { Card, tileStyle } from '../../components/Card';
 
 const { width } = Dimensions.get('window');
@@ -24,7 +27,6 @@ const BUCKET_COLORS = ['#3B4A8C', '#5B6AF0', '#22D3A0', '#F59E0B', '#A78BFA', '#
 const MONTHS_RU = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 const MONTHS_SHORT_RU = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
 
-// ── Small building blocks ────────────────────────────────────────────────────
 
 // ── Hero: headline P&L with sparkline ────────────────────────────────────────
 
@@ -404,9 +406,9 @@ function TimeCard({ bets }: { bets: Bet[] }) {
           donut
           radius={64}
           innerRadius={40}
-          innerCircleColor={colors.bgCard}
+          innerCircleColor={DONUT_SURFACE}
           strokeWidth={2}
-          strokeColor={colors.bgCard}
+          strokeColor={DONUT_SURFACE}
           centerLabelComponent={() => (
             <View style={{ alignItems: 'center' }}>
               <Text style={time.centerValue}>{total}</Text>
@@ -650,6 +652,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgElevated, borderRadius: 14,
     borderWidth: 1, borderColor: alpha(colors.purple, 0.35),
   },
-  extToggleText: { fontSize: 14, fontWeight: '700', color: colors.purple },
+  extToggleText: { fontSize: 14, fontWeight: '700', color: colors.purpleText },
   extChevron: { fontSize: 12, color: colors.textMuted },
 });

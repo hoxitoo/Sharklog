@@ -154,7 +154,7 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start', backgroundColor: colors.purple + '22',
     borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2,
   },
-  categoryText: { fontSize: 11, color: colors.purple, fontWeight: '600' },
+  categoryText: { fontSize: 11, color: colors.purpleText, fontWeight: '600' },
   description: { fontSize: 13, color: colors.textSecondary, lineHeight: 19 },
   bonusRow: {
     backgroundColor: colors.accent + '18', borderRadius: 8, padding: 10,

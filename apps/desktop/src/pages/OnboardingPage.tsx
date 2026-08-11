@@ -169,7 +169,7 @@ const s: Record<string, React.CSSProperties> = {
   },
   bkChipActive: {
     backgroundColor: colors.purple + '22', borderColor: colors.purple,
-    color: colors.purple, fontWeight: 700,
+    color: colors.purpleText, fontWeight: 700,
   },
   input: {
     flex: 1, backgroundColor: colors.bgElevated, border: `1px solid ${colors.border}`,
