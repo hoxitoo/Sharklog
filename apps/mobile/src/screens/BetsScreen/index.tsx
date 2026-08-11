@@ -7,7 +7,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { Bet, BetStatus } from '@sharklog/core';
 import { formatMoney, isInTilt, calcDailyBreakdown, calcDashboard, toYmd } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
-import { colors, alpha } from '../../theme/colors';
+import { colors, mix, toneSurface } from '../../theme/colors';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { BetCard } from './BetCard';
 import { SwipeableRow } from './SwipeableRow';
@@ -381,13 +381,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.purpleDim, borderRadius: 20,
     borderWidth: 1, borderColor: colors.purple,
   },
-  dateChipText: { fontSize: 12, color: colors.purple, fontWeight: '700' },
-  dateChipX: { fontSize: 12, color: colors.purple, fontWeight: '700' },
+  dateChipText: { fontSize: 12, color: colors.purpleText, fontWeight: '700' },
+  dateChipX: { fontSize: 12, color: colors.purpleText, fontWeight: '700' },
   todayStrip: {
     flexDirection: 'row', alignItems: 'stretch',
     marginHorizontal: 16, marginBottom: 12, padding: 12, borderRadius: 18,
-    backgroundColor: alpha(colors.purple, 0.07),
-    borderWidth: 1, borderColor: alpha(colors.purple, 0.32),
+    ...toneSurface('info'),
+    borderWidth: 1,
     shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 }, elevation: 3,
   },
@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
   limitBanner: {
     margin: 16,
     padding: 12,
-    backgroundColor: '#FF47570F',
+    backgroundColor: mix(colors.lost, colors.bgCard, 0.06),
     borderRadius: 10,
     borderWidth: 1,
     borderColor: colors.lost + '44',

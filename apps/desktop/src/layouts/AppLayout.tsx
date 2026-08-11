@@ -141,7 +141,7 @@ const s: Record<string, React.CSSProperties> = {
   },
   navItemActive: {
     backgroundColor: colors.purpleDim,
-    color: colors.purple,
+    color: colors.purpleText,
     fontWeight: 700,
   },
   navIcon: { fontSize: 18, width: 22, textAlign: 'center' },

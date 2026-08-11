@@ -233,7 +233,7 @@ const s = StyleSheet.create({
     borderRadius: 8, paddingHorizontal: 12, paddingVertical: 5,
     borderWidth: 1, borderColor: colors.purple + '44', marginBottom: 14,
   },
-  badgeText: { fontSize: 12, fontWeight: '700', color: colors.purple },
+  badgeText: { fontSize: 12, fontWeight: '700', color: colors.purpleText },
   resultName: {
     fontSize: 24, fontWeight: '700', color: colors.textPrimary,
     letterSpacing: -0.5, marginBottom: 8,
@@ -286,13 +286,13 @@ const s = StyleSheet.create({
     backgroundColor: colors.accent + '22',
     borderColor: colors.accent + '44',
   },
-  chipText: { fontSize: 12, fontWeight: '600', color: colors.purple },
+  chipText: { fontSize: 12, fontWeight: '600', color: colors.purpleText },
   chipTextGreen: { fontSize: 12, fontWeight: '600', color: colors.accent },
   principleRow: {
     flexDirection: 'row', gap: 10, alignItems: 'flex-start', marginBottom: 8,
   },
   principleNum: {
-    fontSize: 13, fontWeight: '700', color: colors.purple,
+    fontSize: 13, fontWeight: '700', color: colors.purpleText,
     width: 18, textAlign: 'center', marginTop: 1,
   },
   principleText: { flex: 1, fontSize: 13, color: colors.textSecondary, lineHeight: 20 },

@@ -268,7 +268,7 @@ const s: Record<string, React.CSSProperties> = {
   },
   resultBadge: {
     display: 'inline-flex', alignItems: 'center', gap: 6,
-    backgroundColor: colors.purple + '22', color: colors.purple,
+    backgroundColor: colors.purple + '22', color: colors.purpleText,
     border: `1px solid ${colors.purple}44`, borderRadius: 8,
     padding: '4px 12px', fontSize: 12, fontWeight: 700, marginBottom: 16,
   },
@@ -317,7 +317,7 @@ const s: Record<string, React.CSSProperties> = {
   chip: {
     display: 'inline-block', padding: '3px 10px', borderRadius: 6,
     backgroundColor: colors.purple + '22', border: `1px solid ${colors.purple}44`,
-    fontSize: 12, fontWeight: 600, color: colors.purple,
+    fontSize: 12, fontWeight: 600, color: colors.purpleText,
   },
   chipGreen: {
     backgroundColor: colors.accent + '22', border: `1px solid ${colors.accent}44`,

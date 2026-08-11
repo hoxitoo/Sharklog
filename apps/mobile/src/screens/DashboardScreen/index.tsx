@@ -6,7 +6,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { calcDashboard, isInTilt, calcDailyBreakdown, summarizeDays, toYmd } from '@sharklog/core';
 import type { Bet, DayStats } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
-import { colors, alpha } from '../../theme/colors';
+import { colors, toneSurface } from '../../theme/colors';
 import { tileStyle } from '../../components/Card';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ResponsibleGamblingBanner } from '../../components/ResponsibleGamblingBanner';
@@ -68,7 +68,7 @@ function WLStrip({ bets }: { bets: Bet[] }) {
 const wl = StyleSheet.create({
   container: {
     marginHorizontal: 16, marginBottom: 14, padding: 14,
-    backgroundColor: alpha('#A78BFA', 0.07), borderRadius: 18, borderWidth: 1, borderColor: alpha('#A78BFA', 0.32),
+    ...toneSurface('violet'), borderRadius: 18, borderWidth: 1,
     shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 }, elevation: 3,
   },
@@ -218,7 +218,7 @@ function TurnoverCard({ turnover, bank, betCount, activeDays, pendingCount, peri
 const tc = StyleSheet.create({
   card: {
     padding: 18, marginHorizontal: 16, marginBottom: 12,
-    backgroundColor: alpha('#5B6AF0', 0.07), borderRadius: 18, borderWidth: 1, borderColor: alpha('#5B6AF0', 0.32),
+    ...toneSurface('info'), borderRadius: 18, borderWidth: 1,
     shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 }, elevation: 3,
   },
@@ -353,7 +353,7 @@ function DailyDashboardCard({ days, onExpand }: { days: DayStats[]; onExpand: ()
 const dd = StyleSheet.create({
   card: {
     padding: 16, marginHorizontal: 16, marginBottom: 14,
-    backgroundColor: alpha('#22D3A0', 0.07), borderRadius: 18, borderWidth: 1, borderColor: alpha('#22D3A0', 0.32),
+    ...toneSurface('profit'), borderRadius: 18, borderWidth: 1,
     shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 }, elevation: 3,
   },
@@ -364,7 +364,7 @@ const dd = StyleSheet.create({
     paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
     backgroundColor: colors.bgElevated, borderWidth: 1, borderColor: colors.purple + '66',
   },
-  expandText: { fontSize: 11, color: colors.purple, fontWeight: '700' },
+  expandText: { fontSize: 11, color: colors.purpleText, fontWeight: '700' },
   chartWrap: { alignItems: 'center' },
   hint: { fontSize: 11, color: colors.textMuted, marginTop: 12, textAlign: 'center' },
   detail: { ...tileStyle, marginTop: 12 },
@@ -378,7 +378,7 @@ const dd = StyleSheet.create({
     marginTop: 10, paddingVertical: 8, borderRadius: 8, alignItems: 'center',
     backgroundColor: colors.purpleDim, borderWidth: 1, borderColor: colors.purple + '66',
   },
-  detailLinkText: { fontSize: 12, color: colors.purple, fontWeight: '700' },
+  detailLinkText: { fontSize: 12, color: colors.purpleText, fontWeight: '700' },
   summaryRow: {
     flexDirection: 'row', marginTop: 14, paddingTop: 12,
     borderTopWidth: 1, borderTopColor: colors.border,

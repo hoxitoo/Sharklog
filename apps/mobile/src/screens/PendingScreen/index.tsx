@@ -5,7 +5,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { Bet } from '@sharklog/core';
 import { formatMoney } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
-import { colors, alpha } from '../../theme/colors';
+import { colors, toneSurface } from '../../theme/colors';
 import { BetCard } from '../BetsScreen/BetCard';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 
@@ -115,8 +115,7 @@ const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   header: {
     flexDirection: 'row', margin: 16, padding: 14, borderRadius: 18,
-    backgroundColor: alpha(colors.gold, 0.07), borderWidth: 1,
-    borderColor: alpha(colors.gold, 0.32),
+    ...toneSurface('warn'), borderWidth: 1,
     shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 }, elevation: 3,
   },

@@ -94,7 +94,7 @@ const mp = StyleSheet.create({
   },
   emoji: { fontSize: 22 },
   label: { fontSize: 9, color: colors.textMuted, marginTop: 3, textAlign: 'center' },
-  labelActive: { color: colors.purple },
+  labelActive: { color: colors.purpleText },
 });
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
@@ -323,7 +323,7 @@ const styles = StyleSheet.create({
     borderColor: colors.purple + '44',
     flexShrink: 0,
   },
-  ruleNumText: { fontSize: 12, fontWeight: '700', color: colors.purple },
+  ruleNumText: { fontSize: 12, fontWeight: '700', color: colors.purpleText },
   ruleText: { fontSize: 14, color: colors.textPrimary, flex: 1, lineHeight: 20 },
   diaryRow: {
     flexDirection: 'row',

@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
   },
   buttonText: { fontSize: 15, fontWeight: '700', color: '#fff' },
   buttonSub: { fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
-  buttonTextSecondary: { fontSize: 15, fontWeight: '600', color: colors.purple },
+  buttonTextSecondary: { fontSize: 15, fontWeight: '600', color: colors.purpleText },
   restore: { marginTop: 16 },
   restoreText: { fontSize: 13, color: colors.textSecondary },
 });

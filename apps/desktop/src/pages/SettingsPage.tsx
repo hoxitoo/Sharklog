@@ -390,7 +390,7 @@ export function SettingsPage() {
             <button style={{ ...s.exportBtn, backgroundColor: colors.accent + '22', color: colors.accent, border: `1px solid ${colors.accent}44` }} onClick={handleExportCSV}>
               📥 {t('settings.exportCSV')}
             </button>
-            <button style={{ ...s.exportBtn, backgroundColor: colors.purple + '22', color: colors.purple, border: `1px solid ${colors.purple}44` }} onClick={handleExportJSON}>
+            <button style={{ ...s.exportBtn, backgroundColor: colors.purple + '22', color: colors.purpleText, border: `1px solid ${colors.purple}44` }} onClick={handleExportJSON}>
               💾 {t('settings.backupJSON')}
             </button>
           </div>
@@ -419,7 +419,7 @@ export function SettingsPage() {
         <div style={{ ...s.row, borderBottom: 'none' }}>
           <span style={s.rowLabel}>{t('settings.checkUpdates')}</span>
           <button
-            style={{ ...s.exportBtn, backgroundColor: colors.purple + '22', color: colors.purple, border: `1px solid ${colors.purple}44`, opacity: updateStatus === 'checking' ? 0.6 : 1 }}
+            style={{ ...s.exportBtn, backgroundColor: colors.purple + '22', color: colors.purpleText, border: `1px solid ${colors.purple}44`, opacity: updateStatus === 'checking' ? 0.6 : 1 }}
             onClick={handleCheckUpdate}
             disabled={updateStatus === 'checking'}
           >

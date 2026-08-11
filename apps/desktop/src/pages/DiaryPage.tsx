@@ -258,7 +258,7 @@ const s: Record<string, React.CSSProperties> = {
   },
   ruleNum: {
     minWidth: 22, height: 22, borderRadius: 6,
-    backgroundColor: colors.purple + '22', color: colors.purple,
+    backgroundColor: colors.purple + '22', color: colors.purpleText,
     fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center',
   },
   diaryRow: {

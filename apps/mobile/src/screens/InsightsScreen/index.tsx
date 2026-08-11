@@ -61,7 +61,7 @@ const TeamCard = React.memo(function TeamCard({ team }: { team: TeamStats }) {
           { label: 'Ставок', value: String(team.count), color: colors.textPrimary },
           { label: 'Побед', value: String(team.won), color: colors.won },
           { label: 'Пораж', value: String(team.lost), color: colors.lost },
-          { label: 'WR', value: `${team.winRate.toFixed(0)}%`, color: colors.purple },
+          { label: 'WR', value: `${team.winRate.toFixed(0)}%`, color: colors.purpleText },
         ].map((item) => (
           <View key={item.label} style={s.teamStatItem}>
             <Text style={[s.teamStatVal, { color: item.color }]}>{item.value}</Text>

@@ -24,20 +24,12 @@ export function Card({ title, subtitle, tone = 'neutral', right, children, style
   const accent = TONE_ACCENT[tone];
 
   return (
-    <View
-      style={[
-        card.box,
-        surface,
-        flush ? { marginHorizontal: 0 } : null,
-        tone !== 'neutral' ? { shadowColor: accent } : null,
-        style,
-      ]}
-    >
-      {title ? (
+    <View style={[card.box, surface, flush ? { marginHorizontal: 0 } : null, style]}>
+      {title || right ? (
         <View style={card.head}>
-          <View style={[card.rail, { backgroundColor: accent }]} />
+          {title ? <View style={[card.rail, { backgroundColor: accent }]} /> : null}
           <View style={card.headText}>
-            <Text style={card.title}>{title}</Text>
+            {title ? <Text style={card.title}>{title}</Text> : null}
             {subtitle ? <Text style={card.subtitle}>{subtitle}</Text> : null}
           </View>
           {right}

@@ -10,7 +10,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { FREE_LIMITS, CURRENT_SCHEMA_VERSION } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
-import { colors } from '../../theme/colors';
+import { colors, alpha, mix } from '../../theme/colors';
 import { useTranslation } from 'react-i18next';
 import { LANGUAGES, type LangCode } from '../../i18n/index';
 import i18n from '../../i18n/index';
@@ -718,7 +718,7 @@ const styles = StyleSheet.create({
   addBkBtnText: { fontSize: 22, color: '#fff', fontWeight: '700', lineHeight: 26 },
   actionBtn: { paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.border },
   lastActionBtn: { borderBottomWidth: 0 },
-  actionBtnText: { fontSize: 15, color: colors.purple, fontWeight: '600' },
+  actionBtnText: { fontSize: 15, color: colors.purpleText, fontWeight: '600' },
   toggle: {
     width: 44, height: 26, borderRadius: 13, backgroundColor: colors.border,
     justifyContent: 'center', paddingHorizontal: 3,
@@ -744,11 +744,11 @@ const styles = StyleSheet.create({
   backupBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 10,
     marginHorizontal: 16, marginBottom: 12, padding: 14,
-    backgroundColor: '#F59E0B18', borderRadius: 12,
-    borderWidth: 1, borderColor: '#F59E0B44',
+    backgroundColor: mix(colors.gold, colors.bgCard, 0.09), borderRadius: 12,
+    borderWidth: 1, borderColor: alpha(colors.gold, 0.27),
   },
   backupBannerIcon: { fontSize: 22 },
-  backupBannerTitle: { fontSize: 13, fontWeight: '700', color: '#F59E0B' },
+  backupBannerTitle: { fontSize: 13, fontWeight: '700', color: colors.gold },
   backupBannerSub: { fontSize: 11, color: colors.textSecondary, marginTop: 2 },
   backupBannerArrow: { fontSize: 14, color: colors.textMuted },
 
@@ -784,5 +784,5 @@ const styles = StyleSheet.create({
   langChipActive: { backgroundColor: colors.purple + '22', borderColor: colors.purple },
   langFlag: { fontSize: 18 },
   langLabel: { fontSize: 13, color: colors.textSecondary, fontWeight: '500' },
-  langLabelActive: { color: colors.purple, fontWeight: '700' },
+  langLabelActive: { color: colors.purpleText, fontWeight: '700' },
 });

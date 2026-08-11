@@ -104,7 +104,7 @@ function TeamCard({ team }: { team: TeamStats }) {
           <span style={s.teamStatLabel}>{t('dashboard.losses')}</span>
         </div>
         <div style={s.teamStat}>
-          <span style={{ ...s.teamStatVal, color: colors.purple }}>{team.winRate.toFixed(0)}%</span>
+          <span style={{ ...s.teamStatVal, color: colors.purpleText }}>{team.winRate.toFixed(0)}%</span>
           <span style={s.teamStatLabel}>WR</span>
         </div>
         <div style={s.teamStat}>
