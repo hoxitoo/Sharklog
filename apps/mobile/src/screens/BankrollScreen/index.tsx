@@ -27,7 +27,7 @@ function uuid(): string {
 import type { BankrollTransaction } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { ProGate } from '../../components/ProGate';
-import { colors } from '../../theme/colors';
+import { colors, alpha } from '../../theme/colors';
 import { FONTS } from '../../theme/typography';
 import { BalanceChart } from '../../components/BalanceChart';
 import { SERIES } from '../../theme/chartColors';
@@ -427,8 +427,11 @@ function BankrollContent() {
 
 const bk = StyleSheet.create({
   summaryCard: {
-    backgroundColor: colors.bgCard, borderRadius: 14, padding: 18,
-    marginHorizontal: 16, marginBottom: 14, borderWidth: 1, borderColor: colors.border,
+    borderRadius: 18, padding: 18, marginHorizontal: 16, marginBottom: 14,
+    backgroundColor: alpha(colors.accent, 0.07),
+    borderWidth: 1, borderColor: alpha(colors.accent, 0.32),
+    shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 }, elevation: 3,
   },
   bankLabel: { fontSize: 12, fontFamily: FONTS.sans, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
   bankValue: { fontSize: 36, fontFamily: FONTS.monoMedium, marginTop: 4, marginBottom: 16 },
@@ -458,9 +461,12 @@ const bk = StyleSheet.create({
   },
   withdrawBtnText: { fontSize: 15, fontWeight: '700', color: colors.lost },
   chartCard: {
-    backgroundColor: colors.bgCard, borderRadius: 14, padding: 16,
-    marginHorizontal: 16, marginBottom: 14, borderWidth: 1, borderColor: colors.border,
+    borderRadius: 18, padding: 16, marginHorizontal: 16, marginBottom: 14,
+    backgroundColor: alpha(colors.violet, 0.07),
+    borderWidth: 1, borderColor: alpha(colors.violet, 0.32),
     overflow: 'hidden',
+    shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 }, elevation: 3,
   },
   chartHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 },
   chartTitle: { fontSize: 13, fontWeight: '700', color: colors.textPrimary },

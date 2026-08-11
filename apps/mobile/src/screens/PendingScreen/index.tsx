@@ -5,7 +5,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { Bet } from '@sharklog/core';
 import { formatMoney } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
-import { colors } from '../../theme/colors';
+import { colors, alpha } from '../../theme/colors';
 import { BetCard } from '../BetsScreen/BetCard';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 
@@ -114,9 +114,11 @@ export function PendingScreen() {
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   header: {
-    flexDirection: 'row', margin: 16, padding: 14,
-    backgroundColor: colors.bgCard, borderRadius: 14,
-    borderWidth: 1, borderColor: colors.border,
+    flexDirection: 'row', margin: 16, padding: 14, borderRadius: 18,
+    backgroundColor: alpha(colors.gold, 0.07), borderWidth: 1,
+    borderColor: alpha(colors.gold, 0.32),
+    shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 }, elevation: 3,
   },
   headerCell: { flex: 1, paddingHorizontal: 4 },
   headerDivider: { width: 1, backgroundColor: colors.border, marginHorizontal: 6 },
