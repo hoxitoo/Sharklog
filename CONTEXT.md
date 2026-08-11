@@ -77,7 +77,11 @@ apps/mobile/src/
                                updateSettings, updateBankroll, addDiaryEntry, deleteTeam, clearAll, canAddBet
                                Exports: defaultSettings, defaultBankroll (used in tests)
   theme/
-    colors.ts                — two-accent palette (accent=teal, purple=CTA)
+    colors.ts                — лестница поверхностей (bg/bgCard/bgElevated/bgSunken/border/borderStrong)
+                               + alpha(), toneSurface(), TONE_ACCENT, тип CardTone
+    chartColors.ts           — SERIES: единая палитра серий для всех графиков
+  components/Card.tsx        — общая оболочка карточки: тон (neutral/profit/loss/warn/info/violet/pink),
+                               тонированный фон + цветная граница + рейл у заголовка + тень; tileStyle для вложенных плиток
   utils/
     haptics.ts               — haptic.selection/light/medium/heavy/success/warning/error
     notifications.ts         — scheduleDailyReminder (20:00), sendTiltNotification, requestNotificationPermission

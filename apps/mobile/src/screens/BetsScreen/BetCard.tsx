@@ -171,12 +171,14 @@ export const BetCard = React.memo(function BetCard({ bet, onEdit }: Props) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: colors.bgCard,
-    borderRadius: 12,
+    borderRadius: 16,
     padding: 14,
     marginHorizontal: 16,
     marginBottom: 10,
     borderWidth: 1,
     borderColor: colors.border,
+    shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 }, elevation: 3,
   },
   row: { flexDirection: 'row', justifyContent: 'space-between' },
   left: { flex: 1, marginRight: 12 },

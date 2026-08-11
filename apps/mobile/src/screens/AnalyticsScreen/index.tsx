@@ -13,7 +13,8 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { useFormatMoney } from '../../utils/useFormatMoney';
 import { uses12HourClock } from '../../utils/clockFormat';
 import { haptic } from '../../utils/haptics';
-import { colors } from '../../theme/colors';
+import { colors, alpha } from '../../theme/colors';
+import { Card, tileStyle } from '../../components/Card';
 
 const { width } = Dimensions.get('window');
 
@@ -24,23 +25,6 @@ const MONTHS_RU = ['Январь', 'Февраль', 'Март', 'Апрель',
 const MONTHS_SHORT_RU = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
 
 // ── Small building blocks ────────────────────────────────────────────────────
-
-function Card({ title, children, style }: { title?: string; children: React.ReactNode; style?: object }) {
-  return (
-    <View style={[card.box, style]}>
-      {title ? <Text style={card.title}>{title}</Text> : null}
-      {children}
-    </View>
-  );
-}
-
-const card = StyleSheet.create({
-  box: {
-    backgroundColor: colors.bgCard, borderRadius: 16, padding: 16,
-    marginHorizontal: 16, marginBottom: 12, borderWidth: 1, borderColor: colors.border,
-  },
-  title: { fontSize: 13, fontWeight: '700', color: colors.textPrimary, marginBottom: 12 },
-});
 
 // ── Hero: headline P&L with sparkline ────────────────────────────────────────
 
@@ -102,8 +86,10 @@ function HeroPnl({ bets }: { bets: Bet[] }) {
 
 const hero = StyleSheet.create({
   box: {
-    backgroundColor: colors.bgCard, borderRadius: 16, padding: 18,
+    backgroundColor: colors.bgCard, borderRadius: 18, padding: 18,
     marginHorizontal: 16, marginBottom: 12, borderWidth: 1, borderColor: colors.border,
+    shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 }, elevation: 3,
   },
   label: { fontSize: 12, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
   value: { fontSize: 34, fontWeight: '800', marginTop: 4, marginBottom: 12 },
@@ -143,10 +129,7 @@ function MiniTile({ label, value, color, sub, info }: {
 }
 
 const tile = StyleSheet.create({
-  box: {
-    flex: 1, backgroundColor: colors.bgElevated, borderRadius: 12, padding: 12,
-    borderWidth: 1, borderColor: colors.border,
-  },
+  box: { ...tileStyle, flex: 1 },
   label: { fontSize: 11, color: colors.textMuted, marginBottom: 6, lineHeight: 14, height: 28 }, // reserve 2 lines
   labelWithInfo: { paddingRight: 18 }, // keep clear of the "?" badge
   value: { fontSize: 20, fontWeight: '800', height: 26, textAlignVertical: 'center' },
@@ -154,7 +137,7 @@ const tile = StyleSheet.create({
   infoBtn: {
     position: 'absolute', top: 8, right: 8,
     width: 16, height: 16, borderRadius: 8,
-    backgroundColor: colors.bgCard, borderWidth: 1, borderColor: colors.border,
+    backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.borderStrong,
     alignItems: 'center', justifyContent: 'center',
   },
   infoBtnText: { fontSize: 10, color: colors.textMuted, fontWeight: '700' },
@@ -166,7 +149,7 @@ function StreaksCard({ bets }: { bets: Bet[] }) {
   const curLabel = cur.type === 'none' ? '—' : `${cur.count}`;
   const curColor = cur.type === 'win' ? colors.won : cur.type === 'loss' ? colors.lost : colors.textMuted;
   return (
-    <Card title="Серии">
+    <Card title="Серии" tone="info">
       <View style={row.wrap}>
         <MiniTile label="Лучшая серия побед" value={`${s.bestWin} W`} color={colors.won} />
         <View style={{ width: 10 }} />
@@ -188,7 +171,7 @@ function ExtremesCard({ bets }: { bets: Bet[] }) {
   const e = calcExtremes(bets);
   const cleanEvent = (ev: string) => ev.split(' / ')[0]?.split('|')[0]?.trim() ?? ev;
   return (
-    <Card title="Рекорды">
+    <Card title="Рекорды" tone="violet">
       <View style={row.wrap}>
         <MiniTile
           label="Самый большой выигрыш"
@@ -230,7 +213,7 @@ function EdgeRiskCard({ bets }: { bets: Bet[] }) {
   const lowSample = e.sampleSize > 0 && e.sampleSize < RELIABLE_SAMPLE_MIN;
 
   return (
-    <Card title="Перевес и риск">
+    <Card title="Перевес и риск" tone="profit">
       <View style={row.wrap}>
         <MiniTile
           label="Перевес над безубытком"
@@ -342,7 +325,7 @@ function LastMonthCard({ bets }: { bets: Bet[] }) {
     : `Прошлый месяц · ${monthName}`;
 
   return (
-    <Card title={title}>
+    <Card title={title} tone="warn">
       {m.count === 0 ? (
         <Text style={month.empty}>Нет закрытых ставок за {monthName}</Text>
       ) : (
@@ -393,7 +376,7 @@ function TimeCard({ bets }: { bets: Bet[] }) {
   const total = t.buckets.reduce((s, b) => s + b.count, 0);
 
   if (total === 0) {
-    return <Card title="Время ставок"><Text style={time.empty}>Нет данных о времени ставок</Text></Card>;
+    return <Card title="Время ставок" tone="pink"><Text style={time.empty}>Нет данных о времени ставок</Text></Card>;
   }
 
   const pie = t.buckets
@@ -401,7 +384,7 @@ function TimeCard({ bets }: { bets: Bet[] }) {
     .filter((s) => s.value > 0);
 
   return (
-    <Card title="Время ставок">
+    <Card title="Время ставок" tone="pink">
       {/* Top-4 exact hours with P&L */}
       <View style={time.topRow}>
         {t.topHours.map((h) => (
@@ -472,7 +455,7 @@ function ClvCard({ bets }: { bets: Bet[] }) {
 
   if (c.count === 0) {
     return (
-      <Card title="CLV — ценность закрытия">
+      <Card title="CLV — ценность закрытия" tone="info">
         <Text style={clv.hint}>
           Добавляй «кэф закрытия» при вводе ставки — и здесь появится главная метрика профессионалов:
           насколько твой кэф лучше линии перед стартом.
@@ -483,7 +466,7 @@ function ClvCard({ bets }: { bets: Bet[] }) {
 
   const good = c.avgClvPercent >= 0;
   return (
-    <Card title="CLV — ценность закрытия">
+    <Card title="CLV — ценность закрытия" tone="info">
       <View style={row.wrap}>
         <MiniTile
           label="Средний CLV"
@@ -555,7 +538,7 @@ function ExtendedSection({ title, stats }: { title: string; stats: SliceStats[] 
   const withData = stats.filter((s) => s.count > 0);
   if (withData.length === 0) return null;
   return (
-    <Card title={title}>
+    <Card title={title} tone="warn">
       {withData.map((s) => <SliceRow key={s.label} stat={s} maxPnl={maxPnl} />)}
     </Card>
   );
@@ -664,8 +647,9 @@ const styles = StyleSheet.create({
   extToggle: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     marginHorizontal: 16, marginTop: 4, marginBottom: 12, paddingVertical: 12, paddingHorizontal: 16,
-    backgroundColor: colors.bgCard, borderRadius: 12, borderWidth: 1, borderColor: colors.border,
+    backgroundColor: colors.bgElevated, borderRadius: 14,
+    borderWidth: 1, borderColor: alpha(colors.purple, 0.35),
   },
-  extToggleText: { fontSize: 14, fontWeight: '700', color: colors.textPrimary },
+  extToggleText: { fontSize: 14, fontWeight: '700', color: colors.purple },
   extChevron: { fontSize: 12, color: colors.textMuted },
 });

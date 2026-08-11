@@ -7,7 +7,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { Bet, BetStatus } from '@sharklog/core';
 import { formatMoney, isInTilt, calcDailyBreakdown, calcDashboard, toYmd } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
-import { colors } from '../../theme/colors';
+import { colors, alpha } from '../../theme/colors';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { BetCard } from './BetCard';
 import { SwipeableRow } from './SwipeableRow';
@@ -287,7 +287,7 @@ export function BetsScreen({ dateFilter, onClearDateFilter }: {
         }
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Image source={require('../../../assets/icon.png')} style={styles.emptyIcon} resizeMode="contain" />
+            <Image source={require('../../../assets/adaptive-icon.png')} style={styles.emptyIcon} resizeMode="contain" />
             <Text style={styles.emptyTitle}>{t('bet.noBetsYet')}</Text>
             <Text style={styles.emptySubtitle}>
               {search ? t('bet.notFound') : t('bet.noBetsStart')}
@@ -385,9 +385,11 @@ const styles = StyleSheet.create({
   dateChipX: { fontSize: 12, color: colors.purple, fontWeight: '700' },
   todayStrip: {
     flexDirection: 'row', alignItems: 'stretch',
-    marginHorizontal: 16, marginBottom: 12, padding: 12,
-    backgroundColor: colors.bgCard, borderRadius: 12,
-    borderWidth: 1, borderColor: colors.border,
+    marginHorizontal: 16, marginBottom: 12, padding: 12, borderRadius: 18,
+    backgroundColor: alpha(colors.purple, 0.07),
+    borderWidth: 1, borderColor: alpha(colors.purple, 0.32),
+    shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 }, elevation: 3,
   },
   todayCell: { flex: 1, paddingHorizontal: 4 },
   todayDivider: { width: 1, backgroundColor: colors.border, marginHorizontal: 4 },

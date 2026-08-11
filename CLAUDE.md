@@ -38,6 +38,7 @@ docs/            — ROADMAP.md, ANALYSIS.md, PRIVACY_POLICY.md
 - **Даты-строки `YYYY-MM-DD`** парсь как локальные (`new Date(\`${d}T00:00:00\`)`), bare-строка парсится как UTC и смещает день. На десктопе локаль для `toLocaleDateString` — через `dateLocale(lang)` из `i18n`.
 - **Очистка опциональных полей на edit**: `updateBet` делает merge `{...bet, ...updates}`, поэтому пустое поле, просто *опущенное* из `updates`, НЕ стирает старое значение. Чтобы очистить (напр. `closingOdds`/`cashoutAmount`), передавай ключ явно как `undefined` (через `... as Partial<Bet>`), а не опускай его.
 - **gifted-charts: `hideDataPoints` убивает `customDataPoint`** — маркеры на линии не отрисуются. Для линий с метками (депозиты/выводы) рисуй свой SVG (`components/BalanceChart.tsx`), а не борись с библиотекой.
+- **Логотип**: `assets/icon.png` — НЕПРОЗРАЧНЫЙ тайл (тёмный фон + белый знак) только для лаунчера/сплэша; внутри приложения показывай `assets/adaptive-icon.png` (прозрачный белый знак), иначе на экране виден тёмный квадрат. Десктоп: `public/logo.png` — прозрачный знак для тёмного UI, `public/logo-512.png` — оригинальный лок-ап на белом для README/лендинга.
 - **Палитра графиков — одна на всё приложение**: `theme/chartColors.ts` (`SERIES`: win/loss/pnl/balance/deposit/withdrawal). Не заводи цвета серий по месту.
 - **Ландшафтный режим через rotate-трансформ** (`ExpandedDashboard`): экран поворачивается на 90° по часовой, поэтому отступы безопасной зоны надо ПЕРЕСТАВЛЯТЬ — `paddingRight ← insets.bottom` (там наэкранные кнопки), `paddingLeft ← insets.top`. Иначе контент лезет под системную навигацию.
 - **Действия из уведомления применяй ТОЛЬКО после `isLoaded`** — на холодном старте стор ещё пуст, и `updateBet` по пустому массиву затем запишет пустой снапшот поверх реальных данных. В `App.tsx` действие буферизуется в ref и применяется в эффекте по `isLoaded`.
@@ -49,6 +50,22 @@ docs/            — ROADMAP.md, ANALYSIS.md, PRIVACY_POLICY.md
 - **Inline-инпуты в списках**: у `SectionList`/`FlatList` с полем ввода внутри строки ставь `keyboardShouldPersistTaps="handled"`, иначе первый тап по кнопке при открытой клавиатуре съедается (двойной тап). Пример — inline-выкуп в `BetCard`.
 
 ## Цветовая система
+
+**Лестница поверхностей** (шаги специально различимы — старые `#080810/#0E0E1C/#12121E` сливались):
+```
+colors.bg          = '#06070D'  // страница
+colors.bgCard      = '#131522'  // карточка
+colors.bgElevated  = '#1C1F2E'  // плитка внутри карточки
+colors.bgSunken    = '#0B0C14'  // «колодцы»: инпуты, поле графика
+colors.border      = '#282C3F'  // видимый хайрлайн
+colors.borderStrong= '#3A3F57'
+```
+
+**Тона карточек** — чтобы соседние блоки читались как отдельные объекты, а не одно тёмное полотно.
+`<Card title="..." tone="profit">` из `components/Card.tsx` даёт тонированный фон (accent 7%),
+границу (accent 32%), скругление 18 и цветной рейл у заголовка.
+Тона: `neutral | profit | loss | warn | info | violet | pink`.
+Хелперы: `alpha(hex, 0..1)`, `toneSurface(tone)`, `TONE_ACCENT`. На десктопе — `toneCard(tone)`.
 
 ```
 colors.accent   = '#22D3A0'  // teal  — победы, положительные значения

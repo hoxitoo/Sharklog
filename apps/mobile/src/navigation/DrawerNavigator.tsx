@@ -221,7 +221,7 @@ function DrawerContent({ currentScreen, onNavigate, onClose, insets }: DrawerCon
     <View style={[styles.drawerInner, { paddingTop: insets.top + 12 }]}>
       {/* Logo */}
       <View style={styles.drawerLogo}>
-        <Image source={require('../../assets/icon.png')} style={styles.logoImg} resizeMode="contain" />
+        <Image source={require('../../assets/adaptive-icon.png')} style={styles.logoImg} resizeMode="contain" />
         <Text style={styles.logoText}>SharkLog</Text>
       </View>
 

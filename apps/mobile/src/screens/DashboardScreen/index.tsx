@@ -6,7 +6,8 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { calcDashboard, isInTilt, calcDailyBreakdown, summarizeDays, toYmd } from '@sharklog/core';
 import type { Bet, DayStats } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
-import { colors } from '../../theme/colors';
+import { colors, alpha } from '../../theme/colors';
+import { tileStyle } from '../../components/Card';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ResponsibleGamblingBanner } from '../../components/ResponsibleGamblingBanner';
 import { Coachmark } from '../../components/Coachmark';
@@ -66,13 +67,10 @@ function WLStrip({ bets }: { bets: Bet[] }) {
 
 const wl = StyleSheet.create({
   container: {
-    marginHorizontal: 16,
-    marginBottom: 14,
-    backgroundColor: colors.bgCard,
-    borderRadius: 12,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: colors.border,
+    marginHorizontal: 16, marginBottom: 14, padding: 14,
+    backgroundColor: alpha('#A78BFA', 0.07), borderRadius: 18, borderWidth: 1, borderColor: alpha('#A78BFA', 0.32),
+    shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 }, elevation: 3,
   },
   title: { fontSize: 11, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 },
   row: { flexDirection: 'row', gap: 6 },
@@ -166,13 +164,11 @@ function Heatmap({ bets }: { bets: Bet[] }) {
 
 const hm = StyleSheet.create({
   container: {
-    marginHorizontal: 16,
-    marginBottom: 14,
-    backgroundColor: colors.bgCard,
-    borderRadius: 12,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: colors.border,
+    marginHorizontal: 16, marginBottom: 14, padding: 14,
+    backgroundColor: colors.bgCard, borderRadius: 18,
+    borderWidth: 1, borderColor: colors.border,
+    shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 }, elevation: 3,
   },
   title: { fontSize: 11, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 },
   grid: { flexDirection: 'row', gap: 3 },
@@ -221,16 +217,18 @@ function TurnoverCard({ turnover, bank, betCount, activeDays, pendingCount, peri
 
 const tc = StyleSheet.create({
   card: {
-    backgroundColor: colors.bgCard, borderRadius: 16, padding: 18,
-    marginHorizontal: 16, marginBottom: 12, borderWidth: 1, borderColor: colors.border,
+    padding: 18, marginHorizontal: 16, marginBottom: 12,
+    backgroundColor: alpha('#5B6AF0', 0.07), borderRadius: 18, borderWidth: 1, borderColor: alpha('#5B6AF0', 0.32),
+    shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 }, elevation: 3,
   },
   topRow: { flexDirection: 'row', alignItems: 'flex-start' },
   left: { flex: 1, marginRight: 12 },
   label: { fontSize: 12, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
   value: { fontSize: 32, fontWeight: '800', color: colors.textPrimary, marginTop: 4 },
   bankBtn: {
-    backgroundColor: colors.bgElevated, borderRadius: 12, paddingHorizontal: 12, paddingVertical: 10,
-    borderWidth: 1, borderColor: colors.border, minWidth: 118, alignItems: 'flex-end',
+    ...tileStyle, paddingHorizontal: 12, paddingVertical: 10,
+    minWidth: 118, alignItems: 'flex-end',
   },
   bankLabel: { fontSize: 10, color: colors.textMuted },
   bankValue: { fontSize: 17, fontWeight: '700', marginTop: 3 },
@@ -354,8 +352,10 @@ function DailyDashboardCard({ days, onExpand }: { days: DayStats[]; onExpand: ()
 
 const dd = StyleSheet.create({
   card: {
-    backgroundColor: colors.bgCard, borderRadius: 16, padding: 16,
-    marginHorizontal: 16, marginBottom: 14, borderWidth: 1, borderColor: colors.border,
+    padding: 16, marginHorizontal: 16, marginBottom: 14,
+    backgroundColor: alpha('#22D3A0', 0.07), borderRadius: 18, borderWidth: 1, borderColor: alpha('#22D3A0', 0.32),
+    shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 }, elevation: 3,
   },
   header: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 },
   title: { fontSize: 15, fontWeight: '700', color: colors.textPrimary },
@@ -367,10 +367,7 @@ const dd = StyleSheet.create({
   expandText: { fontSize: 11, color: colors.purple, fontWeight: '700' },
   chartWrap: { alignItems: 'center' },
   hint: { fontSize: 11, color: colors.textMuted, marginTop: 12, textAlign: 'center' },
-  detail: {
-    marginTop: 12, padding: 12, borderRadius: 10,
-    backgroundColor: colors.bgElevated, borderWidth: 1, borderColor: colors.border,
-  },
+  detail: { ...tileStyle, marginTop: 12 },
   detailDate: { fontSize: 12, fontWeight: '700', color: colors.textPrimary, marginBottom: 8 },
   detailGrid: { flexDirection: 'row', justifyContent: 'space-between' },
   detailCell: { flex: 1 },
