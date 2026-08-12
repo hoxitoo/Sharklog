@@ -243,7 +243,8 @@ export function BetsPage({ onAdd, onEdit }: Props) {
                       onMouseEnter={() => setHovered(bet.id)}
                       onMouseLeave={() => setHovered(null)}
                     >
-                      <td style={s.td}>
+                      {/* Leading edge carries the outcome — scannable without reading the badge. */}
+                      <td style={{ ...s.td, borderLeft: `3px solid ${STATUS_COLORS[bet.status]}`, paddingLeft: 11 }}>
                         <div style={s.eventName}>{bet.event}</div>
                         {bet.notes && <div style={s.noteText}>{bet.notes}</div>}
                         {bet.bookmaker && <div style={s.bkBadge}>{bet.bookmaker}</div>}

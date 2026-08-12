@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-nativ
 import type { Bet } from '@sharklog/core';
 import { SPORTS, BET_TYPES, formatMoney, formatOdds, parseMoneyInput } from '@sharklog/core';
 import { colors } from '../../theme/colors';
-import { StatusBadge } from '../../components/StatusBadge';
+import { StatusBadge, STATUS_COLORS } from '../../components/StatusBadge';
 import { useBetsStore } from '../../store/betsStore';
 import { haptic } from '../../utils/haptics';
 import { useTranslation } from 'react-i18next';
@@ -50,6 +50,8 @@ export const BetCard = React.memo(function BetCard({ bet, onEdit }: Props) {
     updateBet(bet.id, { status });
   }
 
+  const accent = STATUS_COLORS[bet.status];
+
   return (
     <TouchableOpacity
       style={styles.card}
@@ -58,6 +60,10 @@ export const BetCard = React.memo(function BetCard({ bet, onEdit }: Props) {
       onPress={cashoutOpen ? undefined : () => onEdit(bet)}
       activeOpacity={cashoutOpen ? 1 : 0.8}
     >
+      {/* The right edge carries the outcome — green won, red lost, amber pending,
+          violet refund/cashout — so a scroll reads without stopping at the badge. */}
+      <View pointerEvents="none" style={[styles.edge, { backgroundColor: accent }]} />
+
       <View style={styles.row}>
         <View style={styles.left}>
           <Text style={styles.sport}>
@@ -178,6 +184,12 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
     elevation: 2,
+  },
+  edge: {
+    position: 'absolute',
+    right: 0, top: 0, bottom: 0, width: 4,
+    // 16 (card) − 1 (border) so the rail follows the corner instead of cutting it.
+    borderTopRightRadius: 15, borderBottomRightRadius: 15,
   },
   row: { flexDirection: 'row', justifyContent: 'space-between' },
   left: { flex: 1, marginRight: 12 },

@@ -101,7 +101,8 @@ const styles = StyleSheet.create({
     top: 0,
     bottom: 10,
     backgroundColor: colors.lost,
-    borderRadius: 12,
+    // Must match BetCard's radius, or the red backing peeks out at the corners.
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
