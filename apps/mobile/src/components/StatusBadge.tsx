@@ -4,7 +4,8 @@ import type { BetStatus } from '@sharklog/core';
 import { colors } from '../theme/colors';
 import { useTranslation } from 'react-i18next';
 
-const STATUS_COLORS: Record<BetStatus, string> = {
+/** Shared so the card's edge rail always matches the badge. */
+export const STATUS_COLORS: Record<BetStatus, string> = {
   pending:  colors.pending,
   won:      colors.won,
   lost:     colors.lost,
