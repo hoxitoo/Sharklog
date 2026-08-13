@@ -1,7 +1,7 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Animated,
-  Pressable, ScrollView, Image, Alert, PanResponder,
+  Pressable, ScrollView, Image, Alert, PanResponder, BackHandler,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { ChecklistModal } from '../components/ChecklistModal';
@@ -129,6 +129,19 @@ export function DrawerNavigator() {
     setBetsDateFilter(null); // explicit navigation clears any day drill-down
     closeDrawer(() => setScreen(s));
   }
+
+  // Android hardware back. Without this the drawer stays open behind the press
+  // and every screen exits the app, so a tap into Analytics costs you the app.
+  // Unwind one level at a time instead: drawer → day filter → Bets → exit.
+  useEffect(() => {
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      if (drawerVisibleRef.current) { closeDrawer(); return true; }
+      if (betsDateFilter) { setBetsDateFilter(null); return true; }
+      if (screen !== 'Bets') { setScreen('Bets'); return true; }
+      return false;
+    });
+    return () => sub.remove();
+  }, [screen, betsDateFilter]);
 
   function handleAddBet() {
     if (!canAddBet()) {

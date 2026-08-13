@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { DEFAULT_BOOKMAKERS, FREE_LIMITS, SPORTS, toYmd } from '@sharklog/core';
+import { DEFAULT_BOOKMAKERS, FREE_LIMITS, SPORTS, buildBetsCSV, toYmd } from '@sharklog/core';
 import type { Sport } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
 import { useToastStore } from '../store/toastStore';
@@ -52,14 +52,9 @@ export function SettingsPage() {
 
   function handleExportCSV() {
     const { bets: allBets } = useBetsStore.getState();
-    const rows = [
-      ['Дата', 'Событие', 'Выбор', 'Коэф.', 'Ставка', 'Статус', 'P&L', 'Букмекер', 'Стратегия', 'Спорт', 'Тип ставки', 'Заметка'],
-      ...allBets.map((b) => {
-        const pnl = b.status === 'won' ? Math.round(b.stake * b.odds) - b.stake : b.status === 'lost' ? -b.stake : 0;
-        return [b.date, b.event, b.pick, b.odds, (b.stake / 100).toFixed(2), b.status, (pnl / 100).toFixed(2), b.bookmaker, b.strategy, b.sport, b.betType, b.notes ?? ''];
-      }),
-    ];
-    const csv = '﻿' + rows.map((r) => r.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(',')).join('\n');
+    // Same writer as mobile — an export from the phone has to import here, and
+    // vice versa. It also gets refund/cashout/freebet P&L right.
+    const csv = '﻿' + buildBetsCSV(allBets);
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');

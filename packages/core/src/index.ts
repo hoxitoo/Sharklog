@@ -5,5 +5,6 @@ export * from './utils/analytics';
 export * from './utils/daily';
 export * from './utils/kelly';
 export * from './utils/formatters';
+export * from './utils/betsCsv';
 export * from './utils/migrations';
 export * from './utils/strategyBuilder';
