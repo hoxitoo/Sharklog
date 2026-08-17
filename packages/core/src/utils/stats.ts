@@ -1,4 +1,4 @@
-import type { Bet } from '../types/bet';
+import type { Bet, BankrollTransaction } from '../types/bet';
 import { ODDS_RANGES } from '../constants/index';
 
 export interface SliceStats {
@@ -353,4 +353,37 @@ export function calcByTeam(bets: Bet[], minBets = 10): TeamStats[] {
   }
 
   return result.sort((a, b) => b.count - a.count);
+}
+
+// ── Bankroll ─────────────────────────────────────────────────────────────────
+
+/**
+ * Cash movements only: deposits in, withdrawals out, adjustments as signed.
+ * Every screen used to inline this reduce, which is how a third transaction
+ * type would have silently gone missing from half of them.
+ */
+export function bankCash(transactions: BankrollTransaction[]): number {
+  return transactions.reduce((sum, tx) => {
+    if (tx.type === 'deposit') return sum + tx.amount;
+    if (tx.type === 'withdrawal') return sum - tx.amount;
+    return sum + tx.amount; // adjustment — already signed
+  }, 0);
+}
+
+/**
+ * What the app believes is in the account: cash movements plus settled results.
+ *
+ * NOTE this is not the number a bookmaker shows while bets are open. There the
+ * stake leaves the balance the moment a bet is placed, so
+ * `bookmakerBalance = currentBank - pendingExposure`.
+ */
+export function currentBank(transactions: BankrollTransaction[], bets: Bet[]): number {
+  return bankCash(transactions) + calcDashboard(bets).pnl;
+}
+
+/** Money sitting in unsettled bets — deducted at the bookmaker, not here. */
+export function pendingExposure(bets: Bet[]): number {
+  return bets
+    .filter((b) => b.status === 'pending' && !b.isFreebet)
+    .reduce((sum, b) => sum + b.stake, 0);
 }

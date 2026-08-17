@@ -75,10 +75,18 @@ export interface Bet {
   schemaVersion: number;   // for migrations
 }
 
+export type BankrollTxType = 'deposit' | 'withdrawal' | 'adjustment';
+
 export interface BankrollTransaction {
   id: string;
-  type: 'deposit' | 'withdrawal';
-  amount: number;          // kopecks
+  type: BankrollTxType;
+  /**
+   * Kopecks. Always positive for deposit/withdrawal — the type carries the
+   * sign. SIGNED for 'adjustment': a reconciliation against the real balance
+   * at the bookmaker can go either way, and forcing it positive would need a
+   * fake withdrawal to express "the app counted 25 ₽ too much".
+   */
+  amount: number;
   date: string;            // ISO-8601
   note?: string;
 }

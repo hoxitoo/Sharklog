@@ -5,7 +5,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { Bet, BetStatus } from '@sharklog/core';
-import { formatMoney, isInTilt, calcDailyBreakdown, calcDashboard, betBacksTeam, toYmd } from '@sharklog/core';
+import { formatMoney, isInTilt, calcDailyBreakdown, currentBank, betBacksTeam, toYmd } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { colors, mix, toneSurface } from '../../theme/colors';
 import type { BetsFilter } from '../../components/DrawerContext';
@@ -58,11 +58,10 @@ export function BetsScreen({ filter, onClearFilter }: {
     () => bets.filter((b) => b.status === 'pending').reduce((sum, b) => sum + b.stake, 0),
     [bets],
   );
-  const bank = useMemo(() => {
-    const cash = bankroll.transactions.reduce(
-      (sum, t) => (t.type === 'deposit' ? sum + t.amount : sum - t.amount), 0);
-    return cash + calcDashboard(bets).pnl;
-  }, [bets, bankroll.transactions]);
+  const bank = useMemo(
+    () => currentBank(bankroll.transactions, bets),
+    [bets, bankroll.transactions],
+  );
 
   const onRefresh = useCallback(() => {
     // Data is local and reactive — there's nothing to fetch. Acknowledge the gesture

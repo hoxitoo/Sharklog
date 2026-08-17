@@ -308,11 +308,17 @@ function DailyDashboardCard({ days, onExpand }: { days: DayStats[]; onExpand: ()
               <Text style={dd.detailLinkText}>Показать ставки за этот день →</Text>
             </TouchableOpacity>
           )}
-          {(sel.deposits > 0 || sel.withdrawals > 0) && (
+          {(sel.deposits > 0 || sel.withdrawals > 0 || sel.adjustments !== 0) && (
             <Text style={dd.detailCash}>
-              {sel.deposits > 0 ? `Депозит ${fmt(sel.deposits)}` : ''}
-              {sel.deposits > 0 && sel.withdrawals > 0 ? ' · ' : ''}
-              {sel.withdrawals > 0 ? `Вывод ${fmt(sel.withdrawals)}` : ''}
+              {[
+                sel.deposits > 0 ? `Депозит ${fmt(sel.deposits)}` : null,
+                sel.withdrawals > 0 ? `Вывод ${fmt(sel.withdrawals)}` : null,
+                // Without this the balance steps on a reconciliation day and the
+                // detail panel gives no reason why.
+                sel.adjustments !== 0
+                  ? `Сверка ${sel.adjustments > 0 ? '+' : '−'}${fmt(Math.abs(sel.adjustments))}`
+                  : null,
+              ].filter(Boolean).join(' · ')}
             </Text>
           )}
         </View>
@@ -461,7 +467,8 @@ export function DashboardScreen() {
     setTiltDismissed(true);
   }
 
-  // Bank = deposits − withdrawals + all-time P&L (last day of the full series).
+  // Bank = cash movements (deposits, withdrawals, reconciliations) + all-time P&L,
+  // read off the last day of the full series.
   const bankTotal = fullDays.length > 0 ? fullDays[fullDays.length - 1]!.balance : 0;
 
   // Most-recent 5 settled-or-pending bets, newest first.

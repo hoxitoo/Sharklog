@@ -172,7 +172,14 @@
     "yourProb": "Ваша верагоднасць %",
     "fullKelly": "Поўны Кэлі",
     "halfKelly": "½ Кэлі (рэкамендуецца)",
-    "bankPercent": "% банка"
+    "bankPercent": "% банка",
+    "txAdjustment": "Зверка",
+    "reconcile": "Выраўняць",
+    "reconcilePlaceholder": "Рэальны баланс у букмекера",
+    "reconcileDelta": "Розніца",
+    "reconcileNote": "Зверка з букмекерам",
+    "exposureHint": "{{exposure}} зараз у незавершаных стаўках — букмекер спісаў іх адразу, таму і адлічаны",
+    "reconcileExpected": "Чакаем у бука"
   },
   "discipline": {
     "title": "Дысцыпліна",

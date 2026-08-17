@@ -225,6 +225,18 @@ interface Bet {
 // refund = букмекер вернул ставку (например, отмена матча)
 // cashout = игрок сам выкупил ставку досрочно
 
+type BankrollTxType = 'deposit' | 'withdrawal' | 'adjustment';
+
+interface BankrollTransaction {
+  id: string;
+  type: BankrollTxType;
+  amount: number;                 // КОПЕЙКИ. Всегда > 0 для deposit/withdrawal — знак несёт тип.
+                                  // ЗНАКОВОЕ для 'adjustment': сверка с реальным балансом бука
+                                  // может уйти в обе стороны.
+  date: string;                   // ISO-8601
+  note?: string;
+}
+
 interface AppSettings {
   tiltThreshold: number;          // Free: фикс 3 / PRO: stepper 2–10
   dailyBetLimit: number;          // 0 = нет лимита (только PRO); enforced в canAddBet()
@@ -301,7 +313,12 @@ interface TeamStats {
 11. **Onboarding**: новые пользователи видят OnboardingPage; существующие пользователи — `onboardingComplete ?? true` при load().
 12. **refund vs cashout**: refund = возврат букмекером (отмена матча); cashout = досрочный выкуп игроком. Это два разных статуса.
 13. **parseEventTeams(event)**: разбивает event по ` — `, ` – `, ` vs `, ` против `, ` - ` → массив имён команд.
-14. **calcByTeam(bets, minBets=10)**: возвращает только команды с ≥10 ставок (PRO "Любимые команды"). Использует внутренний `getPickedTeams(event, pick)` — атрибутирует ставку только той команде, на которую поставил игрок.
+14. **calcByTeam(bets, minBets=10)**: возвращает только команды с ≥10 ставок (PRO "Любимые команды"). Использует внутренний `getPickedTeams(event, pick)` — атрибутирует ставку только той команде, на которую поставил игрок. Наружу тот же предикат выведен как `betBacksTeam(bet, team)` — фильтр списка ставок обязан использовать его, иначе счётчик в списке разойдётся с числом на плитке инсайтов.
+15. **Банк — только через core**: `currentBank(txs, bets) = bankCash(txs) + P&L`. Ручной `deposit ? + : -` теряет третий тип транзакции (`adjustment`), у которого знак лежит в сумме.
+16. **Банк ≠ баланс у букмекера**: букмекер списывает ставку при постановке, приложение — при расчёте. `балансУБукмекера = currentBank − pendingExposure(bets)`. Первое, что надо исключить при расхождении.
+17. **P&L одной ставки — только `betPnl()`**: ручные ветки по статусу уже давали выкуп нулём и проигранный фрибет полной потерей.
+18. **CSV — один модуль на обе платформы**: `packages/core/utils/betsCsv`. Второй парсер по месту = разъехавшиеся алиасы и выгрузка с телефона, которая не открывается на ПК.
+19. **Кумулятивные кривые — по `date + time`, не `createdAt`**: ставка задним числом иначе прыгает в конец графика.
 
 ---
 
@@ -384,7 +401,7 @@ VITE_OWNER_PRO=true
 
 ## CI / Build
 
-- **CI**: `.github/workflows/ci.yml` — `npm ci` → vitest (core 98 + desktop 40) → mobile tests (25) → tsc mobile+desktop
+- **CI**: `.github/workflows/ci.yml` — `npm ci` → vitest (core 149 + desktop 40) → mobile tests (32) → tsc mobile+desktop
 - **EAS Build**: `.github/workflows/eas-build.yml` — ручной `workflow_dispatch`
   - Требует: `EXPO_TOKEN` secret + реальный `projectId` в `app.json`
 - **EAS профили**: development / preview (APK) / production (autoIncrement)
@@ -486,16 +503,33 @@ VITE_OWNER_PRO=true
 - [x] E2E tests (Playwright, continue-on-error): 40+ тестов
 - [x] 40 smoke tests (Vitest)
 - [x] Полный i18n: все страницы переведены на ru/en/kz/by через react-i18next
+- [x] betsCsv.ts — единый CSV-импорт/экспорт для обеих платформ (BOM, CRLF, `,`/`;`/таб,
+      объединённые алиасы колонок); заменил две разъехавшиеся копии
+- [x] betPnl() — общий P&L одной ставки; выкуп и проигранный фрибет считались по-разному
+      в экспорте и в статистике
+- [x] calcPnlBuckets(bets, granularity, count) — чистый P&L по дням/неделям/месяцам
+      с сохранением пустых бакетов (замена накопительной линии в аналитике)
+- [x] betBacksTeam(bet, team) — публичный предикат для фильтра ставок по команде
+- [x] bankCash / currentBank / pendingExposure — единый расчёт банка; раньше он был
+      продублирован в 8 местах, две копии считали P&L по-своему
+- [x] BankrollTxType += 'adjustment' — сверка банка с реальным балансом бука
+      (знаковая сумма, свой бакет `adjustments` в calcDailyBreakdown)
+- [x] Bugfix: pnlCurve сортировался по createdAt вместо date+time
 
 ---
 
 ## Тесты
 
 ```
-packages/core          98 vitest unit tests (stats, analytics, daily, formatters, kelly, migrations)
+packages/core         149 vitest unit tests (stats, analytics, daily, formatters, kelly, migrations,
+                          betsCsv x14 — round-trip / P&L / инъекция / разделители,
+                          pnlBuckets x10 — границы бакетов, порядок кривой,
+                          bankroll x10 — bankCash / currentBank / pendingExposure / сверки,
+                          reconcileFlow x12 — сверка приземляет банк ровно на баланс бука,
+                          с учётом незакрытых ставок и без двойного счёта после их расчёта)
 apps/desktop           40 vitest smoke tests (betsStore x25, importBets x15)
-apps/mobile            25 jest smoke tests (betsStore x19, chartScale x6)
-ИТОГО                  163 теста
+apps/mobile            32 jest smoke tests (betsStore x19, chartScale x6, theme x7)
+ИТОГО                  221 тест
 ```
 
 ---

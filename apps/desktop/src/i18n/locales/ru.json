@@ -172,7 +172,14 @@
     "yourProb": "Твоя вероятность %",
     "fullKelly": "Full Kelly",
     "halfKelly": "½ Kelly (рекомендовано)",
-    "bankPercent": "% банка"
+    "bankPercent": "% банка",
+    "txAdjustment": "Сверка",
+    "reconcile": "Выровнять",
+    "reconcilePlaceholder": "Реальный баланс у букмекера",
+    "reconcileDelta": "Разница",
+    "reconcileNote": "Сверка с букмекером",
+    "exposureHint": "{{exposure}} сейчас в незавершённых ставках — букмекер списал их сразу, поэтому и вычтены",
+    "reconcileExpected": "Ожидаем у бука"
   },
   "discipline": {
     "title": "Дисциплина",
