@@ -154,7 +154,12 @@ function TxForm({
   // parseMoneyInput returns 0 for text with no digits, and "0" is a legitimate
   // balance — so gate on a digit being present, not on the parsed value.
   const hasNumber = /\d/.test(amount);
-  const delta = isAdjust && hasNumber ? typed - bank : 0;
+  // The bookmaker already took the open stakes out of its balance, so that is
+  // what the typed number must be compared against. Comparing it to the raw
+  // bank would book the exposure as a shortfall and then lose it for good once
+  // those bets settled — and the next reconciliation would do it again.
+  const expected = bank - exposure;
+  const delta = isAdjust && hasNumber ? typed - expected : 0;
   const accent = isAdjust ? colors.violet : isWithdrawal ? colors.lost : colors.purple;
 
   function handleSubmit() {
@@ -176,27 +181,32 @@ function TxForm({
       </Text>
       <TextInput
         style={[tf.input, { borderColor: accent }]}
-        placeholder={isAdjust ? String(Math.round(bank / 100)) : '1000'}
+        placeholder={isAdjust ? String(Math.round(expected / 100)) : '1000'}
         placeholderTextColor={colors.textMuted}
         value={amount} onChangeText={setAmount}
         keyboardType="numeric" autoFocus returnKeyType="next"
       />
 
-      {isAdjust && hasNumber && (
+      {isAdjust && (
         <View style={tf.hintBox}>
           <View style={tf.hintRow}>
-            <Text style={tf.hintLabel}>Разница</Text>
-            <Text style={[tf.hintValue, {
-              color: delta > 0 ? colors.won : delta < 0 ? colors.lost : colors.textMuted,
-            }]}>
-              {delta > 0 ? '+' : ''}{formatMoney(delta)}
-            </Text>
+            <Text style={tf.hintLabel}>Ожидаем у бука</Text>
+            <Text style={tf.hintValue}>{formatMoney(expected)}</Text>
           </View>
+          {hasNumber && (
+            <View style={tf.hintRow}>
+              <Text style={tf.hintLabel}>Разница</Text>
+              <Text style={[tf.hintValue, {
+                color: delta > 0 ? colors.won : delta < 0 ? colors.lost : colors.textMuted,
+              }]}>
+                {delta > 0 ? '+' : ''}{formatMoney(delta)}
+              </Text>
+            </View>
+          )}
           {exposure > 0 && (
             <Text style={tf.hintNote}>
-              У тебя {formatMoney(exposure)} в незавершённых ставках. Букмекер списывает
-              их сразу, приложение — только при расчёте, поэтому сверяй по балансу
-              с учётом этой суммы.
+              {formatMoney(exposure)} сейчас в незавершённых ставках — букмекер списал их
+              сразу, поэтому и вычтены. Вводи баланс так, как его показывает бук.
             </Text>
           )}
         </View>
@@ -269,7 +279,8 @@ function TxRow({ tx, onDelete }: { tx: BankrollTransaction; onDelete: () => void
   const label = TX_LABEL[tx.type];
 
   function confirmDelete() {
-    Alert.alert('Удалить транзакцию?', `${label} ${formatMoney(Math.abs(signed))}`, [
+    const sign = signed >= 0 ? '+' : '−';
+    Alert.alert('Удалить транзакцию?', `${label} ${sign}${formatMoney(Math.abs(signed))}`, [
       { text: 'Удалить', style: 'destructive', onPress: onDelete },
       { text: 'Отмена', style: 'cancel' },
     ]);

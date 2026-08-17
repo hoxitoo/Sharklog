@@ -79,10 +79,15 @@ export function BankrollPage() {
   const bank = currentBank(bankroll.transactions, bets);
   const exposure = pendingExposure(bets);
   const unit = Math.round(bank * bankroll.unitPercent / 100);
+  // The bookmaker already took the open stakes out of its balance, so that is
+  // what the typed number must be compared against. Comparing it to the raw
+  // bank would book the exposure as a shortfall and then lose it for good once
+  // those bets settled — and the next reconciliation would do it again.
+  const expectedAtBookmaker = bank - exposure;
   // parseMoneyInput returns 0 for text with no digits, and "0" is a legitimate
   // balance — so gate on a digit being present, not on the parsed value.
   const reconcileTyped = /\d/.test(reconcileInput);
-  const reconcileDelta = reconcileTyped ? parseMoneyInput(reconcileInput) - bank : 0;
+  const reconcileDelta = reconcileTyped ? parseMoneyInput(reconcileInput) - expectedAtBookmaker : 0;
 
   const equityCurve = useMemo(() => {
     const events: Array<{ date: string; delta: number }> = [];
@@ -214,7 +219,8 @@ export function BankrollPage() {
           <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
             <input
               style={{ ...s.input, flex: 1 }}
-              placeholder={t('bankroll.reconcilePlaceholder')}
+              placeholder={String(Math.round(expectedAtBookmaker / 100))}
+              title={t('bankroll.reconcilePlaceholder')}
               type="number"
               value={reconcileInput}
               onChange={(e) => setReconcileInput(e.target.value)}
@@ -224,17 +230,17 @@ export function BankrollPage() {
               = {t('bankroll.reconcile')}
             </button>
           </div>
+          <div style={{ marginTop: 6, fontSize: 12, color: colors.textMuted }}>
+            {t('bankroll.reconcileExpected')}: {formatMoney(expectedAtBookmaker)}
+          </div>
           {reconcileTyped && (
-            <div style={{ marginTop: 6, fontSize: 12, color: reconcileDelta > 0 ? colors.won : reconcileDelta < 0 ? colors.lost : colors.textMuted }}>
+            <div style={{ marginTop: 4, fontSize: 12, color: reconcileDelta > 0 ? colors.won : reconcileDelta < 0 ? colors.lost : colors.textMuted }}>
               {t('bankroll.reconcileDelta')}: {reconcileDelta > 0 ? '+' : ''}{formatMoney(reconcileDelta)}
             </div>
           )}
           {exposure > 0 && (
-            <div style={{ marginTop: 6, fontSize: 12, color: colors.textMuted }}>
-              {t('bankroll.exposureHint', {
-                exposure: formatMoney(exposure),
-                atBookmaker: formatMoney(bank - exposure),
-              })}
+            <div style={{ marginTop: 4, fontSize: 12, color: colors.textMuted }}>
+              {t('bankroll.exposureHint', { exposure: formatMoney(exposure) })}
             </div>
           )}
         </div>

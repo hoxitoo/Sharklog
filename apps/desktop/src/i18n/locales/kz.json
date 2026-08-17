@@ -178,7 +178,8 @@
     "reconcilePlaceholder": "Букмекердегі нақты баланс",
     "reconcileDelta": "Айырма",
     "reconcileNote": "Букмекермен салыстыру",
-    "exposureHint": "Ойында {{exposure}} · букмекерде қазір ≈ {{atBookmaker}}"
+    "exposureHint": "{{exposure}} аяқталмаған ставкаларда — букмекер оны бірден шегерген, сондықтан мұнда да шегерілген",
+    "reconcileExpected": "Букмекерде күтілетін"
   },
   "discipline": {
     "title": "Тәртіп",

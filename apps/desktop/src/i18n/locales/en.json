@@ -178,7 +178,8 @@
     "reconcilePlaceholder": "Actual balance at the bookmaker",
     "reconcileDelta": "Difference",
     "reconcileNote": "Reconciled with the bookmaker",
-    "exposureHint": "{{exposure}} in open bets · at the bookmaker now ≈ {{atBookmaker}}"
+    "exposureHint": "{{exposure}} is in open bets — the bookmaker took it out of the balance already, so it is deducted here too",
+    "reconcileExpected": "Expected at the bookmaker"
   },
   "discipline": {
     "title": "Discipline",

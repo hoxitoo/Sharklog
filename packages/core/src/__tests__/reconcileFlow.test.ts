@@ -1,12 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import type { Bet, BankrollTransaction } from '../types/bet';
-import { currentBank } from '../utils/stats';
+import { currentBank, pendingExposure } from '../utils/stats';
 import { parseMoneyInput } from '../utils/formatters';
 
-/** The exact arithmetic both reconcile forms run, end to end. */
+/**
+ * The exact arithmetic both reconcile forms run, end to end. The typed number is
+ * the bookmaker's balance, which already has the open stakes taken out of it.
+ */
 function reconcile(txs: BankrollTransaction[], bets: Bet[], typed: string): BankrollTransaction[] {
-  const bank = currentBank(txs, bets);
-  const delta = parseMoneyInput(typed) - bank;
+  const expected = currentBank(txs, bets) - pendingExposure(bets);
+  const delta = parseMoneyInput(typed) - expected;
   if (!/\d/.test(typed) || delta === 0) return txs;
   return [...txs, { id: 'adj', type: 'adjustment', amount: delta, date: '2026-08-17T10:00:00.000Z' }];
 }
@@ -68,5 +71,39 @@ describe('reconcile flow', () => {
     const after = reconcile(deposit, bets, '13800');
     const removed = after.filter((t) => t.id !== 'adj');
     expect(currentBank(removed, bets)).toBe(1_377_500);
+  });
+});
+
+describe('reconcile with open bets', () => {
+  const pending: Bet[] = [...bets, { ...bets[0]!, id: 'p', status: 'pending', stake: 100_000 } as Bet];
+
+  it('compares against the bookmaker balance, not the raw bank', () => {
+    // Bank 13 775 ₽ with 1 000 ₽ in play — the bookmaker shows 12 775 ₽.
+    expect(currentBank(deposit, pending)).toBe(1_377_500);
+    expect(currentBank(deposit, pending) - pendingExposure(pending)).toBe(1_277_500);
+
+    // Typing exactly what the bookmaker shows means nothing is wrong.
+    expect(reconcile(deposit, pending, '12775')).toHaveLength(deposit.length);
+  });
+
+  it('does not silently book the open stakes as a shortfall', () => {
+    const after = reconcile(deposit, pending, '12775');
+    expect(currentBank(after, pending)).toBe(1_377_500);
+  });
+
+  it('still records a genuine gap while bets are open', () => {
+    const after = reconcile(deposit, pending, '12800'); // 25 ₽ more than expected
+    expect(after).toHaveLength(deposit.length + 1);
+    expect(after[1]!.amount).toBe(2_500);
+    expect(currentBank(after, pending)).toBe(1_380_000);
+  });
+
+  it('survives the open bets settling — the correction is not double-counted', () => {
+    const after = reconcile(deposit, pending, '12800');
+    const settled = pending.map((b) => (b.id === 'p' ? { ...b, status: 'lost' as const } : b));
+    // The pending bet lost its 1 000 ₽ stake; the 25 ₽ correction stays put.
+    expect(currentBank(after, settled)).toBe(1_380_000 - 100_000);
+    // And reconciling again to the new bookmaker balance adds nothing.
+    expect(reconcile(after, settled, '12800')).toHaveLength(after.length);
   });
 });

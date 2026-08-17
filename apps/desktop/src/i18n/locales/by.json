@@ -178,7 +178,8 @@
     "reconcilePlaceholder": "Рэальны баланс у букмекера",
     "reconcileDelta": "Розніца",
     "reconcileNote": "Зверка з букмекерам",
-    "exposureHint": "У гульні {{exposure}} · у букмекера зараз ≈ {{atBookmaker}}"
+    "exposureHint": "{{exposure}} зараз у незавершаных стаўках — букмекер спісаў іх адразу, таму і адлічаны",
+    "reconcileExpected": "Чакаем у бука"
   },
   "discipline": {
     "title": "Дысцыпліна",

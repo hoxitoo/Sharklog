@@ -401,7 +401,7 @@ VITE_OWNER_PRO=true
 
 ## CI / Build
 
-- **CI**: `.github/workflows/ci.yml` — `npm ci` → vitest (core 145 + desktop 40) → mobile tests (32) → tsc mobile+desktop
+- **CI**: `.github/workflows/ci.yml` — `npm ci` → vitest (core 149 + desktop 40) → mobile tests (32) → tsc mobile+desktop
 - **EAS Build**: `.github/workflows/eas-build.yml` — ручной `workflow_dispatch`
   - Требует: `EXPO_TOKEN` secret + реальный `projectId` в `app.json`
 - **EAS профили**: development / preview (APK) / production (autoIncrement)
@@ -521,14 +521,15 @@ VITE_OWNER_PRO=true
 ## Тесты
 
 ```
-packages/core         145 vitest unit tests (stats, analytics, daily, formatters, kelly, migrations,
+packages/core         149 vitest unit tests (stats, analytics, daily, formatters, kelly, migrations,
                           betsCsv x14 — round-trip / P&L / инъекция / разделители,
                           pnlBuckets x10 — границы бакетов, порядок кривой,
                           bankroll x10 — bankCash / currentBank / pendingExposure / сверки,
-                          reconcileFlow x8 — сверка приземляет банк ровно на введённый баланс)
+                          reconcileFlow x12 — сверка приземляет банк ровно на баланс бука,
+                          с учётом незакрытых ставок и без двойного счёта после их расчёта)
 apps/desktop           40 vitest smoke tests (betsStore x25, importBets x15)
 apps/mobile            32 jest smoke tests (betsStore x19, chartScale x6, theme x7)
-ИТОГО                  217 тестов
+ИТОГО                  221 тест
 ```
 
 ---
