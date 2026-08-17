@@ -78,7 +78,11 @@ export function calcDashboard(bets: Bet[]): DashboardStats {
   const stats = calcSlice(bets, 'all');
   const settled = bets
     .filter((b) => b.status === 'won' || b.status === 'lost' || (b.status === 'cashout' && b.cashoutAmount != null))
-    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    // Ordered by when the match happened, not when the row was typed in: a bet
+    // entered after the fact would otherwise land at the end of the curve and
+    // put it out of step with the bets list, the dashboard and the bank curve.
+    .sort((a, b) => (`${a.date}T${a.time}`).localeCompare(`${b.date}T${b.time}`)
+      || a.createdAt.localeCompare(b.createdAt));
 
   const pendingCount = bets.filter((b) => b.status === 'pending').length;
   const totalStaked = stats.totalStaked;
@@ -295,6 +299,16 @@ function getPickedTeams(event: string, pick: string): string[] {
     // Ничья / X / totals / exact score → no team attribution
   }
   return result;
+}
+
+/**
+ * Did this bet back that team? Same rule calcByTeam counts by, so a list
+ * filtered to a team holds exactly the bets its tile counted.
+ */
+export function betBacksTeam(bet: Bet, team: string): boolean {
+  const needle = team.trim().toLowerCase();
+  if (!needle) return false;
+  return getPickedTeams(bet.event, bet.pick).some((t) => t.toLowerCase() === needle);
 }
 
 export function calcByTeam(bets: Bet[], minBets = 10): TeamStats[] {

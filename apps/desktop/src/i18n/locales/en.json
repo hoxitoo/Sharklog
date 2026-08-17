@@ -135,10 +135,12 @@
     "tournamentsAndLeagues": "Tournaments & Leagues",
     "tournamentsEmpty": "Add bets with tournament — stats will appear here",
     "teams": "Favourite Teams",
+    "team": "Team",
     "teamsProMsg": "Team analysis (10+ bets) is available in SharkLog Pro",
     "noTournaments": "Add bets with tournament — it will appear here",
     "noTeams": "Need at least 10 bets on a team",
-    "period": "Period"
+    "period": "Period",
+    "openBets": "Open bets"
   },
   "bankroll": {
     "title": "Bankroll",

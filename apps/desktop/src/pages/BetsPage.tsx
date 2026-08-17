@@ -1,16 +1,20 @@
 import React, { useState, useMemo } from 'react';
 import type { Bet, BetStatus } from '@sharklog/core';
-import { SPORTS, BET_TYPES, formatMoney, formatOdds, FREE_LIMITS, isInTilt, toYmd } from '@sharklog/core';
+import { SPORTS, BET_TYPES, formatMoney, formatOdds, betBacksTeam, FREE_LIMITS, isInTilt, toYmd } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
 import { useToastStore } from '../store/toastStore';
 import { ConfirmModal } from '../components/ConfirmModal';
 import { colors } from '../theme/colors';
 import { useTranslation } from 'react-i18next';
 import { dateLocale } from '../i18n';
+import type { BetsFilter } from '../types/betsFilter';
 
 interface Props {
   onAdd: () => void;
   onEdit: (bet: Bet) => void;
+  /** Drill-down arrived at from Insights: one tournament or one team. */
+  filter?: BetsFilter | null;
+  onClearFilter?: () => void;
 }
 
 const STATUS_COLORS: Record<BetStatus, string> = {
@@ -19,7 +23,7 @@ const STATUS_COLORS: Record<BetStatus, string> = {
 
 type SortKey = 'date_desc' | 'date_asc' | 'odds_desc' | 'odds_asc' | 'stake_desc' | 'stake_asc';
 
-export function BetsPage({ onAdd, onEdit }: Props) {
+export function BetsPage({ onAdd, onEdit, filter: scope, onClearFilter }: Props) {
   const { bets, deleteBet, updateBet, settings } = useBetsStore();
   const toast = useToastStore((s) => s.show);
   const { t, i18n } = useTranslation();
@@ -59,6 +63,12 @@ export function BetsPage({ onAdd, onEdit }: Props) {
 
   const sections = useMemo(() => {
     let result = [...bets];
+    if (scope?.tournament) {
+      const want = scope.tournament.toLowerCase();
+      result = result.filter((b) => (b.tournament ?? '').toLowerCase() === want);
+    }
+    if (scope?.team) result = result.filter((b) => betBacksTeam(b, scope.team!));
+    if (scope?.from) result = result.filter((b) => b.date > scope.from!);
     if (filter !== 'all') result = result.filter((b) => b.status === filter);
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -96,9 +106,19 @@ export function BetsPage({ onAdd, onEdit }: Props) {
 
       return { date, title: formatDateTitle(date), dailyPnl, data };
     });
-  }, [bets, filter, search, sort, i18n.language]);
+  }, [bets, scope, filter, search, sort, i18n.language]);
 
   const totalFiltered = sections.reduce((n, s) => n + s.data.length, 0);
+
+  // Named after the tile that was tapped, with the period, so the count here
+  // matches the number shown on that tile.
+  const scopeLabel = (() => {
+    if (!scope) return null;
+    const since = scope.from ? ` · с ${scope.from.split('-').reverse().slice(0, 2).join('.')}` : '';
+    if (scope.tournament) return `${t('bet.tournament')}: ${scope.tournament}${since}`;
+    if (scope.team) return `${t('insights.team')}: ${scope.team}${since}`;
+    return null;
+  })();
 
   function handleClose(bet: Bet, status: BetStatus) {
     updateBet(bet.id, { status });
@@ -136,6 +156,12 @@ export function BetsPage({ onAdd, onEdit }: Props) {
         </div>
         <button style={s.addBtn} onClick={onAdd}>+ {t('bet.add')}</button>
       </div>
+
+      {scopeLabel && (
+        <button style={s.scopeChip} onClick={() => onClearFilter?.()}>
+          {scopeLabel} <span style={{ opacity: 0.7 }}>✕</span>
+        </button>
+      )}
 
       {!settings.isPro && bets.length >= FREE_LIMITS.MAX_BETS - 10 && (
         <div style={s.limitBanner}>
@@ -296,6 +322,11 @@ const s: Record<string, React.CSSProperties> = {
   addBtn: {
     backgroundColor: colors.purple, color: '#fff', border: 'none',
     padding: '10px 20px', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer',
+  },
+  scopeChip: {
+    alignSelf: 'flex-start', marginBottom: 12, padding: '6px 12px', borderRadius: 20,
+    backgroundColor: colors.purpleDim, border: `1px solid ${colors.purple}`,
+    color: colors.purpleText, fontSize: 12, fontWeight: 700, cursor: 'pointer',
   },
   limitBanner: {
     backgroundColor: colors.lost + '15', border: `1px solid ${colors.lost}44`,

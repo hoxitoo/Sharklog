@@ -5,9 +5,10 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { Bet, BetStatus } from '@sharklog/core';
-import { formatMoney, isInTilt, calcDailyBreakdown, calcDashboard, toYmd } from '@sharklog/core';
+import { formatMoney, isInTilt, calcDailyBreakdown, calcDashboard, betBacksTeam, toYmd } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { colors, mix, toneSurface } from '../../theme/colors';
+import type { BetsFilter } from '../../components/DrawerContext';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { BetCard } from './BetCard';
 import { SwipeableRow } from './SwipeableRow';
@@ -36,9 +37,9 @@ const STATUS_FILTER_KEYS: Array<BetStatus | 'all'> = ['all', 'pending', 'won', '
 
 type SortKey = 'date_desc' | 'date_asc' | 'odds_desc' | 'odds_asc' | 'stake_desc' | 'stake_asc';
 
-export function BetsScreen({ dateFilter, onClearDateFilter }: {
-  dateFilter?: string | null;
-  onClearDateFilter?: () => void;
+export function BetsScreen({ filter, onClearFilter }: {
+  filter?: BetsFilter | null;
+  onClearFilter?: () => void;
 } = {}) {
   const navigation = useNavigation<Nav>();
   const { bets, settings, bankroll, deleteBet } = useBetsStore();
@@ -71,9 +72,26 @@ export function BetsScreen({ dateFilter, onClearDateFilter }: {
     setTimeout(() => setRefreshing(false), 300);
   }, []);
 
+  const filterLabel = useMemo(() => {
+    const dm = (ymd: string) => ymd.split('-').reverse().slice(0, 2).join('.');
+    // The period suffix matters: without it the count here would not match the
+    // Insights tile the user tapped, and a mismatched number reads as a bug.
+    const since = filter?.from ? ` · с ${dm(filter.from)}` : '';
+    if (filter?.date) return `Только ${dm(filter.date)}`;
+    if (filter?.tournament) return `Турнир: ${filter.tournament}${since}`;
+    if (filter?.team) return `Команда: ${filter.team}${since}`;
+    return null;
+  }, [filter]);
+
   const sections = useMemo(() => {
     let result = [...bets];
-    if (dateFilter) result = result.filter((b) => b.date === dateFilter);
+    if (filter?.date) result = result.filter((b) => b.date === filter.date);
+    if (filter?.tournament) {
+      const want = filter.tournament.toLowerCase();
+      result = result.filter((b) => (b.tournament ?? '').toLowerCase() === want);
+    }
+    if (filter?.team) result = result.filter((b) => betBacksTeam(b, filter.team!));
+    if (filter?.from) result = result.filter((b) => b.date > filter.from!);
     if (statusFilter !== 'all') result = result.filter((b) => b.status === statusFilter);
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -128,7 +146,7 @@ export function BetsScreen({ dateFilter, onClearDateFilter }: {
       }, 0);
       return { title: formatDateTitle(date, todayLabel, yesterdayLabel), date, dailyPnl, data };
     });
-  }, [bets, statusFilter, search, sort, dateFilter, todayLabel, yesterdayLabel, t]);
+  }, [bets, statusFilter, search, sort, filter, todayLabel, yesterdayLabel, t]);
 
   const freeLeft = Math.max(0, 50 - bets.length);
 
@@ -143,15 +161,13 @@ export function BetsScreen({ dateFilter, onClearDateFilter }: {
         subtitle={settings.isPro ? `${bets.length} ${t('common.bets')}` : `${freeLeft} ${t('common.of')} 50`}
       />
 
-      {dateFilter && (
+      {filterLabel && (
         <TouchableOpacity
           style={styles.dateChip}
-          onPress={() => { haptic.selection(); onClearDateFilter?.(); }}
+          onPress={() => { haptic.selection(); onClearFilter?.(); }}
           activeOpacity={0.75}
         >
-          <Text style={styles.dateChipText}>
-            Только {dateFilter.split('-').reverse().slice(0, 2).join('.')}
-          </Text>
+          <Text style={styles.dateChipText} numberOfLines={1}>{filterLabel}</Text>
           <Text style={styles.dateChipX}>✕</Text>
         </TouchableOpacity>
       )}

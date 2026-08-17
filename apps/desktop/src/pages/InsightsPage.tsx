@@ -4,6 +4,7 @@ import {
 import type { TournamentStats, TeamStats } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
 import { colors } from '../theme/colors';
+import type { BetsFilter } from '../types/betsFilter';
 import { useTranslation } from 'react-i18next';
 
 type Period = '7d' | '30d' | 'all';
@@ -22,7 +23,10 @@ function PnlCell({ pnl }: { pnl: number }) {
   );
 }
 
-function TournamentsSection({ stats }: { stats: TournamentStats[] }) {
+function TournamentsSection({ stats, onOpen }: {
+  stats: TournamentStats[];
+  onOpen: (tournament: string) => void;
+}) {
   const { t } = useTranslation();
 
   if (stats.length === 0) {
@@ -47,7 +51,12 @@ function TournamentsSection({ stats }: { stats: TournamentStats[] }) {
         </thead>
         <tbody>
           {stats.map((tourney) => (
-            <tr key={tourney.tournament} style={s.tr}>
+            <tr
+              key={tourney.tournament}
+              style={{ ...s.tr, cursor: 'pointer' }}
+              onClick={() => onOpen(tourney.tournament)}
+              title={t('insights.openBets')}
+            >
               <td style={{ ...td, fontWeight: 600, color: colors.textPrimary, maxWidth: 200 }}>
                 {tourney.tournament}
               </td>
@@ -70,11 +79,11 @@ function TournamentsSection({ stats }: { stats: TournamentStats[] }) {
   );
 }
 
-function TeamCard({ team }: { team: TeamStats }) {
+function TeamCard({ team, onOpen }: { team: TeamStats; onOpen: () => void }) {
   const { t } = useTranslation();
   const pnlColor = team.pnl > 0 ? colors.won : team.pnl < 0 ? colors.lost : colors.textSecondary;
   return (
-    <div style={s.teamCard}>
+    <div style={{ ...s.teamCard, cursor: 'pointer' }} onClick={onOpen} title={t('insights.openBets')}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
         <div>
           <div style={s.teamName}>{team.name}</div>
@@ -116,7 +125,11 @@ function TeamCard({ team }: { team: TeamStats }) {
   );
 }
 
-function TeamsSection({ teams, isPro }: { teams: TeamStats[]; isPro: boolean }) {
+function TeamsSection({ teams, isPro, onOpen }: {
+  teams: TeamStats[];
+  isPro: boolean;
+  onOpen: (team: string) => void;
+}) {
   const { t } = useTranslation();
 
   if (!isPro) {
@@ -147,13 +160,13 @@ function TeamsSection({ teams, isPro }: { teams: TeamStats[]; isPro: boolean }) 
     <div style={s.card}>
       <div style={s.cardTitle}>{t('insights.teams')}</div>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(340px, 1fr))', gap: 12 }}>
-        {teams.map((team) => <TeamCard key={team.name} team={team} />)}
+        {teams.map((team) => <TeamCard key={team.name} team={team} onOpen={() => onOpen(team.name)} />)}
       </div>
     </div>
   );
 }
 
-export function InsightsPage() {
+export function InsightsPage({ onOpenBets }: { onOpenBets: (filter: BetsFilter) => void }) {
   const { bets, settings } = useBetsStore();
   const { t } = useTranslation();
   const [period, setPeriod] = useState<Period>('all');
@@ -164,14 +177,21 @@ export function InsightsPage() {
     { key: 'all', label: t('dashboard.allTime') },
   ];
 
-  const filteredBets = useMemo(() => {
-    if (period === 'all') return bets;
-    const days = period === '7d' ? 7 : 30;
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - days);
-    const cutoffStr = toYmd(cutoff);
-    return bets.filter((b) => b.date > cutoffStr);
-  }, [bets, period]);
+  const cutoff = useMemo(() => {
+    if (period === 'all') return null;
+    const d = new Date();
+    d.setDate(d.getDate() - (period === '7d' ? 7 : 30));
+    return toYmd(d);
+  }, [period]);
+
+  const filteredBets = useMemo(
+    () => (cutoff ? bets.filter((b) => b.date > cutoff) : bets),
+    [bets, cutoff],
+  );
+
+  // Every tile answers "which bets is this?" — clicking one opens exactly those,
+  // period included, so the list length matches the number on the tile.
+  const openBets = (f: BetsFilter) => onOpenBets({ ...f, ...(cutoff ? { from: cutoff } : {}) });
 
   const tournaments = useMemo(() => calcByTournament(filteredBets), [filteredBets]);
   const teams = useMemo(() => calcByTeam(filteredBets, 10), [filteredBets]);
@@ -196,8 +216,8 @@ export function InsightsPage() {
         </div>
       </div>
 
-      <TournamentsSection stats={tournaments} />
-      <TeamsSection teams={teams} isPro={settings.isPro} />
+      <TournamentsSection stats={tournaments} onOpen={(tournament) => openBets({ tournament })} />
+      <TeamsSection teams={teams} isPro={settings.isPro} onOpen={(team) => openBets({ team })} />
     </div>
   );
 }
