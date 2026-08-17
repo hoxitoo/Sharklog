@@ -3,7 +3,7 @@ import type { Sport, BetType, Strategy, BetStatus, EsportsDiscipline, Team } fro
 import {
   SPORTS, BET_TYPES, STRATEGIES, ESPORTS_DISCIPLINES,
   parseMoneyInput, formatMoney, CURRENT_SCHEMA_VERSION, FREE_LIMITS,
-  impliedProbability, expectedValue, halfKelly, recommendedStake, toYmd } from '@sharklog/core';
+  impliedProbability, expectedValue, halfKelly, recommendedStake, currentBank, toYmd } from '@sharklog/core';
 import type { Bet } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
 import { ChecklistModal } from '../components/ChecklistModal';
@@ -467,7 +467,7 @@ export function AddBetModal({ editBet, onClose }: Props) {
           {kellyOpen && oddsNum > 1 && (
             <KellyHelper
               odds={oddsNum}
-              bankKopecks={bankroll.transactions.reduce((sum, t) => sum + (t.type === 'deposit' ? t.amount : -t.amount), 0)}
+              bankKopecks={currentBank(bankroll.transactions, bets)}
               onApply={(roubles) => setStake(roubles)}
             />
           )}

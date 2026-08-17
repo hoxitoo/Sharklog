@@ -172,7 +172,13 @@
     "yourProb": "Твоя вероятность %",
     "fullKelly": "Full Kelly",
     "halfKelly": "½ Kelly (рекомендовано)",
-    "bankPercent": "% банка"
+    "bankPercent": "% банка",
+    "txAdjustment": "Сверка",
+    "reconcile": "Выровнять",
+    "reconcilePlaceholder": "Реальный баланс у букмекера",
+    "reconcileDelta": "Разница",
+    "reconcileNote": "Сверка с букмекером",
+    "exposureHint": "В игре {{exposure}} · у букмекера сейчас ≈ {{atBookmaker}}"
   },
   "discipline": {
     "title": "Дисциплина",

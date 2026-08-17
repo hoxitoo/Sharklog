@@ -3,7 +3,7 @@ import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   TextInput, Alert, useWindowDimensions,
 } from 'react-native';
-import { calcDashboard, formatMoney, parseMoneyInput, kellyFraction, expectedValue, impliedProbability, calcDailyBreakdown } from '@sharklog/core';
+import { calcDashboard, formatMoney, parseMoneyInput, kellyFraction, expectedValue, impliedProbability, calcDailyBreakdown, currentBank, pendingExposure } from '@sharklog/core';
 
 function uuid(): string {
   const c = (globalThis as any).crypto;
@@ -24,10 +24,10 @@ function uuid(): string {
     return (ch === 'x' ? r : (r & 0x3) | 0x8).toString(16);
   });
 }
-import type { BankrollTransaction } from '@sharklog/core';
+import type { BankrollTransaction, BankrollTxType } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { ProGate } from '../../components/ProGate';
-import { colors, toneSurface } from '../../theme/colors';
+import { colors, alpha, toneSurface } from '../../theme/colors';
 import { FONTS } from '../../theme/typography';
 import { BalanceChart } from '../../components/BalanceChart';
 import { SERIES } from '../../theme/chartColors';
@@ -131,32 +131,80 @@ const kc = StyleSheet.create({
 
 // ── Inline transaction form ───────────────────────────────────────────────────
 
-type TxType = 'deposit' | 'withdrawal';
+type TxType = 'deposit' | 'withdrawal' | 'adjustment';
 
 function TxForm({
-  type, onSubmit, onCancel,
-}: { type: TxType; onSubmit: (amount: number, note: string) => void; onCancel: () => void }) {
+  type, bank, exposure, onSubmit, onCancel,
+}: {
+  type: TxType;
+  bank: number;
+  exposure: number;
+  onSubmit: (amount: number, note: string) => void;
+  onCancel: () => void;
+}) {
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
   const isWithdrawal = type === 'withdrawal';
+  const isAdjust = type === 'adjustment';
+
+  // In reconcile mode the field is the real balance, not a movement: the app
+  // works out the difference itself, because nobody knows offhand that they are
+  // 25 ₽ short — they only know what the bookmaker shows.
+  const typed = parseMoneyInput(amount);
+  // parseMoneyInput returns 0 for text with no digits, and "0" is a legitimate
+  // balance — so gate on a digit being present, not on the parsed value.
+  const hasNumber = /\d/.test(amount);
+  const delta = isAdjust && hasNumber ? typed - bank : 0;
+  const accent = isAdjust ? colors.violet : isWithdrawal ? colors.lost : colors.purple;
 
   function handleSubmit() {
-    const kopecks = parseMoneyInput(amount);
-    if (kopecks <= 0) { Alert.alert('Ошибка', 'Введи корректную сумму'); return; }
-    onSubmit(kopecks, note.trim());
+    if (isAdjust) {
+      if (!hasNumber) { Alert.alert('Ошибка', 'Введи баланс у букмекера'); return; }
+      if (delta === 0) { Alert.alert('Всё сходится', 'Баланс уже совпадает — корректировка не нужна'); return; }
+      onSubmit(delta, note.trim());
+      return;
+    }
+    if (typed <= 0) { Alert.alert('Ошибка', 'Введи корректную сумму'); return; }
+    onSubmit(typed, note.trim());
   }
 
   return (
     <View style={tf.container}>
-      <Text style={tf.label}>{isWithdrawal ? 'Сумма вывода (₽)' : 'Сумма пополнения (₽)'}</Text>
+      <Text style={tf.label}>
+        {isAdjust ? 'Реальный баланс у букмекера (₽)'
+          : isWithdrawal ? 'Сумма вывода (₽)' : 'Сумма пополнения (₽)'}
+      </Text>
       <TextInput
-        style={[tf.input, { borderColor: isWithdrawal ? colors.lost : colors.purple }]}
-        placeholder="1000" placeholderTextColor={colors.textMuted}
+        style={[tf.input, { borderColor: accent }]}
+        placeholder={isAdjust ? String(Math.round(bank / 100)) : '1000'}
+        placeholderTextColor={colors.textMuted}
         value={amount} onChangeText={setAmount}
         keyboardType="numeric" autoFocus returnKeyType="next"
       />
+
+      {isAdjust && hasNumber && (
+        <View style={tf.hintBox}>
+          <View style={tf.hintRow}>
+            <Text style={tf.hintLabel}>Разница</Text>
+            <Text style={[tf.hintValue, {
+              color: delta > 0 ? colors.won : delta < 0 ? colors.lost : colors.textMuted,
+            }]}>
+              {delta > 0 ? '+' : ''}{formatMoney(delta)}
+            </Text>
+          </View>
+          {exposure > 0 && (
+            <Text style={tf.hintNote}>
+              У тебя {formatMoney(exposure)} в незавершённых ставках. Букмекер списывает
+              их сразу, приложение — только при расчёте, поэтому сверяй по балансу
+              с учётом этой суммы.
+            </Text>
+          )}
+        </View>
+      )}
+
       <TextInput
-        style={tf.noteInput} placeholder="Заметка (необязательно)"
+        style={tf.noteInput}
+        placeholder={isAdjust ? 'Причина (необязательно)' : 'Заметка (необязательно)'}
         placeholderTextColor={colors.textMuted}
         value={note} onChangeText={setNote} returnKeyType="done" onSubmitEditing={handleSubmit}
       />
@@ -164,11 +212,10 @@ function TxForm({
         <TouchableOpacity style={tf.cancelBtn} onPress={onCancel}>
           <Text style={tf.cancelText}>Отмена</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={[tf.confirmBtn, { backgroundColor: isWithdrawal ? colors.lost : colors.purple }]}
-          onPress={handleSubmit}
-        >
-          <Text style={tf.confirmText}>{isWithdrawal ? 'Вывести' : 'Пополнить'}</Text>
+        <TouchableOpacity style={[tf.confirmBtn, { backgroundColor: accent }]} onPress={handleSubmit}>
+          <Text style={tf.confirmText}>
+            {isAdjust ? 'Выровнять' : isWithdrawal ? 'Вывести' : 'Пополнить'}
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -188,6 +235,14 @@ const tf = StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 10,
     color: colors.textPrimary, fontSize: 14, borderWidth: 1, borderColor: colors.border,
   },
+  hintBox: {
+    backgroundColor: colors.bgElevated, borderRadius: 10, padding: 10,
+    borderWidth: 1, borderColor: colors.border, gap: 6,
+  },
+  hintRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
+  hintLabel: { fontSize: 12, color: colors.textSecondary },
+  hintValue: { fontSize: 15, fontWeight: '700' },
+  hintNote: { fontSize: 11, color: colors.textMuted, lineHeight: 16 },
   actions: { flexDirection: 'row', gap: 8 },
   cancelBtn: {
     flex: 1, backgroundColor: colors.bgElevated, borderRadius: 10,
@@ -200,12 +255,21 @@ const tf = StyleSheet.create({
 
 // ── Transaction row ───────────────────────────────────────────────────────────
 
+const TX_LABEL: Record<BankrollTxType, string> = {
+  deposit: 'Пополнение', withdrawal: 'Вывод', adjustment: 'Сверка',
+};
+const TX_ICON: Record<BankrollTxType, string> = {
+  deposit: '↑', withdrawal: '↓', adjustment: '=',
+};
+
 function TxRow({ tx, onDelete }: { tx: BankrollTransaction; onDelete: () => void }) {
-  const isDeposit = tx.type === 'deposit';
   const date = new Date(tx.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+  // A withdrawal's sign lives in its type; an adjustment carries it in the amount.
+  const signed = tx.type === 'withdrawal' ? -tx.amount : tx.amount;
+  const label = TX_LABEL[tx.type];
 
   function confirmDelete() {
-    Alert.alert('Удалить транзакцию?', `${isDeposit ? 'Пополнение' : 'Вывод'} ${formatMoney(tx.amount)}`, [
+    Alert.alert('Удалить транзакцию?', `${label} ${formatMoney(Math.abs(signed))}`, [
       { text: 'Удалить', style: 'destructive', onPress: onDelete },
       { text: 'Отмена', style: 'cancel' },
     ]);
@@ -214,15 +278,17 @@ function TxRow({ tx, onDelete }: { tx: BankrollTransaction; onDelete: () => void
   return (
     <TouchableOpacity style={tx_.row} onLongPress={confirmDelete} activeOpacity={0.8}>
       <View style={tx_.left}>
-        <Text style={tx_.icon}>{isDeposit ? '↑' : '↓'}</Text>
+        <Text style={tx_.icon}>{TX_ICON[tx.type]}</Text>
       </View>
       <View style={{ flex: 1 }}>
-        <Text style={tx_.type}>{isDeposit ? 'Пополнение' : 'Вывод'}</Text>
+        <Text style={tx_.type}>{label}</Text>
         {tx.note ? <Text style={tx_.note} numberOfLines={1}>{tx.note}</Text> : null}
       </View>
       <View style={{ alignItems: 'flex-end' }}>
-        <Text style={[tx_.amount, { color: isDeposit ? colors.won : colors.lost }]}>
-          {isDeposit ? '+' : '−'}{formatMoney(tx.amount)}
+        <Text style={[tx_.amount, {
+          color: tx.type === 'adjustment' ? colors.violet : signed >= 0 ? colors.won : colors.lost,
+        }]}>
+          {signed >= 0 ? '+' : '−'}{formatMoney(Math.abs(signed))}
         </Text>
         <Text style={tx_.date}>{date}</Text>
       </View>
@@ -257,8 +323,9 @@ function BankrollContent() {
 
   const deposited = bankroll.transactions.filter((t) => t.type === 'deposit').reduce((s, t) => s + t.amount, 0);
   const withdrawn = bankroll.transactions.filter((t) => t.type === 'withdrawal').reduce((s, t) => s + t.amount, 0);
-  const currentBank = deposited - withdrawn + stats.pnl;
-  const unitAmount = Math.round(currentBank * bankroll.unitPercent / 100);
+  const bank = currentBank(bankroll.transactions, bets);
+  const exposure = pendingExposure(bets);
+  const unitAmount = Math.round(bank * bankroll.unitPercent / 100);
 
   // Bank curve, aggregated per DAY (readable trend, not a spike storm) with real
   // deposit/withdrawal markers — gifted-charts swallowed customDataPoint under
@@ -276,8 +343,8 @@ function BankrollContent() {
       <View style={bk.chartCard}>
         <View style={bk.chartHeader}>
           <Text style={bk.chartTitle}>Кривая банкролла</Text>
-          <Text style={[bk.chartCurrentBank, { color: currentBank >= 0 ? colors.won : colors.lost }]}>
-            {currentBank >= 0 ? '+' : ''}{formatMoney(currentBank)}
+          <Text style={[bk.chartCurrentBank, { color: bank >= 0 ? colors.won : colors.lost }]}>
+            {bank >= 0 ? '+' : ''}{formatMoney(bank)}
           </Text>
         </View>
         <BalanceChart days={dailySeries} width={width - 64} height={150} />
@@ -300,11 +367,20 @@ function BankrollContent() {
         </View>
       </View>
     );
-  }, [dailySeries, currentBank, width]);
+  }, [dailySeries, bank, width]);
 
   function handleTxSubmit(type: TxType, amount: number, note: string) {
-    if (type === 'withdrawal' && amount > currentBank) {
-      Alert.alert('Недостаточно средств', `Максимум для вывода: ${formatMoney(currentBank)}`);
+    if (type === 'adjustment') {
+      const tx: BankrollTransaction = {
+        id: uuid(), type, amount, date: new Date().toISOString(),
+        note: note || 'Сверка с букмекером',
+      };
+      updateBankroll({ transactions: [...bankroll.transactions, tx] });
+      setActiveTxForm(null);
+      return;
+    }
+    if (type === 'withdrawal' && amount > bank) {
+      Alert.alert('Недостаточно средств', `Максимум для вывода: ${formatMoney(bank)}`);
       return;
     }
     const newTx: BankrollTransaction = {
@@ -334,8 +410,8 @@ function BankrollContent() {
       {/* Summary card */}
       <View style={bk.summaryCard}>
         <Text style={bk.bankLabel}>Текущий банк</Text>
-        <Text style={[bk.bankValue, { color: currentBank >= 0 ? colors.textPrimary : colors.lost }]}>
-          {formatMoney(currentBank)}
+        <Text style={[bk.bankValue, { color: bank >= 0 ? colors.textPrimary : colors.lost }]}>
+          {formatMoney(bank)}
         </Text>
 
         <View style={bk.metaRow}>
@@ -356,6 +432,12 @@ function BankrollContent() {
             </Text>
           </View>
         </View>
+
+        {exposure > 0 && (
+          <Text style={bk.exposureNote}>
+            В игре {formatMoney(exposure)} · у букмекера сейчас ≈ {formatMoney(bank - exposure)}
+          </Text>
+        )}
 
         {/* Unit % config */}
         <View style={bk.unitRow}>
@@ -386,6 +468,8 @@ function BankrollContent() {
         {activeTxForm ? (
           <TxForm
             type={activeTxForm}
+            bank={bank}
+            exposure={exposure}
             onSubmit={(amount, note) => handleTxSubmit(activeTxForm, amount, note)}
             onCancel={() => setActiveTxForm(null)}
           />
@@ -397,6 +481,9 @@ function BankrollContent() {
             <TouchableOpacity style={bk.withdrawBtn} onPress={() => setActiveTxForm('withdrawal')}>
               <Text style={bk.withdrawBtnText}>− Вывести</Text>
             </TouchableOpacity>
+            <TouchableOpacity style={bk.adjustBtn} onPress={() => setActiveTxForm('adjustment')}>
+              <Text style={bk.adjustBtnText}>= Сверить</Text>
+            </TouchableOpacity>
           </View>
         )}
       </View>
@@ -405,7 +492,7 @@ function BankrollContent() {
       {chartBlock}
 
       {/* Kelly Calculator */}
-      <KellyCalculator bankroll={currentBank} />
+      <KellyCalculator bankroll={bank} />
 
       {/* Transaction history */}
       <View style={bk.history}>
@@ -450,7 +537,13 @@ const bk = StyleSheet.create({
   stepBtnDisabled: { opacity: 0.35 },
   stepBtnText: { fontSize: 18, color: colors.textPrimary, fontWeight: '700', lineHeight: 22 },
   unitPct: { fontSize: 16, fontWeight: '700', color: colors.accent, minWidth: 40, textAlign: 'center' },
-  txButtons: { flexDirection: 'row', gap: 10 },
+  txButtons: { flexDirection: 'row', gap: 8 },
+  adjustBtn: {
+    flex: 1, borderRadius: 10, paddingVertical: 12, alignItems: 'center',
+    backgroundColor: alpha(colors.violet, 0.16), borderWidth: 1, borderColor: colors.violet,
+  },
+  adjustBtnText: { fontSize: 14, fontWeight: '700', color: colors.violet },
+  exposureNote: { fontSize: 11, color: colors.textMuted, marginTop: 8, textAlign: 'center' },
   depositBtn: { flex: 1, backgroundColor: colors.purple, borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
   depositBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
   withdrawBtn: {

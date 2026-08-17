@@ -2,7 +2,8 @@ import React, { useState, useMemo } from 'react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
-import { calcDashboard, formatMoney, kellyFraction, expectedValue, impliedProbability, parseMoneyInput } from '@sharklog/core';
+import { calcDashboard, formatMoney, kellyFraction, expectedValue, impliedProbability, parseMoneyInput, currentBank, pendingExposure, toYmd } from '@sharklog/core';
+import type { BankrollTransaction } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
 import { colors } from '../theme/colors';
 import { useTranslation } from 'react-i18next';
@@ -57,23 +58,42 @@ function Row({ label, value, color }: { label: string; value: string; color?: st
   );
 }
 
+/** A withdrawal's sign lives in its type; an adjustment carries it in the amount. */
+function txSigned(tx: BankrollTransaction): number {
+  return tx.type === 'withdrawal' ? -tx.amount : tx.amount;
+}
+function txSignColor(tx: BankrollTransaction): string {
+  if (tx.type === 'adjustment') return colors.violet;
+  return txSigned(tx) >= 0 ? colors.won : colors.lost;
+}
+
 export function BankrollPage() {
   const { bets, bankroll, updateBankroll, updateSettings, settings } = useBetsStore();
   const { t, i18n } = useTranslation();
   const stats = calcDashboard(bets);
   const [depositInput, setDepositInput] = useState('');
   const [withdrawInput, setWithdrawInput] = useState('');
+  const [reconcileInput, setReconcileInput] = useState('');
 
   const deposited = bankroll.transactions.filter((tx) => tx.type === 'deposit').reduce((a, tx) => a + tx.amount, 0);
-  const withdrawn = bankroll.transactions.filter((tx) => tx.type === 'withdrawal').reduce((a, tx) => a + tx.amount, 0);
-  const currentBank = deposited - withdrawn + stats.pnl;
-  const unit = Math.round(currentBank * bankroll.unitPercent / 100);
+  const bank = currentBank(bankroll.transactions, bets);
+  const exposure = pendingExposure(bets);
+  const unit = Math.round(bank * bankroll.unitPercent / 100);
+  // parseMoneyInput returns 0 for text with no digits, and "0" is a legitimate
+  // balance — so gate on a digit being present, not on the parsed value.
+  const reconcileTyped = /\d/.test(reconcileInput);
+  const reconcileDelta = reconcileTyped ? parseMoneyInput(reconcileInput) - bank : 0;
 
   const equityCurve = useMemo(() => {
     const events: Array<{ date: string; delta: number }> = [];
     for (const tx of bankroll.transactions) {
-      const date = tx.date.split('T')[0] ?? tx.date;
-      events.push({ date, delta: tx.type === 'deposit' ? tx.amount : -tx.amount });
+      // toYmd, not split('T') — the latter yields the UTC day and can shift a
+      // late-evening transaction onto tomorrow.
+      const date = toYmd(new Date(tx.date));
+      const delta = tx.type === 'deposit' ? tx.amount
+        : tx.type === 'withdrawal' ? -tx.amount
+        : tx.amount; // adjustment — already signed
+      events.push({ date, delta });
     }
     for (const bet of bets) {
       if (bet.status === 'pending') continue;
@@ -120,6 +140,25 @@ export function BankrollPage() {
     else setWithdrawInput('');
   }
 
+  /**
+   * Reconcile against the bookmaker: the field is the real balance, and the
+   * difference is stored as a signed adjustment. Nobody knows offhand that they
+   * are 25 ₽ short — they only know what the bookmaker shows.
+   */
+  function reconcile() {
+    if (!reconcileTyped || reconcileDelta === 0) return;
+    updateBankroll({
+      transactions: [
+        ...bankroll.transactions,
+        {
+          id: uuid(), type: 'adjustment', amount: reconcileDelta,
+          date: new Date().toISOString(), note: t('bankroll.reconcileNote'),
+        },
+      ],
+    });
+    setReconcileInput('');
+  }
+
   const pnlPositive = stats.pnl >= 0;
   const locale = dateLocale(i18n.language);
 
@@ -131,8 +170,8 @@ export function BankrollPage() {
         {/* Summary */}
         <div style={s.card}>
           <div style={s.label}>{t('bankroll.currentBank')}</div>
-          <div style={{ fontSize: 36, fontWeight: 700, fontFamily: "'DM Mono', monospace", color: currentBank >= 0 ? colors.textPrimary : colors.lost, margin: '8px 0 16px' }}>
-            {formatMoney(currentBank)}
+          <div style={{ fontSize: 36, fontWeight: 700, fontFamily: "'DM Mono', monospace", color: bank >= 0 ? colors.textPrimary : colors.lost, margin: '8px 0 16px' }}>
+            {formatMoney(bank)}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 12, marginBottom: 20 }}>
             <div>
@@ -172,9 +211,35 @@ export function BankrollPage() {
             <input style={{ ...s.input, flex: 1 }} placeholder={t('bankroll.withdraw')} type="number" value={withdrawInput} onChange={(e) => setWithdrawInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && addTransaction('withdrawal', withdrawInput)} />
             <button style={{ ...s.actionBtn, backgroundColor: colors.lost }} onClick={() => addTransaction('withdrawal', withdrawInput)}>− {t('bankroll.withdraw')}</button>
           </div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+            <input
+              style={{ ...s.input, flex: 1 }}
+              placeholder={t('bankroll.reconcilePlaceholder')}
+              type="number"
+              value={reconcileInput}
+              onChange={(e) => setReconcileInput(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && reconcile()}
+            />
+            <button style={{ ...s.actionBtn, backgroundColor: colors.violet }} onClick={reconcile}>
+              = {t('bankroll.reconcile')}
+            </button>
+          </div>
+          {reconcileTyped && (
+            <div style={{ marginTop: 6, fontSize: 12, color: reconcileDelta > 0 ? colors.won : reconcileDelta < 0 ? colors.lost : colors.textMuted }}>
+              {t('bankroll.reconcileDelta')}: {reconcileDelta > 0 ? '+' : ''}{formatMoney(reconcileDelta)}
+            </div>
+          )}
+          {exposure > 0 && (
+            <div style={{ marginTop: 6, fontSize: 12, color: colors.textMuted }}>
+              {t('bankroll.exposureHint', {
+                exposure: formatMoney(exposure),
+                atBookmaker: formatMoney(bank - exposure),
+              })}
+            </div>
+          )}
         </div>
 
-        <KellyCalc bankroll={currentBank} />
+        <KellyCalc bankroll={bank} />
       </div>
 
       {/* Equity curve */}
@@ -224,9 +289,13 @@ export function BankrollPage() {
               {[...bankroll.transactions].reverse().map((tx) => (
                 <tr key={tx.id} style={{ borderBottom: `1px solid ${colors.border}` }}>
                   <td style={{ padding: '10px 0', fontSize: 13, color: colors.textMuted }}>{new Date(tx.date).toLocaleDateString(locale)}</td>
-                  <td style={{ padding: '10px 0', fontSize: 13, color: colors.textPrimary }}>{tx.type === 'deposit' ? t('bankroll.txDeposit') : t('bankroll.txWithdrawal')}</td>
-                  <td style={{ padding: '10px 0', fontSize: 14, fontWeight: 700, color: tx.type === 'deposit' ? colors.won : colors.lost }}>
-                    {tx.type === 'deposit' ? '+' : '-'}{formatMoney(tx.amount)}
+                  <td style={{ padding: '10px 0', fontSize: 13, color: colors.textPrimary }}>
+                    {tx.type === 'deposit' ? t('bankroll.txDeposit')
+                      : tx.type === 'withdrawal' ? t('bankroll.txWithdrawal')
+                      : t('bankroll.txAdjustment')}
+                  </td>
+                  <td style={{ padding: '10px 0', fontSize: 14, fontWeight: 700, color: txSignColor(tx) }}>
+                    {txSigned(tx) >= 0 ? '+' : '−'}{formatMoney(Math.abs(txSigned(tx)))}
                   </td>
                   <td style={{ padding: '10px 0', textAlign: 'right' }}>
                     <button

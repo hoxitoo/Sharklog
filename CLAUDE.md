@@ -47,6 +47,15 @@ docs/            — ROADMAP.md, ANALYSIS.md, PRIVACY_POLICY.md
 - **Даты только через `toYmd()`** — `toISOString().split('T')[0]` даёт UTC-день. Из-за этого ставка могла записаться завтрашним числом (и выпасть из статистики), а транзакции банкролла — попасть в другой день, чем текущий банк в шапке.
 - **Напоминание о результате не должно приходить по закрытой ставке** — защита в три слоя: (1) `updateBet` снимает запланированное и убирает уже доставленное из шторки, (2) `syncBetResultReminders(bets, enabled)` сверяет расписание с реальностью при запуске и каждом возврате в приложение (отмена — fire-and-forget, её может «потерять» при убийстве процесса; импорт CSV тоже создаёт дрейф), (3) `setNotificationHandler` глушит показ в foreground через `setBetPendingResolver`.
 - **Новую функцию в `utils/notifications.ts` добавляй и в мок** `src/__tests__/__mocks__/notifications.ts`, иначе падают тесты стора.
+- **Банк считай только через core**: `currentBank(transactions, bets)` = `bankCash(transactions) + P&L`. Не пиши руками `deposit ? + : -` — транзакций ТРИ типа, и третий (`adjustment`) хранит знак В САМОЙ СУММЕ, а не в типе. Инлайн-редьюс молча его потеряет.
+- **Банк в приложении ≠ баланс у букмекера**: букмекер списывает ставку сразу при постановке, приложение — только при расчёте. Поэтому `балансУБукмекера = currentBank − pendingExposure(bets)`. Это первое, что надо исключить при расхождении.
+- **`adjustment`** — сверка с реальным балансом бука без фейкового депозита/вывода. Пользователь вводит реальный баланс, приложение само считает разницу и пишет её со знаком. В `calcDailyBreakdown` у неё свой бакет `adjustments` — она двигает `balance`, но НЕ попадает во «Внесено/Выведено» и не рисует маркер депозита на графике.
+- **CSV — один модуль на оба приложения**: `packages/core/utils/betsCsv` (`buildBetsCSV` / `importBetsFromCSV` / `importBetsFromRows`). Не заводи парсер или писатель по месту: раньше их было два, они разъехались, и выгрузка с телефона не открывалась на ПК.
+- **P&L одной ставки — только `betPnl()`**. Ручные `status === 'won' ? ... : ...` уже приводили к тому, что выкуп экспортировался нулём, а проигранный фрибет — полной потерей.
+- **Кумулятивные кривые сортируй по `date + time`, не по `createdAt`** — ставка, занесённая задним числом, иначе прыгает в конец графика и расходится со списком ставок.
+- **Для «читаемости результата за период» — `calcPnlBuckets`**, а не накопительная линия: на кумулятиве выигрышный день идёт вниз, если предыдущий проиграл больше, и это читается как баг.
+- **Фильтр списка ставок** — `BetsFilter { date?, tournament?, team?, from? }`. Команду матчь через `betBacksTeam()` (то же правило, что у `calcByTeam`), иначе количество в списке не сойдётся с числом на плитке инсайтов.
+- **Android «назад»** обрабатывается в `DrawerNavigator` (`BackHandler`): drawer → фильтр → Ставки → выход. Новый уровень навигации добавляй туда же.
 - **Inline-инпуты в списках**: у `SectionList`/`FlatList` с полем ввода внутри строки ставь `keyboardShouldPersistTaps="handled"`, иначе первый тап по кнопке при открытой клавиатуре съедается (двойной тап). Пример — inline-выкуп в `BetCard`.
 
 ## Цветовая система
@@ -138,9 +147,9 @@ new Date(str).toLocaleDateString(locale, { day: 'numeric', month: 'short' });
 
 ```bash
 # Тесты
-cd packages/core && npx vitest run        # 98 unit-тестов core
+cd packages/core && npx vitest run        # 145 unit-тестов core
 cd apps/desktop  && npm test              # 40 smoke-тестов desktop (Vitest)
-cd apps/mobile   && npm test              # 25 smoke-тестов mobile (Jest)
+cd apps/mobile   && npm test              # 32 smoke-теста mobile (Jest)
 
 # Type-check
 cd apps/mobile  && npx tsc --noEmit
@@ -226,9 +235,10 @@ pages/
                              clipboard paste для pre-fill; статус cashout
                              event строится как `${team1} vs ${team2}`
   AnalyticsPage.tsx        — 7 срезов (PRO) + "Топ турниры" mini-cards
-  BankrollPage.tsx         — equity curve, Kelly calc, транзакции с удалением
+  BankrollPage.tsx         — equity curve, Kelly calc, транзакции с удалением, сверка с букмекером
   DiaryPage.tsx            — mood tracker, тилт-стата, дневник
-  InsightsPage.tsx         — period filter; TournamentsSection (Free); TeamsSection (PRO)
+  InsightsPage.tsx         — period filter; TournamentsSection (Free); TeamsSection (PRO);
+                             клик по строке/карточке → BetsPage с фильтром (App держит BetsFilter)
   StrategyBuilderPage.tsx  — PRO: progress bar + 10 вопросов + ResultCard + disclaimer
   SettingsPage.tsx         — подписка, тилт-stepper, букмекеры, команды,
                              CSV/Excel/JSON import-export, проверка обновлений
@@ -273,13 +283,16 @@ screens/
                              тепловая карта за collapsible toggle
                              тилт-баннер с dismiss × (AsyncStorage @sharklog/tilt_dismiss_date)
                              haptic.warning() при первом определении тилта
-  InsightsScreen/          — TournamentRow (Free) + TeamCard (PRO via ProGate)
+  InsightsScreen/          — TournamentRow (Free) + TeamCard (PRO via ProGate); тап по плитке →
+                             список ставок с фильтром (период плитки переносится)
   AnalyticsScreen/         — РЕДИЗАЙН: hero-состояние сверху + collapsible «Расширенная статистика».
-                             Hero: P&L+спарклайн, серии (лучшая/худшая/текущая), рекорды (макс выигрыш/проигрыш),
+                             Hero: P&L + столбцы за период (PnlBars, тап по столбцу), серии, рекорды,
                              прошлый месяц с трендом, время ставок (донат 6 промежутков + топ-4 часа с P&L,
                              12h/24h через uses12HourClock()), CLV-карточка. Всё PRO via ProGate.
                              Расширенная (collapsible): sport/betType/bookmaker/strategy/odds/day срезы
-  BankrollScreen/          — кривая банкролла = BalanceChart (свой SVG, подневная агрегация, читаемый тренд,
+  BankrollScreen/          — «Пополнить / Вывести / Сверить»; сверка = ввод реального баланса бука,
+                             разница пишется как adjustment; в шапке «в игре» + баланс у бука
+                             кривая банкролла = BalanceChart (свой SVG, подневная агрегация, читаемый тренд,
                              рабочие метки депозитов/выводов на линии);
                              маркеры депозита (зелёная точка) / вывода (красная точка) на кривой через customDataPoint;
                              Kelly (PRO)
@@ -311,6 +324,7 @@ assets/
 
 ```
 types/bet.ts          — BetStatus: 'pending'|'won'|'lost'|'refund'|'cashout'
+                        BankrollTxType: 'deposit'|'withdrawal'|'adjustment' (у последнего amount ЗНАКОВЫЙ)
                         Bet: + tournament?: string, + closingOdds?: number (для CLV)
                         AppSettings: + generatedStrategy?: GeneratedStrategy, + roundAmounts: boolean, + disableChecklist?: boolean
                         GeneratedStrategy: + rationale?, keyPrinciples?, recommendedApproaches?,
@@ -323,13 +337,20 @@ utils/
                         betPnl(bet) — реализованный P&L одной ставки в копейках (общий хелпер)
                         getPickedTeams(event, pick) — внутренний хелпер: возвращает только команды,
                         на которые поставил игрок (П1/П2/Ф1/Ф2 и прямые имена); используется в calcByTeam
+                        betBacksTeam(bet, team) — тот же предикат наружу, для фильтра списка ставок
+                        bankCash(txs) / currentBank(txs, bets) / pendingExposure(bets) — банк (см. соглашения)
   daily.ts            — calcDailyBreakdown/summarizeDays/toYmd — подневная статистика для дашборда
                         (cumPnl/balance всегда по всей истории; toYmd — локальная дата, не toISOString)
+                        DayStats.adjustments — сверки отдельным бакетом, вне «внесено/выведено»
+  betsCsv.ts          — buildBetsCSV / importBetsFromCSV / importBetsFromRows / parseAmount
+                        один импорт-экспорт на оба приложения: BOM, CRLF, `,`/`;`/таб, алиасы колонок
   analytics.ts        — calcStreaks (лучшая W / худшая L / текущая), calcExtremes (макс выигрыш/проигрыш),
                         calcLastFullMonth(bets, now) (прошлый полный месяц + тренд), calcCLV (closingOdds),
                         calcTimeStats(bets, use12h) (6 4-часовых промежутков для доната + топ-4 часа с P&L),
                         calcMaxDrawdown (пик→дно кумулятивного P&L), calcEdge (WR vs безубыток),
                         calcMonthlyPnl(bets, now, months), calcMonthResult(bets, y, m) — итог любого месяца, RELIABLE_SAMPLE_MIN=100
+                        calcPnlBuckets(bets, 'day'|'week'|'month', count) — чистый P&L по периодам
+                        (группировка по bet.date, пустые бакеты сохраняются)
   kelly.ts            — kellyFraction, halfKelly, expectedValue, impliedProbability
   formatters.ts       — formatMoney(kopecks, currency='₽', maxDecimals=2), parseMoneyInput, formatOdds, formatPercent (adds + prefix)
   strategyBuilder.ts  — STRATEGY_QUESTIONS (10 вопросов), buildStrategy(answers)

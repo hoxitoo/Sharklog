@@ -12,8 +12,9 @@ export interface DayStats {
   pnl: number;         // net kopecks for the day (incl. cashout)
   deposits: number;    // kopecks deposited that day
   withdrawals: number; // kopecks withdrawn that day
+  adjustments: number; // signed kopecks of manual reconciliation that day
   cumPnl: number;      // cumulative P&L through end of this day (whole history)
-  balance: number;     // cumulative bank: deposits - withdrawals + cumPnl
+  balance: number;     // cumulative bank: deposits - withdrawals + adjustments + cumPnl
 }
 
 /** Format a Date as a LOCAL YYYY-MM-DD (never via toISOString — that shifts the day). */
@@ -30,14 +31,14 @@ const YMD = /^\d{4}-\d{2}-\d{2}$/;
 interface Bucket {
   betCount: number; settledCount: number; turnover: number;
   wonAmount: number; lostAmount: number; pnl: number;
-  deposits: number; withdrawals: number;
+  deposits: number; withdrawals: number; adjustments: number;
 }
 
 function emptyBucket(): Bucket {
   return {
     betCount: 0, settledCount: 0, turnover: 0,
     wonAmount: 0, lostAmount: 0, pnl: 0,
-    deposits: 0, withdrawals: 0,
+    deposits: 0, withdrawals: 0, adjustments: 0,
   };
 }
 
@@ -86,7 +87,12 @@ export function calcDailyBreakdown(
     if (!date || date > endStr) continue;
     const b = touch(date);
     if (tx.type === 'deposit') b.deposits += tx.amount;
-    else b.withdrawals += tx.amount;
+    else if (tx.type === 'withdrawal') b.withdrawals += tx.amount;
+    // A reconciliation moves the balance like cash does, but it is not money the
+    // player paid in or took out — it gets its own bucket so the curve stays
+    // continuous while "внесено/выведено" keep meaning what they say, and the
+    // chart does not draw a deposit marker over a correction.
+    else b.adjustments += tx.amount;
   }
 
   // Walk the calendar from the first day with data (or the window start) up to `end`.
@@ -110,12 +116,12 @@ export function calcDailyBreakdown(
   // Everything strictly before the window still feeds the running totals.
   const startStr = toYmd(startDate);
   let cumPnl = 0;
-  let cumCash = 0; // deposits - withdrawals
+  let cumCash = 0; // deposits - withdrawals + adjustments
   for (const d of dataDates) {
     if (d >= startStr) break;
     const b = byDate.get(d)!;
     cumPnl += b.pnl;
-    cumCash += b.deposits - b.withdrawals;
+    cumCash += b.deposits - b.withdrawals + b.adjustments;
   }
 
   const out: DayStats[] = [];
@@ -125,7 +131,7 @@ export function calcDailyBreakdown(
     if (key > endStr) break;
     const b = byDate.get(key) ?? emptyBucket();
     cumPnl += b.pnl;
-    cumCash += b.deposits - b.withdrawals;
+    cumCash += b.deposits - b.withdrawals + b.adjustments;
     out.push({
       date: key,
       betCount: b.betCount,
@@ -136,6 +142,7 @@ export function calcDailyBreakdown(
       pnl: b.pnl,
       deposits: b.deposits,
       withdrawals: b.withdrawals,
+      adjustments: b.adjustments,
       cumPnl,
       balance: cumCash + cumPnl,
     });

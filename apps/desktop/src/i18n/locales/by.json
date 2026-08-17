@@ -172,7 +172,13 @@
     "yourProb": "Ваша верагоднасць %",
     "fullKelly": "Поўны Кэлі",
     "halfKelly": "½ Кэлі (рэкамендуецца)",
-    "bankPercent": "% банка"
+    "bankPercent": "% банка",
+    "txAdjustment": "Зверка",
+    "reconcile": "Выраўняць",
+    "reconcilePlaceholder": "Рэальны баланс у букмекера",
+    "reconcileDelta": "Розніца",
+    "reconcileNote": "Зверка з букмекерам",
+    "exposureHint": "У гульні {{exposure}} · у букмекера зараз ≈ {{atBookmaker}}"
   },
   "discipline": {
     "title": "Дысцыпліна",

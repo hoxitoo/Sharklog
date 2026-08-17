@@ -10,7 +10,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { Sport, BetType, Strategy, BetStatus, EsportsDiscipline, Team, Bet } from '@sharklog/core';
 import {
   SPORTS, BET_TYPES, STRATEGIES, ESPORTS_DISCIPLINES, parseMoneyInput, formatMoney,
-  impliedProbability, halfKelly, expectedValue, recommendedStake, CURRENT_SCHEMA_VERSION, FREE_LIMITS, calcDashboard, toYmd,
+  impliedProbability, halfKelly, expectedValue, recommendedStake, CURRENT_SCHEMA_VERSION, FREE_LIMITS, calcDashboard, currentBank, toYmd,
 } from '@sharklog/core';
 import { colors } from '../../theme/colors';
 import { useBetsStore } from '../../store/betsStore';
@@ -591,11 +591,10 @@ export function AddBetScreen() {
 
   // Stake as a share of the bank — discipline feedback at the moment of the decision,
   // not in a report afterwards. Compared against the generated strategy's limit if set.
-  const bankTotal = useMemo(() => {
-    const cash = bankroll.transactions.reduce(
-      (sum, t) => (t.type === 'deposit' ? sum + t.amount : sum - t.amount), 0);
-    return cash + calcDashboard(bets).pnl;
-  }, [bets, bankroll.transactions]);
+  const bankTotal = useMemo(
+    () => currentBank(bankroll.transactions, bets),
+    [bets, bankroll.transactions],
+  );
   const bankShare = bankTotal > 0 && stakeKopecks > 0 ? (stakeKopecks / bankTotal) * 100 : null;
   const strategyLimit = settings.generatedStrategy?.stakePercent ?? null;
   const overLimit = bankShare != null && strategyLimit != null && bankShare > strategyLimit;
@@ -609,18 +608,6 @@ export function AddBetScreen() {
   const potentialProfit = activeOdds > 1 && stakeKopecks > 0
     ? formatMoney(Math.round(stakeKopecks * activeOdds) - stakeKopecks)
     : null;
-
-  const bankKopecks = useMemo(() => {
-    const deposited = bankroll.transactions.reduce(
-      (sum, t) => (t.type === 'deposit' ? sum + t.amount : sum - t.amount), 0,
-    );
-    const pnl = bets.reduce((sum, b) => {
-      if (b.status === 'won') return sum + Math.round(b.stake * b.odds) - b.stake;
-      if (b.status === 'lost') return sum - b.stake;
-      return sum;
-    }, 0);
-    return deposited + pnl;
-  }, [bankroll.transactions, bets]);
 
   useEffect(() => {
     navigation.setOptions({ title: editBet ? 'Редактировать ставку' : 'Новая ставка' });
@@ -1069,7 +1056,7 @@ export function AddBetScreen() {
         {isSingle && kellyOpen && singleOdds > 1 && (
           <KellyHelper
             odds={singleOdds}
-            bankKopecks={bankKopecks}
+            bankKopecks={bankTotal}
             onApply={(v) => { setValue('stake', v); haptic.success(); }}
           />
         )}

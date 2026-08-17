@@ -3,7 +3,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import type { Bet, BetStatus } from '@sharklog/core';
-import { calcDashboard, formatMoney, formatOdds, formatPercent, isInTilt, toYmd } from '@sharklog/core';
+import { bankCash, calcDashboard, formatMoney, formatOdds, formatPercent, isInTilt, toYmd } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
 import { useToastStore } from '../store/toastStore';
 import { colors } from '../theme/colors';
@@ -151,10 +151,7 @@ export function DashboardPage({ onNavigate }: DashboardProps = {}) {
   const inTilt = isInTilt(bets, settings.tiltThreshold);
 
   const allTimePnl = period === 'all' ? stats.pnl : calcDashboard(bets).pnl;
-  const bankTotal =
-    bankroll.transactions.reduce(
-      (sum, t) => (t.type === 'deposit' ? sum + t.amount : sum - t.amount), 0,
-    ) + allTimePnl;
+  const bankTotal = bankCash(bankroll.transactions) + allTimePnl;
 
   const chartData = stats.pnlCurve.map((p) => ({ index: p.index, pnl: p.pnl / 100 }));
   const pnlPositive = stats.pnl >= 0;

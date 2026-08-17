@@ -172,7 +172,13 @@
     "yourProb": "Your probability %",
     "fullKelly": "Full Kelly",
     "halfKelly": "½ Kelly (recommended)",
-    "bankPercent": "% bankroll"
+    "bankPercent": "% bankroll",
+    "txAdjustment": "Reconciliation",
+    "reconcile": "Reconcile",
+    "reconcilePlaceholder": "Actual balance at the bookmaker",
+    "reconcileDelta": "Difference",
+    "reconcileNote": "Reconciled with the bookmaker",
+    "exposureHint": "{{exposure}} in open bets · at the bookmaker now ≈ {{atBookmaker}}"
   },
   "discipline": {
     "title": "Discipline",

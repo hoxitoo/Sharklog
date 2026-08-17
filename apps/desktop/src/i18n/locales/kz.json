@@ -172,7 +172,13 @@
     "yourProb": "Сіздің ықтималдылығыңыз %",
     "fullKelly": "Толық Келли",
     "halfKelly": "½ Келли (ұсынылады)",
-    "bankPercent": "% банк"
+    "bankPercent": "% банк",
+    "txAdjustment": "Салыстыру",
+    "reconcile": "Теңестіру",
+    "reconcilePlaceholder": "Букмекердегі нақты баланс",
+    "reconcileDelta": "Айырма",
+    "reconcileNote": "Букмекермен салыстыру",
+    "exposureHint": "Ойында {{exposure}} · букмекерде қазір ≈ {{atBookmaker}}"
   },
   "discipline": {
     "title": "Тәртіп",
