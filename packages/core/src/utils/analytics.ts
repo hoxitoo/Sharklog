@@ -1,5 +1,6 @@
 import type { Bet } from '../types/bet';
 import { betPnl, calcDashboard } from './stats';
+import { toYmd } from './daily';
 
 // ── Streaks (best win / worst loss / current) ────────────────────────────────
 
@@ -293,3 +294,84 @@ export function calcMonthlyPnl(bets: Bet[], now: Date, months = 6): MonthlyPnl[]
 
 /** Below this many settled bets, ROI/win-rate/edge are noise, not signal. */
 export const RELIABLE_SAMPLE_MIN = 100;
+
+// ── P&L per period bucket ────────────────────────────────────────────────────
+
+export type Granularity = 'day' | 'week' | 'month';
+
+export interface PnlBucket {
+  /** First calendar day of the bucket, YYYY-MM-DD. */
+  start: string;
+  /** Last calendar day of the bucket, inclusive. */
+  end: string;
+  /** Net realized P&L inside the bucket, in kopecks. */
+  pnl: number;
+  /** Settled bets counted — pending ones contribute nothing yet. */
+  bets: number;
+}
+
+/**
+ * Net P&L per day / week / month, oldest first, empty buckets included so the
+ * timeline never lies by omission.
+ *
+ * Buckets are keyed on `bet.date` — the day of the event, the same field the
+ * bets list, the dashboard and the bankroll curve group by. A cumulative curve
+ * ordered by `createdAt` (when the row was typed in) disagreed with all of them
+ * as soon as a bet was entered after the fact.
+ */
+export function calcPnlBuckets(
+  bets: Bet[],
+  granularity: Granularity,
+  count: number,
+  now = new Date(),
+): PnlBucket[] {
+  const buckets: PnlBucket[] = [];
+  const index = new Map<string, PnlBucket>();
+
+  for (let i = count - 1; i >= 0; i--) {
+    const [from, to] = bucketRange(granularity, now, i);
+    const bucket: PnlBucket = { start: toYmd(from), end: toYmd(to), pnl: 0, bets: 0 };
+    buckets.push(bucket);
+    // A day belongs to exactly one bucket, so indexing every day it spans makes
+    // assignment a lookup instead of a scan per bet.
+    for (const day of daysBetween(from, to)) index.set(day, bucket);
+  }
+
+  for (const bet of bets) {
+    const bucket = index.get(bet.date);
+    if (!bucket) continue;
+    if (bet.status === 'pending') continue;
+    bucket.pnl += betPnl(bet);
+    bucket.bets += 1;
+  }
+
+  return buckets;
+}
+
+/** `ago` buckets back from `now`, as [firstDay, lastDay]. */
+function bucketRange(granularity: Granularity, now: Date, ago: number): [Date, Date] {
+  if (granularity === 'month') {
+    const from = new Date(now.getFullYear(), now.getMonth() - ago, 1);
+    return [from, new Date(from.getFullYear(), from.getMonth() + 1, 0)];
+  }
+  if (granularity === 'week') {
+    const monday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    // getDay(): 0 is Sunday, so Sunday walks back six days, not zero.
+    monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7) - ago * 7);
+    const sunday = new Date(monday);
+    sunday.setDate(sunday.getDate() + 6);
+    return [monday, sunday];
+  }
+  const day = new Date(now.getFullYear(), now.getMonth(), now.getDate() - ago);
+  return [day, day];
+}
+
+function daysBetween(from: Date, to: Date): string[] {
+  const out: string[] = [];
+  const cursor = new Date(from);
+  while (cursor <= to) {
+    out.push(toYmd(cursor));
+    cursor.setDate(cursor.getDate() + 1);
+  }
+  return out;
+}

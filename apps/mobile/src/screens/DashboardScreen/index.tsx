@@ -302,7 +302,7 @@ function DailyDashboardCard({ days, onExpand }: { days: DayStats[]; onExpand: ()
           {sel.betCount > 0 && (
             <TouchableOpacity
               style={dd.detailLink}
-              onPress={() => { haptic.selection(); goToBets(sel.date); }}
+              onPress={() => { haptic.selection(); goToBets({ date: sel.date }); }}
               activeOpacity={0.75}
             >
               <Text style={dd.detailLinkText}>Показать ставки за этот день →</Text>

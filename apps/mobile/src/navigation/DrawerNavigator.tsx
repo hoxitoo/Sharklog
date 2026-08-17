@@ -11,7 +11,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors } from '../theme/colors';
 import { useTranslation } from 'react-i18next';
 import { useBetsStore } from '../store/betsStore';
-import { DrawerContext } from '../components/DrawerContext';
+import { DrawerContext, type BetsFilter } from '../components/DrawerContext';
 import { BetsScreen } from '../screens/BetsScreen';
 import { DashboardScreen } from '../screens/DashboardScreen';
 import { InsightsScreen } from '../screens/InsightsScreen';
@@ -43,13 +43,13 @@ const MAIN_ITEMS: NavItem[] = [
   { screen: 'Settings',   icon: 'settings-outline',   iconActive: 'settings',       labelKey: 'nav.settings' },
 ];
 
-function ActiveScreen({ screen, betsDateFilter, onClearBetsDateFilter }: {
+function ActiveScreen({ screen, betsFilter, onClearBetsFilter }: {
   screen: DrawerScreen;
-  betsDateFilter: string | null;
-  onClearBetsDateFilter: () => void;
+  betsFilter: BetsFilter | null;
+  onClearBetsFilter: () => void;
 }) {
   switch (screen) {
-    case 'Bets': return <BetsScreen dateFilter={betsDateFilter} onClearDateFilter={onClearBetsDateFilter} />;
+    case 'Bets': return <BetsScreen filter={betsFilter} onClearFilter={onClearBetsFilter} />;
     case 'Dashboard': return <DashboardScreen />;
     case 'Insights': return <InsightsScreen />;
     case 'Analytics': return <AnalyticsScreen />;
@@ -60,7 +60,7 @@ function ActiveScreen({ screen, betsDateFilter, onClearBetsDateFilter }: {
 
 export function DrawerNavigator() {
   const [screen, setScreen] = useState<DrawerScreen>('Bets');
-  const [betsDateFilter, setBetsDateFilter] = useState<string | null>(null);
+  const [betsFilter, setBetsFilter] = useState<BetsFilter | null>(null);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [showChecklist, setShowChecklist] = useState(false);
   const translateX = useRef(new Animated.Value(-DRAWER_WIDTH)).current;
@@ -120,13 +120,13 @@ export function DrawerNavigator() {
     });
   }
 
-  function goToBets(date?: string) {
-    setBetsDateFilter(date ?? null);
+  function goToBets(filter?: BetsFilter) {
+    setBetsFilter(filter ?? null);
     setScreen('Bets');
   }
 
   function handleNavigate(s: DrawerScreen) {
-    setBetsDateFilter(null); // explicit navigation clears any day drill-down
+    setBetsFilter(null); // explicit navigation clears any drill-down
     closeDrawer(() => setScreen(s));
   }
 
@@ -136,12 +136,12 @@ export function DrawerNavigator() {
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
       if (drawerVisibleRef.current) { closeDrawer(); return true; }
-      if (betsDateFilter) { setBetsDateFilter(null); return true; }
+      if (betsFilter) { setBetsFilter(null); return true; }
       if (screen !== 'Bets') { setScreen('Bets'); return true; }
       return false;
     });
     return () => sub.remove();
-  }, [screen, betsDateFilter]);
+  }, [screen, betsFilter]);
 
   function handleAddBet() {
     if (!canAddBet()) {
@@ -169,8 +169,8 @@ export function DrawerNavigator() {
         <View style={styles.screen}>
           <ActiveScreen
             screen={screen}
-            betsDateFilter={betsDateFilter}
-            onClearBetsDateFilter={() => setBetsDateFilter(null)}
+            betsFilter={betsFilter}
+            onClearBetsFilter={() => setBetsFilter(null)}
           />
         </View>
 

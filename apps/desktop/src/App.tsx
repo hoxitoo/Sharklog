@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { Bet } from '@sharklog/core';
 import { AppLayout, type Page } from './layouts/AppLayout';
+import type { BetsFilter } from './types/betsFilter';
 import { DashboardPage } from './pages/DashboardPage';
 import { BetsPage } from './pages/BetsPage';
 import { AnalyticsPage } from './pages/AnalyticsPage';
@@ -25,6 +26,13 @@ export function App() {
   const isLoaded = useBetsStore((s) => s.isLoaded);
   const onboardingComplete = useBetsStore((s) => s.settings.onboardingComplete);
   const [page, setPage] = useState<Page>('dashboard');
+  const [betsFilter, setBetsFilter] = useState<BetsFilter | null>(null);
+
+  // Explicit navigation clears any drill-down arrived at from Insights.
+  function navigate(p: Page) {
+    setBetsFilter(null);
+    setPage(p);
+  }
   const [modalBet, setModalBet] = useState<Bet | null | 'new'>(null);
 
   const language = useBetsStore((s) => s.settings.language);
@@ -42,7 +50,7 @@ export function App() {
       if ((e.ctrlKey || e.metaKey) && e.key >= '1' && e.key <= '9') {
         const idx = parseInt(e.key, 10) - 1;
         const target = PAGE_ORDER[idx];
-        if (target) { e.preventDefault(); setPage(target); }
+        if (target) { e.preventDefault(); navigate(target); }
       }
     }
     window.addEventListener('keydown', onKey);
@@ -75,12 +83,12 @@ export function App() {
 
   return (
     <>
-      <AppLayout page={page} onNavigate={setPage} onAddBet={openAdd}>
+      <AppLayout page={page} onNavigate={navigate} onAddBet={openAdd}>
         <div key={page} className="sl-page" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
-          {page === 'dashboard' && <DashboardPage onNavigate={(p) => setPage(p as any)} />}
-          {page === 'bets' && <BetsPage onAdd={openAdd} onEdit={openEdit} />}
+          {page === 'dashboard' && <DashboardPage onNavigate={(p) => navigate(p as Page)} />}
+          {page === 'bets' && <BetsPage onAdd={openAdd} onEdit={openEdit} filter={betsFilter} onClearFilter={() => setBetsFilter(null)} />}
           {page === 'analytics' && <AnalyticsPage />}
-          {page === 'insights' && <InsightsPage />}
+          {page === 'insights' && <InsightsPage onOpenBets={(f) => { setBetsFilter(f); setPage('bets'); }} />}
           {page === 'strategy' && <StrategyBuilderPage />}
           {page === 'bankroll' && <BankrollPage />}
           {page === 'diary' && <DiaryPage />}

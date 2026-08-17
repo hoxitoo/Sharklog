@@ -5,6 +5,8 @@ import {
 import { calcByTournament, calcByTeam, formatMoney, formatPercent, SPORTS, toYmd } from '@sharklog/core';
 import type { TournamentStats, TeamStats } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
+import { useDrawer } from '../../components/DrawerContext';
+import { haptic } from '../../utils/haptics';
 import { colors } from '../../theme/colors';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ProGate } from '../../components/ProGate';
@@ -21,10 +23,13 @@ const SPORT_ICONS: Record<string, string> = {
   esports: '🎮', volleyball: '🏐', baseball: '⚾', other: '🏅',
 };
 
-const TournamentRow = React.memo(function TournamentRow({ t }: { t: TournamentStats }) {
+const TournamentRow = React.memo(function TournamentRow({ t, onPress }: {
+  t: TournamentStats;
+  onPress: () => void;
+}) {
   const pnlColor = t.pnl > 0 ? colors.won : t.pnl < 0 ? colors.lost : colors.textSecondary;
   return (
-    <View style={s.tRow}>
+    <TouchableOpacity style={s.tRow} onPress={onPress} activeOpacity={0.7}>
       <View style={{ flex: 1 }}>
         <Text style={s.tName} numberOfLines={1}>{t.tournament}</Text>
         <Text style={s.tSub}>
@@ -35,14 +40,18 @@ const TournamentRow = React.memo(function TournamentRow({ t }: { t: TournamentSt
         <Text style={[s.tPnl, { color: pnlColor }]}>{t.pnl >= 0 ? '+' : ''}{formatMoney(t.pnl)}</Text>
         <Text style={[s.tRoi, { color: pnlColor }]}>{formatPercent(t.roi)} ROI</Text>
       </View>
-    </View>
+      <Text style={s.chevron}>›</Text>
+    </TouchableOpacity>
   );
 });
 
-const TeamCard = React.memo(function TeamCard({ team }: { team: TeamStats }) {
+const TeamCard = React.memo(function TeamCard({ team, onPress }: {
+  team: TeamStats;
+  onPress: () => void;
+}) {
   const pnlColor = team.pnl > 0 ? colors.won : team.pnl < 0 ? colors.lost : colors.textSecondary;
   return (
-    <View style={s.teamCard}>
+    <TouchableOpacity style={s.teamCard} onPress={onPress} activeOpacity={0.75}>
       <View style={s.teamHeader}>
         <View style={{ flex: 1, marginRight: 8 }}>
           <Text style={s.teamName} numberOfLines={1}>{team.name}</Text>
@@ -55,6 +64,7 @@ const TeamCard = React.memo(function TeamCard({ team }: { team: TeamStats }) {
           <Text style={[s.teamPnl, { color: pnlColor }]}>{team.pnl >= 0 ? '+' : ''}{formatMoney(team.pnl)}</Text>
           <Text style={[s.teamRoi, { color: pnlColor }]}>{formatPercent(team.roi)}</Text>
         </View>
+        <Text style={s.chevron}>›</Text>
       </View>
       <View style={s.teamStats}>
         {[
@@ -69,22 +79,37 @@ const TeamCard = React.memo(function TeamCard({ team }: { team: TeamStats }) {
           </View>
         ))}
       </View>
-    </View>
+    </TouchableOpacity>
   );
 });
 
 export function InsightsScreen() {
   const { bets, settings } = useBetsStore();
+  const { goToBets } = useDrawer();
   const [period, setPeriod] = useState<Period>('all');
 
-  const filteredBets = useMemo(() => {
-    if (period === 'all') return bets;
-    const days = period === '7d' ? 7 : 30;
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - days);
-    const cutoffStr = toYmd(cutoff);
-    return bets.filter((b) => b.date > cutoffStr);
-  }, [bets, period]);
+  // Every tile answers "which bets is this?" — tapping one opens exactly those,
+  // period included, so the list length matches the number on the tile.
+  function openTournament(tournament: string) {
+    haptic.selection();
+    goToBets({ tournament, ...(cutoff ? { from: cutoff } : {}) });
+  }
+  function openTeam(team: string) {
+    haptic.selection();
+    goToBets({ team, ...(cutoff ? { from: cutoff } : {}) });
+  }
+
+  const cutoff = useMemo(() => {
+    if (period === 'all') return null;
+    const d = new Date();
+    d.setDate(d.getDate() - (period === '7d' ? 7 : 30));
+    return toYmd(d);
+  }, [period]);
+
+  const filteredBets = useMemo(
+    () => (cutoff ? bets.filter((b) => b.date > cutoff) : bets),
+    [bets, cutoff],
+  );
 
   const tournaments = useMemo(() => calcByTournament(filteredBets), [filteredBets]);
   const teams = useMemo(() => calcByTeam(filteredBets, 5), [filteredBets]);
@@ -112,7 +137,9 @@ export function InsightsScreen() {
           {tournaments.length === 0 ? (
             <Text style={s.empty}>Добавляй турнир при записи ставки — здесь появится статистика</Text>
           ) : (
-            tournaments.map((t) => <TournamentRow key={t.tournament} t={t} />)
+            tournaments.map((t) => (
+              <TournamentRow key={t.tournament} t={t} onPress={() => openTournament(t.tournament)} />
+            ))
           )}
         </View>
 
@@ -123,7 +150,9 @@ export function InsightsScreen() {
             {teams.length === 0 ? (
               <Text style={s.empty}>Нужно минимум 5 ставок на одну команду</Text>
             ) : (
-              teams.map((team, idx) => <TeamCard key={`${team.name}-${idx}`} team={team} />)
+              teams.map((team, idx) => (
+                <TeamCard key={`${team.name}-${idx}`} team={team} onPress={() => openTeam(team.name)} />
+              ))
             )}
           </ProGate>
         </View>
@@ -156,6 +185,7 @@ const s = StyleSheet.create({
   },
   tName: { fontSize: 14, fontWeight: '600', color: colors.textPrimary, marginBottom: 2 },
   tSub: { fontSize: 11, color: colors.textMuted },
+  chevron: { fontSize: 20, color: colors.textMuted, marginLeft: 8, marginTop: -2 },
   tPnl: { fontSize: 14, fontWeight: '700' },
   tRoi: { fontSize: 11, fontWeight: '600' },
   teamCard: {

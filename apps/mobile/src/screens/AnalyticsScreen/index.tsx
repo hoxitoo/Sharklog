@@ -1,12 +1,12 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Alert } from 'react-native';
-import { PieChart, LineChart } from 'react-native-gifted-charts';
+import { PieChart } from 'react-native-gifted-charts';
 import {
   calcByField, calcByOddsRange, calcByDayOfWeek, calcDashboard,
   calcStreaks, calcExtremes, calcLastFullMonth, calcMonthResult, calcTimeStats, calcCLV,
-  calcMaxDrawdown, calcEdge, calcMonthlyPnl, RELIABLE_SAMPLE_MIN,
+  calcMaxDrawdown, calcEdge, calcMonthlyPnl, calcPnlBuckets, RELIABLE_SAMPLE_MIN,
   SPORTS, BET_TYPES, STRATEGIES, formatPercent, toYmd } from '@sharklog/core';
-import type { SliceStats, Bet, MonthlyPnl } from '@sharklog/core';
+import type { SliceStats, Bet, MonthlyPnl, PnlBucket, Granularity } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { ProGate } from '../../components/ProGate';
 import { ScreenHeader } from '../../components/ScreenHeader';
@@ -18,6 +18,7 @@ import { colors, alpha, toneSurface } from '../../theme/colors';
 /** The donut lives in a pink-toned Card, so its hole must match that surface. */
 const DONUT_SURFACE = toneSurface('pink').backgroundColor;
 import { Card, tileStyle } from '../../components/Card';
+import { PnlBars } from '../../components/PnlBars';
 
 const { width } = Dimensions.get('window');
 
@@ -28,14 +29,41 @@ const MONTHS_RU = ['Январь', 'Февраль', 'Март', 'Апрель',
 const MONTHS_SHORT_RU = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
 
 
-// ── Hero: headline P&L with sparkline ────────────────────────────────────────
+// ── Hero: headline P&L with per-period bars ──────────────────────────────────
 
-function HeroPnl({ bets }: { bets: Bet[] }) {
+/** Bucket size that keeps the bar count readable for the selected period. */
+const BUCKETS: Record<APeriodFilter, { granularity: Granularity; count: number }> = {
+  '7d':  { granularity: 'day',   count: 7 },
+  '30d': { granularity: 'day',   count: 30 },
+  'all': { granularity: 'month', count: 12 },
+};
+
+function bucketLabel(b: PnlBucket, granularity: Granularity): string {
+  const [, m, d] = b.start.split('-');
+  return granularity === 'month' ? (MONTHS_SHORT_RU[Number(m) - 1] ?? '') : `${d}.${m}`;
+}
+
+function bucketTitle(b: PnlBucket, granularity: Granularity): string {
+  const [, m, d] = b.start.split('-');
+  return granularity === 'month' ? (MONTHS_RU[Number(m) - 1] ?? '') : `${d}.${m}`;
+}
+
+function HeroPnl({ bets, period }: { bets: Bet[]; period: APeriodFilter }) {
   const fmt = useFormatMoney();
   const stats = calcDashboard(bets);
   const positive = stats.pnl >= 0;
   const lineColor = positive ? colors.won : colors.lost;
-  const spark = stats.pnlCurve.map((p) => ({ value: p.pnl / 100 }));
+
+  const { granularity, count } = BUCKETS[period];
+  const buckets = useMemo(() => calcPnlBuckets(bets, granularity, count), [bets, granularity, count]);
+  const [selected, setSelected] = useState<number | null>(null);
+  // Switching period rebuilds the buckets, so a held index no longer means
+  // anything — keeping it would dim every bar and highlight none.
+  useEffect(() => setSelected(null), [granularity, count]);
+  const active = selected !== null ? buckets[selected] : undefined;
+
+  // Only every Nth tick gets a label — 30 daily bars cannot each carry a date.
+  const every = Math.ceil(buckets.length / 6);
 
   return (
     <View style={hero.box}>
@@ -59,26 +87,29 @@ function HeroPnl({ bets }: { bets: Bet[] }) {
           <Text style={hero.metaLabel}>Ср. кэф</Text>
         </View>
       </View>
-      {spark.length > 1 && (
-        <View style={hero.spark}>
-          <LineChart
-            data={spark}
-            width={width - 64}
-            height={56}
-            color={lineColor}
-            thickness={2}
-            hideDataPoints
-            hideAxesAndRules
-            hideYAxisText
-            adjustToWidth
-            areaChart
-            startFillColor={lineColor}
-            endFillColor={colors.bgCard}
-            startOpacity={0.25}
-            endOpacity={0}
-            initialSpacing={0}
-            curved
-            disableScroll
+
+      {buckets.some((b) => b.bets > 0) && (
+        <View style={hero.chart}>
+          <View style={hero.chartHead}>
+            <Text style={hero.chartTitle}>
+              {active ? bucketTitle(active, granularity) : granularity === 'month' ? 'По месяцам' : 'По дням'}
+            </Text>
+            {active ? (
+              <Text style={[hero.chartValue, {
+                color: active.pnl > 0 ? colors.won : active.pnl < 0 ? colors.lost : colors.textMuted,
+              }]}>
+                {active.pnl > 0 ? '+' : ''}{fmt(active.pnl)} · {active.bets} ст.
+              </Text>
+            ) : (
+              <Text style={hero.chartHint}>тап по столбцу</Text>
+            )}
+          </View>
+          <PnlBars
+            buckets={buckets}
+            width={width - 68}
+            selected={selected}
+            onSelect={(i) => { haptic.selection(); setSelected(i); }}
+            labelFor={(b, i) => (i % every === 0 || i === buckets.length - 1 ? bucketLabel(b, granularity) : '')}
           />
         </View>
       )}
@@ -99,7 +130,11 @@ const hero = StyleSheet.create({
   metaCell: { alignItems: 'center', flex: 1 },
   metaValue: { fontSize: 17, fontWeight: '700', color: colors.textPrimary },
   metaLabel: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
-  spark: { marginTop: 12, overflow: 'hidden' },
+  chart: { marginTop: 14 },
+  chartHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 },
+  chartTitle: { fontSize: 12, fontWeight: '700', color: colors.textSecondary },
+  chartValue: { fontSize: 13, fontWeight: '700' },
+  chartHint: { fontSize: 10, color: colors.textMuted },
 });
 
 // ── Two-tile row (streaks, extremes) ─────────────────────────────────────────
@@ -593,7 +628,7 @@ function AnalyticsContent() {
       </View>
 
       {/* Hero — the "at a glance" state */}
-      <HeroPnl bets={filteredBets} />
+      <HeroPnl bets={filteredBets} period={period} />
       <StreaksCard bets={filteredBets} />
       <ExtremesCard bets={filteredBets} />
       <EdgeRiskCard bets={filteredBets} />
