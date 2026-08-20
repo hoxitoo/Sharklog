@@ -59,7 +59,7 @@ export const FREE_LIMITS = {
   DAILY_BET_LIMIT: 0,        // not available on free
 } as const;
 
-export const CURRENT_SCHEMA_VERSION = 2;
+export const CURRENT_SCHEMA_VERSION = 3;
 
 export const ODDS_RANGES = [
   { label: '< 1.5', min: 1.0, max: 1.5 },

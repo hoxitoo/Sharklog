@@ -51,6 +51,7 @@ docs/            — ROADMAP.md, ANALYSIS.md, PRIVACY_POLICY.md
 - **Банк в приложении ≠ баланс у букмекера**: букмекер списывает ставку сразу при постановке, приложение — только при расчёте. Поэтому `балансУБукмекера = currentBank − pendingExposure(bets)`. Это первое, что надо исключить при расхождении.
 - **`adjustment`** — сверка с реальным балансом бука без фейкового депозита/вывода. Пользователь вводит реальный баланс, приложение само считает разницу и пишет её со знаком. Разницу считай от `currentBank − pendingExposure`, а НЕ от голого банка: у бука открытые ставки уже списаны, и сверка от банка запишет их как недостачу, которая не рассосётся после расчёта ставок. В `calcDailyBreakdown` у неё свой бакет `adjustments` — она двигает `balance`, но НЕ попадает во «Внесено/Выведено» и не рисует маркер депозита на графике.
 - **CSV — один модуль на оба приложения**: `packages/core/utils/betsCsv` (`buildBetsCSV` / `importBetsFromCSV` / `importBetsFromRows`). Не заводи парсер или писатель по месту: раньше их было два, они разъехались, и выгрузка с телефона не открывалась на ПК.
+- **Общий кэф экспресса — `combineExpressOdds()`**, округление до 2 знаков. Букмекер показывает и рассчитывает экспресс по округлённому коэффициенту (1.23 × 1.90 = 2.337 → платит по 2.34). Хранение сырого произведения давало «× 2.34» на экране и выплату по 2.337 — расхождение с реальным балансом росло с каждым экспрессом.
 - **P&L одной ставки — только `betPnl()`**. Ручные `status === 'won' ? ... : ...` уже приводили к тому, что выкуп экспортировался нулём, а проигранный фрибет — полной потерей.
 - **Кумулятивные кривые сортируй по `date + time`, не по `createdAt`** — ставка, занесённая задним числом, иначе прыгает в конец графика и расходится со списком ставок.
 - **Для «читаемости результата за период» — `calcPnlBuckets`**, а не накопительная линия: на кумулятиве выигрышный день идёт вниз, если предыдущий проиграл больше, и это читается как баг.
@@ -147,7 +148,7 @@ new Date(str).toLocaleDateString(locale, { day: 'numeric', month: 'short' });
 
 ```bash
 # Тесты
-cd packages/core && npx vitest run        # 149 unit-тестов core
+cd packages/core && npx vitest run        # 160 unit-тестов core
 cd apps/desktop  && npm test              # 40 smoke-тестов desktop (Vitest)
 cd apps/mobile   && npm test              # 32 smoke-теста mobile (Jest)
 
@@ -354,5 +355,7 @@ utils/
   kelly.ts            — kellyFraction, halfKelly, expectedValue, impliedProbability
   formatters.ts       — formatMoney(kopecks, currency='₽', maxDecimals=2), parseMoneyInput, formatOdds, formatPercent (adds + prefix)
   strategyBuilder.ts  — STRATEGY_QUESTIONS (10 вопросов), buildStrategy(answers)
-  migrations.ts       — migrate(raw)
+  migrations.ts       — migrate(raw); v3 округляет кэфы экспрессов до 2 знаков.
+                        JSON-восстановление тоже гонится через migrate(), иначе старый бэкап
+                        возвращает уже исправленные баги
 ```

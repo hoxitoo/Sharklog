@@ -63,3 +63,17 @@ export function formatDate(isoDate: string): string {
     year: '2-digit',
   });
 }
+
+/**
+ * Total coefficient of an accumulator, rounded to 2 decimals.
+ *
+ * Bookmakers show the combined coefficient at 2 decimals and settle on that
+ * rounded number: 1.23 × 1.90 = 2.337, Fonbet displays 2.34 and pays
+ * 3 700 × 2.34 = 8 658 ₽. Keeping the raw product meant the app showed "× 2.34"
+ * but computed the payout from 2.337 — 11 ₽ less on that one bet, and a drift
+ * against the real balance that grew with every accumulator.
+ */
+export function combineExpressOdds(legOdds: number[]): number {
+  const product = legOdds.reduce((p, o) => (o > 1 ? p * o : p), 1);
+  return Math.round(product * 100) / 100;
+}

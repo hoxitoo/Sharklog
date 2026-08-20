@@ -319,6 +319,8 @@ interface TeamStats {
 17. **P&L одной ставки — только `betPnl()`**: ручные ветки по статусу уже давали выкуп нулём и проигранный фрибет полной потерей.
 18. **CSV — один модуль на обе платформы**: `packages/core/utils/betsCsv`. Второй парсер по месту = разъехавшиеся алиасы и выгрузка с телефона, которая не открывается на ПК.
 19. **Кумулятивные кривые — по `date + time`, не `createdAt`**: ставка задним числом иначе прыгает в конец графика.
+20. **Общий кэф экспресса округляется до 2 знаков** (`combineExpressOdds`): букмекер показывает и рассчитывает именно округлённый коэффициент. Сырое произведение легов расходится с реальной выплатой на каждой ставке.
+21. **JSON-восстановление проходит через `migrate()`**: иначе бэкап, снятый до исправления схемы, возвращает в приложение уже вылеченные баги.
 
 ---
 
@@ -401,7 +403,7 @@ VITE_OWNER_PRO=true
 
 ## CI / Build
 
-- **CI**: `.github/workflows/ci.yml` — `npm ci` → vitest (core 149 + desktop 40) → mobile tests (32) → tsc mobile+desktop
+- **CI**: `.github/workflows/ci.yml` — `npm ci` → vitest (core 160 + desktop 40) → mobile tests (32) → tsc mobile+desktop
 - **EAS Build**: `.github/workflows/eas-build.yml` — ручной `workflow_dispatch`
   - Требует: `EXPO_TOKEN` secret + реальный `projectId` в `app.json`
 - **EAS профили**: development / preview (APK) / production (autoIncrement)
@@ -521,15 +523,16 @@ VITE_OWNER_PRO=true
 ## Тесты
 
 ```
-packages/core         149 vitest unit tests (stats, analytics, daily, formatters, kelly, migrations,
+packages/core         160 vitest unit tests (stats, analytics, daily, formatters, kelly, migrations,
                           betsCsv x14 — round-trip / P&L / инъекция / разделители,
                           pnlBuckets x10 — границы бакетов, порядок кривой,
                           bankroll x10 — bankCash / currentBank / pendingExposure / сверки,
                           reconcileFlow x12 — сверка приземляет банк ровно на баланс бука,
-                          с учётом незакрытых ставок и без двойного счёта после их расчёта)
+                          с учётом незакрытых ставок и без двойного счёта после их расчёта,
+                          expressOdds x11 — округление общего кэфа + миграция v3)
 apps/desktop           40 vitest smoke tests (betsStore x25, importBets x15)
 apps/mobile            32 jest smoke tests (betsStore x19, chartScale x6, theme x7)
-ИТОГО                  221 тест
+ИТОГО                  232 теста
 ```
 
 ---

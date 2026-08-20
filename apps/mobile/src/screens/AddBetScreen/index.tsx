@@ -10,7 +10,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { Sport, BetType, Strategy, BetStatus, EsportsDiscipline, Team, Bet } from '@sharklog/core';
 import {
   SPORTS, BET_TYPES, STRATEGIES, ESPORTS_DISCIPLINES, parseMoneyInput, formatMoney,
-  impliedProbability, halfKelly, expectedValue, recommendedStake, CURRENT_SCHEMA_VERSION, FREE_LIMITS, calcDashboard, currentBank, toYmd,
+  impliedProbability, halfKelly, expectedValue, recommendedStake, combineExpressOdds, CURRENT_SCHEMA_VERSION, FREE_LIMITS, calcDashboard, currentBank, toYmd,
 } from '@sharklog/core';
 import { colors } from '../../theme/colors';
 import { useBetsStore } from '../../store/betsStore';
@@ -599,10 +599,9 @@ export function AddBetScreen() {
   const strategyLimit = settings.generatedStrategy?.stakePercent ?? null;
   const overLimit = bankShare != null && strategyLimit != null && bankShare > strategyLimit;
 
-  const expressOdds = legs.reduce((p, l) => {
-    const o = parseFloat(nd(l.odds || '0'));
-    return o > 1 ? p * o : p;
-  }, 1);
+  // Same rounding the bet is saved with, so the preview cannot promise a payout
+  // the stored bet will not produce.
+  const expressOdds = combineExpressOdds(legs.map((l) => parseFloat(nd(l.odds || '0'))));
 
   const activeOdds = isSingle ? singleOdds : expressOdds;
   const potentialProfit = activeOdds > 1 && stakeKopecks > 0
@@ -716,9 +715,7 @@ export function AddBetScreen() {
         Alert.alert('Ошибка', 'Экспресс: минимум 2 события с кэфом > 1');
         return;
       }
-      const combinedOdds = parseFloat(
-        validLegs.reduce((p, l) => p * parseFloat(nd(l.odds)), 1).toFixed(3),
-      );
+      const combinedOdds = combineExpressOdds(validLegs.map((l) => parseFloat(nd(l.odds))));
       // Store odds per leg in event: "M80 vs NRG|1.10 / Team Liquid vs Heroic|1.88"
       const event = validLegs
         .map((l) => {

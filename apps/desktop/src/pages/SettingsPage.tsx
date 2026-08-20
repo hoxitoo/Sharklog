@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { DEFAULT_BOOKMAKERS, FREE_LIMITS, SPORTS, buildBetsCSV, toYmd } from '@sharklog/core';
+import { DEFAULT_BOOKMAKERS, FREE_LIMITS, SPORTS, buildBetsCSV, migrate, toYmd } from '@sharklog/core';
 import type { Sport } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
 import { useToastStore } from '../store/toastStore';
@@ -76,8 +76,11 @@ export function SettingsPage() {
       const reader = new FileReader();
       reader.onload = () => {
         try {
-          const parsed = JSON.parse(reader.result as string);
-          if (!parsed || typeof parsed !== 'object') throw new Error('Bad format');
+          const raw = JSON.parse(reader.result as string);
+          if (!raw || typeof raw !== 'object') throw new Error('Bad format');
+          // Through migrate(), not straight from JSON: a backup taken before a
+          // schema fix must get the same correction a stored file gets on load.
+          const parsed = migrate(raw) as unknown as Record<string, any>;
           const store = useBetsStore.getState();
           // Strip isPro and proExpiresAt — subscription state must not be imported from a file
           const { isPro: _ip, proExpiresAt: _pe, ...importedSettings } = parsed.settings ?? {};
