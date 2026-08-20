@@ -13,6 +13,22 @@ const migrations: Record<number, MigrationFn> = {
       : {};
     return { ...data, settings: { reminderHour: 20, ...settings }, version: 2 };
   },
+  // v2 → v3: accumulators were stored at 3 decimals (the raw product of the
+  // legs) while the bookmaker rounds the combined coefficient to 2 and settles
+  // on that. Every such bet was therefore booked at the wrong payout. Round the
+  // stored odds so history matches what was actually paid.
+  3: (data) => {
+    const bets = Array.isArray(data['bets']) ? (data['bets'] as Array<Record<string, unknown>>) : [];
+    return {
+      ...data,
+      bets: bets.map((b) => {
+        if (b['betType'] !== 'express' || typeof b['odds'] !== 'number') return b;
+        const rounded = Math.round(b['odds'] * 100) / 100;
+        return rounded === b['odds'] ? b : { ...b, odds: rounded };
+      }),
+      version: 3,
+    };
+  },
 };
 
 export function migrate(raw: unknown): StorageSchema {

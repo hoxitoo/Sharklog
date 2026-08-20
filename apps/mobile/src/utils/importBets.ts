@@ -1,5 +1,5 @@
 import type { Bet } from '@sharklog/core';
-import { importBetsFromCSV, type ImportResult } from '@sharklog/core';
+import { importBetsFromCSV, migrate, type ImportResult } from '@sharklog/core';
 
 export type { ImportResult };
 
@@ -38,7 +38,10 @@ export interface JSONBackup {
 
 export function importFromJSON(content: string): JSONBackup | null {
   try {
-    const parsed = JSON.parse(content) as Record<string, unknown>;
+    // Through migrate(), not straight from JSON: a backup taken before a schema
+    // fix must get the same correction a stored file gets on load. Restoring an
+    // old backup used to reintroduce bugs the app had already migrated away.
+    const parsed = migrate(JSON.parse(content)) as unknown as Record<string, unknown>;
     if (!Array.isArray(parsed['bets'])) return null;
     return {
       bets: parsed['bets'] as Bet[],
