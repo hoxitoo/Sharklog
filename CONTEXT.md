@@ -405,7 +405,7 @@ VITE_OWNER_PRO=true
 
 ## CI / Build
 
-- **CI**: `.github/workflows/ci.yml` — `npm ci` → vitest (core 160 + desktop 40) → mobile tests (32) → tsc mobile+desktop
+- **CI**: `.github/workflows/ci.yml` — `npm ci` → vitest (core 160 + desktop 40) → mobile tests (34) → tsc mobile+desktop
 - **EAS Build**: `.github/workflows/eas-build.yml` — ручной `workflow_dispatch`
   - Требует: `EXPO_TOKEN` secret + реальный `projectId` в `app.json`
 - **EAS профили**: development / preview (APK) / production (autoIncrement)
@@ -539,8 +539,8 @@ packages/core         160 vitest unit tests (stats, analytics, daily, formatters
                           с учётом незакрытых ставок и без двойного счёта после их расчёта,
                           expressOdds x11 — округление общего кэфа + миграция v3)
 apps/desktop           40 vitest smoke tests (betsStore x25, importBets x15)
-apps/mobile            32 jest smoke tests (betsStore x19, chartScale x6, theme x7)
-ИТОГО                  232 теста
+apps/mobile            34 jest smoke tests (betsStore x21, chartScale x6, theme x7)
+ИТОГО                  234 теста
 ```
 
 ---

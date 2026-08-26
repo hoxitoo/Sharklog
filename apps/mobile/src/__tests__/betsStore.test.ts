@@ -163,6 +163,22 @@ describe('updateBet', () => {
     const updated = useBetsStore.getState().bets.find((b) => b.id === bet.id);
     expect(updated?.updatedAt).not.toBe(bet.updatedAt);
   });
+
+  it('keeps a field that the update simply omits', () => {
+    const bet = makeBet({ status: 'cashout', cashoutAmount: 50_00 });
+    useBetsStore.getState().addBet(bet);
+    useBetsStore.getState().updateBet(bet.id, { status: 'won' });
+    expect(useBetsStore.getState().bets.find((b) => b.id === bet.id)?.cashoutAmount).toBe(50_00);
+  });
+
+  // This is what the action wheel relies on when a bet is moved off "cashout":
+  // an omitted key would leave the old amount to resurface in the editor.
+  it('clears a field passed explicitly as undefined', () => {
+    const bet = makeBet({ status: 'cashout', cashoutAmount: 50_00 });
+    useBetsStore.getState().addBet(bet);
+    useBetsStore.getState().updateBet(bet.id, { status: 'won', cashoutAmount: undefined } as Partial<Bet>);
+    expect(useBetsStore.getState().bets.find((b) => b.id === bet.id)?.cashoutAmount).toBeUndefined();
+  });
 });
 
 // ─── clearAll ─────────────────────────────────────────────────────────────────

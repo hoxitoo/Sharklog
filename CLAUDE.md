@@ -155,7 +155,7 @@ new Date(str).toLocaleDateString(locale, { day: 'numeric', month: 'short' });
 # Тесты
 cd packages/core && npx vitest run        # 160 unit-тестов core
 cd apps/desktop  && npm test              # 40 smoke-тестов desktop (Vitest)
-cd apps/mobile   && npm test              # 32 smoke-теста mobile (Jest)
+cd apps/mobile   && npm test              # 34 smoke-теста mobile (Jest)
 
 # Type-check
 cd apps/mobile  && npx tsc --noEmit
