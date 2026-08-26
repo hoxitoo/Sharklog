@@ -494,28 +494,38 @@ export function AddBetScreen() {
     ? bets.find((b) => b.id === route.params?.betId)
     : undefined;
 
-  const [isFreebet, setIsFreebet] = useState(editBet?.isFreebet ?? false);
+  // Duplicating seeds the form from an existing bet but saves a NEW one, so the
+  // form reads from `source` while the save branch still keys off `editBet`.
+  // The result and the timestamp start fresh — a copy is a bet you are about to
+  // place, not one that already has an outcome.
+  const dupBet = route.params?.duplicateOf
+    ? bets.find((b) => b.id === route.params?.duplicateOf)
+    : undefined;
+  const source = editBet ?? dupBet;
+  const isDuplicate = !editBet && !!dupBet;
+
+  const [isFreebet, setIsFreebet] = useState(source?.isFreebet ?? false);
   // Auto-expand extras when editing bet that has non-default values
-  const hasExtraValues = !!(editBet?.tournament || editBet?.notes || editBet?.isFreebet || editBet?.closingOdds != null);
+  const hasExtraValues = !!(source?.tournament || source?.notes || source?.isFreebet || source?.closingOdds != null);
   const [showExtra, setShowExtra] = useState(hasExtraValues);
 
   const now = new Date();
   const defaultDate = toYmd(now); // LOCAL day — toISOString would stamp tomorrow's UTC date
   const defaultTime = now.toTimeString().slice(0, 5);
 
-  const initialBetMode: BetMode = editBet?.betType === 'express' ? 'express' : 'single';
-  const eventParts = editBet?.betType !== 'express' ? (editBet?.event ?? '').split(' vs ') : [];
+  const initialBetMode: BetMode = source?.betType === 'express' ? 'express' : 'single';
+  const eventParts = source?.betType !== 'express' ? (source?.event ?? '').split(' vs ') : [];
   const initialTeam1 = eventParts[0]?.trim() ?? '';
   const initialTeam2 = eventParts.slice(1).join(' vs ').trim();
 
   const buildInitialLegs = (): ExpressLeg[] => {
-    const defSport: Sport = editBet?.sport ?? 'football';
-    const defDiscipline: EsportsDiscipline = editBet?.discipline ?? 'csgo';
-    if (editBet?.betType === 'express') {
-      const eventParts = editBet.event.split(' / ');
+    const defSport: Sport = source?.sport ?? 'football';
+    const defDiscipline: EsportsDiscipline = source?.discipline ?? 'csgo';
+    if (source?.betType === 'express') {
+      const eventParts = source.event.split(' / ');
       // pick field stores per-leg picks as "П1 / ТБ 2.5", OR legacy "Экспресс"
-      const pickParts = (editBet.pick && editBet.pick !== 'Экспресс')
-        ? editBet.pick.split(' / ')
+      const pickParts = (source.pick && source.pick !== 'Экспресс')
+        ? source.pick.split(' / ')
         : [];
       if (eventParts.length >= 2) {
         return eventParts.map((p, i) => {
@@ -541,32 +551,33 @@ export function AddBetScreen() {
 
   const [legs, setLegs] = useState<ExpressLeg[]>(buildInitialLegs);
 
-  const editBetType = (editBet?.betType && editBet.betType !== 'express') ? editBet.betType : '1X2';
-  const editPickParsed = editBet ? parseEditPick(editBetType, editBet.pick ?? '') : null;
+  const editBetType = (source?.betType && source.betType !== 'express') ? source.betType : '1X2';
+  const editPickParsed = source ? parseEditPick(editBetType, source.pick ?? '') : null;
 
   const { control, handleSubmit, watch, setValue, clearErrors, formState: { errors } } = useForm<FormData>({
     defaultValues: {
       betMode: initialBetMode,
       team1: initialTeam1,
       team2: initialTeam2,
-      odds: editBet ? String(editBet.odds) : '',
-      stake: editBet ? String(editBet.stake / 100) : '',
-      sport: editBet?.sport ?? 'football',
-      discipline: editBet?.discipline ?? 'csgo',
+      odds: source ? String(source.odds) : '',
+      stake: source ? String(source.stake / 100) : '',
+      sport: source?.sport ?? 'football',
+      discipline: source?.discipline ?? 'csgo',
       betType: editBetType,
-      strategy: editBet?.strategy ?? 'value',
-      status: editBet?.status ?? 'pending',
-      notes: editBet?.notes ?? '',
-      cashoutAmount: editBet?.cashoutAmount != null ? String(editBet.cashoutAmount / 100) : '',
-      closingOdds: editBet?.closingOdds != null ? String(editBet.closingOdds) : '',
-      bookmaker: editBet?.bookmaker ?? (settings.bookmakers[0] ?? ''),
-      tournament: editBet?.tournament ?? '',
-      date: editBet?.date ?? defaultDate,
-      time: editBet?.time ?? defaultTime,
-      pick1x2: initPick1x2(editBet, initialTeam1, initialTeam2),
-      customSport: editBet?.customSport ?? '',
-      customBetType: editBet?.customBetType ?? '',
-      customStrategy: editBet?.customStrategy ?? '',
+      strategy: source?.strategy ?? 'value',
+      // A copy has not been settled yet, and it is being placed now.
+      status: isDuplicate ? 'pending' : (source?.status ?? 'pending'),
+      notes: source?.notes ?? '',
+      cashoutAmount: !isDuplicate && source?.cashoutAmount != null ? String(source.cashoutAmount / 100) : '',
+      closingOdds: !isDuplicate && source?.closingOdds != null ? String(source.closingOdds) : '',
+      bookmaker: source?.bookmaker ?? (settings.bookmakers[0] ?? ''),
+      tournament: source?.tournament ?? '',
+      date: isDuplicate ? defaultDate : (source?.date ?? defaultDate),
+      time: isDuplicate ? defaultTime : (source?.time ?? defaultTime),
+      pick1x2: initPick1x2(source, initialTeam1, initialTeam2),
+      customSport: source?.customSport ?? '',
+      customBetType: source?.customBetType ?? '',
+      customStrategy: source?.customStrategy ?? '',
       handicapSide: editPickParsed?.handicapSide ?? 'home',
       pickValue: editPickParsed?.pickValue ?? '',
       bothScoreYes: editPickParsed?.bothScoreYes ?? true,

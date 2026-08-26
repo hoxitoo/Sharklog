@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
 import type { Bet } from '@sharklog/core';
 import { SPORTS, BET_TYPES, formatMoney, formatOdds, parseMoneyInput } from '@sharklog/core';
@@ -10,28 +10,44 @@ import { useTranslation } from 'react-i18next';
 
 interface Props {
   bet: Bet;
-  onEdit: (bet: Bet) => void;
+  /** A tap opens the action wheel — editing is one of its wedges, not the default. */
+  onPress: (bet: Bet) => void;
+  /** The wheel's "Выкуп" reveals the inline amount field on this card. */
+  cashoutRequested?: boolean;
+  onCashoutHandled?: () => void;
 }
 
-function displayEvent(event: string): string {
+export function displayEvent(event: string): string {
   // Strip stored per-leg odds ("M80 vs NRG|1.10 / ...") → "M80 vs NRG / ..."
   return event.split(' / ').map(p => p.split('|')[0] ?? p).join(' / ');
 }
 
-export const BetCard = React.memo(function BetCard({ bet, onEdit }: Props) {
+export const BetCard = React.memo(function BetCard({
+  bet, onPress, cashoutRequested, onCashoutHandled,
+}: Props) {
   const { updateBet } = useBetsStore();
   const { t } = useTranslation();
   // Inline cashout entry: tapping "C" reveals an amount field instead of opening the full editor.
   const [cashoutOpen, setCashoutOpen] = useState(false);
   const [cashoutText, setCashoutText] = useState('');
 
+  // Opened from the wheel rather than from the card's own "C" chip.
+  useEffect(() => {
+    if (cashoutRequested) setCashoutOpen(true);
+  }, [cashoutRequested]);
+
+  function closeCashout() {
+    setCashoutOpen(false);
+    setCashoutText('');
+    onCashoutHandled?.();
+  }
+
   function confirmCashout() {
     const amount = parseMoneyInput(cashoutText);
     if (amount <= 0) { haptic.error(); return; }
     haptic.success();
     updateBet(bet.id, { status: 'cashout', cashoutAmount: amount });
-    setCashoutOpen(false);
-    setCashoutText('');
+    closeCashout();
   }
 
   const potentialWin = Math.round(bet.stake * bet.odds);
@@ -57,7 +73,7 @@ export const BetCard = React.memo(function BetCard({ bet, onEdit }: Props) {
       style={styles.card}
       // While entering a cashout amount, don't let a stray tap on the card body
       // navigate to the editor and discard the in-progress input.
-      onPress={cashoutOpen ? undefined : () => onEdit(bet)}
+      onPress={cashoutOpen ? undefined : () => onPress(bet)}
       activeOpacity={cashoutOpen ? 1 : 0.8}
     >
       {/* The right edge carries the outcome — green won, red lost, amber pending,
@@ -133,7 +149,6 @@ export const BetCard = React.memo(function BetCard({ bet, onEdit }: Props) {
           >
             <Text style={[styles.chipText, { color: colors.refund }]}>C</Text>
           </TouchableOpacity>
-          <Text style={styles.quickResultHint}>{t('bet.edit')}</Text>
         </View>
       )}
 
@@ -159,7 +174,7 @@ export const BetCard = React.memo(function BetCard({ bet, onEdit }: Props) {
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.cashoutBtn, styles.cashoutCancel]}
-            onPress={() => { haptic.selection(); setCashoutOpen(false); setCashoutText(''); }}
+            onPress={() => { haptic.selection(); closeCashout(); }}
             activeOpacity={0.75}
           >
             <Text style={[styles.cashoutBtnText, { color: colors.textMuted }]}>✕</Text>
@@ -232,7 +247,6 @@ const styles = StyleSheet.create({
   chipLost: { backgroundColor: colors.lost + '18', borderColor: colors.lost + '55' },
   chipRefund: { backgroundColor: colors.refund + '18', borderColor: colors.refund + '55' },
   chipText: { fontSize: 13, fontWeight: '700' },
-  quickResultHint: { fontSize: 11, color: colors.textMuted, marginLeft: 4 },
   cashoutRow: {
     flexDirection: 'row',
     alignItems: 'center',

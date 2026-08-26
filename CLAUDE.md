@@ -57,6 +57,8 @@ docs/            — ROADMAP.md, ANALYSIS.md, PRIVACY_POLICY.md
 - **Для «читаемости результата за период» — `calcPnlBuckets`**, а не накопительная линия: на кумулятиве выигрышный день идёт вниз, если предыдущий проиграл больше, и это читается как баг.
 - **Фильтр списка ставок** — `BetsFilter { date?, tournament?, team?, from? }`. Команду матчь через `betBacksTeam()` (то же правило, что у `calcByTeam`), иначе количество в списке не сойдётся с числом на плитке инсайтов.
 - **Android «назад»** обрабатывается в `DrawerNavigator` (`BackHandler`): drawer → фильтр → Ставки → выход. Новый уровень навигации добавляй туда же.
+- **Действия над ставкой добавляй в `useBetActions`, а не в экран** — колесо показывают два экрана, и позиции секторов должны совпадать, иначе теряется мышечная память.
+- **`duplicateOf` ≠ `betId`**: `AddBet` с `duplicateOf` заполняет форму из ставки, но сохраняет НОВУЮ — статус сбрасывается в `pending`, дата/время на текущие, `cashoutAmount`/`closingOdds` очищаются.
 - **Inline-инпуты в списках**: у `SectionList`/`FlatList` с полем ввода внутри строки ставь `keyboardShouldPersistTaps="handled"`, иначе первый тап по кнопке при открытой клавиатуре съедается (двойной тап). Пример — inline-выкуп в `BetCard`.
 
 ## Цветовая система
@@ -272,6 +274,7 @@ navigation/
                              Вторичные: Банкролл | Стратегии (PRO) | Партнёры (teal-карточка)
 screens/
   BetsScreen/              — SectionList + quick-result W/L/R/C (cashout)
+                             ТАП по карточке = колесо действий (ActionWheel), НЕ редактирование
   AddBetScreen/            — форма с полем Турнир/Лига, статус cashout
                              collapsible доп. поля (стратегия, букмекер, дата, турнир, заметки, фрибет)
                              автораскрытие при edit если доп. поля заполнены
@@ -306,6 +309,11 @@ screens/
   OnboardingScreen/        — logo Image + 3 шага
   StrategyBuilderScreen/   — PRO: WizardScreen + ResultScreen
 components/
+  ActionWheel.tsx          — радиальное меню (SVG-секторы, тап по сектору, центр = закрыть/назад)
+  useBetActions.tsx        — ЕДИНЫЙ набор действий над ставкой для BetsScreen и PendingScreen:
+                             pending → 7 секторов (W/L/Возврат/Выкуп/Копия/Изменить/Удалить),
+                             settled → 4 (Результат ▸ / Копия / Изменить / Удалить),
+                             «Результат» открывает второй уровень колеса
   StatusBadge.tsx          — бейджи: pending/won/lost/refund ("Возврат")/cashout ("Выкуп")
   ProGate.tsx              — RevenueCat paywall
   DrawerContext.tsx        — React Context: openDrawer() для всех экранов

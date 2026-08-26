@@ -11,7 +11,8 @@ import { DrawerNavigator } from './DrawerNavigator';
 
 export type RootStackParamList = {
   Drawer: undefined;
-  AddBet: { betId?: string };
+  /** `betId` edits that bet; `duplicateOf` seeds a NEW bet from it. */
+  AddBet: { betId?: string; duplicateOf?: string };
   Bankroll: undefined;
   StrategyBuilder: undefined;
   Partners: undefined;
