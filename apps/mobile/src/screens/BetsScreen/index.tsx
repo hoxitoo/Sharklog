@@ -276,8 +276,9 @@ export function BetsScreen({ filter, onClearFilter }: {
             <BetCard
               bet={item}
               onPress={betActions.open}
-              cashoutRequested={betActions.cashoutFor === item.id}
-              onCashoutHandled={betActions.clearCashout}
+              cashoutOpen={betActions.cashoutFor === item.id}
+              onRequestCashout={() => betActions.openCashout(item.id)}
+              onCloseCashout={betActions.closeCashout}
             />
           </SwipeableRow>
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -328,7 +329,7 @@ export function BetsScreen({ filter, onClearFilter }: {
       <Coachmark
         storageKey="@sharklog/tip_bets_seen"
         title={t('nav.bets')}
-        body="Тап по ставке — колесо действий · Свайп влево — удалить · + — новая ставка"
+        body={t('bet.tipWheel')}
         position="bottom"
       />
 

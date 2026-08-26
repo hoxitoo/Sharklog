@@ -2,8 +2,9 @@ import React, { useMemo, useState } from 'react';
 import { Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { Bet } from '@sharklog/core';
+import type { Bet, BetStatus } from '@sharklog/core';
 import { formatMoney } from '@sharklog/core';
+import { useTranslation } from 'react-i18next';
 import { useBetsStore } from '../store/betsStore';
 import { colors } from '../theme/colors';
 import { haptic } from '../utils/haptics';
@@ -13,18 +14,16 @@ import type { RootStackParamList } from '../navigation/RootNavigator';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-const STATUS_ACTIONS: WheelAction[] = [
-  { key: 'won',     label: 'Победа',     icon: 'checkmark-circle-outline', color: colors.won },
-  { key: 'lost',    label: 'Поражение',  icon: 'close-circle-outline',     color: colors.lost },
-  { key: 'refund',  label: 'Возврат',    icon: 'arrow-undo-outline',       color: colors.refund },
-  { key: 'cashout', label: 'Выкуп',      icon: 'cash-outline',             color: colors.refund },
-  { key: 'pending', label: 'В ожидание', icon: 'time-outline',             color: colors.pending },
-];
-
-const COMMON_ACTIONS: WheelAction[] = [
-  { key: 'duplicate', label: 'Копия',    icon: 'copy-outline',   color: colors.purpleText },
-  { key: 'edit',      label: 'Изменить', icon: 'create-outline', color: colors.textSecondary },
-  { key: 'delete',    label: 'Удалить',  icon: 'trash-outline',  danger: true },
+const STATUS_META: Array<{
+  key: BetStatus;
+  icon: WheelAction['icon'];
+  color: string;
+}> = [
+  { key: 'won',     icon: 'checkmark-circle-outline', color: colors.won },
+  { key: 'lost',    icon: 'close-circle-outline',     color: colors.lost },
+  { key: 'refund',  icon: 'arrow-undo-outline',       color: colors.refund },
+  { key: 'cashout', icon: 'cash-outline',             color: colors.refund },
+  { key: 'pending', icon: 'time-outline',             color: colors.pending },
 ];
 
 /**
@@ -34,12 +33,14 @@ const COMMON_ACTIONS: WheelAction[] = [
  * here rather than in either screen — two copies of a menu drift, and the wedge
  * positions have to stay identical for the muscle memory to be worth anything.
  *
- * Returns the wheel element to render and the cashout handshake: "Выкуп" only
- * reveals the inline amount field on the card, it never settles on its own.
+ * The hook also owns which card has its inline cashout field open: "Выкуп" only
+ * reveals that field, it never settles on its own, and holding the id here means
+ * two cards can never be left open at once.
  */
 export function useBetActions() {
   const navigation = useNavigation<Nav>();
   const { updateBet, deleteBet } = useBetsStore();
+  const { t } = useTranslation();
 
   const [bet, setBet] = useState<Bet | null>(null);
   const [level, setLevel] = useState<'root' | 'status'>('root');
@@ -56,19 +57,45 @@ export function useBetActions() {
     setLevel('root');
   }
 
+  const statusAction = (key: BetStatus): WheelAction => {
+    const meta = STATUS_META.find((m) => m.key === key)!;
+    return { key, label: t(`status.${key}`), icon: meta.icon, color: meta.color };
+  };
+
   const actions: WheelAction[] = useMemo(() => {
     if (!bet) return [];
+    const common: WheelAction[] = [
+      { key: 'duplicate', label: t('bet.duplicate'), icon: 'copy-outline',   color: colors.purpleText },
+      { key: 'edit',      label: t('bet.edit'),      icon: 'create-outline', color: colors.textSecondary },
+      { key: 'delete',    label: t('common.delete'), icon: 'trash-outline',  danger: true },
+    ];
     // Offering the status a bet already has would be a dead wedge.
-    if (level === 'status') return STATUS_ACTIONS.filter((a) => a.key !== bet.status);
+    if (level === 'status') {
+      return STATUS_META.filter((m) => m.key !== bet.status).map((m) => statusAction(m.key));
+    }
     // A pending bet is almost always opened to settle it, so the outcomes are one
     // tap away; a settled one only needs the rarer "change the result".
     return bet.status === 'pending'
-      ? [...STATUS_ACTIONS.filter((a) => a.key !== 'pending'), ...COMMON_ACTIONS]
+      ? [
+          ...STATUS_META.filter((m) => m.key !== 'pending').map((m) => statusAction(m.key)),
+          ...common,
+        ]
       : [
-          { key: 'status', label: 'Результат', icon: 'swap-horizontal-outline', color: colors.pending },
-          ...COMMON_ACTIONS,
+          { key: 'status', label: t('bet.changeResult'), icon: 'swap-horizontal-outline', color: colors.pending },
+          ...common,
         ];
-  }, [bet, level]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bet, level, t]);
+
+  /** Moving off `cashout` must drop the stored amount, or it resurrects on edit. */
+  function setStatus(target: Bet, status: BetStatus) {
+    // updateBet merges, so an omitted key keeps its old value — the amount has to
+    // be passed explicitly as undefined to actually clear it.
+    updateBet(target.id, {
+      status,
+      cashoutAmount: target.status === 'cashout' ? undefined : target.cashoutAmount,
+    } as Partial<Bet>);
+  }
 
   function select(key: string) {
     if (!bet) return;
@@ -76,10 +103,11 @@ export function useBetActions() {
 
     close();
     switch (key) {
-      case 'won':     haptic.success(); updateBet(bet.id, { status: 'won' }); break;
-      case 'lost':    haptic.error();   updateBet(bet.id, { status: 'lost' }); break;
-      case 'refund':  haptic.warning(); updateBet(bet.id, { status: 'refund' }); break;
-      case 'pending': haptic.warning(); updateBet(bet.id, { status: 'pending' }); break;
+      case 'won':     haptic.success(); setStatus(bet, 'won'); break;
+      case 'lost':    haptic.error();   setStatus(bet, 'lost'); break;
+      case 'refund':  haptic.warning(); setStatus(bet, 'refund'); break;
+      case 'pending': haptic.warning(); setStatus(bet, 'pending'); break;
+      // The amount is typed inline on the card — this only reveals that field.
       case 'cashout': haptic.selection(); setCashoutFor(bet.id); break;
       case 'duplicate':
         haptic.selection();
@@ -89,17 +117,28 @@ export function useBetActions() {
         haptic.selection();
         navigation.navigate('AddBet', { betId: bet.id });
         break;
-      case 'delete':
+      case 'delete': {
         haptic.warning();
-        Alert.alert(
-          'Удалить ставку?',
-          `${displayEvent(bet.event)}\n${bet.pick} · ${formatMoney(bet.stake)}`,
-          [
-            { text: 'Отмена', style: 'cancel' },
-            { text: 'Удалить', style: 'destructive', onPress: () => { haptic.error(); deleteBet(bet.id); } },
-          ],
-        );
+        const target = bet;
+        // close() unmounts the Modal in this same commit, and an Alert presented
+        // from a view controller that is going away can be dismissed with it.
+        // One frame later the wheel is gone and the alert has a stable host.
+        requestAnimationFrame(() => {
+          Alert.alert(
+            t('bet.confirmDelete'),
+            `${displayEvent(target.event)}\n${target.pick} · ${formatMoney(target.stake)}`,
+            [
+              { text: t('common.cancel'), style: 'cancel' },
+              {
+                text: t('common.delete'),
+                style: 'destructive',
+                onPress: () => { haptic.error(); deleteBet(target.id); },
+              },
+            ],
+          );
+        });
         break;
+      }
     }
   }
 
@@ -117,5 +156,12 @@ export function useBetActions() {
     />
   );
 
-  return { open, element, cashoutFor, clearCashout: () => setCashoutFor(null) };
+  return {
+    open,
+    element,
+    /** Id of the card whose inline cashout field is open, if any. */
+    cashoutFor,
+    openCashout: (id: string) => setCashoutFor(id),
+    closeCashout: () => setCashoutFor(null),
+  };
 }

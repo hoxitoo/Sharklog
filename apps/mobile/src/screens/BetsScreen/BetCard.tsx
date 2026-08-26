@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
 import type { Bet } from '@sharklog/core';
 import { SPORTS, BET_TYPES, formatMoney, formatOdds, parseMoneyInput } from '@sharklog/core';
@@ -12,9 +12,14 @@ interface Props {
   bet: Bet;
   /** A tap opens the action wheel — editing is one of its wedges, not the default. */
   onPress: (bet: Bet) => void;
-  /** The wheel's "Выкуп" reveals the inline amount field on this card. */
-  cashoutRequested?: boolean;
-  onCashoutHandled?: () => void;
+  /**
+   * Whether this card shows the inline cashout field. Owned by the parent so
+   * that two cards can never be left open at once: opening one closes the other
+   * by construction, rather than by each card watching the other.
+   */
+  cashoutOpen?: boolean;
+  onRequestCashout?: () => void;
+  onCloseCashout?: () => void;
 }
 
 export function displayEvent(event: string): string {
@@ -23,23 +28,16 @@ export function displayEvent(event: string): string {
 }
 
 export const BetCard = React.memo(function BetCard({
-  bet, onPress, cashoutRequested, onCashoutHandled,
+  bet, onPress, cashoutOpen = false, onRequestCashout, onCloseCashout,
 }: Props) {
   const { updateBet } = useBetsStore();
   const { t } = useTranslation();
-  // Inline cashout entry: tapping "C" reveals an amount field instead of opening the full editor.
-  const [cashoutOpen, setCashoutOpen] = useState(false);
+  // Inline cashout entry: the amount is typed here rather than in the full editor.
   const [cashoutText, setCashoutText] = useState('');
 
-  // Opened from the wheel rather than from the card's own "C" chip.
-  useEffect(() => {
-    if (cashoutRequested) setCashoutOpen(true);
-  }, [cashoutRequested]);
-
   function closeCashout() {
-    setCashoutOpen(false);
     setCashoutText('');
-    onCashoutHandled?.();
+    onCloseCashout?.();
   }
 
   function confirmCashout() {
@@ -144,7 +142,7 @@ export const BetCard = React.memo(function BetCard({
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.resultChip, styles.chipRefund]}
-            onPress={() => { haptic.selection(); setCashoutOpen(true); }}
+            onPress={() => { haptic.selection(); onRequestCashout?.(); }}
             activeOpacity={0.75}
           >
             <Text style={[styles.chipText, { color: colors.refund }]}>C</Text>
@@ -152,7 +150,7 @@ export const BetCard = React.memo(function BetCard({
         </View>
       )}
 
-      {bet.status === 'pending' && cashoutOpen && (
+      {cashoutOpen && (
         <View style={styles.cashoutRow}>
           <TextInput
             style={styles.cashoutInput}

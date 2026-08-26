@@ -102,8 +102,9 @@ export function PendingScreen() {
               <BetCard
                 bet={item}
                 onPress={betActions.open}
-                cashoutRequested={betActions.cashoutFor === item.id}
-                onCashoutHandled={betActions.clearCashout}
+                cashoutOpen={betActions.cashoutFor === item.id}
+                onRequestCashout={() => betActions.openCashout(item.id)}
+                onCloseCashout={betActions.closeCashout}
               />
             </View>
           );

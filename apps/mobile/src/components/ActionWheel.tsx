@@ -77,10 +77,13 @@ export function ActionWheel({
 
   if (actions.length === 0) return null;
 
-  // Leave room for the title above and the safe area below on short screens.
-  const size = Math.min(width - 40, height - 260, 330);
+  // Leave room for the title above and the safe area below on short screens,
+  // but never shrink past the point where the labels stop fitting the ring.
+  const size = Math.max(240, Math.min(width - 40, height - 260, 330));
   const rOut = size / 2;
-  const rIn = Math.max(46, size * 0.2);
+  // Clamped against rOut: an unclamped floor of 46 inverts the ring on a short
+  // viewport, and sectorPath would emit a self-crossing shape.
+  const rIn = Math.min(Math.max(46, size * 0.2), rOut * 0.55);
   // Pushed past the middle of the ring: arc length per label grows with the
   // radius, and with seven wedges the labels were touching at mid-ring.
   const rLabel = rIn + (rOut - rIn) * 0.56;
