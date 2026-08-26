@@ -30,7 +30,7 @@ interface Props {
 
 const GAP = 0.02;        // radians of background showing between sectors
 const LABEL_WIDTH = 78;
-const LABEL_HEIGHT = 48;
+const LABEL_HEIGHT = 54;  // icon + up to two wrapped lines
 
 function polar(cx: number, cy: number, r: number, a: number): [number, number] {
   return [cx + r * Math.cos(a), cy + r * Math.sin(a)];

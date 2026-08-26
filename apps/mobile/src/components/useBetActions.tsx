@@ -66,7 +66,7 @@ export function useBetActions() {
     if (!bet) return [];
     const common: WheelAction[] = [
       { key: 'duplicate', label: t('bet.duplicate'), icon: 'copy-outline',   color: colors.purpleText },
-      { key: 'edit',      label: t('bet.edit'),      icon: 'create-outline', color: colors.textSecondary },
+      { key: 'edit',      label: t('bet.editShort'), icon: 'create-outline', color: colors.textSecondary },
       { key: 'delete',    label: t('common.delete'), icon: 'trash-outline',  danger: true },
     ];
     // Offering the status a bet already has would be a dead wedge.

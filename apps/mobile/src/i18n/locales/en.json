@@ -78,7 +78,8 @@
     "limitWarning": "⚠️ {{count}} free bets remaining",
     "duplicate": "Copy",
     "changeResult": "Result",
-    "tipWheel": "Tap a bet for the action wheel · Swipe left to delete · + to add"
+    "tipWheel": "Tap a bet for the action wheel · Swipe left to delete · + to add",
+    "editShort": "Edit"
   },
   "dashboard": {
     "title": "Dashboard",
