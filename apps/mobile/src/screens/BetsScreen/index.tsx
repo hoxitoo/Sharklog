@@ -12,6 +12,7 @@ import type { BetsFilter } from '../../components/DrawerContext';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { BetCard } from './BetCard';
 import { SwipeableRow } from './SwipeableRow';
+import { useBetActions } from '../../components/useBetActions';
 import { Coachmark } from '../../components/Coachmark';
 import { haptic } from '../../utils/haptics';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
@@ -149,9 +150,7 @@ export function BetsScreen({ filter, onClearFilter }: {
 
   const freeLeft = Math.max(0, 50 - bets.length);
 
-  function handleEdit(bet: Bet) {
-    navigation.navigate('AddBet', { betId: bet.id });
-  }
+  const betActions = useBetActions();
 
   return (
     <View style={styles.container}>
@@ -274,10 +273,16 @@ export function BetsScreen({ filter, onClearFilter }: {
         keyExtractor={(item) => item.id}
         renderItem={useCallback(({ item }: { item: import('@sharklog/core').Bet }) => (
           <SwipeableRow onDelete={() => { haptic.error(); deleteBet(item.id); }}>
-            <BetCard bet={item} onEdit={handleEdit} />
+            <BetCard
+              bet={item}
+              onPress={betActions.open}
+              cashoutOpen={betActions.cashoutFor === item.id}
+              onRequestCashout={() => betActions.openCashout(item.id)}
+              onCloseCashout={betActions.closeCashout}
+            />
           </SwipeableRow>
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        ), [deleteBet, handleEdit])}
+        ), [deleteBet, betActions.cashoutFor])}
         renderSectionHeader={useCallback(({ section }: { section: { title: string; dailyPnl: number } }) => (
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionDate}>{section.title}</Text>
@@ -324,9 +329,11 @@ export function BetsScreen({ filter, onClearFilter }: {
       <Coachmark
         storageKey="@sharklog/tip_bets_seen"
         title={t('nav.bets')}
-        body="Swipe left to delete · Tap to edit · + to add new"
+        body={t('bet.tipWheel')}
         position="bottom"
       />
+
+      {betActions.element}
     </View>
   );
 }

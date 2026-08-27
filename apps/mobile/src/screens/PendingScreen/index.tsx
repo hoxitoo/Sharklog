@@ -1,15 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, FlatList } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { Bet } from '@sharklog/core';
 import { formatMoney } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { colors, toneSurface } from '../../theme/colors';
 import { BetCard } from '../BetsScreen/BetCard';
-import type { RootStackParamList } from '../../navigation/RootNavigator';
-
-type Nav = NativeStackNavigationProp<RootStackParamList>;
+import { useBetActions } from '../../components/useBetActions';
 
 /** Kick-off timestamp, parsed as LOCAL time (a bare date string would read as UTC). */
 function startedAt(bet: Bet): number {
@@ -28,7 +24,8 @@ function agoLabel(ms: number): string {
 }
 
 export function PendingScreen() {
-  const navigation = useNavigation<Nav>();
+  // Same wheel as the bets list — one menu, one set of wedge positions.
+  const betActions = useBetActions();
   const bets = useBetsStore((s) => s.bets);
 
   // Oldest kick-off first — those are the ones whose result is already known.
@@ -102,11 +99,19 @@ export function PendingScreen() {
                 </Text>
                 {late && <Text style={s.agoText}>{agoLabel(now - started)}</Text>}
               </View>
-              <BetCard bet={item} onEdit={(b) => navigation.navigate('AddBet', { betId: b.id })} />
+              <BetCard
+                bet={item}
+                onPress={betActions.open}
+                cashoutOpen={betActions.cashoutFor === item.id}
+                onRequestCashout={() => betActions.openCashout(item.id)}
+                onCloseCashout={betActions.closeCashout}
+              />
             </View>
           );
         }}
       />
+
+      {betActions.element}
     </View>
   );
 }

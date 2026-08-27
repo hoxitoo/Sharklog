@@ -75,7 +75,11 @@
     "tiltSub": "Take a break before your next bet.",
     "noBetsStart": "Tap + to add your first bet",
     "limitReached": "🔒 Limit of {{count}} bets reached — upgrade to Pro",
-    "limitWarning": "⚠️ {{count}} free bets remaining"
+    "limitWarning": "⚠️ {{count}} free bets remaining",
+    "duplicate": "Copy",
+    "changeResult": "Result",
+    "tipWheel": "Tap a bet for the action wheel · Swipe left to delete · + to add",
+    "editShort": "Edit"
   },
   "dashboard": {
     "title": "Dashboard",

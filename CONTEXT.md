@@ -320,7 +320,9 @@ interface TeamStats {
 18. **CSV — один модуль на обе платформы**: `packages/core/utils/betsCsv`. Второй парсер по месту = разъехавшиеся алиасы и выгрузка с телефона, которая не открывается на ПК.
 19. **Кумулятивные кривые — по `date + time`, не `createdAt`**: ставка задним числом иначе прыгает в конец графика.
 20. **Общий кэф экспресса округляется до 2 знаков** (`combineExpressOdds`): букмекер показывает и рассчитывает именно округлённый коэффициент. Сырое произведение легов расходится с реальной выплатой на каждой ставке.
-21. **JSON-восстановление проходит через `migrate()`**: иначе бэкап, снятый до исправления схемы, возвращает в приложение уже вылеченные баги.
+21. **Колесо действий**: тап по карточке ставки открывает `ActionWheel`, а не редактор. Набор действий — только в `useBetActions()`, общий для `BetsScreen` и `PendingScreen`. Открытое поле выкупа принадлежит родителю (`cashoutFor`), не карточке.
+22. **`Alert.alert` после закрытия `Modal`** откладывается на кадр — иначе алерт может быть снят вместе с размонтируемым контроллером.
+23. **JSON-восстановление проходит через `migrate()`**: иначе бэкап, снятый до исправления схемы, возвращает в приложение уже вылеченные баги.
 
 ---
 
@@ -403,7 +405,7 @@ VITE_OWNER_PRO=true
 
 ## CI / Build
 
-- **CI**: `.github/workflows/ci.yml` — `npm ci` → vitest (core 160 + desktop 40) → mobile tests (32) → tsc mobile+desktop
+- **CI**: `.github/workflows/ci.yml` — `npm ci` → vitest (core 160 + desktop 40) → mobile tests (34) → tsc mobile+desktop
 - **EAS Build**: `.github/workflows/eas-build.yml` — ручной `workflow_dispatch`
   - Требует: `EXPO_TOKEN` secret + реальный `projectId` в `app.json`
 - **EAS профили**: development / preview (APK) / production (autoIncrement)
@@ -452,6 +454,12 @@ VITE_OWNER_PRO=true
 - [x] StatusBadge: поддержка cashout (label "Выкуп", refund остался "Возврат")
 - [x] BetsScreen: filter chips refund + cashout; quick-result chip C (cashout);
                   sort by кэф/сумма — flat-section режим (нет groupby дат)
+- [x] ActionWheel + useBetActions: тап по карточке = радиальное меню вместо редактора.
+      pending → 7 секторов (Победа/Поражение/Возврат/Выкуп/Копия/Изменить/Удалить),
+      settled → 4 (Результат ▸ / Копия / Изменить / Удалить); «Результат» открывает
+      второе кольцо со статусами. Общий хук для BetsScreen и PendingScreen.
+- [x] Дублирование ставки: AddBet c `duplicateOf` — форма из существующей ставки,
+      но сохраняется НОВАЯ (статус pending, дата/время текущие)
 - [x] AddBetScreen: поле "Турнир / Лига" + статус cashout; uuid() с Math.random fallback
 - [x] RootNavigator: DrawerNavigator + Stack (AddBet + Bankroll + StrategyBuilder)
 - [x] DrawerNavigator: анимированный drawer, FAB «+» только на экране Ставок, DrawerContext
@@ -531,8 +539,8 @@ packages/core         160 vitest unit tests (stats, analytics, daily, formatters
                           с учётом незакрытых ставок и без двойного счёта после их расчёта,
                           expressOdds x11 — округление общего кэфа + миграция v3)
 apps/desktop           40 vitest smoke tests (betsStore x25, importBets x15)
-apps/mobile            32 jest smoke tests (betsStore x19, chartScale x6, theme x7)
-ИТОГО                  232 теста
+apps/mobile            34 jest smoke tests (betsStore x21, chartScale x6, theme x7)
+ИТОГО                  234 теста
 ```
 
 ---

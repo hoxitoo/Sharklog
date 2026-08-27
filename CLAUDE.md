@@ -57,6 +57,11 @@ docs/            — ROADMAP.md, ANALYSIS.md, PRIVACY_POLICY.md
 - **Для «читаемости результата за период» — `calcPnlBuckets`**, а не накопительная линия: на кумулятиве выигрышный день идёт вниз, если предыдущий проиграл больше, и это читается как баг.
 - **Фильтр списка ставок** — `BetsFilter { date?, tournament?, team?, from? }`. Команду матчь через `betBacksTeam()` (то же правило, что у `calcByTeam`), иначе количество в списке не сойдётся с числом на плитке инсайтов.
 - **Android «назад»** обрабатывается в `DrawerNavigator` (`BackHandler`): drawer → фильтр → Ставки → выход. Новый уровень навигации добавляй туда же.
+- **Действия над ставкой добавляй в `useBetActions`, а не в экран** — колесо показывают два экрана, и позиции секторов должны совпадать, иначе теряется мышечная память.
+- **Состояние inline-выкупа держит родитель** (`useBetActions.cashoutFor`), а не карточка: так «две открытые карточки» физически непредставимы. Карточка с открытым полем игнорирует тап по телу, поэтому забытая открытая карточка читается как зависшая.
+- **Поле выкупа НЕ привязано к статусу** — выигранную ставку тоже можно перевести в выкуп. По статусу гейтятся только быстрые чипы W/L/R/C.
+- **`Alert.alert` после закрытия `Modal` откладывай на кадр** (`requestAnimationFrame`): алерт, показанный от размонтируемого контроллера, может уехать вместе с ним, и подтверждение удаления молча не покажется.
+- **`duplicateOf` ≠ `betId`**: `AddBet` с `duplicateOf` заполняет форму из ставки, но сохраняет НОВУЮ — статус сбрасывается в `pending`, дата/время на текущие, `cashoutAmount`/`closingOdds` очищаются.
 - **Inline-инпуты в списках**: у `SectionList`/`FlatList` с полем ввода внутри строки ставь `keyboardShouldPersistTaps="handled"`, иначе первый тап по кнопке при открытой клавиатуре съедается (двойной тап). Пример — inline-выкуп в `BetCard`.
 
 ## Цветовая система
@@ -150,7 +155,7 @@ new Date(str).toLocaleDateString(locale, { day: 'numeric', month: 'short' });
 # Тесты
 cd packages/core && npx vitest run        # 160 unit-тестов core
 cd apps/desktop  && npm test              # 40 smoke-тестов desktop (Vitest)
-cd apps/mobile   && npm test              # 32 smoke-теста mobile (Jest)
+cd apps/mobile   && npm test              # 34 smoke-теста mobile (Jest)
 
 # Type-check
 cd apps/mobile  && npx tsc --noEmit
@@ -272,6 +277,7 @@ navigation/
                              Вторичные: Банкролл | Стратегии (PRO) | Партнёры (teal-карточка)
 screens/
   BetsScreen/              — SectionList + quick-result W/L/R/C (cashout)
+                             ТАП по карточке = колесо действий (ActionWheel), НЕ редактирование
   AddBetScreen/            — форма с полем Турнир/Лига, статус cashout
                              collapsible доп. поля (стратегия, букмекер, дата, турнир, заметки, фрибет)
                              автораскрытие при edit если доп. поля заполнены
@@ -306,6 +312,11 @@ screens/
   OnboardingScreen/        — logo Image + 3 шага
   StrategyBuilderScreen/   — PRO: WizardScreen + ResultScreen
 components/
+  ActionWheel.tsx          — радиальное меню (SVG-секторы, тап по сектору, центр = закрыть/назад)
+  useBetActions.tsx        — ЕДИНЫЙ набор действий над ставкой для BetsScreen и PendingScreen:
+                             pending → 7 секторов (W/L/Возврат/Выкуп/Копия/Изменить/Удалить),
+                             settled → 4 (Результат ▸ / Копия / Изменить / Удалить),
+                             «Результат» открывает второй уровень колеса
   StatusBadge.tsx          — бейджи: pending/won/lost/refund ("Возврат")/cashout ("Выкуп")
   ProGate.tsx              — RevenueCat paywall
   DrawerContext.tsx        — React Context: openDrawer() для всех экранов
