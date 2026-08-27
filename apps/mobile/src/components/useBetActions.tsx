@@ -102,28 +102,31 @@ export function useBetActions() {
     if (key === 'status') { haptic.selection(); setLevel('status'); return; }
 
     close();
+    // The wheel's Modal unmounts on this commit. Anything that presents another
+    // native surface — an alert, a modal screen, a field that grabs focus — has
+    // to wait a frame, or it can be dismissed along with the wheel or never take
+    // focus at all. Status writes are pure JS and need no such care.
+    const afterWheel = (fn: () => void) => requestAnimationFrame(fn);
+
     switch (key) {
       case 'won':     haptic.success(); setStatus(bet, 'won'); break;
       case 'lost':    haptic.error();   setStatus(bet, 'lost'); break;
       case 'refund':  haptic.warning(); setStatus(bet, 'refund'); break;
       case 'pending': haptic.warning(); setStatus(bet, 'pending'); break;
       // The amount is typed inline on the card — this only reveals that field.
-      case 'cashout': haptic.selection(); setCashoutFor(bet.id); break;
+      case 'cashout': haptic.selection(); afterWheel(() => setCashoutFor(bet.id)); break;
       case 'duplicate':
         haptic.selection();
-        navigation.navigate('AddBet', { duplicateOf: bet.id });
+        afterWheel(() => navigation.navigate('AddBet', { duplicateOf: bet.id }));
         break;
       case 'edit':
         haptic.selection();
-        navigation.navigate('AddBet', { betId: bet.id });
+        afterWheel(() => navigation.navigate('AddBet', { betId: bet.id }));
         break;
       case 'delete': {
         haptic.warning();
         const target = bet;
-        // close() unmounts the Modal in this same commit, and an Alert presented
-        // from a view controller that is going away can be dismissed with it.
-        // One frame later the wheel is gone and the alert has a stable host.
-        requestAnimationFrame(() => {
+        afterWheel(() => {
           Alert.alert(
             t('bet.confirmDelete'),
             `${displayEvent(target.event)}\n${target.pick} · ${formatMoney(target.stake)}`,

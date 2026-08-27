@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
 import type { Bet } from '@sharklog/core';
 import { SPORTS, BET_TYPES, formatMoney, formatOdds, parseMoneyInput } from '@sharklog/core';
@@ -35,8 +35,15 @@ export const BetCard = React.memo(function BetCard({
   // Inline cashout entry: the amount is typed here rather than in the full editor.
   const [cashoutText, setCashoutText] = useState('');
 
+  // The parent can close this field without the card being told (opening the
+  // cashout on another card closes this one), so the typed amount is cleared by
+  // watching the flag rather than inside the close handler. Otherwise reopening
+  // the card showed a stale sum, autofocused, one tap from being recorded.
+  useEffect(() => {
+    if (!cashoutOpen) setCashoutText('');
+  }, [cashoutOpen]);
+
   function closeCashout() {
-    setCashoutText('');
     onCloseCashout?.();
   }
 

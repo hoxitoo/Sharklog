@@ -665,6 +665,14 @@ export function AddBetScreen() {
     const cashoutExtras = data.status === 'cashout' && data.cashoutAmount
       ? { cashoutAmount: parseMoneyInput(data.cashoutAmount) }
       : {};
+    // Same merge trap as closingOdds: on EDIT, moving a bet off "cashout" has to
+    // pass the key explicitly, or the old amount survives and resurfaces the next
+    // time the bet is opened in this form.
+    const cashoutClear = {
+      cashoutAmount: data.status === 'cashout' && data.cashoutAmount
+        ? parseMoneyInput(data.cashoutAmount)
+        : undefined,
+    } as Partial<Bet>;
     const dateVal = data.date.trim() || defaultDate;
     const timeVal = data.time.trim() || defaultTime;
 
@@ -703,7 +711,7 @@ export function AddBetScreen() {
           event, pick, odds: oddsVal, stake: stakeVal,
           sport: data.sport, betType: data.betType, strategy: data.strategy,
           status: data.status, bookmaker: data.bookmaker,
-          date: dateVal, time: timeVal, ...extras, ...closingOddsClear, ...cashoutExtras,
+          date: dateVal, time: timeVal, ...extras, ...closingOddsClear, ...cashoutClear,
           ...(isFreebet ? { isFreebet: true } : {}),
         });
       } else {
@@ -751,7 +759,7 @@ export function AddBetScreen() {
           event, pick: pickStr, odds: combinedOdds, stake: stakeVal,
           sport: expressSport, betType: 'express', strategy: data.strategy,
           status: data.status, bookmaker: data.bookmaker,
-          date: dateVal, time: timeVal, ...expressExtras, ...closingOddsClear, ...cashoutExtras,
+          date: dateVal, time: timeVal, ...expressExtras, ...closingOddsClear, ...cashoutClear,
           ...(isFreebet ? { isFreebet: true } : {}),
         });
       } else {
