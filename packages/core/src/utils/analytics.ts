@@ -1,6 +1,6 @@
-import type { Bet } from '../types/bet';
+import type { Bet, BankrollTransaction } from '../types/bet';
 import { betPnl, calcDashboard } from './stats';
-import { toYmd } from './daily';
+import { toYmd, calcDailyBreakdown } from './daily';
 
 // ── Streaks (best win / worst loss / current) ────────────────────────────────
 
@@ -374,4 +374,172 @@ function daysBetween(from: Date, to: Date): string[] {
     cursor.setDate(cursor.getDate() + 1);
   }
   return out;
+}
+
+// ── Luck vs decisions ────────────────────────────────────────────────────────
+
+export type LuckVerdict = 'cold' | 'normal' | 'hot';
+
+export interface LuckStats {
+  /** Settled own-money bets the analysis is built on. */
+  sample: number;
+  actualPnl: number;      // kopecks
+  /** Wins the coefficients alone predicted: Σ 1/odds. */
+  expectedWins: number;
+  actualWins: number;
+  /** One standard deviation of the break-even outcome, in kopecks. */
+  sigma: number;
+  /** How many sigma the real result sits from break-even. Positive = above. */
+  z: number;
+  verdict: LuckVerdict;
+}
+
+/**
+ * Separates the part of a result that the coefficients explain from the part
+ * that is noise.
+ *
+ * Betting every price at its implied probability `1/odds` has an expected P&L
+ * of exactly zero — that is what the odds mean. So break-even is the reference,
+ * and the question is how far the real number strayed from it *relative to how
+ * far it could stray by chance*. Each bet is a two-outcome variable paying
+ * `stake × (odds − 1)` or `−stake`, whose variance is `p(1−p)(stake × odds)²`;
+ * summing those gives the spread of the whole run.
+ *
+ * A −6 000 ₽ month inside one sigma is dispersion, not bad decisions, and a
+ * bettor who cannot tell those apart tilts. Freebets are excluded (the stake is
+ * not the player's own money), and so are refunds and cashouts, which are not
+ * the binary event the model describes.
+ */
+export function calcLuck(bets: Bet[]): LuckStats | null {
+  const settled = bets.filter(
+    (b) => (b.status === 'won' || b.status === 'lost') && !b.isFreebet && b.odds > 1,
+  );
+  if (settled.length === 0) return null;
+
+  let variance = 0;
+  let expectedWins = 0;
+  let actualPnl = 0;
+  let actualWins = 0;
+
+  for (const b of settled) {
+    const p = 1 / b.odds;
+    expectedWins += p;
+    // Spread between the two payouts is stake × odds; see the doc comment.
+    variance += p * (1 - p) * (b.stake * b.odds) ** 2;
+    actualPnl += betPnl(b);
+    if (b.status === 'won') actualWins += 1;
+  }
+
+  const sigma = Math.sqrt(variance);
+  const z = sigma > 0 ? actualPnl / sigma : 0;
+
+  return {
+    sample: settled.length,
+    actualPnl,
+    expectedWins: Math.round(expectedWins * 10) / 10,
+    actualWins,
+    sigma: Math.round(sigma),
+    z: Math.round(z * 100) / 100,
+    verdict: z >= 1 ? 'hot' : z <= -1 ? 'cold' : 'normal',
+  };
+}
+
+// ── Staking-plan compliance ──────────────────────────────────────────────────
+
+export interface PlanBreach {
+  betId: string;
+  event: string;
+  date: string;
+  stake: number;      // kopecks
+  sharePct: number;   // stake as a share of the bank it was placed against
+  pnl: number;        // kopecks, 0 while unsettled
+}
+
+export interface PlanCompliance {
+  limitPct: number;
+  /** Bets that could be measured (a bank was known and own money was staked). */
+  total: number;
+  within: number;
+  over: number;
+  /** Share of measured bets that broke the plan, 0-100. */
+  breachRate: number;
+  avgSharePct: number;
+  pnlWithin: number;
+  pnlOver: number;
+  /** Worst offenders by share of bank, largest first. */
+  worst: PlanBreach[];
+}
+
+/**
+ * How often the stake stayed inside the plan's % of bank, and what the breaches
+ * cost.
+ *
+ * The bank a bet was placed against is the balance at the START of its day —
+ * that day's deposits count, that day's results do not, because they had not
+ * happened yet. Reusing calcDailyBreakdown keeps this consistent with the bank
+ * shown everywhere else instead of inventing a second definition.
+ *
+ * Freebets are skipped: no own money is at stake, so a plan about bankroll
+ * share does not apply to them.
+ */
+export function calcPlanCompliance(
+  bets: Bet[],
+  transactions: BankrollTransaction[],
+  limitPct: number,
+  worstCount = 5,
+): PlanCompliance | null {
+  if (!(limitPct > 0)) return null;
+
+  const days = calcDailyBreakdown(bets, transactions);
+  const bankAtStart = new Map<string, number>();
+  for (const d of days) bankAtStart.set(d.date, d.balance - d.pnl);
+
+  let within = 0;
+  let over = 0;
+  let shareSum = 0;
+  let pnlWithin = 0;
+  let pnlOver = 0;
+  const breaches: PlanBreach[] = [];
+
+  for (const bet of bets) {
+    if (bet.isFreebet) continue;
+    const bank = bankAtStart.get(bet.date);
+    // A non-positive bank makes "percent of bank" meaningless, not zero.
+    if (bank == null || bank <= 0) continue;
+
+    const sharePct = (bet.stake / bank) * 100;
+    const pnl = betPnl(bet);
+    shareSum += sharePct;
+
+    if (sharePct > limitPct) {
+      over += 1;
+      pnlOver += pnl;
+      breaches.push({
+        betId: bet.id,
+        event: bet.event,
+        date: bet.date,
+        stake: bet.stake,
+        sharePct: Math.round(sharePct * 10) / 10,
+        pnl,
+      });
+    } else {
+      within += 1;
+      pnlWithin += pnl;
+    }
+  }
+
+  const total = within + over;
+  if (total === 0) return null;
+
+  return {
+    limitPct,
+    total,
+    within,
+    over,
+    breachRate: Math.round((over / total) * 1000) / 10,
+    avgSharePct: Math.round((shareSum / total) * 10) / 10,
+    pnlWithin,
+    pnlOver,
+    worst: breaches.sort((a, b) => b.sharePct - a.sharePct).slice(0, worstCount),
+  };
 }

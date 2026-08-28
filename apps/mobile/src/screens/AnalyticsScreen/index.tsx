@@ -4,10 +4,13 @@ import { PieChart } from 'react-native-gifted-charts';
 import {
   calcByField, calcByOddsRange, calcByDayOfWeek, calcDashboard,
   calcStreaks, calcExtremes, calcLastFullMonth, calcMonthResult, calcTimeStats, calcCLV,
-  calcMaxDrawdown, calcEdge, calcMonthlyPnl, calcPnlBuckets, RELIABLE_SAMPLE_MIN,
+  calcMaxDrawdown, calcEdge, calcMonthlyPnl, calcPnlBuckets, calcLuck, calcPlanCompliance, RELIABLE_SAMPLE_MIN,
   SPORTS, BET_TYPES, STRATEGIES, formatPercent, toYmd } from '@sharklog/core';
 import type { SliceStats, Bet, MonthlyPnl, PnlBucket, Granularity } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { ProGate } from '../../components/ProGate';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { useFormatMoney } from '../../utils/useFormatMoney';
@@ -21,6 +24,8 @@ import { Card, tileStyle } from '../../components/Card';
 import { PnlBars } from '../../components/PnlBars';
 
 const { width } = Dimensions.get('window');
+
+type AnalyticsNav = NativeStackNavigationProp<RootStackParamList>;
 
 // Distinct "time of day" ramp for the 6 four-hour donut segments.
 const BUCKET_COLORS = ['#3B4A8C', '#5B6AF0', '#22D3A0', '#F59E0B', '#A78BFA', '#546E9C'];
@@ -285,6 +290,224 @@ function EdgeRiskCard({ bets }: { bets: Bet[] }) {
 
 const edge = StyleSheet.create({
   caption: { fontSize: 11, color: colors.textMuted, marginTop: 10, lineHeight: 15 },
+});
+
+// ── Luck vs decisions ────────────────────────────────────────────────────────
+
+function LuckCard({ bets }: { bets: Bet[] }) {
+  const fmt = useFormatMoney();
+  const l = useMemo(() => calcLuck(bets), [bets]);
+  if (!l) return null;
+
+  const swing = l.actualWins - l.expectedWins;
+  const verdictText =
+    l.verdict === 'normal'
+      ? 'Результат в пределах обычного разброса — по этой выборке нельзя сказать, что дело в решениях, а не в дисперсии.'
+      : l.verdict === 'hot'
+      ? 'Результат выше того, что дают одни коэффициенты. Часть этого — везение, и оно не повторяется по заказу.'
+      : 'Результат ниже того, что дают одни коэффициенты. Такая полоса — обычная часть дистанции, а не повод менять всё.';
+
+  const zColor = l.verdict === 'normal' ? colors.textPrimary : l.z > 0 ? colors.won : colors.lost;
+
+  return (
+    <Card title="Везение или решения" tone="violet">
+      <View style={row.wrap}>
+        <MiniTile
+          label="Отклонение от нуля"
+          value={`${l.z > 0 ? '+' : ''}${l.z.toFixed(2)}σ`}
+          color={zColor}
+          sub={`факт ${l.actualPnl >= 0 ? '+' : ''}${fmt(l.actualPnl)}`}
+          info={{
+            title: 'Отклонение от нуля',
+            text: 'Ставить по коэффициентам букмекера — это игра с нулевым ожиданием: цена 2.50 означает шанс 40%, и на дистанции такие ставки дают ровно ноль.\n\nПоэтому точка отсчёта — не «сколько я заработал», а «насколько мой результат отошёл от нуля по сравнению с тем, насколько он МОГ отойти случайно». Эта величина и есть σ (сигма).\n\nДо 1σ — обычный разброс. Больше 2σ — результат вряд ли объясняется одним везением: скорее всего, ты действительно ловишь цену (или систематически ошибаешься).',
+          }}
+        />
+        <View style={{ width: 10 }} />
+        <MiniTile
+          label="Разброс на этой выборке"
+          value={`±${fmt(l.sigma)}`}
+          color={colors.textSecondary}
+          sub={`${l.sample} ставок`}
+          info={{
+            title: 'Разброс на этой выборке',
+            text: 'Насколько результат мог гулять сам по себе, без всякого умения — только из-за того, что ставки либо заходят, либо нет.\n\nСчитается из твоих реальных сумм и коэффициентов: чем крупнее ставки и выше кэфы, тем шире разброс. Если твой плюс или минус меньше этой цифры — он ничего не доказывает.',
+          }}
+        />
+      </View>
+
+      <View style={luck.winsRow}>
+        <Text style={luck.winsLabel}>Побед: факт / по кэфам</Text>
+        <Text style={luck.winsValue}>
+          {l.actualWins} / {l.expectedWins.toFixed(1)}
+          <Text style={{ color: swing >= 0 ? colors.won : colors.lost }}>
+            {'  '}{swing >= 0 ? '+' : ''}{swing.toFixed(1)}
+          </Text>
+        </Text>
+      </View>
+
+      <Text style={luck.verdict}>{verdictText}</Text>
+      {l.sample < RELIABLE_SAMPLE_MIN && (
+        <Text style={luck.caption}>
+          Выборка мала ({l.sample}/{RELIABLE_SAMPLE_MIN}) — на короткой дистанции почти любой результат укладывается в разброс
+        </Text>
+      )}
+    </Card>
+  );
+}
+
+const luck = StyleSheet.create({
+  winsRow: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.border,
+  },
+  winsLabel: { fontSize: 12, color: colors.textSecondary },
+  winsValue: { fontSize: 14, fontWeight: '700', color: colors.textPrimary },
+  verdict: { fontSize: 12, color: colors.textSecondary, lineHeight: 17, marginTop: 10 },
+  caption: { fontSize: 11, color: colors.textMuted, marginTop: 8, lineHeight: 15 },
+});
+
+// ── Staking-plan compliance ──────────────────────────────────────────────────
+
+function PlanCard({ bets }: { bets: Bet[] }) {
+  const fmt = useFormatMoney();
+  const navigation = useNavigation<AnalyticsNav>();
+  const { bankroll, settings } = useBetsStore();
+  const limitPct = settings.generatedStrategy?.stakePercent ?? null;
+
+  const plan = useMemo(
+    () => (limitPct ? calcPlanCompliance(bets, bankroll.transactions, limitPct) : null),
+    [bets, bankroll.transactions, limitPct],
+  );
+
+  // Without a plan there is nothing to comply with — offer to build one instead
+  // of showing an empty card.
+  if (!limitPct) {
+    return (
+      <Card title="Соблюдение плана" tone="warn">
+        <Text style={plan_.empty}>
+          Собери стратегию — она задаст лимит на ставку в % от банка, и здесь появится, насколько ты его держишь.
+        </Text>
+        <TouchableOpacity
+          style={plan_.cta}
+          onPress={() => { haptic.selection(); navigation.navigate('StrategyBuilder'); }}
+          activeOpacity={0.8}
+        >
+          <Text style={plan_.ctaText}>Собрать стратегию →</Text>
+        </TouchableOpacity>
+      </Card>
+    );
+  }
+
+  if (!plan) {
+    return (
+      <Card title="Соблюдение плана" tone="warn">
+        <Text style={plan_.empty}>
+          Нужен банк и хотя бы одна ставка своими деньгами, чтобы посчитать долю от банка.
+        </Text>
+      </Card>
+    );
+  }
+
+  const clean = plan.breachRate === 0;
+
+  return (
+    <Card title="Соблюдение плана" tone="warn" subtitle={`Лимит ${plan.limitPct}% банка на ставку`}>
+      <View style={row.wrap}>
+        <MiniTile
+          label="Ставок сверх лимита"
+          value={`${plan.breachRate.toFixed(0)}%`}
+          color={clean ? colors.won : plan.breachRate > 25 ? colors.lost : colors.pending}
+          sub={`${plan.over} из ${plan.total}`}
+          info={{
+            title: 'Ставок сверх лимита',
+            text: 'Доля ставок, где сумма превысила твой план в % от банка.\n\nБанк берётся на НАЧАЛО дня ставки: пополнения того дня уже учтены, а результаты того дня — ещё нет, потому что на момент ставки они не были известны.\n\nФрибеты не считаются: там своих денег не было.',
+          }}
+        />
+        <View style={{ width: 10 }} />
+        <MiniTile
+          label="Средняя доля банка"
+          value={`${plan.avgSharePct.toFixed(1)}%`}
+          color={plan.avgSharePct > plan.limitPct ? colors.lost : colors.won}
+          sub={`план ${plan.limitPct}%`}
+          info={{
+            title: 'Средняя доля банка',
+            text: 'Средний размер ставки в процентах от банка на тот момент.\n\nЕсли она заметно выше плана — дело не в отдельных срывах, а в том, что реальный размер ставки просто больше выбранного. Тогда честнее пересобрать стратегию под свой стиль, чем каждый раз нарушать её.',
+          }}
+        />
+      </View>
+
+      {!clean && (
+        <View style={plan_.splitRow}>
+          <View style={plan_.splitCell}>
+            <Text style={plan_.splitLabel}>P&L в лимите</Text>
+            <Text style={[plan_.splitValue, { color: plan.pnlWithin >= 0 ? colors.won : colors.lost }]}>
+              {plan.pnlWithin >= 0 ? '+' : ''}{fmt(plan.pnlWithin)}
+            </Text>
+          </View>
+          <View style={plan_.splitDivider} />
+          <View style={plan_.splitCell}>
+            <Text style={plan_.splitLabel}>P&L сверх лимита</Text>
+            <Text style={[plan_.splitValue, { color: plan.pnlOver >= 0 ? colors.won : colors.lost }]}>
+              {plan.pnlOver >= 0 ? '+' : ''}{fmt(plan.pnlOver)}
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {clean ? (
+        <Text style={plan_.verdict}>Ни одна ставка не вышла за лимит. Это и есть дисциплина.</Text>
+      ) : (
+        <>
+          <Text style={plan_.verdict}>
+            {plan.pnlOver < 0
+              ? `Ставки сверх лимита забрали ${fmt(Math.abs(plan.pnlOver))}.`
+              : `Ставки сверх лимита пока в плюсе — но именно они однажды дадут самую глубокую просадку.`}
+          </Text>
+          <Text style={plan_.worstTitle}>Самые крупные отклонения</Text>
+          {plan.worst.map((w) => (
+            <View key={w.betId} style={plan_.worstRow}>
+              <View style={{ flex: 1, marginRight: 8 }}>
+                <Text style={plan_.worstEvent} numberOfLines={1}>{w.event}</Text>
+                <Text style={plan_.worstDate}>
+                  {w.date.split('-').reverse().slice(0, 2).join('.')} · {fmt(w.stake)}
+                </Text>
+              </View>
+              <Text style={plan_.worstShare}>{w.sharePct.toFixed(1)}%</Text>
+            </View>
+          ))}
+        </>
+      )}
+    </Card>
+  );
+}
+
+const plan_ = StyleSheet.create({
+  empty: { fontSize: 12, color: colors.textSecondary, lineHeight: 17 },
+  cta: {
+    marginTop: 12, paddingVertical: 10, borderRadius: 10, alignItems: 'center',
+    backgroundColor: alpha(colors.gold, 0.16), borderWidth: 1, borderColor: colors.gold,
+  },
+  ctaText: { fontSize: 13, fontWeight: '700', color: colors.gold },
+  splitRow: {
+    flexDirection: 'row', alignItems: 'center',
+    marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.border,
+  },
+  splitCell: { flex: 1 },
+  splitDivider: { width: 1, height: 28, backgroundColor: colors.border, marginHorizontal: 10 },
+  splitLabel: { fontSize: 11, color: colors.textMuted },
+  splitValue: { fontSize: 15, fontWeight: '700', marginTop: 2 },
+  verdict: { fontSize: 12, color: colors.textSecondary, lineHeight: 17, marginTop: 10 },
+  worstTitle: {
+    fontSize: 11, color: colors.textMuted, textTransform: 'uppercase',
+    letterSpacing: 0.5, marginTop: 14, marginBottom: 6,
+  },
+  worstRow: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingVertical: 7, borderTopWidth: 1, borderTopColor: colors.border,
+  },
+  worstEvent: { fontSize: 13, fontWeight: '600', color: colors.textPrimary },
+  worstDate: { fontSize: 11, color: colors.textMuted, marginTop: 1 },
+  worstShare: { fontSize: 14, fontWeight: '700', color: colors.lost },
 });
 
 // ── Monthly P&L trend (6 compact bars) ───────────────────────────────────────
@@ -632,6 +855,8 @@ function AnalyticsContent() {
       <StreaksCard bets={filteredBets} />
       <ExtremesCard bets={filteredBets} />
       <EdgeRiskCard bets={filteredBets} />
+      <LuckCard bets={filteredBets} />
+      <PlanCard bets={filteredBets} />
       <LastMonthCard bets={bets} />
       <TimeCard bets={filteredBets} />
       <ClvCard bets={filteredBets} />

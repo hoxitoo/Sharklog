@@ -57,6 +57,8 @@ docs/            — ROADMAP.md, ANALYSIS.md, PRIVACY_POLICY.md
 - **Для «читаемости результата за период» — `calcPnlBuckets`**, а не накопительная линия: на кумулятиве выигрышный день идёт вниз, если предыдущий проиграл больше, и это читается как баг.
 - **Фильтр списка ставок** — `BetsFilter { date?, tournament?, team?, from? }`. Команду матчь через `betBacksTeam()` (то же правило, что у `calcByTeam`), иначе количество в списке не сойдётся с числом на плитке инсайтов.
 - **Android «назад»** обрабатывается в `DrawerNavigator` (`BackHandler`): drawer → фильтр → Ставки → выход. Новый уровень навигации добавляй туда же.
+- **`calcLuck` — точка отсчёта НОЛЬ, а не «сколько заработал»**: ставка по цене букмекера имеет нулевое матожидание по построению (`p = 1/odds`), поэтому вопрос не «в плюсе ли я», а «на сколько сигм результат отошёл от нуля». Дисперсия одной ставки — `p(1−p)(stake × odds)²`. Фрибеты, возвраты и выкупы в выборку не входят: модель описывает бинарный исход своими деньгами.
+- **`calcPlanCompliance` меряет ставку от банка НА НАЧАЛО дня** (`day.balance − day.pnl`): пополнения того дня уже учтены, результаты — ещё нет, потому что на момент ставки их не было. Не считай долю от текущего банка — задним числом выигрышный день занизит все доли того же дня.
 - **Действия над ставкой добавляй в `useBetActions`, а не в экран** — колесо показывают два экрана, и позиции секторов должны совпадать, иначе теряется мышечная память.
 - **Состояние inline-выкупа держит родитель** (`useBetActions.cashoutFor`), а не карточка: так «две открытые карточки» физически непредставимы. Карточка с открытым полем игнорирует тап по телу, поэтому забытая открытая карточка читается как зависшая.
 - **Поле выкупа НЕ привязано к статусу** — выигранную ставку тоже можно перевести в выкуп. По статусу гейтятся только быстрые чипы W/L/R/C.
@@ -153,7 +155,7 @@ new Date(str).toLocaleDateString(locale, { day: 'numeric', month: 'short' });
 
 ```bash
 # Тесты
-cd packages/core && npx vitest run        # 160 unit-тестов core
+cd packages/core && npx vitest run        # 176 unit-тестов core
 cd apps/desktop  && npm test              # 40 smoke-тестов desktop (Vitest)
 cd apps/mobile   && npm test              # 34 smoke-теста mobile (Jest)
 
@@ -363,6 +365,9 @@ utils/
                         calcMonthlyPnl(bets, now, months), calcMonthResult(bets, y, m) — итог любого месяца, RELIABLE_SAMPLE_MIN=100
                         calcPnlBuckets(bets, 'day'|'week'|'month', count) — чистый P&L по периодам
                         (группировка по bet.date, пустые бакеты сохраняются)
+                        calcLuck(bets) — сигма-отклонение результата от безубытка (везение vs решения)
+                        calcPlanCompliance(bets, txs, limitPct) — доля ставок сверх лимита плана,
+                        P&L в лимите / сверх него, топ отклонений
   kelly.ts            — kellyFraction, halfKelly, expectedValue, impliedProbability
   formatters.ts       — formatMoney(kopecks, currency='₽', maxDecimals=2), parseMoneyInput, formatOdds, formatPercent (adds + prefix)
   strategyBuilder.ts  — STRATEGY_QUESTIONS (10 вопросов), buildStrategy(answers)
