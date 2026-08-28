@@ -148,7 +148,8 @@
     "planWorst": "Largest deviations",
     "planNoStrategy": "Build a strategy — it sets the per-bet limit as a share of your bank, and this card will show how well you hold it.",
     "planNoBank": "A bank and at least one bet with your own money are needed to work out the share.",
-    "planOf": "of"
+    "planOf": "of",
+    "planPending": "The over-limit bets have not settled yet — their result will show once they do."
   },
   "insights": {
     "title": "Insights",

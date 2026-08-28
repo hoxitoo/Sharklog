@@ -431,7 +431,9 @@ export function calcLuck(bets: Bet[]): LuckStats | null {
   }
 
   const sigma = Math.sqrt(variance);
-  const z = sigma > 0 ? actualPnl / sigma : 0;
+  // Verdict follows the number that is shown, or −0.996σ would display as
+  // "−1.00σ" next to the word "ordinary".
+  const z = sigma > 0 ? Math.round((actualPnl / sigma) * 100) / 100 : 0;
 
   return {
     sample: settled.length,
@@ -439,7 +441,7 @@ export function calcLuck(bets: Bet[]): LuckStats | null {
     expectedWins: Math.round(expectedWins * 10) / 10,
     actualWins,
     sigma: Math.round(sigma),
-    z: Math.round(z * 100) / 100,
+    z,
     verdict: z >= 1 ? 'hot' : z <= -1 ? 'cold' : 'normal',
   };
 }
@@ -466,6 +468,8 @@ export interface PlanCompliance {
   avgSharePct: number;
   pnlWithin: number;
   pnlOver: number;
+  /** Of the over-limit bets, how many have a result yet — pnlOver sums only those. */
+  settledOver: number;
   /** Worst offenders by share of bank, largest first. */
   worst: PlanBreach[];
 }
@@ -496,10 +500,26 @@ export function calcPlanCompliance(
   // the window, which moves the bank and invents breaches that never happened.
   const days = calcDailyBreakdown(allBets, transactions);
   const bankAtStart = new Map<string, number>();
-  for (const d of days) bankAtStart.set(d.date, d.balance - d.pnl);
+  for (const d of days) {
+    // balance already folds in the whole day: its results, and its cash moves.
+    // Undo the parts that happened after the bet was placed — the day's results,
+    // and the withdrawals and reconciliations posted that evening. Deposits stay:
+    // topping up and then betting is the normal order. Without this, one evening
+    // withdrawal turned every bet made that morning into a plan breach, and a
+    // large negative reconciliation could drive the bank to zero and blank the
+    // whole card.
+    bankAtStart.set(d.date, d.balance - d.pnl + d.withdrawals - d.adjustments);
+  }
+  // Bets dated ahead of today have no day of their own — the breakdown stops at
+  // today. They were still placed against the bank as it stands now, and dating
+  // a bet by kick-off is ordinary use, so they must not vanish from the count.
+  const latest = days[days.length - 1];
+  const bankNow = latest ? latest.balance : 0;
+  const lastDay = latest ? latest.date : '';
 
   let within = 0;
   let over = 0;
+  let settledOver = 0;
   let shareSum = 0;
   let pnlWithin = 0;
   let pnlOver = 0;
@@ -507,7 +527,7 @@ export function calcPlanCompliance(
 
   for (const bet of evaluate) {
     if (bet.isFreebet) continue;
-    const bank = bankAtStart.get(bet.date);
+    const bank = bet.date > lastDay ? bankNow : bankAtStart.get(bet.date);
     // A non-positive bank makes "percent of bank" meaningless, not zero.
     if (bank == null || bank <= 0) continue;
 
@@ -518,6 +538,7 @@ export function calcPlanCompliance(
     if (sharePct > limitPct) {
       over += 1;
       pnlOver += pnl;
+      if (bet.status !== 'pending') settledOver += 1;
       breaches.push({
         betId: bet.id,
         event: bet.event,
@@ -544,6 +565,7 @@ export function calcPlanCompliance(
     avgSharePct: Math.round((shareSum / total) * 10) / 10,
     pnlWithin,
     pnlOver,
+    settledOver,
     worst: breaches.sort((a, b) => b.sharePct - a.sharePct).slice(0, worstCount),
   };
 }

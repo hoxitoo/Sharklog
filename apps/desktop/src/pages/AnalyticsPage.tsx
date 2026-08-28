@@ -166,6 +166,11 @@ function LuckCard({ bets }: { bets: Bet[] }) {
   );
 }
 
+/** A stake against a near-empty bank produces a true but unreadable percent. */
+function fmtShare(pct: number): string {
+  return pct >= 1000 ? '>999%' : `${pct.toFixed(1)}%`;
+}
+
 function PlanCard({ bets, allBets, onNavigate }: {
   bets: Bet[]; allBets: Bet[]; onNavigate?: (page: string) => void;
 }) {
@@ -230,7 +235,7 @@ function PlanCard({ bets, allBets, onNavigate }: {
         />
         <Stat
           label={t('analytics.planAvgShare')}
-          value={`${plan.avgSharePct.toFixed(1)}%`}
+          value={fmtShare(plan.avgSharePct)}
           color={plan.avgSharePct > plan.limitPct ? colors.lost : colors.won}
           sub={`${plan.limitPct}%`}
         />
@@ -245,6 +250,7 @@ function PlanCard({ bets, allBets, onNavigate }: {
               label={t('analytics.planPnlOver')}
               value={`${plan.pnlOver >= 0 ? '+' : ''}${formatMoney(plan.pnlOver)}`}
               color={plan.pnlOver >= 0 ? colors.won : colors.lost}
+              sub={`${plan.settledOver} / ${plan.over}`}
             />
           </>
         )}
@@ -252,6 +258,7 @@ function PlanCard({ bets, allBets, onNavigate }: {
 
       <div style={{ marginTop: 12, fontSize: 12, color: colors.textSecondary, lineHeight: 1.5 }}>
         {clean ? t('analytics.planClean')
+          : plan.settledOver === 0 ? t('analytics.planPending')
           : plan.pnlOver < 0 ? t('analytics.planCost', { amount: formatMoney(Math.abs(plan.pnlOver)) })
           : t('analytics.planLucky')}
       </div>
@@ -270,7 +277,7 @@ function PlanCard({ bets, allBets, onNavigate }: {
                     {new Date(`${w.date}T12:00:00`).toLocaleDateString(dateLocale(i18n.language), { day: 'numeric', month: 'short' })}
                   </td>
                   <td style={{ padding: '8px 0', fontSize: 12, color: colors.textSecondary, textAlign: 'right' }}>{formatMoney(w.stake)}</td>
-                  <td style={{ padding: '8px 0', fontSize: 14, fontWeight: 700, color: colors.lost, textAlign: 'right' }}>{w.sharePct.toFixed(1)}%</td>
+                  <td style={{ padding: '8px 0', fontSize: 14, fontWeight: 700, color: colors.lost, textAlign: 'right' }}>{fmtShare(w.sharePct)}</td>
                 </tr>
               ))}
             </tbody>

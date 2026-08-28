@@ -183,3 +183,67 @@ describe('calcPlanCompliance — bank vs the judged window', () => {
     expect(calcPlanCompliance(all, tx, 5)!.total).toBe(1);
   });
 });
+
+describe('calcPlanCompliance — what belongs in the start-of-day bank', () => {
+  const dep = (amount: number, date: string): BankrollTransaction =>
+    ({ id: 'd' + date + amount, type: 'deposit', amount, date });
+  const wd = (amount: number, date: string): BankrollTransaction =>
+    ({ id: 'w' + date + amount, type: 'withdrawal', amount, date });
+  const adj = (amount: number, date: string): BankrollTransaction =>
+    ({ id: 'a' + date + amount, type: 'adjustment', amount, date });
+
+  // A withdrawal made in the evening cannot retroactively shrink the bank that
+  // the morning's bet was placed against.
+  it('ignores a same-day withdrawal', () => {
+    const txs = [dep(1_000_000, '2026-08-01T09:00:00.000Z'), wd(900_000, '2026-08-01T22:00:00.000Z')];
+    const c = calcPlanCompliance([bet({ date: '2026-08-01', stake: 30_000 })], txs, 5)!;
+    expect(c.avgSharePct).toBe(3);
+    expect(c.over).toBe(0);
+  });
+
+  it('ignores a same-day reconciliation instead of blanking the card', () => {
+    const txs = [dep(1_000_000, '2026-08-01T09:00:00.000Z'), adj(-1_000_000, '2026-08-01T23:00:00.000Z')];
+    const c = calcPlanCompliance([bet({ date: '2026-08-01', stake: 30_000 })], txs, 5);
+    expect(c).not.toBeNull();
+    expect(c!.avgSharePct).toBe(3);
+  });
+
+  it('still counts a same-day deposit — topping up then betting is the normal order', () => {
+    const txs = [dep(1_000_000, '2026-08-01T09:00:00.000Z')];
+    const c = calcPlanCompliance([bet({ date: '2026-08-01', stake: 100_000 })], txs, 5)!;
+    expect(c.avgSharePct).toBe(10);
+  });
+
+  it('judges a bet dated ahead of today against the bank as it stands', () => {
+    const future = new Date(Date.now() + 3 * 86_400_000).toISOString().slice(0, 10);
+    const txs = [dep(1_000_000, '2026-01-01T09:00:00.000Z')];
+    const c = calcPlanCompliance(
+      [bet({ date: '2026-01-01', stake: 10_000, status: 'won', odds: 2 }),
+       bet({ date: future, stake: 100_000, status: 'pending' })],
+      txs, 5,
+    )!;
+    expect(c.total).toBe(2);
+  });
+
+  it('separates over-limit bets that have a result from those still open', () => {
+    const txs = [dep(1_000_000, '2026-08-01T09:00:00.000Z')];
+    const c = calcPlanCompliance([
+      bet({ date: '2026-08-01', stake: 200_000, status: 'pending' }),
+      bet({ date: '2026-08-01', stake: 200_000, status: 'lost' }),
+    ], txs, 5)!;
+    expect(c.over).toBe(2);
+    expect(c.settledOver).toBe(1);
+    expect(c.pnlOver).toBe(-200_000);
+  });
+});
+
+describe('calcLuck — verdict matches the number on screen', () => {
+  it('never labels a displayed −1.00σ as ordinary', () => {
+    for (let n = 1; n <= 40; n++) {
+      const l = calcLuck(Array.from({ length: n }, (_, i) =>
+        bet({ odds: 2, status: i % 3 === 0 ? 'won' : 'lost' })))!;
+      if (Math.abs(l.z) >= 1) expect(l.verdict).not.toBe('normal');
+      else expect(l.verdict).toBe('normal');
+    }
+  });
+});

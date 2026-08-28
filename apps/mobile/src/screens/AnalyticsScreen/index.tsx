@@ -319,7 +319,7 @@ function LuckCard({ bets }: { bets: Bet[] }) {
           sub={`факт ${l.actualPnl >= 0 ? '+' : ''}${fmt(l.actualPnl)}`}
           info={{
             title: 'Отклонение от нуля',
-            text: 'Ставить по коэффициентам букмекера — это игра с нулевым ожиданием: цена 2.50 означает шанс 40%, и на дистанции такие ставки дают ровно ноль.\n\nПоэтому точка отсчёта — не «сколько я заработал», а «насколько мой результат отошёл от нуля по сравнению с тем, насколько он МОГ отойти случайно». Эта величина и есть σ (сигма).\n\nДо 1σ — обычный разброс. Больше 2σ — результат вряд ли объясняется одним везением: скорее всего, ты действительно ловишь цену (или систематически ошибаешься).',
+            text: 'Точка отсчёта — безубыток: цена 2.50 означает шанс 40%, и если угадывать ровно с такой частотой, выходишь в ноль.\n\nПоэтому вопрос не «сколько я заработал», а «насколько результат отошёл от нуля по сравнению с тем, насколько он МОГ отойти случайно». Эта величина и есть σ (сигма).\n\nДо 1σ — обычный разброс. Больше 2σ — результат вряд ли объясняется одним везением: скорее всего, ты действительно ловишь цену (или систематически ошибаешься).\n\nОценка строгая к тебе: в кэфы зашита маржа букмекера, так что реальный ноль чуть ниже безубытка. Выйти в плюс по этой шкале — уже значит обыгрывать маржу.',
           }}
         />
         <View style={{ width: 10 }} />
@@ -367,6 +367,12 @@ const luck = StyleSheet.create({
 });
 
 // ── Staking-plan compliance ──────────────────────────────────────────────────
+
+/** A stake against a near-empty bank produces a true but unreadable percent. */
+function fmtShare(pct: number): string {
+  return pct >= 1000 ? '>999%' : `${pct.toFixed(1)}%`;
+}
+
 
 function PlanCard({ bets, allBets }: { bets: Bet[]; allBets: Bet[] }) {
   const fmt = useFormatMoney();
@@ -429,7 +435,7 @@ function PlanCard({ bets, allBets }: { bets: Bet[]; allBets: Bet[] }) {
         <View style={{ width: 10 }} />
         <MiniTile
           label="Средняя доля банка"
-          value={`${plan.avgSharePct.toFixed(1)}%`}
+          value={fmtShare(plan.avgSharePct)}
           color={plan.avgSharePct > plan.limitPct ? colors.lost : colors.won}
           sub={`план ${plan.limitPct}%`}
           info={{
@@ -449,7 +455,7 @@ function PlanCard({ bets, allBets }: { bets: Bet[]; allBets: Bet[] }) {
           </View>
           <View style={plan_.splitDivider} />
           <View style={plan_.splitCell}>
-            <Text style={plan_.splitLabel}>P&L сверх лимита</Text>
+            <Text style={plan_.splitLabel}>P&L сверх лимита · {plan.settledOver} расч.</Text>
             <Text style={[plan_.splitValue, { color: plan.pnlOver >= 0 ? colors.won : colors.lost }]}>
               {plan.pnlOver >= 0 ? '+' : ''}{fmt(plan.pnlOver)}
             </Text>
@@ -462,9 +468,11 @@ function PlanCard({ bets, allBets }: { bets: Bet[]; allBets: Bet[] }) {
       ) : (
         <>
           <Text style={plan_.verdict}>
-            {plan.pnlOver < 0
+            {plan.settledOver === 0
+              ? 'Ставки сверх лимита ещё не рассчитаны — итог по ним будет виден после результата.'
+              : plan.pnlOver < 0
               ? `Ставки сверх лимита забрали ${fmt(Math.abs(plan.pnlOver))}.`
-              : `Ставки сверх лимита пока в плюсе — но именно они однажды дадут самую глубокую просадку.`}
+              : 'Ставки сверх лимита пока в плюсе — но именно они однажды дадут самую глубокую просадку.'}
           </Text>
           <Text style={plan_.worstTitle}>Самые крупные отклонения</Text>
           {plan.worst.map((w) => (
@@ -475,7 +483,7 @@ function PlanCard({ bets, allBets }: { bets: Bet[]; allBets: Bet[] }) {
                   {w.date.split('-').reverse().slice(0, 2).join('.')} · {fmt(w.stake)}
                 </Text>
               </View>
-              <Text style={plan_.worstShare}>{w.sharePct.toFixed(1)}%</Text>
+              <Text style={plan_.worstShare}>{fmtShare(w.sharePct)}</Text>
             </View>
           ))}
         </>
