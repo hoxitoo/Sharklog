@@ -166,13 +166,18 @@ function LuckCard({ bets }: { bets: Bet[] }) {
   );
 }
 
-function PlanCard({ bets, onNavigate }: { bets: Bet[]; onNavigate?: (page: string) => void }) {
+function PlanCard({ bets, allBets, onNavigate }: {
+  bets: Bet[]; allBets: Bet[]; onNavigate?: (page: string) => void;
+}) {
   const { t, i18n } = useTranslation();
   const { bankroll, settings } = useBetsStore();
   const limitPct = settings.generatedStrategy?.stakePercent ?? null;
+  // Full history feeds the bank, the period slice is what gets judged.
   const plan = useMemo(
-    () => (limitPct ? calcPlanCompliance(bets, bankroll.transactions, limitPct) : null),
-    [bets, bankroll.transactions, limitPct],
+    () => (limitPct
+      ? calcPlanCompliance(allBets, bankroll.transactions, limitPct, { evaluate: bets })
+      : null),
+    [allBets, bets, bankroll.transactions, limitPct],
   );
 
   if (!limitPct) {
@@ -358,7 +363,7 @@ export function AnalyticsPage({ onNavigate }: { onNavigate?: (page: string) => v
         <>
           <SummaryCard bets={filteredBets} />
           <LuckCard bets={filteredBets} />
-          <PlanCard bets={filteredBets} {...(onNavigate ? { onNavigate } : {})} />
+          <PlanCard bets={filteredBets} allBets={bets} {...(onNavigate ? { onNavigate } : {})} />
           {topTournaments.length > 0 && (
             <div style={s.card}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>

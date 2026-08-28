@@ -483,14 +483,18 @@ export interface PlanCompliance {
  * share does not apply to them.
  */
 export function calcPlanCompliance(
-  bets: Bet[],
+  allBets: Bet[],
   transactions: BankrollTransaction[],
   limitPct: number,
-  worstCount = 5,
+  opts: { evaluate?: Bet[]; worstCount?: number } = {},
 ): PlanCompliance | null {
   if (!(limitPct > 0)) return null;
+  const { evaluate = allBets, worstCount = 5 } = opts;
 
-  const days = calcDailyBreakdown(bets, transactions);
+  // The bank is rebuilt from the WHOLE history even when only a slice is being
+  // judged: reconstructing it from a filtered subset drops every result before
+  // the window, which moves the bank and invents breaches that never happened.
+  const days = calcDailyBreakdown(allBets, transactions);
   const bankAtStart = new Map<string, number>();
   for (const d of days) bankAtStart.set(d.date, d.balance - d.pnl);
 
@@ -501,7 +505,7 @@ export function calcPlanCompliance(
   let pnlOver = 0;
   const breaches: PlanBreach[] = [];
 
-  for (const bet of bets) {
+  for (const bet of evaluate) {
     if (bet.isFreebet) continue;
     const bank = bankAtStart.get(bet.date);
     // A non-positive bank makes "percent of bank" meaningless, not zero.

@@ -368,15 +368,18 @@ const luck = StyleSheet.create({
 
 // ── Staking-plan compliance ──────────────────────────────────────────────────
 
-function PlanCard({ bets }: { bets: Bet[] }) {
+function PlanCard({ bets, allBets }: { bets: Bet[]; allBets: Bet[] }) {
   const fmt = useFormatMoney();
   const navigation = useNavigation<AnalyticsNav>();
   const { bankroll, settings } = useBetsStore();
   const limitPct = settings.generatedStrategy?.stakePercent ?? null;
 
+  // Full history feeds the bank, the period slice is what gets judged.
   const plan = useMemo(
-    () => (limitPct ? calcPlanCompliance(bets, bankroll.transactions, limitPct) : null),
-    [bets, bankroll.transactions, limitPct],
+    () => (limitPct
+      ? calcPlanCompliance(allBets, bankroll.transactions, limitPct, { evaluate: bets })
+      : null),
+    [allBets, bets, bankroll.transactions, limitPct],
   );
 
   // Without a plan there is nothing to comply with — offer to build one instead
@@ -856,7 +859,7 @@ function AnalyticsContent() {
       <ExtremesCard bets={filteredBets} />
       <EdgeRiskCard bets={filteredBets} />
       <LuckCard bets={filteredBets} />
-      <PlanCard bets={filteredBets} />
+      <PlanCard bets={filteredBets} allBets={bets} />
       <LastMonthCard bets={bets} />
       <TimeCard bets={filteredBets} />
       <ClvCard bets={filteredBets} />

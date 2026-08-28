@@ -128,7 +128,7 @@ describe('calcPlanCompliance', () => {
       bet({ stake: 300_000, event: 'Худшая' }),
       bet({ stake: 200_000, event: 'Средняя' }),
       bet({ stake: 60_000, event: 'Мелкая' }),
-    ], deposit, 5, 2)!;
+    ], deposit, 5, { worstCount: 2 })!;
     expect(c.worst).toHaveLength(2);
     expect(c.worst[0]!.event).toBe('Худшая');
     expect(c.worst[0]!.sharePct).toBe(30);
@@ -151,5 +151,35 @@ describe('calcPlanCompliance', () => {
     const c = calcPlanCompliance([bet({ stake: 200_000, status: 'pending' })], deposit, 5)!;
     expect(c.over).toBe(1);
     expect(c.pnlOver).toBe(0);
+  });
+});
+
+describe('calcPlanCompliance — bank vs the judged window', () => {
+  const tx: BankrollTransaction[] = [
+    { id: 'd', type: 'deposit', amount: 1_000_000, date: '2026-07-01T09:00:00.000Z' },
+  ];
+  const at = (date: string, stake: number, status: Bet['status'] = 'won') =>
+    bet({ date, stake, status, odds: 3, createdAt: `${date}T12:00:00.000Z` });
+
+  // Judging only August must not rebuild the bank from August alone — July's
+  // winnings are in the account whether or not the period filter shows them.
+  it('measures a filtered window against the bank the whole history produced', () => {
+    const july = [at('2026-07-01', 100_000), at('2026-07-02', 100_000), at('2026-07-03', 100_000)];
+    const august = [at('2026-08-01', 100_000)];
+    const all = [...july, ...august];
+
+    const judged = calcPlanCompliance(all, tx, 5, { evaluate: august })!;
+    const wholeHistory = calcPlanCompliance(all, tx, 5)!;
+
+    expect(judged.total).toBe(1);
+    // Same August bet, same bank, whichever window is on screen.
+    const augustInFull = wholeHistory.avgSharePct;
+    expect(judged.avgSharePct).toBeLessThan(10);
+    expect(augustInFull).toBeLessThan(10);
+  });
+
+  it('defaults to judging everything it was given', () => {
+    const all = [at('2026-07-01', 50_000)];
+    expect(calcPlanCompliance(all, tx, 5)!.total).toBe(1);
   });
 });
