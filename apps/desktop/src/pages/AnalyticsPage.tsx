@@ -4,11 +4,13 @@ import {
 } from 'recharts';
 import {
   calcByField, calcByOddsRange, calcByDayOfWeek, calcByHour, calcDashboard,
-  calcByTournament, SPORTS, BET_TYPES, STRATEGIES, formatMoney, formatPercent, toYmd } from '@sharklog/core';
-import type { SliceStats } from '@sharklog/core';
+  calcByTournament, calcLuck, calcPlanCompliance, RELIABLE_SAMPLE_MIN,
+  SPORTS, BET_TYPES, STRATEGIES, formatMoney, formatPercent, toYmd } from '@sharklog/core';
+import type { SliceStats, Bet } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
 import { colors } from '../theme/colors';
 import { useTranslation } from 'react-i18next';
+import { dateLocale } from '../i18n';
 
 type PeriodFilter = '7d' | '30d' | 'all';
 
@@ -119,7 +121,187 @@ function SummaryCard({ bets }: { bets: Parameters<typeof calcDashboard>[0] }) {
   );
 }
 
-export function AnalyticsPage() {
+function LuckCard({ bets }: { bets: Bet[] }) {
+  const { t } = useTranslation();
+  const l = useMemo(() => calcLuck(bets), [bets]);
+  if (!l) return null;
+
+  const swing = l.actualWins - l.expectedWins;
+  const zColor = l.verdict === 'normal' ? colors.textPrimary : l.z > 0 ? colors.won : colors.lost;
+  const verdict = l.verdict === 'normal' ? t('analytics.luckNormal')
+    : l.verdict === 'hot' ? t('analytics.luckHot')
+    : t('analytics.luckCold');
+
+  return (
+    <div style={s.card}>
+      <div style={s.cardTitle}>{t('analytics.luckTitle')}</div>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+        <Stat
+          label={t('analytics.luckDeviation')}
+          value={`${l.z > 0 ? '+' : ''}${l.z.toFixed(2)}σ`}
+          color={zColor}
+          sub={`${l.actualPnl >= 0 ? '+' : ''}${formatMoney(l.actualPnl)}`}
+        />
+        <Stat
+          label={t('analytics.luckSpread')}
+          value={`±${formatMoney(l.sigma)}`}
+          color={colors.textSecondary}
+          sub={`${l.sample} ${t('analytics.countSuffix')}`}
+        />
+        <Stat
+          label={t('analytics.luckWins')}
+          value={`${l.actualWins} / ${l.expectedWins.toFixed(1)}`}
+          color={colors.textPrimary}
+          sub={`${swing >= 0 ? '+' : ''}${swing.toFixed(1)}`}
+          subColor={swing >= 0 ? colors.won : colors.lost}
+        />
+      </div>
+      <div style={{ marginTop: 12, fontSize: 12, color: colors.textSecondary, lineHeight: 1.5 }}>{verdict}</div>
+      {l.sample < RELIABLE_SAMPLE_MIN && (
+        <div style={{ marginTop: 8, fontSize: 11, color: colors.textMuted }}>
+          {t('analytics.luckSmallSample', { n: l.sample, min: RELIABLE_SAMPLE_MIN })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** A stake against a near-empty bank produces a true but unreadable percent. */
+function fmtShare(pct: number): string {
+  return pct >= 1000 ? '>999%' : `${pct.toFixed(1)}%`;
+}
+
+function PlanCard({ bets, allBets, onNavigate }: {
+  bets: Bet[]; allBets: Bet[]; onNavigate?: (page: string) => void;
+}) {
+  const { t, i18n } = useTranslation();
+  const { bankroll, settings } = useBetsStore();
+  const limitPct = settings.generatedStrategy?.stakePercent ?? null;
+  // Full history feeds the bank, the period slice is what gets judged.
+  const plan = useMemo(
+    () => (limitPct
+      ? calcPlanCompliance(allBets, bankroll.transactions, limitPct, { evaluate: bets })
+      : null),
+    [allBets, bets, bankroll.transactions, limitPct],
+  );
+
+  if (!limitPct) {
+    return (
+      <div style={s.card}>
+        <div style={s.cardTitle}>{t('analytics.planTitle')}</div>
+        <div style={{ fontSize: 12, color: colors.textSecondary, lineHeight: 1.5 }}>{t('analytics.planNoStrategy')}</div>
+        {onNavigate && (
+          <button
+            style={{
+              marginTop: 12, padding: '8px 16px', borderRadius: 8, cursor: 'pointer',
+              background: colors.purpleDim, border: `1px solid ${colors.purple}`,
+              color: colors.purpleText, fontSize: 13, fontWeight: 700,
+            }}
+            onClick={() => onNavigate('strategy')}
+          >
+            {t('nav.strategyBuilder')} →
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  if (!plan) {
+    return (
+      <div style={s.card}>
+        <div style={s.cardTitle}>{t('analytics.planTitle')}</div>
+        <div style={{ fontSize: 12, color: colors.textSecondary, lineHeight: 1.5 }}>{t('analytics.planNoBank')}</div>
+      </div>
+    );
+  }
+
+  const clean = plan.breachRate === 0;
+
+  return (
+    <div style={s.card}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 14 }}>
+        <div style={s.cardTitle}>{t('analytics.planTitle')}</div>
+        <div style={{ fontSize: 11, color: colors.textMuted }}>
+          {t('analytics.planLimit', { pct: plan.limitPct })}
+        </div>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: `repeat(${clean ? 2 : 4}, 1fr)`, gap: 12 }}>
+        <Stat
+          label={t('analytics.planOverRate')}
+          value={`${plan.breachRate.toFixed(0)}%`}
+          color={clean ? colors.won : plan.breachRate > 25 ? colors.lost : colors.pending}
+          sub={`${plan.over} ${t('analytics.planOf')} ${plan.total}`}
+        />
+        <Stat
+          label={t('analytics.planAvgShare')}
+          value={fmtShare(plan.avgSharePct)}
+          color={plan.avgSharePct > plan.limitPct ? colors.lost : colors.won}
+          sub={`${plan.limitPct}%`}
+        />
+        {!clean && (
+          <>
+            <Stat
+              label={t('analytics.planPnlWithin')}
+              value={`${plan.pnlWithin >= 0 ? '+' : ''}${formatMoney(plan.pnlWithin)}`}
+              color={plan.pnlWithin >= 0 ? colors.won : colors.lost}
+            />
+            <Stat
+              label={t('analytics.planPnlOver')}
+              value={`${plan.pnlOver >= 0 ? '+' : ''}${formatMoney(plan.pnlOver)}`}
+              color={plan.pnlOver >= 0 ? colors.won : colors.lost}
+              sub={`${plan.settledOver} / ${plan.over}`}
+            />
+          </>
+        )}
+      </div>
+
+      <div style={{ marginTop: 12, fontSize: 12, color: colors.textSecondary, lineHeight: 1.5 }}>
+        {clean ? t('analytics.planClean')
+          : plan.settledOver === 0 ? t('analytics.planPending')
+          : plan.pnlOver < 0 ? t('analytics.planCost', { amount: formatMoney(Math.abs(plan.pnlOver)) })
+          : t('analytics.planLucky')}
+      </div>
+
+      {!clean && (
+        <>
+          <div style={{ fontSize: 11, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginTop: 16, marginBottom: 6 }}>
+            {t('analytics.planWorst')}
+          </div>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <tbody>
+              {plan.worst.map((w) => (
+                <tr key={w.betId} style={{ borderTop: `1px solid ${colors.border}` }}>
+                  <td style={{ padding: '8px 0', fontSize: 13, color: colors.textPrimary, maxWidth: 260, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{w.event}</td>
+                  <td style={{ padding: '8px 0', fontSize: 11, color: colors.textMuted }}>
+                    {new Date(`${w.date}T12:00:00`).toLocaleDateString(dateLocale(i18n.language), { day: 'numeric', month: 'short' })}
+                  </td>
+                  <td style={{ padding: '8px 0', fontSize: 12, color: colors.textSecondary, textAlign: 'right' }}>{formatMoney(w.stake)}</td>
+                  <td style={{ padding: '8px 0', fontSize: 14, fontWeight: 700, color: colors.lost, textAlign: 'right' }}>{fmtShare(w.sharePct)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
+    </div>
+  );
+}
+
+/** One labelled number inside a card. */
+function Stat({ label, value, color, sub, subColor }: {
+  label: string; value: string; color: string; sub?: string; subColor?: string;
+}) {
+  return (
+    <div style={{ backgroundColor: colors.bgElevated, borderRadius: 10, padding: 14, border: `1px solid ${colors.border}` }}>
+      <div style={{ fontSize: 11, color: colors.textMuted, marginBottom: 6 }}>{label}</div>
+      <div style={{ fontSize: 20, fontWeight: 700, fontFamily: "'DM Mono', monospace", color }}>{value}</div>
+      {sub && <div style={{ fontSize: 11, color: subColor ?? colors.textMuted, marginTop: 4 }}>{sub}</div>}
+    </div>
+  );
+}
+
+export function AnalyticsPage({ onNavigate }: { onNavigate?: (page: string) => void } = {}) {
   const { bets, settings, updateSettings } = useBetsStore();
   const { t } = useTranslation();
   const [period, setPeriod] = useState<PeriodFilter>('all');
@@ -187,6 +369,8 @@ export function AnalyticsPage() {
       ) : (
         <>
           <SummaryCard bets={filteredBets} />
+          <LuckCard bets={filteredBets} />
+          <PlanCard bets={filteredBets} allBets={bets} {...(onNavigate ? { onNavigate } : {})} />
           {topTournaments.length > 0 && (
             <div style={s.card}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>

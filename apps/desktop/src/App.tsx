@@ -87,7 +87,7 @@ export function App() {
         <div key={page} className="sl-page" style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
           {page === 'dashboard' && <DashboardPage onNavigate={(p) => navigate(p as Page)} />}
           {page === 'bets' && <BetsPage onAdd={openAdd} onEdit={openEdit} filter={betsFilter} onClearFilter={() => setBetsFilter(null)} />}
-          {page === 'analytics' && <AnalyticsPage />}
+          {page === 'analytics' && <AnalyticsPage onNavigate={(p) => navigate(p as Page)} />}
           {page === 'insights' && <InsightsPage onOpenBets={(f) => { setBetsFilter(f); setPage('bets'); }} />}
           {page === 'strategy' && <StrategyBuilderPage />}
           {page === 'bankroll' && <BankrollPage />}
