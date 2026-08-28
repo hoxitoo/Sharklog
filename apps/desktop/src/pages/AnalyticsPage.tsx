@@ -194,7 +194,7 @@ function PlanCard({ bets, allBets, onNavigate }: {
             }}
             onClick={() => onNavigate('strategy')}
           >
-            {t('nav.strategy')} →
+            {t('nav.strategyBuilder')} →
           </button>
         )}
       </div>
