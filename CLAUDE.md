@@ -378,6 +378,8 @@ utils/
                         calcLuck(bets) — сигма-отклонение результата от безубытка (везение vs решения)
                         calcPlanCompliance(bets, txs, limitPct) — доля ставок сверх лимита плана,
                         P&L в лимите / сверх него, топ отклонений
+                        calcBetYears(bets, now) — годы из данных + текущий, новые первыми
+                        betsInYear(bets, year) — срез по календарному году
   kelly.ts            — kellyFraction, halfKelly, expectedValue, impliedProbability
   formatters.ts       — formatMoney(kopecks, currency='₽', maxDecimals=2), parseMoneyInput, formatOdds, formatPercent (adds + prefix)
   strategyBuilder.ts  — STRATEGY_QUESTIONS (10 вопросов), buildStrategy(answers)
