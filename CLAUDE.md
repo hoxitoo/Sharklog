@@ -161,7 +161,7 @@ new Date(str).toLocaleDateString(locale, { day: 'numeric', month: 'short' });
 
 ```bash
 # Тесты
-cd packages/core && npx vitest run        # 202 unit-теста core
+cd packages/core && npx vitest run        # 205 unit-тестов core
 cd apps/desktop  && npm test              # 40 smoke-тестов desktop (Vitest)
 cd apps/mobile   && npm test              # 34 smoke-теста mobile (Jest)
 

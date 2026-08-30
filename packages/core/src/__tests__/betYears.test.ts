@@ -89,3 +89,31 @@ describe('calcByTournament untagged bucket', () => {
     expect(list[list.length - 1]!.tournament).toBe('');
   });
 });
+
+describe('year breakdown edges the chart depends on', () => {
+  it('a year with only unfinished bets totals zero without dividing by it', () => {
+    const rows = calcByTournament(
+      betsInYear([bet({ date: '2026-03-01', status: 'pending' })], 2026),
+      { includeUntagged: true },
+    );
+    const peak = Math.max(...rows.map((r) => Math.abs(r.pnl)), 1);
+    expect(rows.reduce((s, r) => s + r.pnl, 0)).toBe(0);
+    expect(peak).toBe(1);
+  });
+
+  it('no bar can exceed its half of the track', () => {
+    const rows = calcByTournament([
+      bet({ tournament: 'A', status: 'won', odds: 10 }),
+      bet({ tournament: 'B', status: 'lost' }),
+      bet({ status: 'lost' }),
+    ], { includeUntagged: true });
+    const peak = Math.max(...rows.map((r) => Math.abs(r.pnl)), 1);
+    for (const r of rows) expect((Math.abs(r.pnl) / peak) * 50).toBeLessThanOrEqual(50);
+  });
+
+  it('the untagged group still carries a usable sport label', () => {
+    const rows = calcByTournament([bet({ sport: 'hockey' })], { includeUntagged: true });
+    expect(rows[0]!.tournament).toBe('');
+    expect(rows[0]!.sport).toBe('hockey');
+  });
+});
