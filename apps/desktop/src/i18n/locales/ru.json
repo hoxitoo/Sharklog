@@ -162,7 +162,19 @@
     "noTournaments": "Ставь с указанием турнира — появится здесь",
     "noTeams": "Нужно минимум 10 ставок на команду",
     "period": "Период",
-    "openBets": "Открыть ставки"
+    "openBets": "Открыть ставки",
+    "best": "Лучший",
+    "worst": "Худший",
+    "showMore": "Ещё {{count}}",
+    "collapse": "Свернуть",
+    "noTournament": "Без турнира",
+    "byYear": "По годам",
+    "yearTotal": "Итог года",
+    "betsCount_one": "{{count}} ставка",
+    "betsCount_few": "{{count}} ставки",
+    "betsCount_many": "{{count}} ставок",
+    "betsCount_other": "{{count}} ставок",
+    "yearEmpty": "Ставок за этот год ещё нет"
   },
   "bankroll": {
     "title": "Банкролл",

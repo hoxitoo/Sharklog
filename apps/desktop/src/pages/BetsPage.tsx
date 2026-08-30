@@ -64,11 +64,15 @@ export function BetsPage({ onAdd, onEdit, filter: scope, onClearFilter }: Props)
   const sections = useMemo(() => {
     let result = [...bets];
     if (scope?.tournament) {
-      const want = scope.tournament.toLowerCase();
-      result = result.filter((b) => (b.tournament ?? '').toLowerCase() === want);
+      // Trimmed on both sides: calcByTournament groups on the trimmed name, so
+      // comparing the raw one would let a bar count bets the list then hides.
+      const want = scope.tournament.trim().toLowerCase();
+      result = result.filter((b) => (b.tournament ?? '').trim().toLowerCase() === want);
     }
     if (scope?.team) result = result.filter((b) => betBacksTeam(b, scope.team!));
     if (scope?.from) result = result.filter((b) => b.date > scope.from!);
+    if (scope?.year) result = result.filter((b) => b.date.startsWith(String(scope.year)));
+    if (scope?.noTournament) result = result.filter((b) => !(b.tournament ?? '').trim());
     if (filter !== 'all') result = result.filter((b) => b.status === filter);
     if (search.trim()) {
       const q = search.toLowerCase();
@@ -115,8 +119,11 @@ export function BetsPage({ onAdd, onEdit, filter: scope, onClearFilter }: Props)
   const scopeLabel = (() => {
     if (!scope) return null;
     const since = scope.from ? ` · с ${scope.from.split('-').reverse().slice(0, 2).join('.')}` : '';
-    if (scope.tournament) return `${t('bet.tournament')}: ${scope.tournament}${since}`;
-    if (scope.team) return `${t('insights.team')}: ${scope.team}${since}`;
+    const year = scope.year ? ` · ${scope.year}` : '';
+    if (scope.tournament) return `${t('bet.tournament')}: ${scope.tournament}${year}${since}`;
+    if (scope.noTournament) return `${t('insights.noTournament')}${year}${since}`;
+    if (scope.team) return `${t('insights.team')}: ${scope.team}${year}${since}`;
+    if (scope.year) return String(scope.year);
     return null;
   })();
 

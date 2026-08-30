@@ -1,4 +1,4 @@
-import type { Bet, BankrollTransaction } from '../types/bet';
+import type { Bet, BankrollTransaction, EsportsDiscipline } from '../types/bet';
 import { ODDS_RANGES } from '../constants/index';
 
 export interface SliceStats {
@@ -203,6 +203,8 @@ export function isInTilt(bets: Bet[], threshold: number): boolean {
 export interface TournamentStats {
   tournament: string;
   sport: string;        // most common sport label in this group
+  /** Most common esports discipline in the group, when the sport is esports. */
+  discipline?: EsportsDiscipline;
   count: number;
   won: number;
   lost: number;
@@ -213,11 +215,37 @@ export interface TournamentStats {
   totalStaked: number;  // kopecks
 }
 
-export function calcByTournament(bets: Bet[]): TournamentStats[] {
+/** The value that appears most often in a group — its dominant sport or discipline. */
+function dominant<T extends string>(values: Array<T | undefined>): T | undefined {
+  const counts = new Map<T, number>();
+  for (const v of values) {
+    if (!v) continue;
+    counts.set(v, (counts.get(v) ?? 0) + 1);
+  }
+  return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+}
+
+/**
+ * Stats per tournament, ranked by P&L.
+ *
+ * `includeUntagged` adds the bets that carry no tournament as one group keyed
+ * by the empty string. A year breakdown has to account for every bet, and
+ * silently dropping the untagged ones would make the parts stop summing to the
+ * whole; callers that only want named tournaments leave it off.
+ */
+/** Dominant discipline among the group's esports bets only — see callers. */
+function dominantDiscipline(group: Bet[]): EsportsDiscipline | undefined {
+  return dominant(group.filter((b) => b.sport === 'esports').map((b) => b.discipline));
+}
+
+export function calcByTournament(
+  bets: Bet[],
+  opts: { includeUntagged?: boolean } = {},
+): TournamentStats[] {
   const groups = new Map<string, Bet[]>();
   for (const bet of bets) {
     const key = (bet.tournament ?? '').trim();
-    if (!key) continue;
+    if (!key && !opts.includeUntagged) continue;
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key)!.push(bet);
   }
@@ -225,16 +253,17 @@ export function calcByTournament(bets: Bet[]): TournamentStats[] {
   return Array.from(groups.entries()).map(([tournament, group]) => {
     const slice = calcSlice(group, tournament);
 
-    // Most common sport in group
-    const sportCount = new Map<string, number>();
-    for (const b of group) {
-      sportCount.set(b.sport, (sportCount.get(b.sport) ?? 0) + 1);
-    }
-    const sport = [...sportCount.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? '';
+    const sport = dominant(group.map((b) => b.sport)) ?? '';
+    // "Киберспорт" alone says almost nothing — CS2 and Dota are different games
+    // with different edges. Only the esports bets get a say: a bet moved off
+    // esports keeps its old discipline (updateBet merges, the form omits the
+    // key), so counting every bet would let a football row name the game.
+    const discipline = sport === 'esports' ? dominantDiscipline(group) : undefined;
 
     return {
       tournament,
       sport,
+      ...(discipline ? { discipline } : {}),
       count: slice.count,
       won: slice.won,
       lost: slice.lost,
@@ -250,6 +279,8 @@ export function calcByTournament(bets: Bet[]): TournamentStats[] {
 export interface TeamStats {
   name: string;
   sport: string;
+  /** Most common esports discipline in the group, when the sport is esports. */
+  discipline?: EsportsDiscipline;
   count: number;
   won: number;
   lost: number;
@@ -332,9 +363,8 @@ export function calcByTeam(bets: Bet[], minBets = 10): TeamStats[] {
     if (group.length < minBets) continue;
 
     const slice = calcSlice(group, '');
-    const sportCount = new Map<string, number>();
-    for (const b of group) sportCount.set(b.sport, (sportCount.get(b.sport) ?? 0) + 1);
-    const sport = [...sportCount.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? '';
+    const sport = dominant(group.map((b) => b.sport)) ?? '';
+    const discipline = sport === 'esports' ? dominantDiscipline(group) : undefined;
 
     const sorted = [...group].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     const lastTournament = sorted.find((b) => b.tournament?.trim())?.tournament ?? '';
@@ -342,6 +372,7 @@ export function calcByTeam(bets: Bet[], minBets = 10): TeamStats[] {
     result.push({
       name,
       sport,
+      ...(discipline ? { discipline } : {}),
       count: slice.count,
       won: slice.won,
       lost: slice.lost,

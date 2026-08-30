@@ -162,7 +162,19 @@
     "noTournaments": "Дадавайце стаўкі з турнірам — з'явіцца тут",
     "noTeams": "Патрэбна мінімум 10 стаўак на каманду",
     "period": "Перыяд",
-    "openBets": "Адкрыць стаўкі"
+    "openBets": "Адкрыць стаўкі",
+    "best": "Лепшы",
+    "worst": "Горшы",
+    "showMore": "Яшчэ {{count}}",
+    "collapse": "Згарнуць",
+    "noTournament": "Без турніру",
+    "byYear": "Па гадах",
+    "yearTotal": "Вынік года",
+    "betsCount_one": "{{count}} стаўка",
+    "betsCount_few": "{{count}} стаўкі",
+    "betsCount_many": "{{count}} стаўак",
+    "betsCount_other": "{{count}} стаўак",
+    "yearEmpty": "Стаўак за гэты год яшчэ няма"
   },
   "bankroll": {
     "title": "Банкрол",

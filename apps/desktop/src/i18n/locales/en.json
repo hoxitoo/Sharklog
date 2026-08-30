@@ -162,7 +162,17 @@
     "noTournaments": "Add bets with tournament — it will appear here",
     "noTeams": "Need at least 10 bets on a team",
     "period": "Period",
-    "openBets": "Open bets"
+    "openBets": "Open bets",
+    "best": "Best",
+    "worst": "Worst",
+    "showMore": "{{count}} more",
+    "collapse": "Collapse",
+    "noTournament": "No tournament",
+    "byYear": "By year",
+    "yearTotal": "Year total",
+    "betsCount_one": "{{count}} bet",
+    "betsCount_other": "{{count}} bets",
+    "yearEmpty": "No bets in this year yet"
   },
   "bankroll": {
     "title": "Bankroll",

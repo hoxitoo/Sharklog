@@ -162,7 +162,17 @@
     "noTournaments": "Турнирмен ставка жасаңыз — осында пайда болады",
     "noTeams": "Команда бойынша кемінде 10 ставка керек",
     "period": "Кезең",
-    "openBets": "Ставкаларды ашу"
+    "openBets": "Ставкаларды ашу",
+    "best": "Үздік",
+    "worst": "Нашар",
+    "showMore": "Тағы {{count}}",
+    "collapse": "Жию",
+    "noTournament": "Турнирсыз",
+    "byYear": "Жылдар бойынша",
+    "yearTotal": "Жыл қорытындысы",
+    "betsCount_one": "{{count}} ставка",
+    "betsCount_other": "{{count}} ставка",
+    "yearEmpty": "Бұл жылы әзірге ставка жоқ"
   },
   "bankroll": {
     "title": "Банкролл",
