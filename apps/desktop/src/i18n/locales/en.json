@@ -166,7 +166,10 @@
     "best": "Best",
     "worst": "Worst",
     "showMore": "{{count}} more",
-    "collapse": "Collapse"
+    "collapse": "Collapse",
+    "noTournament": "No tournament",
+    "byYear": "By year",
+    "yearTotal": "Year total"
   },
   "bankroll": {
     "title": "Bankroll",

@@ -166,7 +166,10 @@
     "best": "Лучший",
     "worst": "Худший",
     "showMore": "Ещё {{count}}",
-    "collapse": "Свернуть"
+    "collapse": "Свернуть",
+    "noTournament": "Без турнира",
+    "byYear": "По годам",
+    "yearTotal": "Итог года"
   },
   "bankroll": {
     "title": "Банкролл",

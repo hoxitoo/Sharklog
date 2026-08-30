@@ -9,6 +9,10 @@ export interface BetsFilter {
   team?: string;
   /** Exclusive lower bound on the day, so a tile's period carries into the list. */
   from?: string;
+  /** Calendar year, for drill-downs that are scoped to one year. */
+  year?: number;
+  /** Bets that carry no tournament — the counterpart to `tournament`. */
+  noTournament?: boolean;
 }
 
 interface DrawerContextValue {

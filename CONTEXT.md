@@ -408,7 +408,7 @@ VITE_OWNER_PRO=true
 
 ## CI / Build
 
-- **CI**: `.github/workflows/ci.yml` — `npm ci` → vitest (core 190 + desktop 40) → mobile tests (34) → tsc mobile+desktop
+- **CI**: `.github/workflows/ci.yml` — `npm ci` → vitest (core 202 + desktop 40) → mobile tests (34) → tsc mobile+desktop
 - **EAS Build**: `.github/workflows/eas-build.yml` — ручной `workflow_dispatch`
   - Требует: `EXPO_TOKEN` secret + реальный `projectId` в `app.json`
 - **EAS профили**: development / preview (APK) / production (autoIncrement)
@@ -534,7 +534,7 @@ VITE_OWNER_PRO=true
 ## Тесты
 
 ```
-packages/core         190 vitest unit tests (stats, analytics, daily, formatters, kelly, migrations,
+packages/core         202 vitest unit tests (stats, analytics, daily, formatters, kelly, migrations,
                           betsCsv x14 — round-trip / P&L / инъекция / разделители,
                           pnlBuckets x10 — границы бакетов, порядок кривой,
                           bankroll x10 — bankCash / currentBank / pendingExposure / сверки,
@@ -542,10 +542,11 @@ packages/core         190 vitest unit tests (stats, analytics, daily, formatters
                           с учётом незакрытых ставок и без двойного счёта после их расчёта,
                           expressOdds x11 — округление общего кэфа + миграция v3,
                           luckAndPlan x24 — сигма-модель везения и соблюдение плана,
-                          insightsGroups x6 — дисциплина в группировках и порядок по P&L)
+                          insightsGroups x6 — дисциплина в группировках и порядок по P&L,
+                          betYears x12 — список лет и группа «без турнира»)
 apps/desktop           40 vitest smoke tests (betsStore x25, importBets x15)
 apps/mobile            34 jest smoke tests (betsStore x21, chartScale x6, theme x7)
-ИТОГО                  264 теста
+ИТОГО                  276 тестов
 ```
 
 ---

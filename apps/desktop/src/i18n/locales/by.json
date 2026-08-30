@@ -166,7 +166,10 @@
     "best": "Лепшы",
     "worst": "Горшы",
     "showMore": "Яшчэ {{count}}",
-    "collapse": "Згарнуць"
+    "collapse": "Згарнуць",
+    "noTournament": "Без турніру",
+    "byYear": "Па гадах",
+    "yearTotal": "Вынік года"
   },
   "bankroll": {
     "title": "Банкрол",

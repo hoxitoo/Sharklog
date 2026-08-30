@@ -166,7 +166,10 @@
     "best": "Үздік",
     "worst": "Нашар",
     "showMore": "Тағы {{count}}",
-    "collapse": "Жию"
+    "collapse": "Жию",
+    "noTournament": "Турнирсыз",
+    "byYear": "Жылдар бойынша",
+    "yearTotal": "Жыл қорытындысы"
   },
   "bankroll": {
     "title": "Банкролл",

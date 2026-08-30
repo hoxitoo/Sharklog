@@ -13,6 +13,7 @@ import { haptic } from '../../utils/haptics';
 import { colors, alpha, mix } from '../../theme/colors';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ProGate } from '../../components/ProGate';
+import { YearBreakdown } from './YearBreakdown';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -280,6 +281,18 @@ export function InsightsScreen() {
             </>
           )}
         </ProGate>
+
+        {/* ── By year ──
+            Fed the whole history on purpose: the year switch is its own time
+            control, and intersecting it with the 7/30-day filter above would
+            leave most years empty for no reason the user can see. */}
+        <YearBreakdown
+          bets={bets}
+          onOpen={(year, tournament) => {
+            haptic.selection();
+            goToBets(tournament ? { tournament, year } : { noTournament: true, year });
+          }}
+        />
       </ScrollView>
     </View>
   );

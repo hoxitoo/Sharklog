@@ -77,9 +77,12 @@ export function BetsScreen({ filter, onClearFilter }: {
     // The period suffix matters: without it the count here would not match the
     // Insights tile the user tapped, and a mismatched number reads as a bug.
     const since = filter?.from ? ` · с ${dm(filter.from)}` : '';
+    const year = filter?.year ? ` · ${filter.year}` : '';
     if (filter?.date) return `Только ${dm(filter.date)}`;
-    if (filter?.tournament) return `Турнир: ${filter.tournament}${since}`;
-    if (filter?.team) return `Команда: ${filter.team}${since}`;
+    if (filter?.tournament) return `Турнир: ${filter.tournament}${year}${since}`;
+    if (filter?.noTournament) return `Без турнира${year}${since}`;
+    if (filter?.team) return `Команда: ${filter.team}${year}${since}`;
+    if (filter?.year) return `${filter.year} год`;
     return null;
   }, [filter]);
 
@@ -92,6 +95,8 @@ export function BetsScreen({ filter, onClearFilter }: {
     }
     if (filter?.team) result = result.filter((b) => betBacksTeam(b, filter.team!));
     if (filter?.from) result = result.filter((b) => b.date > filter.from!);
+    if (filter?.year) result = result.filter((b) => b.date.startsWith(String(filter.year)));
+    if (filter?.noTournament) result = result.filter((b) => !(b.tournament ?? '').trim());
     if (statusFilter !== 'all') result = result.filter((b) => b.status === statusFilter);
     if (search.trim()) {
       const q = search.toLowerCase();

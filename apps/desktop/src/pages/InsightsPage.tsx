@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import {
-  calcByTournament, calcByTeam, formatMoney, formatPercent,
+  calcByTournament, calcByTeam, calcBetYears, betsInYear, formatMoney, formatPercent,
   SPORTS, ESPORTS_DISCIPLINES, toYmd } from '@sharklog/core';
-import type { TournamentStats, TeamStats } from '@sharklog/core';
+import type { TournamentStats, TeamStats, Bet } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
 import { colors, alpha, mix } from '../theme/colors';
 import type { BetsFilter } from '../types/betsFilter';
@@ -236,6 +236,127 @@ function TeamsSection({ teams, isPro, onOpen }: {
   );
 }
 
+/** Bars past this many are folded away — a long season has a long tail. */
+const VISIBLE = 8;
+
+/**
+ * P&L per tournament for one calendar year, as a diverging bar chart.
+ *
+ * Bars grow from a centre line: profits right, losses left, on one shared
+ * scale. Tournament names are long, so the bars run horizontally — vertical
+ * columns would leave no room to write which tournament each one is.
+ *
+ * The year switch is built from the data plus the current year, so a new year
+ * appears by itself when the calendar turns.
+ */
+function YearBreakdown({ bets, onOpen }: {
+  bets: Bet[];
+  onOpen: (year: number, tournament: string) => void;
+}) {
+  const { t } = useTranslation();
+  const years = useMemo(() => calcBetYears(bets), [bets]);
+  const [year, setYear] = useState(years[0]!);
+  const [expanded, setExpanded] = useState(false);
+
+  const active = years.includes(year) ? year : years[0]!;
+  const rows = useMemo(
+    () => calcByTournament(betsInYear(bets, active), { includeUntagged: true }),
+    [bets, active],
+  );
+
+  const total = rows.reduce((sum, r) => sum + r.pnl, 0);
+  const count = rows.reduce((sum, r) => sum + r.count, 0);
+  // One shared scale, so a bar twice as long really is twice the money.
+  const peak = Math.max(...rows.map((r) => Math.abs(r.pnl)), 1);
+  const shown = expanded ? rows : rows.slice(0, VISIBLE);
+
+  return (
+    <>
+      <div style={s.sectionTitle}>{t('insights.byYear')}</div>
+
+      <div style={{ display: 'flex', gap: 6, marginBottom: 12, flexWrap: 'wrap' }}>
+        {years.map((yr) => (
+          <button
+            key={yr}
+            style={{ ...s.periodBtn, ...(yr === active ? s.periodBtnActive : {}) }}
+            onClick={() => { setYear(yr); setExpanded(false); }}
+          >
+            {yr}
+          </button>
+        ))}
+      </div>
+
+      <div style={s.card}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: colors.textPrimary }}>
+            {t('insights.yearTotal')} {active}
+          </div>
+          <div style={{ fontSize: 20, fontWeight: 800, fontFamily: "'DM Mono', monospace", color: pnlColor(total) }}>
+            {total > 0 ? '+' : ''}{formatMoney(total)}
+          </div>
+        </div>
+        <div style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>
+          {count === 0 ? t('analytics.noBets') : `${count} ${t('analytics.countSuffix')}`}
+        </div>
+
+        {rows.length > 0 && (
+          <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            {shown.map((r) => {
+              const accent = pnlColor(r.pnl);
+              const share = (Math.abs(r.pnl) / peak) * 50;
+              const width = `${Math.max(share, r.pnl === 0 ? 0 : 1)}%`;
+              return (
+                <div
+                  key={r.tournament || '__none__'}
+                  style={{ cursor: 'pointer' }}
+                  onClick={() => onOpen(active, r.tournament)}
+                  title={t('insights.openBets')}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 }}>
+                    <span style={{
+                      fontSize: 13, fontWeight: 600,
+                      color: r.tournament ? colors.textPrimary : colors.textMuted,
+                      fontStyle: r.tournament ? 'normal' : 'italic',
+                      overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                    }}>
+                      {r.tournament || t('insights.noTournament')}
+                    </span>
+                    <span style={{ fontSize: 12, fontWeight: 700, color: accent, whiteSpace: 'nowrap', marginLeft: 12 }}>
+                      {r.pnl > 0 ? '+' : ''}{formatMoney(r.pnl)}
+                    </span>
+                  </div>
+                  <div style={{
+                    position: 'relative', height: 10, borderRadius: 5,
+                    background: colors.bgSunken, border: `1px solid ${colors.border}`,
+                  }}>
+                    <div style={{
+                      position: 'absolute', left: '50%', top: 0, bottom: 0,
+                      width: 1, background: alpha(colors.borderHover, 0.9),
+                    }} />
+                    <div style={{
+                      position: 'absolute', top: 1, bottom: 1, borderRadius: 4,
+                      background: accent, width,
+                      ...(r.pnl >= 0 ? { left: '50%' } : { right: '50%' }),
+                    }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+
+        {rows.length > VISIBLE && (
+          <MoreToggle
+            count={rows.length - VISIBLE}
+            open={expanded}
+            onToggle={() => setExpanded((v) => !v)}
+          />
+        )}
+      </div>
+    </>
+  );
+}
+
 export function InsightsPage({ onOpenBets }: { onOpenBets: (filter: BetsFilter) => void }) {
   const { bets, settings } = useBetsStore();
   const { t } = useTranslation();
@@ -291,6 +412,15 @@ export function InsightsPage({ onOpenBets }: { onOpenBets: (filter: BetsFilter) 
 
       <TournamentsSection stats={tournaments} onOpen={(tournament) => openBets({ tournament })} />
       <TeamsSection teams={teams} isPro={settings.isPro} onOpen={(team) => openBets({ team })} />
+
+      {/* Fed the whole history on purpose: the year switch is its own time
+          control, and intersecting it with the period filter above would leave
+          most years empty for no reason the user can see. */}
+      <YearBreakdown
+        bets={bets}
+        onOpen={(year, tournament) =>
+          onOpenBets(tournament ? { tournament, year } : { noTournament: true, year })}
+      />
     </div>
   );
 }

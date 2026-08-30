@@ -569,3 +569,29 @@ export function calcPlanCompliance(
     worst: breaches.sort((a, b) => b.sharePct - a.sharePct).slice(0, worstCount),
   };
 }
+
+// ── Calendar years present in the history ────────────────────────────────────
+
+/**
+ * Every year the bets span, newest first, with the current year always
+ * included.
+ *
+ * The current year is there even before its first bet is logged, so the switch
+ * gains a new year on its own the moment the year turns — nothing to release
+ * and nothing to configure.
+ */
+export function calcBetYears(bets: Bet[], now = new Date()): number[] {
+  const years = new Set<number>([now.getFullYear()]);
+  for (const b of bets) {
+    const year = Number(b.date.slice(0, 4));
+    // A malformed date must not put NaN in the year switch.
+    if (Number.isInteger(year) && year > 1970) years.add(year);
+  }
+  return [...years].sort((a, b) => b - a);
+}
+
+/** Bets whose calendar day falls in the given year. */
+export function betsInYear(bets: Bet[], year: number): Bet[] {
+  const prefix = String(year);
+  return bets.filter((b) => b.date.startsWith(prefix));
+}

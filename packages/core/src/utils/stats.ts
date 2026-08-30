@@ -225,11 +225,22 @@ function dominant<T extends string>(values: Array<T | undefined>): T | undefined
   return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
 }
 
-export function calcByTournament(bets: Bet[]): TournamentStats[] {
+/**
+ * Stats per tournament, ranked by P&L.
+ *
+ * `includeUntagged` adds the bets that carry no tournament as one group keyed
+ * by the empty string. A year breakdown has to account for every bet, and
+ * silently dropping the untagged ones would make the parts stop summing to the
+ * whole; callers that only want named tournaments leave it off.
+ */
+export function calcByTournament(
+  bets: Bet[],
+  opts: { includeUntagged?: boolean } = {},
+): TournamentStats[] {
   const groups = new Map<string, Bet[]>();
   for (const bet of bets) {
     const key = (bet.tournament ?? '').trim();
-    if (!key) continue;
+    if (!key && !opts.includeUntagged) continue;
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key)!.push(bet);
   }
