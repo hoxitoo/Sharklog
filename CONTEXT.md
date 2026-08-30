@@ -313,6 +313,7 @@ interface TeamStats {
 11. **Onboarding**: новые пользователи видят OnboardingPage; существующие пользователи — `onboardingComplete ?? true` при load().
 12. **refund vs cashout**: refund = возврат букмекером (отмена матча); cashout = досрочный выкуп игроком. Это два разных статуса.
 13. **parseEventTeams(event)**: разбивает event по ` — `, ` – `, ` vs `, ` против `, ` - ` → массив имён команд.
+14a. **TournamentStats/TeamStats несут `discipline`** — доминирующую в группе и только когда `sport === 'esports'`. Инсайты показывают её вместо слова «Киберспорт».
 14. **calcByTeam(bets, minBets=10)**: возвращает только команды с ≥10 ставок (PRO "Любимые команды"). Использует внутренний `getPickedTeams(event, pick)` — атрибутирует ставку только той команде, на которую поставил игрок. Наружу тот же предикат выведен как `betBacksTeam(bet, team)` — фильтр списка ставок обязан использовать его, иначе счётчик в списке разойдётся с числом на плитке инсайтов.
 15. **Банк — только через core**: `currentBank(txs, bets) = bankCash(txs) + P&L`. Ручной `deposit ? + : -` теряет третий тип транзакции (`adjustment`), у которого знак лежит в сумме.
 16. **Банк ≠ баланс у букмекера**: букмекер списывает ставку при постановке, приложение — при расчёте. `балансУБукмекера = currentBank − pendingExposure(bets)`. Первое, что надо исключить при расхождении.
@@ -407,7 +408,7 @@ VITE_OWNER_PRO=true
 
 ## CI / Build
 
-- **CI**: `.github/workflows/ci.yml` — `npm ci` → vitest (core 184 + desktop 40) → mobile tests (34) → tsc mobile+desktop
+- **CI**: `.github/workflows/ci.yml` — `npm ci` → vitest (core 190 + desktop 40) → mobile tests (34) → tsc mobile+desktop
 - **EAS Build**: `.github/workflows/eas-build.yml` — ручной `workflow_dispatch`
   - Требует: `EXPO_TOKEN` secret + реальный `projectId` в `app.json`
 - **EAS профили**: development / preview (APK) / production (autoIncrement)
@@ -533,17 +534,18 @@ VITE_OWNER_PRO=true
 ## Тесты
 
 ```
-packages/core         184 vitest unit tests (stats, analytics, daily, formatters, kelly, migrations,
+packages/core         190 vitest unit tests (stats, analytics, daily, formatters, kelly, migrations,
                           betsCsv x14 — round-trip / P&L / инъекция / разделители,
                           pnlBuckets x10 — границы бакетов, порядок кривой,
                           bankroll x10 — bankCash / currentBank / pendingExposure / сверки,
                           reconcileFlow x12 — сверка приземляет банк ровно на баланс бука,
                           с учётом незакрытых ставок и без двойного счёта после их расчёта,
                           expressOdds x11 — округление общего кэфа + миграция v3,
-                          luckAndPlan x24 — сигма-модель везения и соблюдение плана)
+                          luckAndPlan x24 — сигма-модель везения и соблюдение плана,
+                          insightsGroups x6 — дисциплина в группировках и порядок по P&L)
 apps/desktop           40 vitest smoke tests (betsStore x25, importBets x15)
 apps/mobile            34 jest smoke tests (betsStore x21, chartScale x6, theme x7)
-ИТОГО                  258 тестов
+ИТОГО                  264 теста
 ```
 
 ---

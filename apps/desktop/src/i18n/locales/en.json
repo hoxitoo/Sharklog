@@ -162,7 +162,11 @@
     "noTournaments": "Add bets with tournament — it will appear here",
     "noTeams": "Need at least 10 bets on a team",
     "period": "Period",
-    "openBets": "Open bets"
+    "openBets": "Open bets",
+    "best": "Best",
+    "worst": "Worst",
+    "showMore": "{{count}} more",
+    "collapse": "Collapse"
   },
   "bankroll": {
     "title": "Bankroll",

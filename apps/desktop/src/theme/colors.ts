@@ -27,3 +27,34 @@ export const colors = {
   pending: '#F59E0B',
   refund: '#A78BFA',
 } as const;
+
+/** Normalises `#RGB` / `#RRGGBB` to six digits. Non-hex input is rejected loudly. */
+function hex6(hex: string): string {
+  const h = hex.replace('#', '');
+  if (h.length === 3) return h.split('').map((c) => c + c).join('');
+  if (h.length >= 6) return h.slice(0, 6);
+  throw new Error(`Not a hex colour: ${hex}`);
+}
+
+/** Hex + alpha (0..1) → rgba(). Only for hex tokens — accentDim is already rgba. */
+export function alpha(hex: string, a: number): string {
+  const h = hex6(hex);
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(h.slice(i, i + 2), 16));
+  return `rgba(${r}, ${g}, ${b}, ${a})`;
+}
+
+/**
+ * Opaque blend of `fg` over `bg`. A translucent tint composites against
+ * whatever is behind the element, not against the card colour, so a wash lands
+ * darker than the surface it is meant to lift.
+ */
+export function mix(fg: string, bg: string, ratio: number): string {
+  const f = hex6(fg);
+  const b = hex6(bg);
+  const out = [0, 2, 4].map((i) => {
+    const fv = parseInt(f.slice(i, i + 2), 16);
+    const bv = parseInt(b.slice(i, i + 2), 16);
+    return Math.round(bv + (fv - bv) * ratio).toString(16).padStart(2, '0');
+  });
+  return `#${out.join('')}`;
+}

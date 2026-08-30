@@ -55,6 +55,8 @@ docs/            — ROADMAP.md, ANALYSIS.md, PRIVACY_POLICY.md
 - **P&L одной ставки — только `betPnl()`**. Ручные `status === 'won' ? ... : ...` уже приводили к тому, что выкуп экспортировался нулём, а проигранный фрибет — полной потерей.
 - **Кумулятивные кривые сортируй по `date + time`, не по `createdAt`** — ставка, занесённая задним числом, иначе прыгает в конец графика и расходится со списком ставок.
 - **Для «читаемости результата за период» — `calcPnlBuckets`**, а не накопительная линия: на кумулятиве выигрышный день идёт вниз, если предыдущий проиграл больше, и это читается как баг.
+- **В инсайтах «Лучший/Худший» — это РАНГ, а цвет — знак P&L**. Если все турниры в плюсе, «худший» всё равно красится зелёным: красная цифра на прибыли — вранье о единственном, что там важно.
+- **`calcByTournament`/`calcByTeam` отдают `discipline`** (доминирующая в группе, только для `sport === 'esports'`). «Киберспорт» — не ответ: CS2 и Dota это разные игры с разным преимуществом.
 - **Фильтр списка ставок** — `BetsFilter { date?, tournament?, team?, from? }`. Команду матчь через `betBacksTeam()` (то же правило, что у `calcByTeam`), иначе количество в списке не сойдётся с числом на плитке инсайтов.
 - **Android «назад»** обрабатывается в `DrawerNavigator` (`BackHandler`): drawer → фильтр → Ставки → выход. Новый уровень навигации добавляй туда же.
 - **`calcLuck` — точка отсчёта НОЛЬ, а не «сколько заработал»**: ставка по цене букмекера имеет нулевое матожидание по построению (`p = 1/odds`), поэтому вопрос не «в плюсе ли я», а «на сколько сигм результат отошёл от нуля». Дисперсия одной ставки — `p(1−p)(stake × odds)²`. Фрибеты, возвраты и выкупы в выборку не входят: модель описывает бинарный исход своими деньгами.
@@ -156,7 +158,7 @@ new Date(str).toLocaleDateString(locale, { day: 'numeric', month: 'short' });
 
 ```bash
 # Тесты
-cd packages/core && npx vitest run        # 184 unit-теста core
+cd packages/core && npx vitest run        # 190 unit-тестов core
 cd apps/desktop  && npm test              # 40 smoke-тестов desktop (Vitest)
 cd apps/mobile   && npm test              # 34 smoke-теста mobile (Jest)
 
@@ -246,7 +248,8 @@ pages/
   AnalyticsPage.tsx        — 7 срезов (PRO) + "Топ турниры" mini-cards
   BankrollPage.tsx         — equity curve, Kelly calc, транзакции с удалением, сверка с букмекером
   DiaryPage.tsx            — mood tracker, тилт-стата, дневник
-  InsightsPage.tsx         — period filter; TournamentsSection (Free); TeamsSection (PRO);
+  InsightsPage.tsx         — period filter; Лучший/Худший → топ-3 → раскрываемый остаток,
+                             отдельно для турниров и команд (PRO);
                              клик по строке/карточке → BetsPage с фильтром (App держит BetsFilter)
   StrategyBuilderPage.tsx  — PRO: progress bar + 10 вопросов + ResultCard + disclaimer
   SettingsPage.tsx         — подписка, тилт-stepper, букмекеры, команды,
@@ -293,8 +296,9 @@ screens/
                              тепловая карта за collapsible toggle
                              тилт-баннер с dismiss × (AsyncStorage @sharklog/tilt_dismiss_date)
                              haptic.warning() при первом определении тилта
-  InsightsScreen/          — TournamentRow (Free) + TeamCard (PRO via ProGate); тап по плитке →
-                             список ставок с фильтром (период плитки переносится)
+  InsightsScreen/          — Лучший/Худший (2 карточки по P&L) → топ-3 → раскрываемый остаток;
+                             то же для команд (PRO); тап по строке → список ставок с фильтром
+                             (период плитки переносится). У киберспорта показывается дисциплина
   AnalyticsScreen/         — РЕДИЗАЙН: hero-состояние сверху + collapsible «Расширенная статистика».
                              Hero: P&L + столбцы за период (PnlBars, тап по столбцу), серии, рекорды,
                              прошлый месяц с трендом, время ставок (донат 6 промежутков + топ-4 часа с P&L,

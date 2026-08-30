@@ -1,4 +1,4 @@
-import type { Bet, BankrollTransaction } from '../types/bet';
+import type { Bet, BankrollTransaction, EsportsDiscipline } from '../types/bet';
 import { ODDS_RANGES } from '../constants/index';
 
 export interface SliceStats {
@@ -203,6 +203,8 @@ export function isInTilt(bets: Bet[], threshold: number): boolean {
 export interface TournamentStats {
   tournament: string;
   sport: string;        // most common sport label in this group
+  /** Most common esports discipline in the group, when the sport is esports. */
+  discipline?: EsportsDiscipline;
   count: number;
   won: number;
   lost: number;
@@ -211,6 +213,16 @@ export interface TournamentStats {
   roi: number;          // %
   winRate: number;      // %
   totalStaked: number;  // kopecks
+}
+
+/** The value that appears most often in a group — its dominant sport or discipline. */
+function dominant<T extends string>(values: Array<T | undefined>): T | undefined {
+  const counts = new Map<T, number>();
+  for (const v of values) {
+    if (!v) continue;
+    counts.set(v, (counts.get(v) ?? 0) + 1);
+  }
+  return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
 }
 
 export function calcByTournament(bets: Bet[]): TournamentStats[] {
@@ -225,16 +237,15 @@ export function calcByTournament(bets: Bet[]): TournamentStats[] {
   return Array.from(groups.entries()).map(([tournament, group]) => {
     const slice = calcSlice(group, tournament);
 
-    // Most common sport in group
-    const sportCount = new Map<string, number>();
-    for (const b of group) {
-      sportCount.set(b.sport, (sportCount.get(b.sport) ?? 0) + 1);
-    }
-    const sport = [...sportCount.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? '';
+    const sport = dominant(group.map((b) => b.sport)) ?? '';
+    // "Киберспорт" alone says almost nothing — CS2 and Dota are different games
+    // with different edges. Only meaningful when the group really is esports.
+    const discipline = sport === 'esports' ? dominant(group.map((b) => b.discipline)) : undefined;
 
     return {
       tournament,
       sport,
+      ...(discipline ? { discipline } : {}),
       count: slice.count,
       won: slice.won,
       lost: slice.lost,
@@ -250,6 +261,8 @@ export function calcByTournament(bets: Bet[]): TournamentStats[] {
 export interface TeamStats {
   name: string;
   sport: string;
+  /** Most common esports discipline in the group, when the sport is esports. */
+  discipline?: EsportsDiscipline;
   count: number;
   won: number;
   lost: number;
@@ -332,9 +345,8 @@ export function calcByTeam(bets: Bet[], minBets = 10): TeamStats[] {
     if (group.length < minBets) continue;
 
     const slice = calcSlice(group, '');
-    const sportCount = new Map<string, number>();
-    for (const b of group) sportCount.set(b.sport, (sportCount.get(b.sport) ?? 0) + 1);
-    const sport = [...sportCount.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? '';
+    const sport = dominant(group.map((b) => b.sport)) ?? '';
+    const discipline = sport === 'esports' ? dominant(group.map((b) => b.discipline)) : undefined;
 
     const sorted = [...group].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     const lastTournament = sorted.find((b) => b.tournament?.trim())?.tournament ?? '';
@@ -342,6 +354,7 @@ export function calcByTeam(bets: Bet[], minBets = 10): TeamStats[] {
     result.push({
       name,
       sport,
+      ...(discipline ? { discipline } : {}),
       count: slice.count,
       won: slice.won,
       lost: slice.lost,
