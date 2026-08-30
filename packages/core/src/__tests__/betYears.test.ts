@@ -117,3 +117,18 @@ describe('year breakdown edges the chart depends on', () => {
     expect(rows[0]!.sport).toBe('hockey');
   });
 });
+
+describe('grouped name matches what a drill-down filters on', () => {
+  // calcByTournament groups on the trimmed name; the bets list must use the
+  // same rule or the bar's count exceeds the list it opens.
+  it('groups names that differ only by surrounding space', () => {
+    const list = calcByTournament([
+      bet({ tournament: ' IEM' }),
+      bet({ tournament: 'IEM ' }),
+      bet({ tournament: 'IEM' }),
+    ]);
+    expect(list).toHaveLength(1);
+    expect(list[0]!.tournament).toBe('IEM');
+    expect(list[0]!.count).toBe(3);
+  });
+});

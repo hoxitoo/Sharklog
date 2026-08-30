@@ -90,8 +90,10 @@ export function BetsScreen({ filter, onClearFilter }: {
     let result = [...bets];
     if (filter?.date) result = result.filter((b) => b.date === filter.date);
     if (filter?.tournament) {
-      const want = filter.tournament.toLowerCase();
-      result = result.filter((b) => (b.tournament ?? '').toLowerCase() === want);
+      // Trimmed on both sides: calcByTournament groups on the trimmed name, so
+      // comparing the raw one would let a bar count bets the list then hides.
+      const want = filter.tournament.trim().toLowerCase();
+      result = result.filter((b) => (b.tournament ?? '').trim().toLowerCase() === want);
     }
     if (filter?.team) result = result.filter((b) => betBacksTeam(b, filter.team!));
     if (filter?.from) result = result.filter((b) => b.date > filter.from!);

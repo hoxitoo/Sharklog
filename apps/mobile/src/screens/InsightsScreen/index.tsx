@@ -3,7 +3,7 @@ import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet, LayoutAnimation, Platform, UIManager,
 } from 'react-native';
 import {
-  calcByTournament, calcByTeam, formatMoney, formatPercent,
+  calcByTournament, calcByTeam, formatPercent,
   SPORTS, ESPORTS_DISCIPLINES, toYmd,
 } from '@sharklog/core';
 import type { TournamentStats, TeamStats } from '@sharklog/core';
@@ -13,6 +13,7 @@ import { haptic } from '../../utils/haptics';
 import { colors, alpha, mix } from '../../theme/colors';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ProGate } from '../../components/ProGate';
+import { useFormatMoney } from '../../utils/useFormatMoney';
 import { YearBreakdown } from './YearBreakdown';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -40,9 +41,12 @@ const TOP_N = 3;
  */
 function sportLine(sport: string, discipline?: string): string {
   const icon = SPORT_ICONS[sport] ?? '🏅';
-  const name = discipline
-    ? (ESPORTS_DISCIPLINES[discipline as keyof typeof ESPORTS_DISCIPLINES] ?? discipline)
-    : (SPORTS[sport as keyof typeof SPORTS] ?? sport);
+  // "Другая дисциплина" names nothing and is Russian in every locale, so the
+  // sport is the better answer there.
+  const named = discipline && discipline !== 'other_esports'
+    ? ESPORTS_DISCIPLINES[discipline as keyof typeof ESPORTS_DISCIPLINES]
+    : undefined;
+  const name = named ?? SPORTS[sport as keyof typeof SPORTS] ?? sport;
   return `${icon} ${name}`;
 }
 
@@ -57,6 +61,7 @@ function HeroPair({ best, worst, onOpen }: {
   worst?: { name: string; sport: string; discipline?: string; pnl: number; roi: number; count: number } | undefined;
   onOpen: (name: string) => void;
 }) {
+  const fmt = useFormatMoney();
   // The label states the rank, the colour states the money. When every
   // tournament is profitable the "worst" one is still a profit, and painting
   // that number red would be a lie about the only thing that matters here.
@@ -82,7 +87,7 @@ function HeroPair({ best, worst, onOpen }: {
             {sportLine(item.sport, item.discipline)} · {item.count} ст.
           </Text>
           <Text style={[s.heroPnl, { color: accent }]} numberOfLines={1} adjustsFontSizeToFit>
-            {item.pnl >= 0 ? '+' : ''}{formatMoney(item.pnl)}
+            {item.pnl >= 0 ? '+' : ''}{fmt(item.pnl)}
           </Text>
           <Text style={[s.heroRoi, { color: accent }]}>{formatPercent(item.roi)} ROI</Text>
         </TouchableOpacity>
@@ -97,6 +102,7 @@ const TournamentRow = React.memo(function TournamentRow({ t, onPress }: {
   t: TournamentStats;
   onPress: () => void;
 }) {
+  const fmt = useFormatMoney();
   const color = pnlColor(t.pnl);
   return (
     <TouchableOpacity style={s.row} onPress={onPress} activeOpacity={0.7}>
@@ -107,7 +113,7 @@ const TournamentRow = React.memo(function TournamentRow({ t, onPress }: {
         </Text>
       </View>
       <View style={{ alignItems: 'flex-end' }}>
-        <Text style={[s.rowPnl, { color }]}>{t.pnl >= 0 ? '+' : ''}{formatMoney(t.pnl)}</Text>
+        <Text style={[s.rowPnl, { color }]}>{t.pnl >= 0 ? '+' : ''}{fmt(t.pnl)}</Text>
         <Text style={[s.rowRoi, { color }]}>{formatPercent(t.roi)} ROI</Text>
       </View>
       <Text style={s.chevron}>›</Text>
@@ -119,6 +125,7 @@ const TeamRow = React.memo(function TeamRow({ team, onPress }: {
   team: TeamStats;
   onPress: () => void;
 }) {
+  const fmt = useFormatMoney();
   const color = pnlColor(team.pnl);
   return (
     <TouchableOpacity style={s.row} onPress={onPress} activeOpacity={0.7}>
@@ -129,7 +136,7 @@ const TeamRow = React.memo(function TeamRow({ team, onPress }: {
         </Text>
       </View>
       <View style={{ alignItems: 'flex-end' }}>
-        <Text style={[s.rowPnl, { color }]}>{team.pnl >= 0 ? '+' : ''}{formatMoney(team.pnl)}</Text>
+        <Text style={[s.rowPnl, { color }]}>{team.pnl >= 0 ? '+' : ''}{fmt(team.pnl)}</Text>
         <Text style={[s.rowRoi, { color }]}>{formatPercent(team.roi)} ROI</Text>
       </View>
       <Text style={s.chevron}>›</Text>

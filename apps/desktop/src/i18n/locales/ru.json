@@ -169,7 +169,12 @@
     "collapse": "Свернуть",
     "noTournament": "Без турнира",
     "byYear": "По годам",
-    "yearTotal": "Итог года"
+    "yearTotal": "Итог года",
+    "betsCount_one": "{{count}} ставка",
+    "betsCount_few": "{{count}} ставки",
+    "betsCount_many": "{{count}} ставок",
+    "betsCount_other": "{{count}} ставок",
+    "yearEmpty": "Ставок за этот год ещё нет"
   },
   "bankroll": {
     "title": "Банкролл",

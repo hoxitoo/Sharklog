@@ -59,3 +59,28 @@ describe('calcByTournament ordering', () => {
     expect(list.map((t) => t.tournament)).toEqual(['Лучший', 'Средний', 'Худший']);
   });
 });
+
+describe('stale discipline on a bet that left esports', () => {
+  // Switching a bet from esports to football omits the discipline key, and
+  // updateBet merges, so the old value survives on the record.
+  it('lets only the esports bets name the game', () => {
+    const [t] = calcByTournament([
+      bet({ tournament: 'Смешанный', sport: 'esports', discipline: undefined }),
+      bet({ tournament: 'Смешанный', sport: 'esports', discipline: undefined }),
+      bet({ tournament: 'Смешанный', sport: 'esports', discipline: 'dota2' }),
+      bet({ tournament: 'Смешанный', sport: 'football', discipline: 'csgo' }),
+      bet({ tournament: 'Смешанный', sport: 'football', discipline: 'csgo' }),
+    ]);
+    expect(t!.sport).toBe('esports');
+    // csgo appears twice and dota2 once, but both csgo bets are football.
+    expect(t!.discipline).toBe('dota2');
+  });
+
+  it('reports no discipline when every esports bet lacks one', () => {
+    const [t] = calcByTournament([
+      bet({ tournament: 'X', sport: 'esports', discipline: undefined }),
+      bet({ tournament: 'X', sport: 'football', discipline: 'csgo' }),
+    ]);
+    expect(t!.discipline).toBeUndefined();
+  });
+});

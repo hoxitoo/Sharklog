@@ -24,9 +24,12 @@ const TOP_N = 3;
  */
 function sportLine(sport: string, discipline?: string): string {
   const icon = SPORT_ICONS[sport] ?? '🏅';
-  const name = discipline
-    ? (ESPORTS_DISCIPLINES[discipline as keyof typeof ESPORTS_DISCIPLINES] ?? discipline)
-    : (SPORTS[sport as keyof typeof SPORTS] ?? sport);
+  // "Другая дисциплина" names nothing and is Russian in every locale, so the
+  // sport is the better answer there.
+  const named = discipline && discipline !== 'other_esports'
+    ? ESPORTS_DISCIPLINES[discipline as keyof typeof ESPORTS_DISCIPLINES]
+    : undefined;
+  const name = named ?? SPORTS[sport as keyof typeof SPORTS] ?? sport;
   return `${icon} ${name}`;
 }
 
@@ -255,10 +258,16 @@ function YearBreakdown({ bets, onOpen }: {
 }) {
   const { t } = useTranslation();
   const years = useMemo(() => calcBetYears(bets), [bets]);
-  const [year, setYear] = useState(years[0]!);
+  // The switch always offers the current year, but starting on it in January
+  // would show an empty chart with the whole history one chip away.
+  const defaultYear = useMemo(
+    () => years.find((yr) => bets.some((b) => b.date.startsWith(String(yr)))) ?? years[0]!,
+    [years, bets],
+  );
+  const [year, setYear] = useState<number | null>(null);
   const [expanded, setExpanded] = useState(false);
 
-  const active = years.includes(year) ? year : years[0]!;
+  const active = year != null && years.includes(year) ? year : defaultYear;
   const rows = useMemo(
     () => calcByTournament(betsInYear(bets, active), { includeUntagged: true }),
     [bets, active],
@@ -296,7 +305,7 @@ function YearBreakdown({ bets, onOpen }: {
           </div>
         </div>
         <div style={{ fontSize: 12, color: colors.textMuted, marginTop: 2 }}>
-          {count === 0 ? t('analytics.noBets') : `${count} ${t('analytics.countSuffix')}`}
+          {count === 0 ? t('insights.yearEmpty') : t('insights.betsCount', { count })}
         </div>
 
         {rows.length > 0 && (

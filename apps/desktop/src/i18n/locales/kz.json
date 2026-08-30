@@ -169,7 +169,10 @@
     "collapse": "Жию",
     "noTournament": "Турнирсыз",
     "byYear": "Жылдар бойынша",
-    "yearTotal": "Жыл қорытындысы"
+    "yearTotal": "Жыл қорытындысы",
+    "betsCount_one": "{{count}} ставка",
+    "betsCount_other": "{{count}} ставка",
+    "yearEmpty": "Бұл жылы әзірге ставка жоқ"
   },
   "bankroll": {
     "title": "Банкролл",

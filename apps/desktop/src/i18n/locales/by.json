@@ -169,7 +169,12 @@
     "collapse": "Згарнуць",
     "noTournament": "Без турніру",
     "byYear": "Па гадах",
-    "yearTotal": "Вынік года"
+    "yearTotal": "Вынік года",
+    "betsCount_one": "{{count}} стаўка",
+    "betsCount_few": "{{count}} стаўкі",
+    "betsCount_many": "{{count}} стаўак",
+    "betsCount_other": "{{count}} стаўак",
+    "yearEmpty": "Стаўак за гэты год яшчэ няма"
   },
   "bankroll": {
     "title": "Банкрол",

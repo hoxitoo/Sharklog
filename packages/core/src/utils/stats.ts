@@ -233,6 +233,11 @@ function dominant<T extends string>(values: Array<T | undefined>): T | undefined
  * silently dropping the untagged ones would make the parts stop summing to the
  * whole; callers that only want named tournaments leave it off.
  */
+/** Dominant discipline among the group's esports bets only — see callers. */
+function dominantDiscipline(group: Bet[]): EsportsDiscipline | undefined {
+  return dominant(group.filter((b) => b.sport === 'esports').map((b) => b.discipline));
+}
+
 export function calcByTournament(
   bets: Bet[],
   opts: { includeUntagged?: boolean } = {},
@@ -250,8 +255,10 @@ export function calcByTournament(
 
     const sport = dominant(group.map((b) => b.sport)) ?? '';
     // "Киберспорт" alone says almost nothing — CS2 and Dota are different games
-    // with different edges. Only meaningful when the group really is esports.
-    const discipline = sport === 'esports' ? dominant(group.map((b) => b.discipline)) : undefined;
+    // with different edges. Only the esports bets get a say: a bet moved off
+    // esports keeps its old discipline (updateBet merges, the form omits the
+    // key), so counting every bet would let a football row name the game.
+    const discipline = sport === 'esports' ? dominantDiscipline(group) : undefined;
 
     return {
       tournament,
@@ -357,7 +364,7 @@ export function calcByTeam(bets: Bet[], minBets = 10): TeamStats[] {
 
     const slice = calcSlice(group, '');
     const sport = dominant(group.map((b) => b.sport)) ?? '';
-    const discipline = sport === 'esports' ? dominant(group.map((b) => b.discipline)) : undefined;
+    const discipline = sport === 'esports' ? dominantDiscipline(group) : undefined;
 
     const sorted = [...group].sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     const lastTournament = sorted.find((b) => b.tournament?.trim())?.tournament ?? '';

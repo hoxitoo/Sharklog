@@ -12,6 +12,17 @@ interface Props {
   onOpen: (year: number, tournament: string) => void;
 }
 
+/** Russian counts agree with the number: 1 ставка, 2 ставки, 5 ставок. */
+function betsWord(n: number): string {
+  const mod100 = n % 100;
+  if (mod100 >= 11 && mod100 <= 14) return 'ставок';
+  switch (n % 10) {
+    case 1: return 'ставка';
+    case 2: case 3: case 4: return 'ставки';
+    default: return 'ставок';
+  }
+}
+
 /** Bars past this many are folded away — a long season has a long tail. */
 const VISIBLE = 8;
 
@@ -28,11 +39,17 @@ const VISIBLE = 8;
 export function YearBreakdown({ bets, onOpen }: Props) {
   const fmt = useFormatMoney();
   const years = useMemo(() => calcBetYears(bets), [bets]);
-  const [year, setYear] = useState(years[0]!);
+  // The switch always offers the current year, but starting on it in January
+  // would show an empty chart with the whole history one chip away.
+  const defaultYear = useMemo(
+    () => years.find((yr) => bets.some((b) => b.date.startsWith(String(yr)))) ?? years[0]!,
+    [years, bets],
+  );
+  const [year, setYear] = useState<number | null>(null);
   const [expanded, setExpanded] = useState(false);
 
-  // A year can disappear when the period filter above narrows the data.
-  const active = years.includes(year) ? year : years[0]!;
+  // Null until the user picks; a picked year that no longer exists falls back.
+  const active = year != null && years.includes(year) ? year : defaultYear;
 
   const rows = useMemo(
     () => calcByTournament(betsInYear(bets, active), { includeUntagged: true }),
@@ -74,7 +91,7 @@ export function YearBreakdown({ bets, onOpen }: Props) {
           </Text>
         </View>
         <Text style={y.headSub}>
-          {count === 0 ? 'Ставок за этот год ещё нет' : `${count} ставок`}
+          {count === 0 ? 'Ставок за этот год ещё нет' : `${count} ${betsWord(count)}`}
         </Text>
 
         {rows.length > 0 && (

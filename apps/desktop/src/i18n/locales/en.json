@@ -169,7 +169,10 @@
     "collapse": "Collapse",
     "noTournament": "No tournament",
     "byYear": "By year",
-    "yearTotal": "Year total"
+    "yearTotal": "Year total",
+    "betsCount_one": "{{count}} bet",
+    "betsCount_other": "{{count}} bets",
+    "yearEmpty": "No bets in this year yet"
   },
   "bankroll": {
     "title": "Bankroll",
