@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { SPACE, RADIUS, TOUCH, hitSlopFor } from '../../theme/layout';
 import {
   View, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal, ActivityIndicator, Pressable,
 } from 'react-native';
@@ -33,6 +34,10 @@ import { restorePurchases } from '../../services/revenueCat';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { SIZE, GLYPH } from '../../theme/typography';
 
+const STEPPER_SLOP = hitSlopFor(30);
+const ADD_SLOP = hitSlopFor(38);
+const CLOSE_SLOP = hitSlopFor(32);
+
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <View style={row.container}>
@@ -44,7 +49,7 @@ function Row({ label, children }: { label: string; children: React.ReactNode }) 
 const row = StyleSheet.create({
   container: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.border,
+    paddingVertical: SPACE.md, borderBottomWidth: 1, borderBottomColor: colors.border,
   },
   label: { fontSize: SIZE.lead, color: colors.textPrimary, flex: 1 },
   right: { alignItems: 'flex-end' },
@@ -59,9 +64,9 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 const sec = StyleSheet.create({
-  container: { marginHorizontal: 16, marginBottom: 20 },
-  title: { fontSize: SIZE.caption, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 },
-  card: { backgroundColor: colors.bgCard, borderRadius: 14, paddingHorizontal: 16, borderWidth: 1, borderColor: colors.border },
+  container: { marginHorizontal: SPACE.lg, marginBottom: SPACE.lg },
+  title: { fontSize: SIZE.caption, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: SPACE.sm },
+  card: { backgroundColor: colors.bgCard, borderRadius: RADIUS.md, paddingHorizontal: SPACE.lg, borderWidth: 1, borderColor: colors.border },
 });
 
 function Stepper({ value, min, max, step = 1, onChangeValue }: {
@@ -71,6 +76,7 @@ function Stepper({ value, min, max, step = 1, onChangeValue }: {
     <View style={step_.row}>
       <TouchableOpacity
         style={[step_.btn, value <= min && step_.btnDisabled]}
+        hitSlop={STEPPER_SLOP}
         onPress={() => onChangeValue(Math.max(min, value - step))}
         disabled={value <= min}
       >
@@ -79,6 +85,7 @@ function Stepper({ value, min, max, step = 1, onChangeValue }: {
       <Text style={step_.val}>{value}</Text>
       <TouchableOpacity
         style={[step_.btn, value >= max && step_.btnDisabled]}
+        hitSlop={STEPPER_SLOP}
         onPress={() => onChangeValue(Math.min(max, value + step))}
         disabled={value >= max}
       >
@@ -88,9 +95,9 @@ function Stepper({ value, min, max, step = 1, onChangeValue }: {
   );
 }
 const step_ = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
   btn: {
-    width: 30, height: 30, borderRadius: 8,
+    width: 30, height: 30, borderRadius: RADIUS.sm,
     backgroundColor: colors.purple, alignItems: 'center', justifyContent: 'center',
   },
   btnDisabled: { backgroundColor: colors.bgElevated },
@@ -366,7 +373,7 @@ export function SettingsScreen() {
         {/* Tap outside the sheet to dismiss (standard bottom-sheet behavior) */}
         <Pressable style={styles.paywallBg} onPress={() => setShowPaywall(false)}>
           <Pressable style={styles.paywallSheet} onPress={(e) => e.stopPropagation()}>
-            <TouchableOpacity style={styles.paywallClose} onPress={() => setShowPaywall(false)}>
+            <TouchableOpacity style={styles.paywallClose} hitSlop={CLOSE_SLOP} onPress={() => setShowPaywall(false)}>
               <Text style={styles.paywallCloseText}>✕</Text>
             </TouchableOpacity>
             <ProGate feature="Настройки Pro">
@@ -466,7 +473,7 @@ export function SettingsScreen() {
           </Row>
           <Row label={t('settings.dailyLimit')}>
             {settings.isPro ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACE.sm }}>
                 <Stepper
                   value={settings.dailyBetLimit}
                   min={0}
@@ -517,7 +524,7 @@ export function SettingsScreen() {
               onSubmitEditing={handleAddBookmaker}
               returnKeyType="done"
             />
-            <TouchableOpacity style={styles.addBkBtn} onPress={handleAddBookmaker}>
+            <TouchableOpacity style={styles.addBkBtn} hitSlop={ADD_SLOP} onPress={handleAddBookmaker}>
               <Text style={styles.addBkBtnText}>+</Text>
             </TouchableOpacity>
           </View>
@@ -613,7 +620,7 @@ export function SettingsScreen() {
         <Section title={t('settings.notifications')}>
           <Row label={t('settings.reminderTime')}>
             {settings.isPro ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACE.sm }}>
                 <Stepper
                   value={settings.reminderHour}
                   min={6}
@@ -667,10 +674,10 @@ export function SettingsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  strategyBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    marginHorizontal: 16, marginBottom: 16, padding: 14,
-    backgroundColor: colors.purple + '14', borderRadius: 12,
+  strategyBtn: { minHeight: TOUCH,
+    flexDirection: 'row', alignItems: 'center', gap: SPACE.md,
+    marginHorizontal: SPACE.lg, marginBottom: SPACE.lg, padding: SPACE.md,
+    backgroundColor: colors.purple + '14', borderRadius: RADIUS.md,
     borderWidth: 1, borderColor: colors.purple + '44',
   },
   strategyBtnIcon: { fontSize: GLYPH.lg },
@@ -678,61 +685,61 @@ const styles = StyleSheet.create({
   strategyBtnSub: { fontSize: SIZE.caption, color: colors.textSecondary, marginTop: 2 },
   strategyBtnArrow: { fontSize: GLYPH.md, color: colors.textMuted },
   partnersBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    marginHorizontal: 16, marginBottom: 16, padding: 14,
-    backgroundColor: colors.accent + '14', borderRadius: 12,
+    flexDirection: 'row', alignItems: 'center', gap: SPACE.md,
+    marginHorizontal: SPACE.lg, marginBottom: SPACE.lg, padding: SPACE.md,
+    backgroundColor: colors.accent + '14', borderRadius: RADIUS.md,
     borderWidth: 1, borderColor: colors.accent + '44',
   },
-  proBtn: { backgroundColor: colors.gold, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 },
+  proBtn: { backgroundColor: colors.gold, paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm, borderRadius: RADIUS.lg },
   proBtnText: { fontSize: SIZE.body, fontWeight: '700', color: '#000' },
   proBadge: {
-    backgroundColor: colors.gold + '22', paddingHorizontal: 12, paddingVertical: 6,
-    borderRadius: 20, borderWidth: 1, borderColor: colors.gold + '66',
+    backgroundColor: colors.gold + '22', paddingHorizontal: SPACE.md, paddingVertical: SPACE.xs,
+    borderRadius: RADIUS.lg, borderWidth: 1, borderColor: colors.gold + '66',
   },
   proBadgeText: { fontSize: SIZE.body, fontWeight: '700', color: colors.gold },
   value: { fontSize: SIZE.body, color: colors.textSecondary },
   hint: { fontSize: SIZE.title, color: colors.textMuted },
   removeText: { fontSize: SIZE.body, color: colors.lost },
-  addBkRow: { flexDirection: 'row', gap: 8, paddingVertical: 12 },
+  addBkRow: { flexDirection: 'row', gap: SPACE.sm, paddingVertical: SPACE.md },
   addBkInput: {
-    flex: 1, backgroundColor: colors.bgElevated, borderRadius: 8,
-    paddingHorizontal: 12, paddingVertical: 8, color: colors.textPrimary,
+    flex: 1, backgroundColor: colors.bgElevated, borderRadius: RADIUS.sm,
+    paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm, color: colors.textPrimary,
     fontSize: SIZE.body, borderWidth: 1, borderColor: colors.border,
   },
   addBkBtn: {
     backgroundColor: colors.purple, width: 38, height: 38,
-    borderRadius: 8, alignItems: 'center', justifyContent: 'center',
+    borderRadius: RADIUS.sm, alignItems: 'center', justifyContent: 'center',
   },
   addBkBtnText: { fontSize: SIZE.title, color: '#fff', fontWeight: '700', lineHeight: 24 },
-  actionBtn: { paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.border },
+  actionBtn: { minHeight: TOUCH, justifyContent: 'center', paddingVertical: SPACE.md, borderBottomWidth: 1, borderBottomColor: colors.border },
   lastActionBtn: { borderBottomWidth: 0 },
   actionBtnText: { fontSize: SIZE.lead, color: colors.purpleText, fontWeight: '600' },
   toggle: {
-    width: 44, height: 26, borderRadius: 13, backgroundColor: colors.border,
+    width: 44, height: 26, borderRadius: RADIUS.md, backgroundColor: colors.border,
     justifyContent: 'center', paddingHorizontal: 3,
   },
   toggleOn: { backgroundColor: colors.accent },
-  toggleThumb: { width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff' },
+  toggleThumb: { width: 20, height: 20, borderRadius: RADIUS.sm, backgroundColor: '#fff' },
   toggleThumbOn: { alignSelf: 'flex-end' },
-  dangerBtn: { paddingVertical: 14, alignItems: 'center' },
+  dangerBtn: { minHeight: TOUCH, justifyContent: 'center', paddingVertical: SPACE.md, alignItems: 'center' },
   dangerBtnText: { fontSize: SIZE.lead, color: colors.lost, fontWeight: '600' },
   paywallBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
   paywallSheet: {
-    backgroundColor: colors.bg, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+    backgroundColor: colors.bg, borderTopLeftRadius: RADIUS.lg, borderTopRightRadius: RADIUS.lg,
     minHeight: '75%', overflow: 'hidden',
   },
   paywallClose: {
     position: 'absolute', top: 12, right: 16, zIndex: 10,
-    width: 32, height: 32, borderRadius: 16,
+    width: 32, height: 32, borderRadius: RADIUS.md,
     backgroundColor: colors.bgElevated, alignItems: 'center', justifyContent: 'center',
   },
   paywallCloseText: { fontSize: SIZE.body, color: colors.textSecondary, fontWeight: '700' },
 
   // Backup banner
-  backupBanner: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    marginHorizontal: 16, marginBottom: 12, padding: 14,
-    backgroundColor: mix(colors.gold, colors.bgCard, 0.09), borderRadius: 12,
+  backupBanner: { minHeight: TOUCH,
+    flexDirection: 'row', alignItems: 'center', gap: SPACE.sm,
+    marginHorizontal: SPACE.lg, marginBottom: SPACE.md, padding: SPACE.md,
+    backgroundColor: mix(colors.gold, colors.bgCard, 0.09), borderRadius: RADIUS.md,
     borderWidth: 1, borderColor: alpha(colors.gold, 0.27),
   },
   backupBannerIcon: { fontSize: GLYPH.lg },
@@ -742,31 +749,31 @@ const styles = StyleSheet.create({
 
   // Subscription card
   subscriptionCard: {
-    marginHorizontal: 16, marginBottom: 16,
-    backgroundColor: colors.bgCard, borderRadius: 14,
-    padding: 16, borderWidth: 1, borderColor: colors.border, gap: 10,
+    marginHorizontal: SPACE.lg, marginBottom: SPACE.lg,
+    backgroundColor: colors.bgCard, borderRadius: RADIUS.md,
+    padding: SPACE.lg, borderWidth: 1, borderColor: colors.border, gap: SPACE.sm,
   },
-  subscriptionRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
+  subscriptionRow: { flexDirection: 'row', alignItems: 'flex-start', gap: SPACE.md },
   subscriptionIcon: { fontSize: GLYPH.xl, marginTop: 2 },
-  subscriptionTitle: { fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary, marginBottom: 4 },
+  subscriptionTitle: { fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary, marginBottom: SPACE.xs },
   subscriptionSub: { fontSize: SIZE.caption, color: colors.textSecondary, lineHeight: 17 },
-  proUpgradeBtn: {
-    backgroundColor: colors.gold, borderRadius: 10,
-    paddingVertical: 10, alignItems: 'center',
+  proUpgradeBtn: { minHeight: TOUCH, justifyContent: 'center',
+    backgroundColor: colors.gold, borderRadius: RADIUS.sm,
+    paddingVertical: SPACE.sm, alignItems: 'center',
   },
   proUpgradeBtnText: { fontSize: SIZE.body, fontWeight: '700', color: '#000' },
-  restoreBtn: {
-    backgroundColor: colors.bgElevated, borderRadius: 10,
-    paddingVertical: 10, alignItems: 'center',
+  restoreBtn: { minHeight: TOUCH, justifyContent: 'center',
+    backgroundColor: colors.bgElevated, borderRadius: RADIUS.sm,
+    paddingVertical: SPACE.sm, alignItems: 'center',
     borderWidth: 1, borderColor: colors.border,
   },
   restoreBtnText: { fontSize: SIZE.body, fontWeight: '600', color: colors.textSecondary },
   subscriptionHint: { fontSize: SIZE.caption, color: colors.textMuted, textAlign: 'center', lineHeight: 17 },
 
-  langRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingVertical: 12 },
-  langChip: {
-    flexDirection: 'row', alignItems: 'center', gap: 6,
-    paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20,
+  langRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm, paddingVertical: SPACE.md },
+  langChip: { minHeight: TOUCH,
+    flexDirection: 'row', alignItems: 'center', gap: SPACE.xs,
+    paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm, borderRadius: RADIUS.lg,
     backgroundColor: colors.bgElevated, borderWidth: 1, borderColor: colors.border,
   },
   langChipActive: { backgroundColor: colors.purple + '22', borderColor: colors.purple },

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { SPACE, RADIUS, TOUCH } from '../../theme/layout';
 import {
   View, StyleSheet, ScrollView, TouchableOpacity, Alert,
 } from 'react-native';
@@ -79,12 +80,12 @@ function MoodPicker({
 }
 
 const mp = StyleSheet.create({
-  row: { flexDirection: 'row', justifyContent: 'space-between', gap: 6 },
-  btn: {
+  row: { flexDirection: 'row', justifyContent: 'space-between', gap: SPACE.xs },
+  btn: { minHeight: TOUCH, justifyContent: 'center',
     flex: 1,
     alignItems: 'center',
-    paddingVertical: 10,
-    borderRadius: 12,
+    paddingVertical: SPACE.sm,
+    borderRadius: RADIUS.md,
     backgroundColor: colors.bgElevated,
     borderWidth: 1,
     borderColor: colors.border,
@@ -110,14 +111,14 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
 const card = StyleSheet.create({
   container: {
     backgroundColor: colors.bgCard,
-    borderRadius: 14,
-    padding: 16,
-    marginHorizontal: 16,
-    marginBottom: 14,
+    borderRadius: RADIUS.md,
+    padding: SPACE.lg,
+    marginHorizontal: SPACE.lg,
+    marginBottom: SPACE.md,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  title: { fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary, marginBottom: 14 },
+  title: { fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary, marginBottom: SPACE.md },
 });
 
 export function DisciplineScreen() {
@@ -153,7 +154,7 @@ export function DisciplineScreen() {
   return (
     <View style={styles.container}>
       <ScreenHeader title="Дисциплина" subtitle="Психология и контроль" />
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: SPACE.xxl }}>
 
         {inTilt && (
           <View style={styles.tiltBanner}>
@@ -261,12 +262,12 @@ const styles = StyleSheet.create({
   tiltBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginHorizontal: 16,
-    marginBottom: 14,
-    padding: 14,
+    gap: SPACE.md,
+    marginHorizontal: SPACE.lg,
+    marginBottom: SPACE.md,
+    padding: SPACE.md,
     backgroundColor: colors.lost + '15',
-    borderRadius: 12,
+    borderRadius: RADIUS.md,
     borderWidth: 1,
     borderColor: colors.lost + '44',
   },
@@ -274,49 +275,49 @@ const styles = StyleSheet.create({
   tiltTitle: { fontSize: SIZE.lead, fontWeight: '700', color: colors.lost },
   tiltSub: { fontSize: SIZE.caption, color: colors.textSecondary, marginTop: 2 },
   noteInput: {
-    marginTop: 12,
+    marginTop: SPACE.md,
     backgroundColor: colors.bgElevated,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderRadius: RADIUS.sm,
+    paddingHorizontal: SPACE.md,
+    paddingVertical: SPACE.sm,
     color: colors.textPrimary,
     fontSize: SIZE.body,
     borderWidth: 1,
     borderColor: colors.border,
     height: 80,
   },
-  saveBtn: {
-    marginTop: 12,
+  saveBtn: { minHeight: TOUCH, justifyContent: 'center',
+    marginTop: SPACE.md,
     backgroundColor: colors.purple,
-    borderRadius: 10,
-    paddingVertical: 12,
+    borderRadius: RADIUS.sm,
+    paddingVertical: SPACE.md,
     alignItems: 'center',
   },
   saveBtnText: { fontSize: SIZE.body, fontWeight: '700', color: '#fff' },
   savedRow: {
-    marginTop: 12,
+    marginTop: SPACE.md,
     alignItems: 'center',
-    paddingVertical: 10,
-    borderRadius: 10,
+    paddingVertical: SPACE.sm,
+    borderRadius: RADIUS.sm,
     backgroundColor: colors.accent + '15',
     borderWidth: 1,
     borderColor: colors.accent + '44',
   },
   savedText: { fontSize: SIZE.body, fontWeight: '600', color: colors.accent },
   tiltGrid: { flexDirection: 'row', justifyContent: 'space-around' },
-  tiltStat: { alignItems: 'center', gap: 4 },
+  tiltStat: { alignItems: 'center', gap: SPACE.xs },
   tiltStatValue: { fontSize: SIZE.hero, fontWeight: '700', color: colors.textPrimary },
   tiltStatLabel: { fontSize: SIZE.caption, color: colors.textMuted, textAlign: 'center' },
   ruleRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 12,
-    marginBottom: 12,
+    gap: SPACE.md,
+    marginBottom: SPACE.md,
   },
   ruleNum: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: RADIUS.md,
     backgroundColor: colors.purpleDim,
     alignItems: 'center',
     justifyContent: 'center',
@@ -329,8 +330,8 @@ const styles = StyleSheet.create({
   diaryRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 10,
-    paddingVertical: 8,
+    gap: SPACE.sm,
+    paddingVertical: SPACE.sm,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },

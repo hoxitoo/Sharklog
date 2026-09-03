@@ -1,4 +1,5 @@
 import React from 'react';
+import { SPACE, RADIUS, TOUCH } from '../theme/layout';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { AppText as Text } from './AppText';
 import { Ionicons } from '@expo/vector-icons';
@@ -65,26 +66,26 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingHorizontal: SPACE.lg,
+    paddingBottom: SPACE.md,
     backgroundColor: colors.bg,
-    gap: 10,
+    gap: SPACE.sm,
   },
   hamburger: {
     width: 36,
     height: 36,
     alignItems: 'center',
     justifyContent: 'center',
-    borderRadius: 8,
+    borderRadius: RADIUS.sm,
   },
   center: { flex: 1 },
   title: HEADER_TITLE,
   subtitle: { fontSize: SIZE.body, fontFamily: FONTS.sans, color: colors.textSecondary, marginTop: 2 },
-  action: {
+  action: { minHeight: TOUCH, justifyContent: 'center',
     backgroundColor: colors.purple,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 20,
+    paddingHorizontal: SPACE.md,
+    paddingVertical: SPACE.sm,
+    borderRadius: RADIUS.lg,
   },
   actionText: { fontSize: SIZE.body, fontWeight: '700', color: '#fff' },
   actionPlaceholder: { width: 36 },

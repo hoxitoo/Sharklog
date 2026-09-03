@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync } from 'fs';
 import { join } from 'path';
 import { SIZE, GLYPH } from '../theme/typography';
+import { SPACE, TOUCH, hitSlopFor } from '../theme/layout';
 
 /**
  * The lint rule for the design system.
@@ -55,6 +56,35 @@ describe('design tokens', () => {
     expect([...steps].sort((a, b) => a - b)).toEqual(steps); // ascending
     // Two sizes within 1px of each other read as a mistake, not a hierarchy.
     steps.slice(1).forEach((s, i) => expect(s - steps[i]!).toBeGreaterThanOrEqual(2));
+  });
+
+  it('has no raw numeric borderRadius', () => {
+    const hits = offenders(/border(?:Top|Bottom)?(?:Left|Right)?Radius:\s*\d/)
+      .filter((h) => !h.startsWith('theme/layout.ts'));
+    expect(hits).toEqual([]);
+  });
+
+  it('keeps structural spacing on the grid', () => {
+    // 1–3px are optical nudges and stay literal on purpose — see theme/layout.
+    const KEYS = 'padding|paddingTop|paddingBottom|paddingLeft|paddingRight|paddingHorizontal'
+      + '|paddingVertical|margin|marginTop|marginBottom|marginLeft|marginRight'
+      + '|marginHorizontal|marginVertical|gap|rowGap|columnGap';
+    const hits = offenders(new RegExp(`\\b(?:${KEYS}):\\s*(\\d+)`))
+      .filter((h) => !h.startsWith('theme/layout.ts'))
+      .filter((h) => Number(h.split(':').pop()) >= 4);
+    expect(hits).toEqual([]);
+  });
+
+  it('builds the spacing scale on a 4px grid', () => {
+    for (const v of Object.values(SPACE)) expect(v % 4).toBe(0);
+  });
+
+  it('pads a small control up to the full 44dp target', () => {
+    // A 28px chip needs 8 on each side; the helper must not guess.
+    expect(28 + hitSlopFor(28).top + hitSlopFor(28).bottom).toBeGreaterThanOrEqual(TOUCH);
+    expect(36 + hitSlopFor(36).left + hitSlopFor(36).right).toBeGreaterThanOrEqual(TOUCH);
+    // Already big enough: no padding, no shifted layout.
+    expect(hitSlopFor(60)).toEqual({ top: 0, bottom: 0, left: 0, right: 0 });
   });
 
   it('sizes glyphs off the same ramp, so the two axes cannot drift', () => {

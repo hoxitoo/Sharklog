@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { cardSurface } from '../../components/Card';
+import { SPACE, RADIUS, hitSlopFor } from '../../theme/layout';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
 import type { Bet } from '@sharklog/core';
@@ -9,6 +11,9 @@ import { StatusBadge, STATUS_COLORS } from '../../components/StatusBadge';
 import { useBetsStore } from '../../store/betsStore';
 import { haptic } from '../../utils/haptics';
 import { useTranslation } from 'react-i18next';
+
+const CHIP_SLOP = hitSlopFor(28);
+const CASHOUT_SLOP = hitSlopFor(36);
 
 interface Props {
   bet: Bet;
@@ -130,6 +135,7 @@ export const BetCard = React.memo(function BetCard({
         <View style={styles.quickResultRow}>
           <TouchableOpacity
             style={[styles.resultChip, styles.chipWon]}
+            hitSlop={CHIP_SLOP}
             onPress={() => handleQuickResult('won')}
             activeOpacity={0.75}
           >
@@ -137,6 +143,7 @@ export const BetCard = React.memo(function BetCard({
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.resultChip, styles.chipLost]}
+            hitSlop={CHIP_SLOP}
             onPress={() => handleQuickResult('lost')}
             activeOpacity={0.75}
           >
@@ -144,6 +151,7 @@ export const BetCard = React.memo(function BetCard({
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.resultChip, styles.chipRefund]}
+            hitSlop={CHIP_SLOP}
             onPress={() => handleQuickResult('refund')}
             activeOpacity={0.75}
           >
@@ -151,6 +159,7 @@ export const BetCard = React.memo(function BetCard({
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.resultChip, styles.chipRefund]}
+            hitSlop={CHIP_SLOP}
             onPress={() => { haptic.selection(); onRequestCashout?.(); }}
             activeOpacity={0.75}
           >
@@ -174,6 +183,7 @@ export const BetCard = React.memo(function BetCard({
           />
           <TouchableOpacity
             style={[styles.cashoutBtn, styles.cashoutConfirm]}
+              hitSlop={CASHOUT_SLOP}
             onPress={confirmCashout}
             activeOpacity={0.75}
           >
@@ -181,6 +191,7 @@ export const BetCard = React.memo(function BetCard({
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.cashoutBtn, styles.cashoutCancel]}
+              hitSlop={CASHOUT_SLOP}
             onPress={() => { haptic.selection(); closeCashout(); }}
             activeOpacity={0.75}
           >
@@ -198,23 +209,20 @@ export const BetCard = React.memo(function BetCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.bgCard,
-    borderRadius: 16,
-    padding: 14,
-    marginHorizontal: 16,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: colors.border,
-    elevation: 2,
+    ...cardSurface,
+    padding: SPACE.lg,
+    marginHorizontal: SPACE.lg,
+    marginBottom: SPACE.md,
   },
   edge: {
     position: 'absolute',
-    right: 0, top: 0, bottom: 0, width: 4,
-    // 16 (card) − 1 (border) so the rail follows the corner instead of cutting it.
-    borderTopRightRadius: 15, borderBottomRightRadius: 15,
+    right: 0, top: 0, bottom: 0, width: SPACE.xs,
+    // Card radius − 1 (the border) so the rail follows the corner instead of
+    // cutting across it. Tied to RADIUS.lg: change the card and this follows.
+    borderTopRightRadius: RADIUS.lg - 1, borderBottomRightRadius: RADIUS.lg - 1,
   },
   row: { flexDirection: 'row', justifyContent: 'space-between' },
-  left: { flex: 1, marginRight: 12 },
+  left: { flex: 1, marginRight: SPACE.md },
   right: { alignItems: 'flex-end' },
   sport: { fontSize: SIZE.caption, color: colors.textMuted, marginBottom: 2 },
   event: { fontSize: SIZE.lead, fontWeight: '600', color: colors.textPrimary, marginBottom: 2 },
@@ -222,13 +230,13 @@ const styles = StyleSheet.create({
   odds: { ...numeric, fontSize: SIZE.title, fontWeight: '700', color: colors.textPrimary },
   stake: { ...numeric, fontSize: SIZE.body, color: colors.textSecondary, marginTop: 2 },
   pnl: { ...numeric, fontSize: SIZE.body, fontWeight: '600', marginTop: 2 },
-  footer: { flexDirection: 'row', alignItems: 'center', marginTop: 10, gap: 8 },
+  footer: { flexDirection: 'row', alignItems: 'center', marginTop: SPACE.sm, gap: SPACE.sm },
   date: { fontSize: SIZE.caption, color: colors.textMuted, flex: 1 },
   bkBadge: {
     backgroundColor: colors.bgElevated,
-    paddingHorizontal: 6,
+    paddingHorizontal: SPACE.xs,
     paddingVertical: 2,
-    borderRadius: 6,
+    borderRadius: RADIUS.sm,
     borderWidth: 1,
     borderColor: colors.border,
   },
@@ -236,16 +244,16 @@ const styles = StyleSheet.create({
   quickResultRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    marginTop: 10,
-    paddingTop: 10,
+    gap: SPACE.xs,
+    marginTop: SPACE.sm,
+    paddingTop: SPACE.sm,
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
   resultChip: {
     width: 36,
     height: 28,
-    borderRadius: 8,
+    borderRadius: RADIUS.sm,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -257,17 +265,17 @@ const styles = StyleSheet.create({
   cashoutRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    marginTop: 10,
-    paddingTop: 10,
+    gap: SPACE.sm,
+    marginTop: SPACE.sm,
+    paddingTop: SPACE.sm,
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
   cashoutInput: {
     flex: 1,
     height: 36,
-    borderRadius: 8,
-    paddingHorizontal: 12,
+    borderRadius: RADIUS.sm,
+    paddingHorizontal: SPACE.md,
     backgroundColor: colors.bgElevated,
     borderWidth: 1,
     borderColor: colors.refund + '55',
@@ -277,7 +285,7 @@ const styles = StyleSheet.create({
   cashoutBtn: {
     width: 36,
     height: 36,
-    borderRadius: 8,
+    borderRadius: RADIUS.sm,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
@@ -285,12 +293,12 @@ const styles = StyleSheet.create({
   cashoutConfirm: { backgroundColor: colors.won + '18', borderColor: colors.won + '55' },
   cashoutCancel: { backgroundColor: colors.bgElevated, borderColor: colors.border },
   cashoutBtnText: { fontSize: SIZE.lead, fontWeight: '700' },
-  notes: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: 6, fontStyle: 'italic' },
+  notes: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: SPACE.xs, fontStyle: 'italic' },
   cashoutAmt: { ...numeric, fontSize: SIZE.caption, color: colors.refund, marginTop: 1 },
   freebetBadge: {
     backgroundColor: colors.accent + '1A',
-    borderRadius: 6,
-    paddingHorizontal: 6,
+    borderRadius: RADIUS.sm,
+    paddingHorizontal: SPACE.xs,
     paddingVertical: 2,
     borderWidth: 1,
     borderColor: colors.accent + '44',

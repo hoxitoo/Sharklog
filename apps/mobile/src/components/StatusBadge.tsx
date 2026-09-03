@@ -1,4 +1,5 @@
 import React from 'react';
+import { SPACE, RADIUS } from '../theme/layout';
 import { View, StyleSheet } from 'react-native';
 import { AppText as Text } from './AppText';
 import type { BetStatus } from '@sharklog/core';
@@ -27,9 +28,9 @@ export function StatusBadge({ status }: { status: BetStatus }) {
 
 const styles = StyleSheet.create({
   badge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: SPACE.sm,
     paddingVertical: 3,
-    borderRadius: 6,
+    borderRadius: RADIUS.sm,
     alignSelf: 'flex-start',
   },
   text: { fontSize: SIZE.caption, fontWeight: '600' },

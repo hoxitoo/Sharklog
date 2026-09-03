@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef } from 'react';
+import { SPACE, RADIUS } from '../theme/layout';
 import { View, StyleSheet, Animated, Easing } from 'react-native';
 import { AppText as Text } from './AppText';
 import { FONTS, SIZE } from '../theme/typography';
@@ -147,12 +148,12 @@ const s = StyleSheet.create({
   },
   linesWrap: {
     alignItems: 'center',
-    gap: 7,
-    marginBottom: 28,
+    gap: SPACE.sm,
+    marginBottom: SPACE.xl,
   },
   line: {
     height: 2,
-    borderRadius: 1,
+    borderRadius: RADIUS.xs,
     backgroundColor: colors.accent,
   },
   name: {
@@ -169,7 +170,7 @@ const s = StyleSheet.create({
     fontSize: SIZE.body,
     color: colors.textMuted,
     letterSpacing: 0.5,
-    marginTop: 6,
+    marginTop: SPACE.xs,
     textAlign: 'center',
   },
 });

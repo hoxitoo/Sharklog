@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { SPACE, RADIUS, TOUCH } from '../../theme/layout';
 import {
   View, StyleSheet, TouchableOpacity, Modal, FlatList, useWindowDimensions,
 } from 'react-native';
@@ -205,38 +206,38 @@ export function ExpandedDashboard({ visible, days, onClose }: Props) {
 }
 
 const ex = StyleSheet.create({
-  header: { flexDirection: 'row', alignItems: 'center', gap: 16 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: SPACE.lg },
   title: { fontSize: SIZE.lead, fontWeight: '800', color: colors.textPrimary },
-  headerStats: { flexDirection: 'row', gap: 16, flex: 1 },
+  headerStats: { flexDirection: 'row', gap: SPACE.lg, flex: 1 },
   headerStat: { fontSize: SIZE.caption, color: colors.textMuted },
   headerStatVal: { fontSize: SIZE.caption, color: colors.textPrimary, fontWeight: '700' },
   headerStatDim: { fontSize: SIZE.caption, color: colors.textMuted, fontWeight: '400' },
-  closeBtn: {
-    paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8,
+  closeBtn: { minHeight: TOUCH, justifyContent: 'center',
+    paddingHorizontal: SPACE.md, paddingVertical: SPACE.xs, borderRadius: RADIUS.sm,
     backgroundColor: colors.bgCard, borderWidth: 1, borderColor: colors.border,
   },
   closeText: { fontSize: SIZE.caption, color: colors.textSecondary, fontWeight: '600' },
 
-  controls: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10, flexWrap: 'wrap' },
+  controls: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs, marginTop: SPACE.sm, flexWrap: 'wrap' },
   controlLabel: { fontSize: SIZE.caption, color: colors.textMuted },
-  controlDivider: { width: 1, height: 16, backgroundColor: colors.border, marginHorizontal: 6 },
-  chip: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    paddingHorizontal: 10, paddingVertical: 5, borderRadius: 8,
+  controlDivider: { width: 1, height: 16, backgroundColor: colors.border, marginHorizontal: SPACE.xs },
+  chip: { minHeight: TOUCH,
+    flexDirection: 'row', alignItems: 'center', gap: SPACE.xs,
+    paddingHorizontal: SPACE.sm, paddingVertical: SPACE.xs, borderRadius: RADIUS.sm,
     backgroundColor: colors.bgCard, borderWidth: 1, borderColor: colors.border,
   },
   chipActive: { backgroundColor: colors.bgElevated, borderColor: colors.purple },
-  chipDot: { width: 7, height: 7, borderRadius: 2 },
+  chipDot: { width: 7, height: 7, borderRadius: RADIUS.xs },
   chipText: { fontSize: SIZE.caption, color: colors.textMuted },
   chipTextActive: { color: colors.textPrimary, fontWeight: '600' },
 
-  chartWrap: { marginTop: 10 },
-  empty: { fontSize: SIZE.body, color: colors.textMuted, marginTop: 20, textAlign: 'center' },
+  chartWrap: { marginTop: SPACE.sm },
+  empty: { fontSize: SIZE.body, color: colors.textMuted, marginTop: SPACE.lg, textAlign: 'center' },
 
   selRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 8,
-    paddingVertical: 6, paddingHorizontal: 10,
-    backgroundColor: colors.bgElevated, borderRadius: 8,
+    flexDirection: 'row', alignItems: 'center', gap: SPACE.md, marginTop: SPACE.sm,
+    paddingVertical: SPACE.xs, paddingHorizontal: SPACE.sm,
+    backgroundColor: colors.bgElevated, borderRadius: RADIUS.sm,
     borderWidth: 1, borderColor: colors.border,
   },
   selDate: { fontSize: SIZE.caption, fontWeight: '800', color: colors.textPrimary },
@@ -244,17 +245,17 @@ const ex = StyleSheet.create({
   selVal: { fontSize: SIZE.caption, color: colors.textPrimary, fontWeight: '700' },
 
   tableHead: {
-    flexDirection: 'row', marginTop: 12, paddingBottom: 6,
+    flexDirection: 'row', marginTop: SPACE.md, paddingBottom: SPACE.xs,
     borderBottomWidth: 1, borderBottomColor: colors.border,
   },
   th: { fontSize: SIZE.micro, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.4 },
-  tr: {
-    flexDirection: 'row', paddingVertical: 7,
+  tr: { minHeight: TOUCH,
+    flexDirection: 'row', paddingVertical: SPACE.sm,
     borderBottomWidth: 1, borderBottomColor: colors.border + '55',
   },
   trSel: { backgroundColor: colors.bgElevated },
   td: { fontSize: SIZE.caption, color: colors.textSecondary },
   cDate: { width: 60 },
   cNum: { width: 60, textAlign: 'right' },
-  cMoney: { flex: 1, textAlign: 'right', paddingRight: 8 },
+  cMoney: { flex: 1, textAlign: 'right', paddingRight: SPACE.sm },
 });

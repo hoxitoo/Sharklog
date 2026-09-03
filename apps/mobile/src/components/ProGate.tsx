@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { SPACE, RADIUS, TOUCH } from '../theme/layout';
 import {
   View, StyleSheet, TouchableOpacity, ActivityIndicator, Alert,
 } from 'react-native';
@@ -83,7 +84,7 @@ export function ProGate({ children, feature }: Props) {
       <Text style={styles.trialBadge}>7 дней бесплатно для новых пользователей</Text>
 
       {loading ? (
-        <ActivityIndicator color={colors.purple} style={{ marginTop: 24 }} />
+        <ActivityIndicator color={colors.purple} style={{ marginTop: SPACE.xl }} />
       ) : (
         <>
           <TouchableOpacity
@@ -107,7 +108,7 @@ export function ProGate({ children, feature }: Props) {
         </>
       )}
 
-      {purchasing && <ActivityIndicator color={colors.purple} style={{ marginTop: 12 }} />}
+      {purchasing && <ActivityIndicator color={colors.purple} style={{ marginTop: SPACE.md }} />}
 
       <TouchableOpacity onPress={handleRestore} disabled={purchasing} style={styles.restore}>
         <Text style={styles.restoreText}>Восстановить покупку</Text>
@@ -129,27 +130,27 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 32,
+    padding: SPACE.xxl,
     backgroundColor: colors.bg,
   },
-  icon: { fontSize: GLYPH.hero, marginBottom: 12 },
-  title: { fontSize: SIZE.hero, fontWeight: '700', color: colors.gold, marginBottom: 6 },
-  subtitle: { fontSize: SIZE.lead, color: colors.textSecondary, textAlign: 'center', marginBottom: 20 },
-  perks: { alignSelf: 'stretch', marginBottom: 16 },
-  perk: { fontSize: SIZE.body, color: colors.textPrimary, marginBottom: 6 },
+  icon: { fontSize: GLYPH.hero, marginBottom: SPACE.md },
+  title: { fontSize: SIZE.hero, fontWeight: '700', color: colors.gold, marginBottom: SPACE.xs },
+  subtitle: { fontSize: SIZE.lead, color: colors.textSecondary, textAlign: 'center', marginBottom: SPACE.lg },
+  perks: { alignSelf: 'stretch', marginBottom: SPACE.lg },
+  perk: { fontSize: SIZE.body, color: colors.textPrimary, marginBottom: SPACE.xs },
   trialBadge: {
     fontSize: SIZE.body,
     color: colors.accent,
     fontWeight: '600',
-    marginBottom: 24,
+    marginBottom: SPACE.xl,
   },
-  button: {
+  button: { minHeight: TOUCH, justifyContent: 'center',
     alignSelf: 'stretch',
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    borderRadius: 12,
+    paddingHorizontal: SPACE.xl,
+    paddingVertical: SPACE.md,
+    borderRadius: RADIUS.md,
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: SPACE.sm,
   },
   buttonPrimary: { backgroundColor: colors.purple },
   buttonSecondary: {
@@ -160,6 +161,6 @@ const styles = StyleSheet.create({
   buttonText: { fontSize: SIZE.lead, fontWeight: '700', color: '#fff' },
   buttonSub: { fontSize: SIZE.caption, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
   buttonTextSecondary: { fontSize: SIZE.lead, fontWeight: '600', color: colors.purpleText },
-  restore: { marginTop: 16 },
+  restore: { marginTop: SPACE.lg },
   restoreText: { fontSize: SIZE.body, color: colors.textSecondary },
 });

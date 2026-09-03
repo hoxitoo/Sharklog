@@ -1,4 +1,6 @@
 import React from 'react';
+import { SPACE, RADIUS, TOUCH } from '../../theme/layout';
+import { cardSurface } from '../../components/Card';
 import {
   View, StyleSheet, ScrollView, TouchableOpacity, Linking, Alert,
 } from 'react-native';
@@ -81,7 +83,7 @@ export function PartnersScreen() {
   return (
     <ScrollView
       style={styles.root}
-      contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 24 }}
+      contentContainerStyle={{ padding: SPACE.lg, paddingBottom: insets.bottom + 24 }}
     >
       {/* The native stack header already says "Партнёры" — one title is enough. */}
       <Text style={styles.subtitle}>
@@ -128,39 +130,37 @@ export function PartnersScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   subtitle: {
-    fontSize: SIZE.body, color: colors.textSecondary, lineHeight: 20, marginBottom: 14,
+    fontSize: SIZE.body, color: colors.textSecondary, lineHeight: 20, marginBottom: SPACE.md,
   },
   notice: {
-    backgroundColor: colors.bgElevated, borderRadius: 10,
-    padding: 12, marginBottom: 20,
+    backgroundColor: colors.bgElevated, borderRadius: RADIUS.sm,
+    padding: SPACE.md, marginBottom: SPACE.lg,
     borderWidth: 1, borderColor: colors.border,
   },
   noticeText: { fontSize: SIZE.caption, color: colors.textMuted, lineHeight: 18 },
   card: {
-    backgroundColor: colors.bgCard, borderRadius: 16,
-    padding: 16, marginBottom: 14,
-    borderWidth: 1, borderColor: colors.border,
-    gap: 10,
+    ...cardSurface,
+    padding: SPACE.lg, marginBottom: SPACE.md, gap: SPACE.md,
   },
-  cardTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  cardTop: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md },
   emoji: { fontSize: GLYPH.xxl },
   cardInfo: { flex: 1 },
   partnerName: {
-    fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary, marginBottom: 4,
+    fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary, marginBottom: SPACE.xs,
   },
   categoryBadge: {
     alignSelf: 'flex-start', backgroundColor: colors.purple + '22',
-    borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2,
+    borderRadius: RADIUS.xs, paddingHorizontal: SPACE.xs, paddingVertical: 2,
   },
   categoryText: { fontSize: SIZE.caption, color: colors.purpleText, fontWeight: '600' },
   description: { fontSize: SIZE.body, color: colors.textSecondary, lineHeight: 20 },
   bonusRow: {
-    backgroundColor: colors.accent + '18', borderRadius: 8, padding: 10,
+    backgroundColor: colors.accent + '18', borderRadius: RADIUS.sm, padding: SPACE.sm,
   },
   bonusText: { fontSize: SIZE.body, color: colors.accent, fontWeight: '600' },
-  btn: {
-    backgroundColor: colors.purple, borderRadius: 10,
-    paddingVertical: 11, alignItems: 'center',
+  btn: { minHeight: TOUCH, justifyContent: 'center',
+    backgroundColor: colors.purple, borderRadius: RADIUS.sm,
+    paddingVertical: SPACE.md, alignItems: 'center',
   },
   btnText: { fontSize: SIZE.body, fontWeight: '700', color: '#fff' },
 });

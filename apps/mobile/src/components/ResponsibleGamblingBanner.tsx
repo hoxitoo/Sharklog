@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { SPACE, RADIUS, TOUCH } from '../theme/layout';
 import { View, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { AppText as Text } from './AppText';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -57,27 +58,27 @@ export function ResponsibleGamblingBanner() {
 
 const styles = StyleSheet.create({
   container: {
-    marginHorizontal: 16,
-    marginBottom: 24,
-    borderRadius: 10,
+    marginHorizontal: SPACE.lg,
+    marginBottom: SPACE.xl,
+    borderRadius: RADIUS.sm,
     borderWidth: 1,
     borderColor: colors.border,
     backgroundColor: colors.bgCard,
     overflow: 'hidden',
   },
-  header: {
+  header: { minHeight: TOUCH,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    gap: SPACE.sm,
+    paddingHorizontal: SPACE.md,
+    paddingVertical: SPACE.sm,
   },
   icon: { fontSize: GLYPH.md },
   title: { flex: 1, fontSize: SIZE.caption, color: colors.textMuted, fontWeight: '600' },
   chevron: { fontSize: GLYPH.sm, color: colors.textMuted },
   body: {
-    paddingHorizontal: 12,
-    paddingBottom: 10,
+    paddingHorizontal: SPACE.md,
+    paddingBottom: SPACE.sm,
   },
   text: {
     fontSize: SIZE.caption,

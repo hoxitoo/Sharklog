@@ -1,4 +1,5 @@
 import React, { useEffect, useRef } from 'react';
+import { SPACE } from '../theme/layout';
 import {
   Modal, View, StyleSheet, Animated, Pressable, useWindowDimensions,
 } from 'react-native';
@@ -169,12 +170,12 @@ const wheel = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   stage: { alignItems: 'center' },
-  head: { alignItems: 'center', marginBottom: 18, paddingHorizontal: 32 },
+  head: { alignItems: 'center', marginBottom: SPACE.lg, paddingHorizontal: SPACE.xxl },
   title: { fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary, textAlign: 'center' },
   subtitle: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: 3, textAlign: 'center' },
   label: {
     position: 'absolute', width: LABEL_WIDTH, height: LABEL_HEIGHT,
-    alignItems: 'center', justifyContent: 'center', gap: 4,
+    alignItems: 'center', justifyContent: 'center', gap: SPACE.xs,
   },
   labelText: { fontSize: SIZE.caption, fontWeight: '600', textAlign: 'center' },
   center: {

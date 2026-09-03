@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { SPACE, RADIUS, TOUCH } from '../theme/layout';
 import {
   View, StyleSheet, TouchableOpacity, Animated, Pressable, ScrollView, Image, Alert, PanResponder, BackHandler,
 } from 'react-native';
@@ -347,14 +348,14 @@ const styles = StyleSheet.create({
   drawerLogo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+    gap: SPACE.sm,
+    paddingHorizontal: SPACE.lg,
+    paddingBottom: SPACE.lg,
   },
   logoImg: {
     width: 36,
     height: 36,
-    borderRadius: 8,
+    borderRadius: RADIUS.sm,
   },
   logoText: {
     fontSize: SIZE.title,
@@ -363,16 +364,16 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
   },
   section: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: SPACE.sm,
+    paddingVertical: SPACE.xs,
   },
-  navItem: {
+  navItem: { minHeight: TOUCH,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingVertical: 11,
-    paddingHorizontal: 12,
-    borderRadius: 10,
+    gap: SPACE.md,
+    paddingVertical: SPACE.md,
+    paddingHorizontal: SPACE.md,
+    borderRadius: RADIUS.sm,
     marginBottom: 1,
   },
   navItemActive: {
@@ -394,8 +395,8 @@ const styles = StyleSheet.create({
   },
   proBadge: {
     backgroundColor: colors.gold + '22',
-    borderRadius: 4,
-    paddingHorizontal: 5,
+    borderRadius: RADIUS.xs,
+    paddingHorizontal: SPACE.xs,
     paddingVertical: 2,
     borderWidth: 1,
     borderColor: colors.gold + '55',
@@ -408,18 +409,18 @@ const styles = StyleSheet.create({
   divider: {
     height: 1,
     backgroundColor: colors.border,
-    marginHorizontal: 16,
-    marginVertical: 8,
+    marginHorizontal: SPACE.lg,
+    marginVertical: SPACE.sm,
   },
-  partnersCard: {
+  partnersCard: { minHeight: TOUCH,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginHorizontal: 8,
-    marginBottom: 4,
-    padding: 12,
+    gap: SPACE.md,
+    marginHorizontal: SPACE.sm,
+    marginBottom: SPACE.xs,
+    padding: SPACE.md,
     backgroundColor: colors.accent + '14',
-    borderRadius: 12,
+    borderRadius: RADIUS.md,
     borderWidth: 1,
     borderColor: colors.accent + '44',
   },
@@ -434,8 +435,8 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   drawerBottom: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingHorizontal: SPACE.lg,
+    paddingTop: SPACE.md,
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
@@ -457,7 +458,7 @@ const styles = StyleSheet.create({
     right: 20,
     width: 58,
     height: 58,
-    borderRadius: 29,
+    borderRadius: RADIUS.pill,
     backgroundColor: colors.purple,
     alignItems: 'center',
     justifyContent: 'center',

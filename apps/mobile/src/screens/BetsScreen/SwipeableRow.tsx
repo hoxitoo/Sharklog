@@ -1,4 +1,5 @@
 import React, { useRef, useState } from 'react';
+import { SPACE, RADIUS } from '../../theme/layout';
 import {
   Animated, PanResponder, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View,
 } from 'react-native';
@@ -97,13 +98,13 @@ const styles = StyleSheet.create({
   },
   deleteZone: {
     position: 'absolute',
-    // Align with BetCard's card area (marginHorizontal:16, marginBottom:10)
+    // Align with BetCard's card area (marginHorizontal: SPACE.lg, marginBottom: SPACE.sm)
     right: 16,
     top: 0,
     bottom: 10,
     backgroundColor: colors.lost,
     // Must match BetCard's radius, or the red backing peeks out at the corners.
-    borderRadius: 16,
+    borderRadius: RADIUS.md,
     alignItems: 'center',
     justifyContent: 'center',
   },

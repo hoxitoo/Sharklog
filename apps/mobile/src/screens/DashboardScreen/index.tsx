@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { SPACE, RADIUS, TOUCH } from '../../theme/layout';
 import { View, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { AppText as Text } from '../../components/AppText';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -8,7 +9,7 @@ import { calcDashboard, isInTilt, calcDailyBreakdown, summarizeDays, toYmd } fro
 import type { Bet, DayStats } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { colors, toneSurface } from '../../theme/colors';
-import { tileStyle } from '../../components/Card';
+import { cardSurface, tileStyle } from '../../components/Card';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ResponsibleGamblingBanner } from '../../components/ResponsibleGamblingBanner';
 import { Coachmark } from '../../components/Coachmark';
@@ -69,17 +70,15 @@ function WLStrip({ bets }: { bets: Bet[] }) {
 
 const wl = StyleSheet.create({
   container: {
-    marginHorizontal: 16, marginBottom: 14, padding: 14,
-    ...toneSurface('violet'), borderRadius: 18, borderWidth: 1,
-    shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 }, elevation: 3,
+    ...cardSurface, ...toneSurface('violet'),
+    marginHorizontal: SPACE.lg, marginBottom: SPACE.md, padding: SPACE.lg,
   },
-  title: { fontSize: SIZE.caption, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 },
-  row: { flexDirection: 'row', gap: 6 },
+  title: { fontSize: SIZE.caption, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: SPACE.sm },
+  row: { flexDirection: 'row', gap: SPACE.xs },
   square: {
     width: 32,
     height: 32,
-    borderRadius: 8,
+    borderRadius: RADIUS.sm,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: colors.bgElevated,
@@ -166,18 +165,15 @@ function Heatmap({ bets }: { bets: Bet[] }) {
 
 const hm = StyleSheet.create({
   container: {
-    marginHorizontal: 16, marginBottom: 14, padding: 14,
-    backgroundColor: colors.bgCard, borderRadius: 18,
-    borderWidth: 1, borderColor: colors.border,
-    shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 }, elevation: 3,
+    ...cardSurface,
+    marginHorizontal: SPACE.lg, marginBottom: SPACE.md, padding: SPACE.lg,
   },
-  title: { fontSize: SIZE.caption, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 },
+  title: { fontSize: SIZE.caption, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: SPACE.sm },
   grid: { flexDirection: 'row', gap: 3 },
   col: { gap: 3 },
-  cell: { width: 16, height: 16, borderRadius: 3 },
-  legend: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8 },
-  legendCell: { width: 10, height: 10, borderRadius: 2 },
+  cell: { width: 16, height: 16, borderRadius: RADIUS.xs },
+  legend: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs, marginTop: SPACE.sm },
+  legendCell: { width: 10, height: 10, borderRadius: RADIUS.xs },
   legendText: { fontSize: SIZE.micro, color: colors.textMuted },
 });
 
@@ -219,22 +215,20 @@ function TurnoverCard({ turnover, bank, betCount, activeDays, pendingCount, peri
 
 const tc = StyleSheet.create({
   card: {
-    padding: 18, marginHorizontal: 16, marginBottom: 12,
-    ...toneSurface('info'), borderRadius: 18, borderWidth: 1,
-    shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 }, elevation: 3,
+    ...cardSurface, ...toneSurface('info'),
+    padding: SPACE.lg, marginHorizontal: SPACE.lg, marginBottom: SPACE.md,
   },
   topRow: { flexDirection: 'row', alignItems: 'flex-start' },
-  left: { flex: 1, marginRight: 12 },
+  left: { flex: 1, marginRight: SPACE.md },
   label: { fontSize: SIZE.caption, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
-  value: { fontSize: SIZE.display, fontWeight: '800', color: colors.textPrimary, marginTop: 4 },
-  bankBtn: {
-    ...tileStyle, paddingHorizontal: 12, paddingVertical: 10,
+  value: { fontSize: SIZE.display, fontWeight: '800', color: colors.textPrimary, marginTop: SPACE.xs },
+  bankBtn: { minHeight: TOUCH, justifyContent: 'center',
+    ...tileStyle, paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm,
     minWidth: 118, alignItems: 'flex-end',
   },
   bankLabel: { fontSize: SIZE.micro, color: colors.textMuted },
   bankValue: { fontSize: SIZE.lead, fontWeight: '700', marginTop: 3 },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs, marginTop: SPACE.md },
   meta: { fontSize: SIZE.caption, color: colors.textMuted },
   metaDot: { fontSize: SIZE.caption, color: colors.border },
 });
@@ -360,35 +354,33 @@ function DailyDashboardCard({ days, onExpand }: { days: DayStats[]; onExpand: ()
 
 const dd = StyleSheet.create({
   card: {
-    padding: 16, marginHorizontal: 16, marginBottom: 14,
-    ...toneSurface('profit'), borderRadius: 18, borderWidth: 1,
-    shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 }, elevation: 3,
+    ...cardSurface, ...toneSurface('profit'),
+    padding: SPACE.lg, marginHorizontal: SPACE.lg, marginBottom: SPACE.md,
   },
-  header: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 },
+  header: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: SPACE.md },
   title: { fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary },
   subtitle: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: 2 },
-  expandBtn: {
-    paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
+  expandBtn: { minHeight: TOUCH, justifyContent: 'center',
+    paddingHorizontal: SPACE.sm, paddingVertical: SPACE.xs, borderRadius: RADIUS.sm,
     backgroundColor: colors.bgElevated, borderWidth: 1, borderColor: colors.purple + '66',
   },
   expandText: { fontSize: SIZE.caption, color: colors.purpleText, fontWeight: '700' },
   chartWrap: { alignItems: 'center' },
-  hint: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: 12, textAlign: 'center' },
-  detail: { ...tileStyle, marginTop: 12 },
-  detailDate: { fontSize: SIZE.caption, fontWeight: '700', color: colors.textPrimary, marginBottom: 8 },
+  hint: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: SPACE.md, textAlign: 'center' },
+  detail: { ...tileStyle, marginTop: SPACE.md },
+  detailDate: { fontSize: SIZE.caption, fontWeight: '700', color: colors.textPrimary, marginBottom: SPACE.sm },
   detailGrid: { flexDirection: 'row', justifyContent: 'space-between' },
   detailCell: { flex: 1 },
   detailLabel: { fontSize: SIZE.micro, color: colors.textMuted },
   detailValue: { fontSize: SIZE.body, fontWeight: '700', color: colors.textPrimary, marginTop: 2 },
-  detailCash: { fontSize: SIZE.micro, color: colors.textMuted, marginTop: 8 },
-  detailLink: {
-    marginTop: 10, paddingVertical: 8, borderRadius: 8, alignItems: 'center',
+  detailCash: { fontSize: SIZE.micro, color: colors.textMuted, marginTop: SPACE.sm },
+  detailLink: { minHeight: TOUCH, justifyContent: 'center',
+    marginTop: SPACE.sm, paddingVertical: SPACE.sm, borderRadius: RADIUS.sm, alignItems: 'center',
     backgroundColor: colors.purpleDim, borderWidth: 1, borderColor: colors.purple + '66',
   },
   detailLinkText: { fontSize: SIZE.caption, color: colors.purpleText, fontWeight: '700' },
   summaryRow: {
-    flexDirection: 'row', marginTop: 14, paddingTop: 12,
+    flexDirection: 'row', marginTop: SPACE.md, paddingTop: SPACE.md,
     borderTopWidth: 1, borderTopColor: colors.border,
   },
   sumCell: { flex: 1 },
@@ -610,10 +602,10 @@ export function DashboardScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   container: { flex: 1, backgroundColor: colors.bg },
-  strategyBadge: {
-    flexDirection: 'row', alignItems: 'center', gap: 10,
-    marginHorizontal: 16, marginBottom: 12, padding: 12,
-    backgroundColor: colors.purple + '14', borderRadius: 10,
+  strategyBadge: { minHeight: TOUCH,
+    flexDirection: 'row', alignItems: 'center', gap: SPACE.sm,
+    marginHorizontal: SPACE.lg, marginBottom: SPACE.md, padding: SPACE.md,
+    backgroundColor: colors.purple + '14', borderRadius: RADIUS.sm,
     borderWidth: 1, borderColor: colors.purple + '44',
   },
   strategyIcon: { fontSize: GLYPH.lg },
@@ -622,14 +614,14 @@ const styles = StyleSheet.create({
   strategyArrow: { fontSize: GLYPH.md, color: colors.textMuted },
   periodRow: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    gap: 8,
-    marginBottom: 14,
+    paddingHorizontal: SPACE.lg,
+    gap: SPACE.sm,
+    marginBottom: SPACE.md,
   },
-  periodBtn: {
+  periodBtn: { minHeight: TOUCH, justifyContent: 'center',
     flex: 1,
-    paddingVertical: 7,
-    borderRadius: 8,
+    paddingVertical: SPACE.sm,
+    borderRadius: RADIUS.sm,
     backgroundColor: colors.bgCard,
     alignItems: 'center',
     borderWidth: 1,
@@ -644,48 +636,48 @@ const styles = StyleSheet.create({
   tiltAlert: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    margin: 16,
+    gap: SPACE.md,
+    margin: SPACE.lg,
     marginTop: 0,
-    padding: 14,
+    padding: SPACE.md,
     backgroundColor: colors.lost + '18',
-    borderRadius: 12,
+    borderRadius: RADIUS.md,
     borderWidth: 1,
     borderColor: colors.lost + '55',
   },
   tiltIcon: { fontSize: GLYPH.xl },
   tiltTitle: { fontSize: SIZE.lead, fontWeight: '700', color: colors.lost },
   tiltSub: { fontSize: SIZE.caption, color: colors.textSecondary, marginTop: 3 },
-  tiltDismiss: { fontSize: SIZE.lead, color: colors.textMuted, paddingLeft: 8 },
-  section: { paddingHorizontal: 16, marginBottom: 20 },
+  tiltDismiss: { fontSize: SIZE.lead, color: colors.textMuted, paddingLeft: SPACE.sm },
+  section: { paddingHorizontal: SPACE.lg, marginBottom: SPACE.lg },
   sectionTitle: { fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary },
   emptyText: { fontSize: SIZE.body, color: colors.textMuted },
-  recentBet: {
+  recentBet: { minHeight: TOUCH,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.bgCard,
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 6,
+    borderRadius: RADIUS.sm,
+    padding: SPACE.md,
+    marginBottom: SPACE.xs,
     borderWidth: 1,
     borderColor: colors.border,
   },
   recentEvent: { fontSize: SIZE.body, fontWeight: '600', color: colors.textPrimary },
   recentPick: { fontSize: SIZE.caption, color: colors.textSecondary, marginTop: 2 },
   recentStatus: {
-    width: 28, height: 28, borderRadius: 8,
+    width: 28, height: 28, borderRadius: RADIUS.sm,
     alignItems: 'center', justifyContent: 'center',
   },
-  heatmapToggle: {
+  heatmapToggle: { minHeight: TOUCH,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginHorizontal: 16,
-    marginBottom: 10,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    marginHorizontal: SPACE.lg,
+    marginBottom: SPACE.sm,
+    paddingVertical: SPACE.sm,
+    paddingHorizontal: SPACE.md,
     backgroundColor: colors.bgCard,
-    borderRadius: 10,
+    borderRadius: RADIUS.sm,
     borderWidth: 1,
     borderColor: colors.border,
   },

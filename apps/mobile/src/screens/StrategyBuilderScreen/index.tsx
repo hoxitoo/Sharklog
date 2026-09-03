@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { SPACE, RADIUS, TOUCH } from '../../theme/layout';
 import {
   View, StyleSheet, TouchableOpacity, ScrollView, Alert,
 } from 'react-native';
@@ -206,82 +207,82 @@ export function StrategyBuilderScreen() {
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
-  scroll: { padding: 16, paddingBottom: 40 },
+  scroll: { padding: SPACE.lg, paddingBottom: SPACE.xxl },
   progressWrap: {
     height: 5, backgroundColor: colors.bgElevated,
-    borderRadius: 3, overflow: 'hidden', marginBottom: 6,
+    borderRadius: RADIUS.xs, overflow: 'hidden', marginBottom: SPACE.xs,
   },
-  progressFill: { height: '100%', backgroundColor: colors.purple, borderRadius: 3 },
-  progressLabel: { fontSize: SIZE.caption, color: colors.textMuted, marginBottom: 20 },
+  progressFill: { height: '100%', backgroundColor: colors.purple, borderRadius: RADIUS.xs },
+  progressLabel: { fontSize: SIZE.caption, color: colors.textMuted, marginBottom: SPACE.lg },
   qCard: {
-    backgroundColor: colors.bgCard, borderRadius: 14, padding: 20,
-    borderWidth: 1, borderColor: colors.border, marginBottom: 16,
+    backgroundColor: colors.bgCard, borderRadius: RADIUS.md, padding: SPACE.lg,
+    borderWidth: 1, borderColor: colors.border, marginBottom: SPACE.lg,
   },
   qText: {
     fontSize: SIZE.title, fontWeight: '700', color: colors.textPrimary,
-    marginBottom: 20, lineHeight: 26,
+    marginBottom: SPACE.lg, lineHeight: 26,
   },
-  optionBtn: {
-    backgroundColor: colors.bgElevated, borderRadius: 12, padding: 14,
-    borderWidth: 1, borderColor: colors.border, marginBottom: 10,
+  optionBtn: { minHeight: TOUCH, justifyContent: 'center',
+    backgroundColor: colors.bgElevated, borderRadius: RADIUS.md, padding: SPACE.md,
+    borderWidth: 1, borderColor: colors.border, marginBottom: SPACE.sm,
   },
   optionLabel: { fontSize: SIZE.lead, fontWeight: '600', color: colors.textPrimary },
   optionDesc: { fontSize: SIZE.caption, color: colors.textSecondary, marginTop: 3 },
-  backBtn: { alignSelf: 'flex-start', paddingVertical: 8 },
+  backBtn: { minHeight: TOUCH, justifyContent: 'center', alignSelf: 'flex-start', paddingVertical: SPACE.sm },
   backText: { fontSize: SIZE.body, color: colors.textSecondary },
   // Result
   badge: {
     alignSelf: 'flex-start', backgroundColor: colors.purple + '22',
-    borderRadius: 8, paddingHorizontal: 12, paddingVertical: 5,
-    borderWidth: 1, borderColor: colors.purple + '44', marginBottom: 14,
+    borderRadius: RADIUS.sm, paddingHorizontal: SPACE.md, paddingVertical: SPACE.xs,
+    borderWidth: 1, borderColor: colors.purple + '44', marginBottom: SPACE.md,
   },
   badgeText: { fontSize: SIZE.caption, fontWeight: '700', color: colors.purpleText },
   resultName: {
     fontSize: SIZE.hero, fontWeight: '700', color: colors.textPrimary,
-    letterSpacing: -0.5, marginBottom: 8,
+    letterSpacing: -0.5, marginBottom: SPACE.sm,
   },
-  resultDesc: { fontSize: SIZE.body, color: colors.textSecondary, lineHeight: 22, marginBottom: 20 },
+  resultDesc: { fontSize: SIZE.body, color: colors.textSecondary, lineHeight: 22, marginBottom: SPACE.lg },
   recItem: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    backgroundColor: colors.bgCard, borderRadius: 10, padding: 14,
-    borderWidth: 1, borderColor: colors.border, marginBottom: 10,
+    flexDirection: 'row', alignItems: 'center', gap: SPACE.md,
+    backgroundColor: colors.bgCard, borderRadius: RADIUS.sm, padding: SPACE.md,
+    borderWidth: 1, borderColor: colors.border, marginBottom: SPACE.sm,
   },
   recIcon: { fontSize: GLYPH.lg, width: 28, textAlign: 'center' },
   recLabel: { fontSize: SIZE.caption, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
   recValue: { fontSize: SIZE.body, fontWeight: '600', color: colors.textPrimary, marginTop: 2 },
   disclaimerBox: {
-    backgroundColor: colors.bgCard, borderRadius: 10, padding: 14,
-    borderWidth: 1, borderColor: colors.border, marginVertical: 16,
+    backgroundColor: colors.bgCard, borderRadius: RADIUS.sm, padding: SPACE.md,
+    borderWidth: 1, borderColor: colors.border, marginVertical: SPACE.lg,
   },
   disclaimerText: { fontSize: SIZE.caption, color: colors.textMuted, lineHeight: 20 },
-  btnPrimary: {
-    backgroundColor: colors.purple, borderRadius: 12, padding: 14,
-    alignItems: 'center', marginBottom: 10,
+  btnPrimary: { minHeight: TOUCH, justifyContent: 'center',
+    backgroundColor: colors.purple, borderRadius: RADIUS.md, padding: SPACE.md,
+    alignItems: 'center', marginBottom: SPACE.sm,
   },
   btnPrimaryText: { color: '#fff', fontWeight: '700', fontSize: SIZE.lead },
-  btnSecondary: {
-    borderRadius: 12, padding: 14, alignItems: 'center',
+  btnSecondary: { minHeight: TOUCH, justifyContent: 'center',
+    borderRadius: RADIUS.md, padding: SPACE.md, alignItems: 'center',
     borderWidth: 1, borderColor: colors.border,
   },
   btnSecondaryText: { color: colors.textSecondary, fontWeight: '600', fontSize: SIZE.body },
   rationaleBox: {
-    backgroundColor: colors.bgCard, borderRadius: 10, padding: 14,
-    borderWidth: 1, borderColor: colors.border, marginBottom: 12,
+    backgroundColor: colors.bgCard, borderRadius: RADIUS.sm, padding: SPACE.md,
+    borderWidth: 1, borderColor: colors.border, marginBottom: SPACE.md,
   },
   sectionBox: {
-    backgroundColor: colors.bgCard, borderRadius: 10, padding: 14,
-    borderWidth: 1, borderColor: colors.border, marginBottom: 10,
+    backgroundColor: colors.bgCard, borderRadius: RADIUS.sm, padding: SPACE.md,
+    borderWidth: 1, borderColor: colors.border, marginBottom: SPACE.sm,
   },
   sectionTitle: {
     fontSize: SIZE.caption, color: colors.textMuted, textTransform: 'uppercase',
-    letterSpacing: 0.5, marginBottom: 10, fontWeight: '700',
+    letterSpacing: 0.5, marginBottom: SPACE.sm, fontWeight: '700',
   },
   rationaleText: { fontSize: SIZE.body, color: colors.textSecondary, lineHeight: 22 },
-  subNote: { fontSize: SIZE.caption, color: colors.textMuted, lineHeight: 18, marginTop: 8 },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  subNote: { fontSize: SIZE.caption, color: colors.textMuted, lineHeight: 18, marginTop: SPACE.sm },
+  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.xs },
   chip: {
-    backgroundColor: colors.purple + '22', borderRadius: 6,
-    paddingHorizontal: 10, paddingVertical: 4,
+    backgroundColor: colors.purple + '22', borderRadius: RADIUS.sm,
+    paddingHorizontal: SPACE.sm, paddingVertical: SPACE.xs,
     borderWidth: 1, borderColor: colors.purple + '44',
   },
   chipGreen: {
@@ -291,7 +292,7 @@ const s = StyleSheet.create({
   chipText: { fontSize: SIZE.caption, fontWeight: '600', color: colors.purpleText },
   chipTextGreen: { fontSize: SIZE.caption, fontWeight: '600', color: colors.accent },
   principleRow: {
-    flexDirection: 'row', gap: 10, alignItems: 'flex-start', marginBottom: 8,
+    flexDirection: 'row', gap: SPACE.sm, alignItems: 'flex-start', marginBottom: SPACE.sm,
   },
   principleNum: {
     fontSize: SIZE.body, fontWeight: '700', color: colors.purpleText,
