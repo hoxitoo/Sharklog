@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { SPACE, RADIUS, TOUCH } from '../../theme/layout';
+import { SPACE, RADIUS, TOUCH, FAB_CLEARANCE } from '../../theme/layout';
 import { cardSurface } from '../../components/Card';
 import {
   View, SectionList, StyleSheet, TouchableOpacity, ScrollView, RefreshControl, Image,
@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
     minHeight: TOUCH,
     flexDirection: 'row', alignItems: 'center', gap: SPACE.sm, alignSelf: 'flex-start',
     marginHorizontal: SPACE.lg, marginBottom: SPACE.sm, paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm,
-    backgroundColor: colors.purpleDim, borderRadius: RADIUS.lg,
+    backgroundColor: colors.purpleDim, borderRadius: RADIUS.pill,
     borderWidth: 1, borderColor: colors.purple,
   },
   dateChipText: { fontSize: SIZE.caption, color: colors.purpleText, fontWeight: '700' },
@@ -429,7 +429,7 @@ const styles = StyleSheet.create({
   todayLabel: { fontSize: SIZE.micro, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.4 },
   todayValue: { fontSize: SIZE.lead, fontWeight: '800', marginTop: 3 },
   todaySub: { fontSize: SIZE.micro, color: colors.textMuted, marginTop: 2 },
-  list: { paddingBottom: SPACE.xxl }, // clear the floating "+" FAB so the last row isn't covered
+  list: { paddingBottom: FAB_CLEARANCE }, // clear the floating "+" FAB so the last row isn't covered
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -440,7 +440,7 @@ const styles = StyleSheet.create({
   },
   sectionDate: { fontSize: SIZE.caption, color: colors.textMuted, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
   sectionPnl: { fontSize: SIZE.caption, fontWeight: '700' },
-  empty: { alignItems: 'center', paddingTop: SPACE.xxl },
+  empty: { alignItems: 'center', paddingTop: 80 },
   emptyIcon: { width: 90, height: 90, marginBottom: SPACE.md, alignSelf: 'center' },
   emptyTitle: { fontSize: SIZE.title, fontWeight: '600', color: colors.textPrimary, marginBottom: SPACE.xs },
   emptySubtitle: { fontSize: SIZE.body, color: colors.textSecondary, textAlign: 'center' },

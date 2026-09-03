@@ -115,7 +115,7 @@ const kc = StyleSheet.create({
   titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACE.md },
   title: { fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary },
   infoBtn: {
-    width: 18, height: 18, borderRadius: RADIUS.sm,
+    width: 18, height: 18, borderRadius: RADIUS.pill,
     backgroundColor: colors.bgElevated, borderWidth: 1, borderColor: colors.border,
     alignItems: 'center', justifyContent: 'center',
   },
@@ -320,7 +320,7 @@ const tx_ = StyleSheet.create({
     padding: SPACE.md, marginBottom: SPACE.xs, borderWidth: 1, borderColor: colors.border,
   },
   left: {
-    width: 32, height: 32, borderRadius: RADIUS.md,
+    width: 32, height: 32, borderRadius: RADIUS.pill,
     backgroundColor: colors.bgElevated, alignItems: 'center', justifyContent: 'center',
   },
   icon: { fontSize: GLYPH.md, color: colors.textSecondary },
@@ -551,7 +551,7 @@ const bk = StyleSheet.create({
     borderWidth: 1, borderColor: colors.border,
   },
   stepBtnDisabled: { opacity: 0.35 },
-  stepBtnText: { fontSize: SIZE.title, color: colors.textPrimary, fontWeight: '700', lineHeight: 24 },
+  stepBtnText: { fontSize: GLYPH.md, color: colors.textPrimary, fontWeight: '700', lineHeight: 20 },
   unitPct: { fontSize: SIZE.lead, fontWeight: '700', color: colors.accent, minWidth: 40, textAlign: 'center' },
   txButtons: { flexDirection: 'row', gap: SPACE.sm },
   adjustBtn: {

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { SPACE, RADIUS, TOUCH } from '../theme/layout';
+import { SPACE, RADIUS, TOUCH, FAB_SIZE, FAB_BOTTOM } from '../theme/layout';
 import {
   View, StyleSheet, TouchableOpacity, Animated, Pressable, ScrollView, Image, Alert, PanResponder, BackHandler,
 } from 'react-native';
@@ -204,7 +204,7 @@ export function DrawerNavigator() {
         {/* FAB — Add Bet (only on Bets screen) */}
         {screen === 'Bets' && (
           <TouchableOpacity
-            style={[styles.fab, { bottom: insets.bottom + 20 }]}
+            style={[styles.fab, { bottom: insets.bottom + FAB_BOTTOM }]}
             onPress={handleAddBet}
             activeOpacity={0.85}
           >
@@ -458,8 +458,8 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: 20,
-    width: 58,
-    height: 58,
+    width: FAB_SIZE,
+    height: FAB_SIZE,
     borderRadius: RADIUS.pill,
     backgroundColor: colors.purple,
     alignItems: 'center',

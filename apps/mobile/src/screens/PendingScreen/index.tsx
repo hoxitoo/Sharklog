@@ -138,7 +138,7 @@ const s = StyleSheet.create({
   },
   timeText: { fontSize: SIZE.caption, color: colors.textMuted, fontWeight: '600' },
   agoText: { fontSize: SIZE.caption, color: colors.pending, fontWeight: '600' },
-  empty: { alignItems: 'center', paddingTop: SPACE.xxl, paddingHorizontal: SPACE.xxl },
+  empty: { alignItems: 'center', paddingTop: 60, paddingHorizontal: SPACE.xxl },
   emptyIcon: { fontSize: GLYPH.xxl, marginBottom: SPACE.md },
   emptyTitle: { fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary },
   emptyText: { fontSize: SIZE.body, color: colors.textMuted, textAlign: 'center', marginTop: SPACE.xs, lineHeight: 20 },

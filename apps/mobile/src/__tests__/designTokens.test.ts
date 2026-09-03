@@ -1,7 +1,9 @@
 import { readFileSync, readdirSync } from 'fs';
 import { join } from 'path';
 import { SIZE, GLYPH } from '../theme/typography';
-import { SPACE, TOUCH, hitSlopFor } from '../theme/layout';
+import {
+  SPACE, TOUCH, hitSlopFor, FAB_CLEARANCE, FAB_BOTTOM, FAB_SIZE,
+} from '../theme/layout';
 
 /**
  * The lint rule for the design system.
@@ -65,13 +67,19 @@ describe('design tokens', () => {
   });
 
   it('keeps structural spacing on the grid', () => {
-    // 1–3px are optical nudges and stay literal on purpose — see theme/layout.
+    // The rule is the grid, not the token list. 1–3px are optical nudges and
+    // stay literal on purpose; above the named steps a literal is fine as long
+    // as it is a multiple of 4. Demanding a token there is what flattened a
+    // 96px FAB clearance to 32 and buried the last bet card.
     const KEYS = 'padding|paddingTop|paddingBottom|paddingLeft|paddingRight|paddingHorizontal'
       + '|paddingVertical|margin|marginTop|marginBottom|marginLeft|marginRight'
       + '|marginHorizontal|marginVertical|gap|rowGap|columnGap';
     const hits = offenders(new RegExp(`\\b(?:${KEYS}):\\s*(\\d+)`))
       .filter((h) => !h.startsWith('theme/layout.ts'))
-      .filter((h) => Number(h.split(':').pop()) >= 4);
+      .filter((h) => {
+        const px = Number(h.split(':').pop());
+        return px >= 4 && px % 4 !== 0;
+      });
     expect(hits).toEqual([]);
   });
 
@@ -85,6 +93,24 @@ describe('design tokens', () => {
     expect(36 + hitSlopFor(36).left + hitSlopFor(36).right).toBeGreaterThanOrEqual(TOUCH);
     // Already big enough: no padding, no shifted layout.
     expect(hitSlopFor(60)).toEqual({ top: 0, bottom: 0, left: 0, right: 0 });
+  });
+
+  it('never lets neighbours in a row claim the same pixels', () => {
+    // The W/L/R/C chips: 36 wide, 28 tall, 8 apart. Padding all four sides from
+    // the height alone gave 8 sideways across a 4px gap, so each chip reached
+    // inside the next one — and a hit-test walks siblings back to front, so the
+    // right edge of "W" recorded the bet as lost.
+    const slop = hitSlopFor({ width: 36, height: 28 }, { maxHorizontal: 4 });
+    expect(slop.left).toBe(4);
+    expect(slop.right).toBe(4);
+    expect(36 + slop.left + slop.right).toBe(TOUCH);   // exactly meets, never overlaps
+    expect(28 + slop.top + slop.bottom).toBe(TOUCH);
+  });
+
+  it('leaves the bet list enough room to clear the FAB', () => {
+    // A literal 96 here was flattened to 32 by a spacing sweep and the last bet
+    // card ended up under the button. Derived from the button, it cannot drift.
+    expect(FAB_CLEARANCE).toBeGreaterThanOrEqual(FAB_BOTTOM + FAB_SIZE);
   });
 
   it('sizes glyphs off the same ramp, so the two axes cannot drift', () => {

@@ -104,10 +104,10 @@ const styles = StyleSheet.create({
   },
   sheet: {
     backgroundColor: colors.bgCard,
-    borderTopLeftRadius: RADIUS.pill,
-    borderTopRightRadius: RADIUS.pill,
+    borderTopLeftRadius: RADIUS.sheet,
+    borderTopRightRadius: RADIUS.sheet,
     padding: SPACE.xl,
-    paddingBottom: SPACE.xxl,
+    paddingBottom: 40,
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },

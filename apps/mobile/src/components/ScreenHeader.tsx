@@ -23,13 +23,18 @@ import { useDrawer } from './DrawerContext';
 const HEADER_FACE = {
   fontFamily: sansFor('700'),
   color: colors.textPrimary,
-  letterSpacing: -0.5,
 };
 
 /** Drawer screens: a large title that owns the top of the page. */
-export const HEADER_TITLE = { ...HEADER_FACE, fontSize: SIZE.hero };
+export const HEADER_TITLE = { ...HEADER_FACE, fontSize: SIZE.hero, letterSpacing: -0.5 };
 
-/** Stack screens: a nav-bar title, sharing a row with the back button. */
+/**
+ * Stack screens: a nav-bar title, sharing a row with the back button.
+ *
+ * No `letterSpacing` on purpose. react-navigation's native stack forwards only
+ * family, size, weight and colour to the native header and drops the rest, so
+ * setting it here would read as shared and render as nothing.
+ */
 export const NAV_TITLE = { ...HEADER_FACE, fontSize: SIZE.title };
 
 interface Props {

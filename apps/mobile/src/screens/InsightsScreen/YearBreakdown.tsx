@@ -197,14 +197,14 @@ const y = StyleSheet.create({
   barName: { fontSize: SIZE.body, fontWeight: '600', color: colors.textPrimary, flex: 1, marginRight: SPACE.sm },
   barValue: { ...numeric, fontSize: SIZE.caption, fontWeight: '700' },
   track: {
-    height: 10, borderRadius: RADIUS.xs, backgroundColor: colors.bgSunken,
+    height: 10, borderRadius: RADIUS.pill, backgroundColor: colors.bgSunken,
     borderWidth: 1, borderColor: colors.border, justifyContent: 'center',
   },
   zeroLine: {
     position: 'absolute', left: '50%', top: 0, bottom: 0,
     width: 1, backgroundColor: alpha(colors.borderStrong, 0.9),
   },
-  bar: { position: 'absolute', top: 1, bottom: 1, borderRadius: RADIUS.xs },
+  bar: { position: 'absolute', top: 1, bottom: 1, borderRadius: RADIUS.pill },
 
   moreBtn: { alignItems: 'center', paddingTop: SPACE.md, paddingBottom: 2 },
   moreText: { fontSize: SIZE.body, fontWeight: '700', color: colors.purpleText },

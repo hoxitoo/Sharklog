@@ -341,7 +341,7 @@ const s = StyleSheet.create({
   },
   heroName: {
     fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary,
-    marginTop: SPACE.xs, lineHeight: 19, minHeight: 38,
+    marginTop: SPACE.xs, lineHeight: 20, minHeight: 40,
   },
   heroSub: { fontSize: SIZE.micro, color: colors.textMuted, marginTop: 2 },
   heroPnl: { ...numeric, fontSize: SIZE.title, fontWeight: '800', marginTop: SPACE.sm },

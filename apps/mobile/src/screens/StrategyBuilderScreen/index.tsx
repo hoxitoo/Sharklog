@@ -207,7 +207,7 @@ export function StrategyBuilderScreen() {
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
-  scroll: { padding: SPACE.lg, paddingBottom: SPACE.xxl },
+  scroll: { padding: SPACE.lg, paddingBottom: 40 },
   progressWrap: {
     height: 5, backgroundColor: colors.bgElevated,
     borderRadius: RADIUS.xs, overflow: 'hidden', marginBottom: SPACE.xs,

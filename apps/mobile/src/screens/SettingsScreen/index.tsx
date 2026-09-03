@@ -101,7 +101,7 @@ const step_ = StyleSheet.create({
     backgroundColor: colors.purple, alignItems: 'center', justifyContent: 'center',
   },
   btnDisabled: { backgroundColor: colors.bgElevated },
-  btnText: { fontSize: SIZE.title, color: '#fff', fontWeight: '700', lineHeight: 24 },
+  btnText: { fontSize: GLYPH.md, color: '#fff', fontWeight: '700', lineHeight: 20 },
   val: { fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary, minWidth: 28, textAlign: 'center' },
 });
 
@@ -699,7 +699,7 @@ const styles = StyleSheet.create({
   },
   proBadgeText: { fontSize: SIZE.body, fontWeight: '700', color: colors.gold },
   value: { fontSize: SIZE.body, color: colors.textSecondary },
-  hint: { fontSize: SIZE.title, color: colors.textMuted },
+  hint: { fontSize: SIZE.lead, color: colors.textMuted },
   removeText: { fontSize: SIZE.body, color: colors.lost },
   addBkRow: { flexDirection: 'row', gap: SPACE.sm, paddingVertical: SPACE.md },
   addBkInput: {
@@ -720,7 +720,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center', paddingHorizontal: 3,
   },
   toggleOn: { backgroundColor: colors.accent },
-  toggleThumb: { width: 20, height: 20, borderRadius: RADIUS.sm, backgroundColor: '#fff' },
+  toggleThumb: { width: 20, height: 20, borderRadius: RADIUS.pill, backgroundColor: '#fff' },
   toggleThumbOn: { alignSelf: 'flex-end' },
   dangerBtn: { minHeight: TOUCH, justifyContent: 'center', paddingVertical: SPACE.md, alignItems: 'center' },
   dangerBtnText: { fontSize: SIZE.lead, color: colors.lost, fontWeight: '600' },
@@ -731,7 +731,7 @@ const styles = StyleSheet.create({
   },
   paywallClose: {
     position: 'absolute', top: 12, right: 16, zIndex: 10,
-    width: 32, height: 32, borderRadius: RADIUS.md,
+    width: 32, height: 32, borderRadius: RADIUS.pill,
     backgroundColor: colors.bgElevated, alignItems: 'center', justifyContent: 'center',
   },
   paywallCloseText: { fontSize: SIZE.body, color: colors.textSecondary, fontWeight: '700' },
@@ -778,7 +778,7 @@ const styles = StyleSheet.create({
   langChip: {
     minHeight: TOUCH,
     flexDirection: 'row', alignItems: 'center', gap: SPACE.xs,
-    paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm, borderRadius: RADIUS.lg,
+    paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm, borderRadius: RADIUS.pill,
     backgroundColor: colors.bgElevated, borderWidth: 1, borderColor: colors.border,
   },
   langChipActive: { backgroundColor: colors.purple + '22', borderColor: colors.purple },

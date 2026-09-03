@@ -98,13 +98,13 @@ const styles = StyleSheet.create({
   },
   deleteZone: {
     position: 'absolute',
-    // Align with BetCard's card area (marginHorizontal: SPACE.lg, marginBottom: SPACE.sm)
-    right: 16,
+    // Align with BetCard's card area: same horizontal margin, same bottom gap.
+    right: SPACE.lg,
     top: 0,
-    bottom: 10,
+    bottom: SPACE.md,
     backgroundColor: colors.lost,
     // Must match BetCard's radius, or the red backing peeks out at the corners.
-    borderRadius: RADIUS.md,
+    borderRadius: RADIUS.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },

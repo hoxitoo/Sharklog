@@ -253,7 +253,7 @@ const ex = StyleSheet.create({
   th: { fontSize: SIZE.micro, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.4 },
   tr: {
     minHeight: TOUCH,
-    flexDirection: 'row', paddingVertical: SPACE.sm,
+    flexDirection: 'row', alignItems: 'center', paddingVertical: SPACE.sm,
     borderBottomWidth: 1, borderBottomColor: colors.border + '55',
   },
   trSel: { backgroundColor: colors.bgElevated },

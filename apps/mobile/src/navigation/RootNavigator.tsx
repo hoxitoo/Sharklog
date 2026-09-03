@@ -30,6 +30,9 @@ export function RootNavigator() {
     headerStyle: { backgroundColor: colors.bg },
     headerTintColor: colors.textPrimary,
     headerTitleStyle: NAV_TITLE,
+    // iOS draws the back label separately; without this it stays in SF next to
+    // a DM Sans title — the same drift this change is closing.
+    headerBackTitleStyle: NAV_TITLE,
     headerShadowVisible: false,
   };
   return (

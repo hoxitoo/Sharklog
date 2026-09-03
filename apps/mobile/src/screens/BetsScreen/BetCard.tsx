@@ -12,8 +12,10 @@ import { useBetsStore } from '../../store/betsStore';
 import { haptic } from '../../utils/haptics';
 import { useTranslation } from 'react-i18next';
 
-const CHIP_SLOP = hitSlopFor(28);
-const CASHOUT_SLOP = hitSlopFor(36);
+// Both rows sit their controls a gap apart, so each may claim at most half of
+// it sideways — otherwise the right edge of "W" would fire "L".
+const CHIP_SLOP = hitSlopFor({ width: 36, height: 28 }, { maxHorizontal: SPACE.sm / 2 });
+const CASHOUT_SLOP = hitSlopFor(36, { maxHorizontal: SPACE.sm / 2 });
 
 interface Props {
   bet: Bet;
@@ -244,7 +246,8 @@ const styles = StyleSheet.create({
   quickResultRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: SPACE.xs,
+    // 36 wide + 8 of gap = the full 44 target, with no overlap between chips.
+    gap: SPACE.sm,
     marginTop: SPACE.sm,
     paddingTop: SPACE.sm,
     borderTopWidth: 1,

@@ -19,7 +19,7 @@ import { useBetsStore } from '../../store/betsStore';
 import { haptic } from '../../utils/haptics';
 import { Analytics } from '../../services/analytics';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
-import { SIZE } from '../../theme/typography';
+import { SIZE, GLYPH } from '../../theme/typography';
 
 const STEP_SLOP = hitSlopFor(32);
 
@@ -470,7 +470,7 @@ const kl = StyleSheet.create({
     backgroundColor: colors.bgCard, borderWidth: 1, borderColor: colors.border,
     alignItems: 'center', justifyContent: 'center',
   },
-  stepBtnText: { fontSize: SIZE.title, color: colors.textPrimary, lineHeight: 24 },
+  stepBtnText: { fontSize: GLYPH.md, color: colors.textPrimary, lineHeight: 20 },
   stepValue: { fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary, minWidth: 44, textAlign: 'center' },
   resultsRow: { flexDirection: 'row', justifyContent: 'space-around' },
   resultCell: { alignItems: 'center', gap: 3 },
@@ -1524,7 +1524,7 @@ export function AddBetScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.bg },
   container: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: SPACE.lg, paddingBottom: SPACE.xxl },
+  content: { padding: SPACE.lg, paddingBottom: 40 },
   row2: { flexDirection: 'row', gap: SPACE.md },
   halfInput: { flex: 1 },
 

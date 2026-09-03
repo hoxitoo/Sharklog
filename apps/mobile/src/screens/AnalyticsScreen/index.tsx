@@ -114,7 +114,7 @@ function HeroPnl({ bets, period }: { bets: Bet[]; period: APeriodFilter }) {
           </View>
           <PnlBars
             buckets={buckets}
-            width={width - 68}
+            width={width - 64}
             selected={selected}
             onSelect={(i) => { haptic.selection(); setSelected(i); }}
             labelFor={(b, i) => (i % every === 0 || i === buckets.length - 1 ? bucketLabel(b, granularity) : '')}
@@ -173,7 +173,7 @@ function MiniTile({ label, value, color, sub, info }: {
 
 const tile = StyleSheet.create({
   box: { ...tileStyle, flex: 1 },
-  label: { fontSize: SIZE.caption, color: colors.textMuted, marginBottom: SPACE.xs, lineHeight: 15, height: 28 }, // reserve 2 lines
+  label: { fontSize: SIZE.caption, color: colors.textMuted, marginBottom: SPACE.xs, lineHeight: 15, height: 30 }, // reserve 2 lines
   labelWithInfo: { paddingRight: SPACE.lg }, // keep clear of the "?" badge
   value: { fontSize: SIZE.title, fontWeight: '800', height: 26, textAlignVertical: 'center' },
   sub: { fontSize: SIZE.micro, color: colors.textMuted, marginTop: SPACE.xs, height: 13 }, // always reserved
@@ -721,7 +721,7 @@ const time = StyleSheet.create({
   centerLabel: { fontSize: SIZE.micro, color: colors.textMuted },
   legend: { flex: 1, marginLeft: SPACE.lg },
   legendRow: { flexDirection: 'row', alignItems: 'center', marginBottom: SPACE.xs },
-  dot: { width: 10, height: 10, borderRadius: RADIUS.xs, marginRight: SPACE.sm },
+  dot: { width: 10, height: 10, borderRadius: RADIUS.pill, marginRight: SPACE.sm },
   legendLabel: { fontSize: SIZE.caption, color: colors.textSecondary, flex: 1 },
   legendCount: { fontSize: SIZE.caption, color: colors.textMuted, fontWeight: '600' },
 });
