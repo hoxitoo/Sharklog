@@ -293,6 +293,12 @@ navigation/
 screens/
   BetsScreen/              — SectionList + quick-result W/L/R/C (cashout)
                              ТАП по карточке = колесо действий (ActionWheel), НЕ редактирование
+                             Панель фильтров (день/поиск/статусы/сортировка/тилт) — сворачиваемая:
+                             лежит ПОВЕРХ списка (absolute, последней в дереве), уезжает по
+                             translateY при листании вниз, возвращается при листании вверх и у
+                             верха. Высота меряется onLayout → contentContainerStyle.paddingTop
+                             и progressViewOffset у RefreshControl. body с overflow:'hidden',
+                             иначе спрятанная панель рисуется поверх ScreenHeader
   AddBetScreen/            — форма с полем Турнир/Лига, статус cashout
                              collapsible доп. поля (стратегия, букмекер, дата, турнир, заметки, фрибет)
                              автораскрытие при edit если доп. поля заполнены
