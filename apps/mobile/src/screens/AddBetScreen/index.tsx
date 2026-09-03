@@ -472,8 +472,8 @@ const kl = StyleSheet.create({
   },
   stepBtnText: { fontSize: GLYPH.md, color: colors.textPrimary, lineHeight: 20 },
   stepValue: { fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary, minWidth: 44, textAlign: 'center' },
-  resultsRow: { flexDirection: 'row', justifyContent: 'space-around' },
-  resultCell: { alignItems: 'center', gap: 3 },
+  resultsRow: { flexDirection: 'row', gap: SPACE.sm },
+  resultCell: { flex: 1, alignItems: 'center', gap: 3 },
   resultValue: { fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary },
   resultLabel: { fontSize: SIZE.micro, color: colors.textMuted },
   applyBtn: {

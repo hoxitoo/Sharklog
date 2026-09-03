@@ -5,7 +5,7 @@ import {
   View, StyleSheet, ScrollView, TouchableOpacity, Alert, useWindowDimensions,
 } from 'react-native';
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
-import { calcDashboard, formatMoney, parseMoneyInput, kellyFraction, expectedValue, impliedProbability, calcDailyBreakdown, currentBank, pendingExposure } from '@sharklog/core';
+import { calcDashboard, parseMoneyInput, kellyFraction, expectedValue, impliedProbability, calcDailyBreakdown, currentBank, pendingExposure } from '@sharklog/core';
 
 function uuid(): string {
   const c = (globalThis as any).crypto;
@@ -26,6 +26,7 @@ function uuid(): string {
     return (ch === 'x' ? r : (r & 0x3) | 0x8).toString(16);
   });
 }
+import { useFormatMoney } from '../../utils/useFormatMoney';
 import type { BankrollTransaction, BankrollTxType } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { ProGate } from '../../components/ProGate';
@@ -39,6 +40,7 @@ const STEP_SLOP = hitSlopFor(28);
 // ── Kelly Calculator ──────────────────────────────────────────────────────────
 
 function KellyCalculator({ bankroll }: { bankroll: number }) {
+  const fmt = useFormatMoney();
   const [odds, setOdds] = useState('');
   const [prob, setProb] = useState('');
 
@@ -98,7 +100,7 @@ function KellyCalculator({ bankroll }: { bankroll: number }) {
           <View style={kc.resultRow}>
             <Text style={kc.resultLabel}>Half Kelly (рекомендовано)</Text>
             <Text style={[kc.resultValue, { color: colors.accent }]}>
-              {halfKellyStake !== null ? formatMoney(halfKellyStake) : '—'}
+              {halfKellyStake !== null ? fmt(halfKellyStake) : '—'}
             </Text>
           </View>
         </View>
@@ -146,6 +148,7 @@ function TxForm({
   onSubmit: (amount: number, note: string) => void;
   onCancel: () => void;
 }) {
+  const fmt = useFormatMoney();
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
   const isWithdrawal = type === 'withdrawal';
@@ -195,7 +198,7 @@ function TxForm({
         <View style={tf.hintBox}>
           <View style={tf.hintRow}>
             <Text style={tf.hintLabel}>Ожидаем у бука</Text>
-            <Text style={tf.hintValue}>{formatMoney(expected)}</Text>
+            <Text style={tf.hintValue}>{fmt(expected)}</Text>
           </View>
           {hasNumber && (
             <View style={tf.hintRow}>
@@ -203,13 +206,13 @@ function TxForm({
               <Text style={[tf.hintValue, {
                 color: delta > 0 ? colors.won : delta < 0 ? colors.lost : colors.textMuted,
               }]}>
-                {delta > 0 ? '+' : ''}{formatMoney(delta)}
+                {delta > 0 ? '+' : ''}{fmt(delta)}
               </Text>
             </View>
           )}
           {exposure > 0 && (
             <Text style={tf.hintNote}>
-              {formatMoney(exposure)} сейчас в незавершённых ставках — букмекер списал их
+              {fmt(exposure)} сейчас в незавершённых ставках — букмекер списал их
               сразу, поэтому и вычтены. Вводи баланс так, как его показывает бук.
             </Text>
           )}
@@ -278,6 +281,7 @@ const TX_ICON: Record<BankrollTxType, string> = {
 };
 
 function TxRow({ tx, onDelete }: { tx: BankrollTransaction; onDelete: () => void }) {
+  const fmt = useFormatMoney();
   const date = new Date(tx.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
   // A withdrawal's sign lives in its type; an adjustment carries it in the amount.
   const signed = tx.type === 'withdrawal' ? -tx.amount : tx.amount;
@@ -285,7 +289,7 @@ function TxRow({ tx, onDelete }: { tx: BankrollTransaction; onDelete: () => void
 
   function confirmDelete() {
     const sign = signed >= 0 ? '+' : '−';
-    Alert.alert('Удалить транзакцию?', `${label} ${sign}${formatMoney(Math.abs(signed))}`, [
+    Alert.alert('Удалить транзакцию?', `${label} ${sign}${fmt(Math.abs(signed))}`, [
       { text: 'Удалить', style: 'destructive', onPress: onDelete },
       { text: 'Отмена', style: 'cancel' },
     ]);
@@ -304,7 +308,7 @@ function TxRow({ tx, onDelete }: { tx: BankrollTransaction; onDelete: () => void
         <Text style={[tx_.amount, {
           color: tx.type === 'adjustment' ? colors.violet : signed >= 0 ? colors.won : colors.lost,
         }]}>
-          {signed >= 0 ? '+' : '−'}{formatMoney(Math.abs(signed))}
+          {signed >= 0 ? '+' : '−'}{fmt(Math.abs(signed))}
         </Text>
         <Text style={tx_.date}>{date}</Text>
       </View>
@@ -333,6 +337,7 @@ const tx_ = StyleSheet.create({
 // ── Main content ──────────────────────────────────────────────────────────────
 
 function BankrollContent() {
+  const fmt = useFormatMoney();
   const { bets, bankroll, updateBankroll } = useBetsStore();
   const { width } = useWindowDimensions();
   const stats = calcDashboard(bets);
@@ -361,7 +366,7 @@ function BankrollContent() {
         <View style={bk.chartHeader}>
           <Text style={bk.chartTitle}>Кривая банкролла</Text>
           <Text style={[bk.chartCurrentBank, { color: bank >= 0 ? colors.won : colors.lost }]}>
-            {bank >= 0 ? '+' : ''}{formatMoney(bank)}
+            {bank >= 0 ? '+' : ''}{fmt(bank)}
           </Text>
         </View>
         <BalanceChart days={dailySeries} width={width - 64} height={150} />
@@ -397,7 +402,7 @@ function BankrollContent() {
       return;
     }
     if (type === 'withdrawal' && amount > bank) {
-      Alert.alert('Недостаточно средств', `Максимум для вывода: ${formatMoney(bank)}`);
+      Alert.alert('Недостаточно средств', `Максимум для вывода: ${fmt(bank)}`);
       return;
     }
     const newTx: BankrollTransaction = {
@@ -428,31 +433,33 @@ function BankrollContent() {
       <View style={bk.summaryCard}>
         <Text style={bk.bankLabel}>Текущий банк</Text>
         <Text style={[bk.bankValue, { color: bank >= 0 ? colors.textPrimary : colors.lost }]}>
-          {formatMoney(bank)}
+          {fmt(bank)}
         </Text>
 
         <View style={bk.metaRow}>
           <View style={bk.metaCell}>
             <Text style={bk.metaLabel}>Внесено</Text>
-            <Text style={bk.metaValue}>{formatMoney(deposited)}</Text>
+            <Text style={bk.metaValue} numberOfLines={1} adjustsFontSizeToFit>{fmt(deposited)}</Text>
           </View>
           <View style={bk.metaCell}>
             <Text style={bk.metaLabel}>Выведено</Text>
-            <Text style={[bk.metaValue, { color: withdrawn > 0 ? colors.lost : colors.textPrimary }]}>
-              {withdrawn > 0 ? '−' : ''}{formatMoney(withdrawn)}
+            <Text style={[bk.metaValue, { color: withdrawn > 0 ? colors.lost : colors.textPrimary }]}
+              numberOfLines={1} adjustsFontSizeToFit>
+              {withdrawn > 0 ? '−' : ''}{fmt(withdrawn)}
             </Text>
           </View>
           <View style={bk.metaCell}>
             <Text style={bk.metaLabel}>P&L</Text>
-            <Text style={[bk.metaValue, { color: stats.pnl >= 0 ? colors.won : colors.lost }]}>
-              {stats.pnl >= 0 ? '+' : ''}{formatMoney(stats.pnl)}
+            <Text style={[bk.metaValue, { color: stats.pnl >= 0 ? colors.won : colors.lost }]}
+              numberOfLines={1} adjustsFontSizeToFit>
+              {stats.pnl >= 0 ? '+' : ''}{fmt(stats.pnl)}
             </Text>
           </View>
         </View>
 
         {exposure > 0 && (
           <Text style={bk.exposureNote}>
-            В игре {formatMoney(exposure)} · у букмекера сейчас ≈ {formatMoney(bank - exposure)}
+            В игре {fmt(exposure)} · у букмекера сейчас ≈ {fmt(bank - exposure)}
           </Text>
         )}
 
@@ -460,7 +467,7 @@ function BankrollContent() {
         <View style={bk.unitRow}>
           <View>
             <Text style={bk.metaLabel}>1 юнит</Text>
-            <Text style={[bk.metaValue, { color: colors.accent }]}>{formatMoney(unitAmount)}</Text>
+            <Text style={[bk.unitValue, { color: colors.accent }]}>{fmt(unitAmount)}</Text>
           </View>
           <View style={bk.unitStepper}>
             <TouchableOpacity
@@ -536,10 +543,16 @@ const bk = StyleSheet.create({
   },
   bankLabel: { fontSize: SIZE.caption, fontFamily: FONTS.sans, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
   bankValue: { fontSize: SIZE.display, fontFamily: FONTS.monoMedium, marginTop: SPACE.xs, marginBottom: SPACE.lg },
-  metaRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: SPACE.lg },
-  metaCell: {},
+  // Equal cells with a real gap. These held three money values in cells sized
+  // to their content and distributed by space-between: once the values grew
+  // wide enough to fill the row, the spacing went to zero and "146 507 ₽" ran
+  // straight into "−135 045,4 ₽".
+  metaRow: { flexDirection: 'row', gap: SPACE.md, marginBottom: SPACE.lg },
+  metaCell: { flex: 1 },
   metaLabel: { fontSize: SIZE.caption, color: colors.textMuted },
-  metaValue: { ...numeric, fontSize: SIZE.lead, fontWeight: '600', color: colors.textPrimary, marginTop: 2 },
+  metaValue: { ...numeric, fontSize: SIZE.body, fontWeight: '600', color: colors.textPrimary, marginTop: 2 },
+  // The unit sits alone on its own row and keeps the larger size.
+  unitValue: { ...numeric, fontSize: SIZE.lead, fontWeight: '600', marginTop: 2 },
   unitRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingTop: SPACE.md, marginTop: SPACE.xs, borderTopWidth: 1, borderTopColor: colors.border, marginBottom: SPACE.lg,

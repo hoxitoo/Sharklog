@@ -113,6 +113,18 @@ describe('design tokens', () => {
     expect(FAB_CLEARANCE).toBeGreaterThanOrEqual(FAB_BOTTOM + FAB_SIZE);
   });
 
+  it('never distributes a row with space-around', () => {
+    // The trap behind two real bugs on device. `space-around` on cells sized to
+    // their own content looks fine until the content grows: the leftover space
+    // goes to zero and the columns touch. On Bankroll three money values ran
+    // together; on Discipline three labels became one word — "Серия
+    // пораженийСтавок сегодняПоражений за неделю".
+    //
+    // A stat row is columns: give the cells `flex: 1` and the row a `gap`, and
+    // the spacing cannot be eaten by the text.
+    expect(offenders(/justifyContent:\s*'space-around'/)).toEqual([]);
+  });
+
   it('sizes glyphs off the same ramp, so the two axes cannot drift', () => {
     const ramp = new Set<number>(Object.values(SIZE));
     for (const [name, px] of Object.entries(GLYPH)) {

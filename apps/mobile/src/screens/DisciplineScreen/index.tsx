@@ -306,8 +306,11 @@ const styles = StyleSheet.create({
     borderColor: colors.accent + '44',
   },
   savedText: { fontSize: SIZE.body, fontWeight: '600', color: colors.accent },
-  tiltGrid: { flexDirection: 'row', justifyContent: 'space-around' },
-  tiltStat: { alignItems: 'center', gap: SPACE.xs },
+  // Equal cells with a gap: at content width the three labels ran together into
+  // "Серия пораженийСтавок сегодняПоражений за неделю". With flex they wrap
+  // inside their own column instead, which also survives longer translations.
+  tiltGrid: { flexDirection: 'row', gap: SPACE.sm },
+  tiltStat: { flex: 1, alignItems: 'center', gap: SPACE.xs },
   tiltStatValue: { fontSize: SIZE.hero, fontWeight: '700', color: colors.textPrimary },
   tiltStatLabel: { fontSize: SIZE.caption, color: colors.textMuted, textAlign: 'center' },
   ruleRow: {
