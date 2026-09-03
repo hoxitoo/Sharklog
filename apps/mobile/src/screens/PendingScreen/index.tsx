@@ -7,6 +7,7 @@ import { useBetsStore } from '../../store/betsStore';
 import { colors, toneSurface } from '../../theme/colors';
 import { BetCard } from '../BetsScreen/BetCard';
 import { useBetActions } from '../../components/useBetActions';
+import { SIZE, GLYPH } from '../../theme/typography';
 
 /** Kick-off timestamp, parsed as LOCAL time (a bare date string would read as UTC). */
 function startedAt(bet: Bet): number {
@@ -127,18 +128,18 @@ const s = StyleSheet.create({
   },
   headerCell: { flex: 1, paddingHorizontal: 4 },
   headerDivider: { width: 1, backgroundColor: colors.border, marginHorizontal: 6 },
-  headerLabel: { fontSize: 10, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.4 },
-  headerValue: { fontSize: 17, fontWeight: '800', marginTop: 3 },
-  headerSub: { fontSize: 9, color: colors.textMuted, marginTop: 2 },
+  headerLabel: { fontSize: SIZE.micro, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.4 },
+  headerValue: { fontSize: SIZE.lead, fontWeight: '800', marginTop: 3 },
+  headerSub: { fontSize: SIZE.micro, color: colors.textMuted, marginTop: 2 },
   list: { paddingBottom: 32 },
   timeRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingHorizontal: 20, marginBottom: 4, marginTop: 6,
   },
-  timeText: { fontSize: 11, color: colors.textMuted, fontWeight: '600' },
-  agoText: { fontSize: 11, color: colors.pending, fontWeight: '600' },
+  timeText: { fontSize: SIZE.caption, color: colors.textMuted, fontWeight: '600' },
+  agoText: { fontSize: SIZE.caption, color: colors.pending, fontWeight: '600' },
   empty: { alignItems: 'center', paddingTop: 60, paddingHorizontal: 32 },
-  emptyIcon: { fontSize: 40, marginBottom: 12 },
-  emptyTitle: { fontSize: 16, fontWeight: '700', color: colors.textPrimary },
-  emptyText: { fontSize: 13, color: colors.textMuted, textAlign: 'center', marginTop: 6, lineHeight: 19 },
+  emptyIcon: { fontSize: GLYPH.xxl, marginBottom: 12 },
+  emptyTitle: { fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary },
+  emptyText: { fontSize: SIZE.body, color: colors.textMuted, textAlign: 'center', marginTop: 6, lineHeight: 20 },
 });

@@ -4,7 +4,7 @@ import { AppText as Text } from '../../components/AppText';
 import type { Bet, TournamentStats } from '@sharklog/core';
 import { calcBetYears, betsInYear, calcByTournament } from '@sharklog/core';
 import { colors, alpha } from '../../theme/colors';
-import { numeric } from '../../theme/typography';
+import { numeric, SIZE } from '../../theme/typography';
 import { useFormatMoney } from '../../utils/useFormatMoney';
 import { haptic } from '../../utils/haptics';
 
@@ -167,7 +167,7 @@ function Bar({ row, peak, fmt, onPress }: {
 
 const y = StyleSheet.create({
   sectionTitle: {
-    fontSize: 12, color: colors.textMuted, textTransform: 'uppercase',
+    fontSize: SIZE.caption, color: colors.textMuted, textTransform: 'uppercase',
     letterSpacing: 0.6, fontWeight: '700', marginBottom: 10, marginTop: 6,
   },
   yearRow: { gap: 8, paddingBottom: 12 },
@@ -176,7 +176,7 @@ const y = StyleSheet.create({
     backgroundColor: colors.bgCard, borderWidth: 1, borderColor: colors.border,
   },
   yearChipActive: { backgroundColor: colors.purple, borderColor: colors.purple },
-  yearLabel: { fontSize: 13, color: colors.textSecondary, fontWeight: '600' },
+  yearLabel: { fontSize: SIZE.body, color: colors.textSecondary, fontWeight: '600' },
   yearLabelActive: { color: '#fff', fontWeight: '700' },
 
   card: {
@@ -184,15 +184,15 @@ const y = StyleSheet.create({
     borderWidth: 1, borderColor: colors.border, marginBottom: 16,
   },
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-  headLabel: { fontSize: 13, fontWeight: '700', color: colors.textPrimary },
-  headValue: { ...numeric, fontSize: 17, fontWeight: '800' },
-  headSub: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
+  headLabel: { fontSize: SIZE.body, fontWeight: '700', color: colors.textPrimary },
+  headValue: { ...numeric, fontSize: SIZE.lead, fontWeight: '800' },
+  headSub: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: 2 },
 
   bars: { marginTop: 14, gap: 12 },
   barRow: {},
   barHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 },
-  barName: { fontSize: 13, fontWeight: '600', color: colors.textPrimary, flex: 1, marginRight: 8 },
-  barValue: { ...numeric, fontSize: 12, fontWeight: '700' },
+  barName: { fontSize: SIZE.body, fontWeight: '600', color: colors.textPrimary, flex: 1, marginRight: 8 },
+  barValue: { ...numeric, fontSize: SIZE.caption, fontWeight: '700' },
   track: {
     height: 10, borderRadius: 5, backgroundColor: colors.bgSunken,
     borderWidth: 1, borderColor: colors.border, justifyContent: 'center',
@@ -204,5 +204,5 @@ const y = StyleSheet.create({
   bar: { position: 'absolute', top: 1, bottom: 1, borderRadius: 4 },
 
   moreBtn: { alignItems: 'center', paddingTop: 14, paddingBottom: 2 },
-  moreText: { fontSize: 13, fontWeight: '700', color: colors.purpleText },
+  moreText: { fontSize: SIZE.body, fontWeight: '700', color: colors.purpleText },
 });

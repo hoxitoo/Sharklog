@@ -28,7 +28,7 @@ import type { BankrollTransaction, BankrollTxType } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { ProGate } from '../../components/ProGate';
 import { colors, alpha, toneSurface } from '../../theme/colors';
-import { FONTS, numeric } from '../../theme/typography';
+import { FONTS, numeric, SIZE, GLYPH } from '../../theme/typography';
 import { BalanceChart } from '../../components/BalanceChart';
 import { SERIES } from '../../theme/chartColors';
 
@@ -109,24 +109,24 @@ const kc = StyleSheet.create({
     marginHorizontal: 16, marginBottom: 14, borderWidth: 1, borderColor: colors.border,
   },
   titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
-  title: { fontSize: 15, fontWeight: '700', color: colors.textPrimary },
+  title: { fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary },
   infoBtn: {
     width: 18, height: 18, borderRadius: 9,
     backgroundColor: colors.bgElevated, borderWidth: 1, borderColor: colors.border,
     alignItems: 'center', justifyContent: 'center',
   },
-  infoBtnText: { fontSize: 10, fontWeight: '700', color: colors.textMuted, lineHeight: 14 },
+  infoBtnText: { fontSize: SIZE.micro, fontWeight: '700', color: colors.textMuted, lineHeight: 14 },
   row: { flexDirection: 'row', gap: 12, marginBottom: 4 },
-  label: { fontSize: 11, color: colors.textSecondary, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
+  label: { fontSize: SIZE.caption, color: colors.textSecondary, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
   input: {
     backgroundColor: colors.bgElevated, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10,
-    color: colors.textPrimary, fontSize: 15, borderWidth: 1, borderColor: colors.border,
+    color: colors.textPrimary, fontSize: SIZE.lead, borderWidth: 1, borderColor: colors.border,
   },
-  hint: { fontSize: 11, color: colors.textMuted, marginTop: 4 },
+  hint: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: 4 },
   results: { marginTop: 14, paddingTop: 14, borderTopWidth: 1, borderTopColor: colors.border, gap: 8 },
   resultRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  resultLabel: { fontSize: 13, color: colors.textSecondary },
-  resultValue: { fontSize: 14, fontWeight: '700', color: colors.textPrimary },
+  resultLabel: { fontSize: SIZE.body, color: colors.textSecondary },
+  resultValue: { fontSize: SIZE.body, fontWeight: '700', color: colors.textPrimary },
 });
 
 // ── Inline transaction form ───────────────────────────────────────────────────
@@ -234,33 +234,33 @@ function TxForm({
 
 const tf = StyleSheet.create({
   container: { gap: 8, marginTop: 4 },
-  label: { fontSize: 12, color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.4 },
+  label: { fontSize: SIZE.caption, color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.4 },
   input: {
     backgroundColor: colors.bgElevated, borderRadius: 10,
     paddingHorizontal: 14, paddingVertical: 12,
-    color: colors.textPrimary, fontSize: 16, borderWidth: 1,
+    color: colors.textPrimary, fontSize: SIZE.lead, borderWidth: 1,
   },
   noteInput: {
     backgroundColor: colors.bgElevated, borderRadius: 10,
     paddingHorizontal: 14, paddingVertical: 10,
-    color: colors.textPrimary, fontSize: 14, borderWidth: 1, borderColor: colors.border,
+    color: colors.textPrimary, fontSize: SIZE.body, borderWidth: 1, borderColor: colors.border,
   },
   hintBox: {
     backgroundColor: colors.bgElevated, borderRadius: 10, padding: 10,
     borderWidth: 1, borderColor: colors.border, gap: 6,
   },
   hintRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-  hintLabel: { fontSize: 12, color: colors.textSecondary },
-  hintValue: { fontSize: 15, fontWeight: '700' },
-  hintNote: { fontSize: 11, color: colors.textMuted, lineHeight: 16 },
+  hintLabel: { fontSize: SIZE.caption, color: colors.textSecondary },
+  hintValue: { fontSize: SIZE.lead, fontWeight: '700' },
+  hintNote: { fontSize: SIZE.caption, color: colors.textMuted, lineHeight: 17 },
   actions: { flexDirection: 'row', gap: 8 },
   cancelBtn: {
     flex: 1, backgroundColor: colors.bgElevated, borderRadius: 10,
     paddingVertical: 12, alignItems: 'center', borderWidth: 1, borderColor: colors.border,
   },
-  cancelText: { fontSize: 15, fontWeight: '600', color: colors.textSecondary },
+  cancelText: { fontSize: SIZE.lead, fontWeight: '600', color: colors.textSecondary },
   confirmBtn: { flex: 1, borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
-  confirmText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  confirmText: { fontSize: SIZE.lead, fontWeight: '700', color: '#fff' },
 });
 
 // ── Transaction row ───────────────────────────────────────────────────────────
@@ -317,11 +317,11 @@ const tx_ = StyleSheet.create({
     width: 32, height: 32, borderRadius: 16,
     backgroundColor: colors.bgElevated, alignItems: 'center', justifyContent: 'center',
   },
-  icon: { fontSize: 16, color: colors.textSecondary },
-  type: { fontSize: 14, fontWeight: '600', color: colors.textPrimary },
-  note: { fontSize: 12, color: colors.textMuted, marginTop: 1 },
-  amount: { fontSize: 14, fontWeight: '700' },
-  date: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
+  icon: { fontSize: GLYPH.md, color: colors.textSecondary },
+  type: { fontSize: SIZE.body, fontWeight: '600', color: colors.textPrimary },
+  note: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: 1 },
+  amount: { fontSize: SIZE.body, fontWeight: '700' },
+  date: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: 2 },
 });
 
 // ── Main content ──────────────────────────────────────────────────────────────
@@ -529,12 +529,12 @@ const bk = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 }, elevation: 3,
   },
-  bankLabel: { fontSize: 12, fontFamily: FONTS.sans, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
-  bankValue: { fontSize: 36, fontFamily: FONTS.monoMedium, marginTop: 4, marginBottom: 16 },
+  bankLabel: { fontSize: SIZE.caption, fontFamily: FONTS.sans, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
+  bankValue: { fontSize: SIZE.display, fontFamily: FONTS.monoMedium, marginTop: 4, marginBottom: 16 },
   metaRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
   metaCell: {},
-  metaLabel: { fontSize: 11, color: colors.textMuted },
-  metaValue: { ...numeric, fontSize: 15, fontWeight: '600', color: colors.textPrimary, marginTop: 2 },
+  metaLabel: { fontSize: SIZE.caption, color: colors.textMuted },
+  metaValue: { ...numeric, fontSize: SIZE.lead, fontWeight: '600', color: colors.textPrimary, marginTop: 2 },
   unitRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingTop: 12, marginTop: 4, borderTopWidth: 1, borderTopColor: colors.border, marginBottom: 16,
@@ -546,22 +546,22 @@ const bk = StyleSheet.create({
     borderWidth: 1, borderColor: colors.border,
   },
   stepBtnDisabled: { opacity: 0.35 },
-  stepBtnText: { fontSize: 18, color: colors.textPrimary, fontWeight: '700', lineHeight: 22 },
-  unitPct: { fontSize: 16, fontWeight: '700', color: colors.accent, minWidth: 40, textAlign: 'center' },
+  stepBtnText: { fontSize: SIZE.title, color: colors.textPrimary, fontWeight: '700', lineHeight: 24 },
+  unitPct: { fontSize: SIZE.lead, fontWeight: '700', color: colors.accent, minWidth: 40, textAlign: 'center' },
   txButtons: { flexDirection: 'row', gap: 8 },
   adjustBtn: {
     flex: 1, borderRadius: 10, paddingVertical: 12, alignItems: 'center',
     backgroundColor: alpha(colors.violet, 0.16), borderWidth: 1, borderColor: colors.violet,
   },
-  adjustBtnText: { fontSize: 14, fontWeight: '700', color: colors.violet },
-  exposureNote: { fontSize: 11, color: colors.textMuted, marginTop: 8, textAlign: 'center' },
+  adjustBtnText: { fontSize: SIZE.body, fontWeight: '700', color: colors.violet },
+  exposureNote: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: 8, textAlign: 'center' },
   depositBtn: { flex: 1, backgroundColor: colors.purple, borderRadius: 10, paddingVertical: 12, alignItems: 'center' },
-  depositBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  depositBtnText: { fontSize: SIZE.lead, fontWeight: '700', color: '#fff' },
   withdrawBtn: {
     flex: 1, backgroundColor: 'transparent', borderRadius: 10, paddingVertical: 12, alignItems: 'center',
     borderWidth: 1, borderColor: colors.lost,
   },
-  withdrawBtnText: { fontSize: 15, fontWeight: '700', color: colors.lost },
+  withdrawBtnText: { fontSize: SIZE.lead, fontWeight: '700', color: colors.lost },
   chartCard: {
     borderRadius: 18, padding: 16, marginHorizontal: 16, marginBottom: 14,
     ...toneSurface('violet'),
@@ -570,19 +570,19 @@ const bk = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 }, elevation: 3,
   },
   chartHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 },
-  chartTitle: { fontSize: 13, fontWeight: '700', color: colors.textPrimary },
-  chartCurrentBank: { ...numeric, fontSize: 14, fontWeight: '700' },
-  chartHint: { fontSize: 10, color: colors.textMuted, marginBottom: 8 },
+  chartTitle: { fontSize: SIZE.body, fontWeight: '700', color: colors.textPrimary },
+  chartCurrentBank: { ...numeric, fontSize: SIZE.body, fontWeight: '700' },
+  chartHint: { fontSize: SIZE.micro, color: colors.textMuted, marginBottom: 8 },
   legendRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 10 },
-  legendPeriod: { fontSize: 10, color: colors.textMuted, flex: 1 },
+  legendPeriod: { fontSize: SIZE.micro, color: colors.textMuted, flex: 1 },
   legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   legendDot: { width: 8, height: 8, borderRadius: 4 },
-  legendText: { fontSize: 10, color: colors.textMuted },
+  legendText: { fontSize: SIZE.micro, color: colors.textMuted },
   txMarker: { width: 8, height: 8, borderRadius: 4, marginTop: -4, marginLeft: -4 },
   history: { paddingHorizontal: 16 },
-  historyTitle: { fontSize: 16, fontWeight: '700', color: colors.textPrimary, marginBottom: 2 },
-  historyHint: { fontSize: 11, color: colors.textMuted, marginBottom: 10 },
-  emptyText: { fontSize: 14, color: colors.textMuted },
+  historyTitle: { fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary, marginBottom: 2 },
+  historyHint: { fontSize: SIZE.caption, color: colors.textMuted, marginBottom: 10 },
+  emptyText: { fontSize: SIZE.body, color: colors.textMuted },
 });
 
 // ── Screen ────────────────────────────────────────────────────────────────────

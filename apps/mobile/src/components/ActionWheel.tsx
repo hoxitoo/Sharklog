@@ -6,6 +6,7 @@ import { AppText as Text } from './AppText';
 import Svg, { Path } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, alpha, mix } from '../theme/colors';
+import { SIZE } from '../theme/typography';
 
 export interface WheelAction {
   key: string;
@@ -169,13 +170,13 @@ const wheel = StyleSheet.create({
   },
   stage: { alignItems: 'center' },
   head: { alignItems: 'center', marginBottom: 18, paddingHorizontal: 32 },
-  title: { fontSize: 16, fontWeight: '700', color: colors.textPrimary, textAlign: 'center' },
-  subtitle: { fontSize: 12, color: colors.textMuted, marginTop: 3, textAlign: 'center' },
+  title: { fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary, textAlign: 'center' },
+  subtitle: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: 3, textAlign: 'center' },
   label: {
     position: 'absolute', width: LABEL_WIDTH, height: LABEL_HEIGHT,
     alignItems: 'center', justifyContent: 'center', gap: 4,
   },
-  labelText: { fontSize: 11, fontWeight: '600', textAlign: 'center' },
+  labelText: { fontSize: SIZE.caption, fontWeight: '600', textAlign: 'center' },
   center: {
     position: 'absolute', alignItems: 'center', justifyContent: 'center',
     backgroundColor: colors.lost,

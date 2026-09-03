@@ -2,6 +2,7 @@ import React from 'react';
 import { View, StyleSheet, type ViewStyle, type StyleProp } from 'react-native';
 import { AppText as Text } from './AppText';
 import { colors, alpha, toneSurface, TONE_ACCENT, type CardTone } from '../theme/colors';
+import { SIZE } from '../theme/typography';
 
 interface Props {
   title?: string;
@@ -58,8 +59,8 @@ const card = StyleSheet.create({
   head: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
   rail: { width: 3, height: 18, borderRadius: 2, marginRight: 10 },
   headText: { flex: 1 },
-  title: { fontSize: 14, fontWeight: '700', color: colors.textPrimary, letterSpacing: 0.2 },
-  subtitle: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
+  title: { fontSize: SIZE.body, fontWeight: '700', color: colors.textPrimary, letterSpacing: 0.2 },
+  subtitle: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: 2 },
 });
 
 /** Nested tile inside a Card — the second surface level. */

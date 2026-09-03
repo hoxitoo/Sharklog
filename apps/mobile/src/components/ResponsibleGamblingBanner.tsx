@@ -3,6 +3,7 @@ import { View, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { AppText as Text } from './AppText';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors } from '../theme/colors';
+import { SIZE, GLYPH } from '../theme/typography';
 
 const STORAGE_KEY = '@sharklog/responsible_expanded';
 
@@ -71,15 +72,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
-  icon: { fontSize: 14 },
-  title: { flex: 1, fontSize: 12, color: colors.textMuted, fontWeight: '600' },
-  chevron: { fontSize: 10, color: colors.textMuted },
+  icon: { fontSize: GLYPH.md },
+  title: { flex: 1, fontSize: SIZE.caption, color: colors.textMuted, fontWeight: '600' },
+  chevron: { fontSize: GLYPH.sm, color: colors.textMuted },
   body: {
     paddingHorizontal: 12,
     paddingBottom: 10,
   },
   text: {
-    fontSize: 12,
+    fontSize: SIZE.caption,
     color: colors.textMuted,
     lineHeight: 18,
   },

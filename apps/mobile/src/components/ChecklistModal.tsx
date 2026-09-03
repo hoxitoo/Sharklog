@@ -4,6 +4,7 @@ import {
 } from 'react-native';
 import { AppText as Text } from './AppText';
 import { colors } from '../theme/colors';
+import { SIZE, GLYPH } from '../theme/typography';
 
 const CHECKLIST = [
   { emoji: '🧠', text: 'Я не в состоянии тилта' },
@@ -118,14 +119,14 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   title: {
-    fontSize: 22,
+    fontSize: SIZE.title,
     fontWeight: '700',
     color: colors.textPrimary,
     marginBottom: 6,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 13,
+    fontSize: SIZE.body,
     color: colors.textSecondary,
     textAlign: 'center',
     marginBottom: 24,
@@ -160,9 +161,9 @@ const styles = StyleSheet.create({
     borderColor: colors.accent,
     backgroundColor: colors.accent,
   },
-  checkmark: { fontSize: 14, color: '#000', fontWeight: '700' },
-  emoji: { fontSize: 18, flexShrink: 0 },
-  itemText: { fontSize: 14, color: colors.textSecondary, flex: 1, lineHeight: 20 },
+  checkmark: { fontSize: SIZE.body, color: '#000', fontWeight: '700' },
+  emoji: { fontSize: GLYPH.lg, flexShrink: 0 },
+  itemText: { fontSize: SIZE.body, color: colors.textSecondary, flex: 1, lineHeight: 20 },
   itemTextChecked: { color: colors.textPrimary },
   confirmBtn: {
     backgroundColor: colors.purple,
@@ -176,8 +177,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  confirmText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  confirmText: { fontSize: SIZE.lead, fontWeight: '700', color: '#fff' },
   confirmTextDisabled: { color: colors.textMuted },
   cancelBtn: { alignItems: 'center', paddingVertical: 8 },
-  cancelText: { fontSize: 14, color: colors.textMuted },
+  cancelText: { fontSize: SIZE.body, color: colors.textMuted },
 });

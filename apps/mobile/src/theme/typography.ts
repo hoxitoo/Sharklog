@@ -3,6 +3,51 @@
 import type { TextStyle } from 'react-native';
 import { colors } from './colors';
 
+/**
+ * The type scale. Seven steps, and nothing between them.
+ *
+ * The app had grown 20 distinct text sizes (9…36) across 349 inline
+ * `fontSize`s — 11, 12 and 13 all in heavy use at once. The eye does not read
+ * a 1px step as hierarchy, it reads it as sloppiness, and the only reason the
+ * ladder splintered is that nothing held it together. `guard.test.ts` holds it
+ * together now: a numeric `fontSize` literal fails the suite.
+ *
+ * Roles, not sizes, so a screen picks by intent:
+ *   micro   — chart axes, sub-value captions
+ *   caption — labels, meta, secondary rows
+ *   body    — default text, list rows
+ *   lead    — emphasised values, buttons
+ *   title   — section and screen headings
+ *   hero    — a screen's one big number
+ *   display — a screen whose whole point IS the number (bank, period P&L)
+ */
+export const SIZE = {
+  micro: 10,
+  caption: 12,
+  body: 14,
+  lead: 16,
+  title: 20,
+  hero: 26,
+  display: 34,
+} as const;
+
+/**
+ * Emoji and icon glyphs — a separate axis on the same ramp.
+ *
+ * Half the "font sizes" in the audit were never type: `stepEmoji: 52`,
+ * `langFlag: 18`, `chevron: 10`. An emoji at 48 is an illustration, and sizing
+ * it off the text scale is what let the ladder splinter in the first place.
+ * Same numbers, different vocabulary, so the intent is visible at the call site.
+ */
+export const GLYPH = {
+  sm: SIZE.caption,   // inline chevrons and arrows, sized to the text beside them
+  md: SIZE.lead,      // row icons
+  lg: SIZE.title,     // emoji that carry a row
+  xl: SIZE.hero,      // section marks
+  xxl: SIZE.display,  // headline marks
+  hero: 48,           // empty states and error screens — illustration, not type
+} as const;
+
 export const FONTS = {
   sans: 'DMSans_400Regular',
   sansMedium: 'DMSans_500Medium',
@@ -42,13 +87,13 @@ export function monoFor(weight: TextStyle['fontWeight']): string {
 }
 
 export const typography: Record<string, TextStyle> = {
-  h1: { fontSize: 28, fontFamily: FONTS.sansBold, color: colors.textPrimary, letterSpacing: -0.5 },
-  h2: { fontSize: 22, fontFamily: FONTS.sansSemiBold, color: colors.textPrimary },
-  h3: { fontSize: 18, fontFamily: FONTS.sansSemiBold, color: colors.textPrimary },
-  body: { fontSize: 15, fontFamily: FONTS.sans, color: colors.textPrimary },
-  bodySmall: { fontSize: 13, fontFamily: FONTS.sans, color: colors.textSecondary },
-  caption: { fontSize: 11, fontFamily: FONTS.sans, color: colors.textMuted },
-  mono: { fontSize: 14, fontFamily: FONTS.mono, color: colors.textPrimary },
+  h1: { fontSize: SIZE.hero, fontFamily: FONTS.sansBold, color: colors.textPrimary, letterSpacing: -0.5 },
+  h2: { fontSize: SIZE.title, fontFamily: FONTS.sansSemiBold, color: colors.textPrimary },
+  h3: { fontSize: SIZE.title, fontFamily: FONTS.sansSemiBold, color: colors.textPrimary },
+  body: { fontSize: SIZE.lead, fontFamily: FONTS.sans, color: colors.textPrimary },
+  bodySmall: { fontSize: SIZE.body, fontFamily: FONTS.sans, color: colors.textSecondary },
+  caption: { fontSize: SIZE.caption, fontFamily: FONTS.sans, color: colors.textMuted },
+  mono: { fontSize: SIZE.body, fontFamily: FONTS.mono, color: colors.textPrimary },
 };
 
 /**

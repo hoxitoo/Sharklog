@@ -10,6 +10,7 @@ import { useFormatMoney } from '../../utils/useFormatMoney';
 import { haptic } from '../../utils/haptics';
 import { colors } from '../../theme/colors';
 import { DailyChart, ChartLegend, SERIES, type ChartToggles } from './DailyChart';
+import { SIZE } from '../../theme/typography';
 
 interface Props {
   visible: boolean;
@@ -205,19 +206,19 @@ export function ExpandedDashboard({ visible, days, onClose }: Props) {
 
 const ex = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  title: { fontSize: 16, fontWeight: '800', color: colors.textPrimary },
+  title: { fontSize: SIZE.lead, fontWeight: '800', color: colors.textPrimary },
   headerStats: { flexDirection: 'row', gap: 16, flex: 1 },
-  headerStat: { fontSize: 11, color: colors.textMuted },
-  headerStatVal: { fontSize: 12, color: colors.textPrimary, fontWeight: '700' },
-  headerStatDim: { fontSize: 11, color: colors.textMuted, fontWeight: '400' },
+  headerStat: { fontSize: SIZE.caption, color: colors.textMuted },
+  headerStatVal: { fontSize: SIZE.caption, color: colors.textPrimary, fontWeight: '700' },
+  headerStatDim: { fontSize: SIZE.caption, color: colors.textMuted, fontWeight: '400' },
   closeBtn: {
     paddingHorizontal: 12, paddingVertical: 6, borderRadius: 8,
     backgroundColor: colors.bgCard, borderWidth: 1, borderColor: colors.border,
   },
-  closeText: { fontSize: 12, color: colors.textSecondary, fontWeight: '600' },
+  closeText: { fontSize: SIZE.caption, color: colors.textSecondary, fontWeight: '600' },
 
   controls: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10, flexWrap: 'wrap' },
-  controlLabel: { fontSize: 11, color: colors.textMuted },
+  controlLabel: { fontSize: SIZE.caption, color: colors.textMuted },
   controlDivider: { width: 1, height: 16, backgroundColor: colors.border, marginHorizontal: 6 },
   chip: {
     flexDirection: 'row', alignItems: 'center', gap: 5,
@@ -226,11 +227,11 @@ const ex = StyleSheet.create({
   },
   chipActive: { backgroundColor: colors.bgElevated, borderColor: colors.purple },
   chipDot: { width: 7, height: 7, borderRadius: 2 },
-  chipText: { fontSize: 11, color: colors.textMuted },
+  chipText: { fontSize: SIZE.caption, color: colors.textMuted },
   chipTextActive: { color: colors.textPrimary, fontWeight: '600' },
 
   chartWrap: { marginTop: 10 },
-  empty: { fontSize: 13, color: colors.textMuted, marginTop: 20, textAlign: 'center' },
+  empty: { fontSize: SIZE.body, color: colors.textMuted, marginTop: 20, textAlign: 'center' },
 
   selRow: {
     flexDirection: 'row', alignItems: 'center', gap: 14, marginTop: 8,
@@ -238,21 +239,21 @@ const ex = StyleSheet.create({
     backgroundColor: colors.bgElevated, borderRadius: 8,
     borderWidth: 1, borderColor: colors.border,
   },
-  selDate: { fontSize: 12, fontWeight: '800', color: colors.textPrimary },
-  selItem: { fontSize: 11, color: colors.textMuted },
-  selVal: { fontSize: 12, color: colors.textPrimary, fontWeight: '700' },
+  selDate: { fontSize: SIZE.caption, fontWeight: '800', color: colors.textPrimary },
+  selItem: { fontSize: SIZE.caption, color: colors.textMuted },
+  selVal: { fontSize: SIZE.caption, color: colors.textPrimary, fontWeight: '700' },
 
   tableHead: {
     flexDirection: 'row', marginTop: 12, paddingBottom: 6,
     borderBottomWidth: 1, borderBottomColor: colors.border,
   },
-  th: { fontSize: 10, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.4 },
+  th: { fontSize: SIZE.micro, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.4 },
   tr: {
     flexDirection: 'row', paddingVertical: 7,
     borderBottomWidth: 1, borderBottomColor: colors.border + '55',
   },
   trSel: { backgroundColor: colors.bgElevated },
-  td: { fontSize: 12, color: colors.textSecondary },
+  td: { fontSize: SIZE.caption, color: colors.textSecondary },
   cDate: { width: 60 },
   cNum: { width: 60, textAlign: 'right' },
   cMoney: { flex: 1, textAlign: 'right', paddingRight: 8 },

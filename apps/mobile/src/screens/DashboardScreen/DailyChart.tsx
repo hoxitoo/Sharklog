@@ -5,6 +5,7 @@ import Svg, { Polyline, Circle, Rect } from 'react-native-svg';
 import type { DayStats } from '@sharklog/core';
 import { colors } from '../../theme/colors';
 import { SERIES } from '../../theme/chartColors';
+import { SIZE } from '../../theme/typography';
 
 export { SERIES } from '../../theme/chartColors';
 
@@ -153,7 +154,7 @@ export function DailyChart({ days, width, height, toggles, selected, onSelect, l
 
 const ch = StyleSheet.create({
   colSelected: { backgroundColor: colors.bgElevated, borderRadius: 6 },
-  xLabel: { fontSize: 9, color: colors.textMuted },
+  xLabel: { fontSize: SIZE.micro, color: colors.textMuted },
   xLabelSel: { color: colors.textPrimary, fontWeight: '700' },
 });
 
@@ -185,5 +186,5 @@ const lg = StyleSheet.create({
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 10 },
   item: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   dot: { width: 8, height: 8, borderRadius: 2 },
-  text: { fontSize: 10, color: colors.textMuted },
+  text: { fontSize: SIZE.micro, color: colors.textMuted },
 });

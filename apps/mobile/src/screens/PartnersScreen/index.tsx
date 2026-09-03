@@ -6,6 +6,7 @@ import { AppText as Text } from '../../components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../../theme/colors';
 import { Analytics } from '../../services/analytics';
+import { SIZE, GLYPH } from '../../theme/typography';
 
 const PARTNERS = [
   {
@@ -127,18 +128,18 @@ export function PartnersScreen() {
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   title: {
-    fontSize: 26, fontWeight: '800', color: colors.textPrimary,
+    fontSize: SIZE.hero, fontWeight: '800', color: colors.textPrimary,
     marginBottom: 6,
   },
   subtitle: {
-    fontSize: 14, color: colors.textSecondary, lineHeight: 20, marginBottom: 14,
+    fontSize: SIZE.body, color: colors.textSecondary, lineHeight: 20, marginBottom: 14,
   },
   notice: {
     backgroundColor: colors.bgElevated, borderRadius: 10,
     padding: 12, marginBottom: 20,
     borderWidth: 1, borderColor: colors.border,
   },
-  noticeText: { fontSize: 12, color: colors.textMuted, lineHeight: 18 },
+  noticeText: { fontSize: SIZE.caption, color: colors.textMuted, lineHeight: 18 },
   card: {
     backgroundColor: colors.bgCard, borderRadius: 16,
     padding: 16, marginBottom: 14,
@@ -146,24 +147,24 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   cardTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  emoji: { fontSize: 32 },
+  emoji: { fontSize: GLYPH.xxl },
   cardInfo: { flex: 1 },
   partnerName: {
-    fontSize: 17, fontWeight: '700', color: colors.textPrimary, marginBottom: 4,
+    fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary, marginBottom: 4,
   },
   categoryBadge: {
     alignSelf: 'flex-start', backgroundColor: colors.purple + '22',
     borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2,
   },
-  categoryText: { fontSize: 11, color: colors.purpleText, fontWeight: '600' },
-  description: { fontSize: 13, color: colors.textSecondary, lineHeight: 19 },
+  categoryText: { fontSize: SIZE.caption, color: colors.purpleText, fontWeight: '600' },
+  description: { fontSize: SIZE.body, color: colors.textSecondary, lineHeight: 20 },
   bonusRow: {
     backgroundColor: colors.accent + '18', borderRadius: 8, padding: 10,
   },
-  bonusText: { fontSize: 13, color: colors.accent, fontWeight: '600' },
+  bonusText: { fontSize: SIZE.body, color: colors.accent, fontWeight: '600' },
   btn: {
     backgroundColor: colors.purple, borderRadius: 10,
     paddingVertical: 11, alignItems: 'center',
   },
-  btnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  btnText: { fontSize: SIZE.body, fontWeight: '700', color: '#fff' },
 });

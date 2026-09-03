@@ -18,6 +18,7 @@ import { useBetsStore } from '../../store/betsStore';
 import { haptic } from '../../utils/haptics';
 import { Analytics } from '../../services/analytics';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import { SIZE } from '../../theme/typography';
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'AddBet'>;
 type Route = RouteProp<RootStackParamList, 'AddBet'>;
@@ -122,7 +123,7 @@ function SegmentedControl<T extends string>({
 
 const sc = StyleSheet.create({
   container: { marginBottom: 16 },
-  label: { fontSize: 12, color: colors.textSecondary, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
+  label: { fontSize: SIZE.caption, color: colors.textSecondary, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
   row: { flexDirection: 'row', gap: 6 },
   item: {
     paddingHorizontal: 12, paddingVertical: 7,
@@ -130,7 +131,7 @@ const sc = StyleSheet.create({
     borderWidth: 1, borderColor: colors.border,
   },
   itemActive: { backgroundColor: colors.purple, borderColor: colors.purple },
-  text: { fontSize: 13, color: colors.textSecondary },
+  text: { fontSize: SIZE.body, color: colors.textSecondary },
   textActive: { color: '#fff', fontWeight: '700' },
 });
 
@@ -148,8 +149,8 @@ function Field({ label, error, children }: { label: string; error?: string; chil
 
 const field = StyleSheet.create({
   container: { marginBottom: 16 },
-  label: { fontSize: 12, color: colors.textSecondary, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
-  error: { fontSize: 12, color: colors.lost, marginTop: 4 },
+  label: { fontSize: SIZE.caption, color: colors.textSecondary, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
+  error: { fontSize: SIZE.caption, color: colors.lost, marginTop: 4 },
 });
 
 const inputStyle = {
@@ -158,7 +159,7 @@ const inputStyle = {
   paddingHorizontal: 14,
   paddingVertical: 12,
   color: colors.textPrimary,
-  fontSize: 15,
+  fontSize: SIZE.lead,
   borderWidth: 1,
   borderColor: colors.border,
 };
@@ -268,7 +269,7 @@ const ac = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  name: { fontSize: 14, color: colors.textPrimary, flex: 1 },
+  name: { fontSize: SIZE.body, color: colors.textPrimary, flex: 1 },
   right: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   badge: {
     backgroundColor: colors.purpleDim,
@@ -278,8 +279,8 @@ const ac = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.purple + '44',
   },
-  badgeText: { fontSize: 10, color: colors.purpleText, fontWeight: '600' },
-  count: { fontSize: 11, color: colors.textMuted },
+  badgeText: { fontSize: SIZE.micro, color: colors.purpleText, fontWeight: '600' },
+  count: { fontSize: SIZE.caption, color: colors.textMuted },
 });
 
 // ── Tournament Input with autocomplete ────────────────────────────────────────
@@ -454,22 +455,22 @@ const kl = StyleSheet.create({
     gap: 12,
   },
   impliedRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  impliedLabel: { fontSize: 12, color: colors.textMuted },
-  impliedValue: { fontSize: 13, fontWeight: '600', color: colors.textSecondary },
+  impliedLabel: { fontSize: SIZE.caption, color: colors.textMuted },
+  impliedValue: { fontSize: SIZE.body, fontWeight: '600', color: colors.textSecondary },
   stepRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  stepLabel: { fontSize: 13, color: colors.textPrimary, fontWeight: '500' },
+  stepLabel: { fontSize: SIZE.body, color: colors.textPrimary, fontWeight: '500' },
   stepper: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   stepBtn: {
     width: 32, height: 32, borderRadius: 8,
     backgroundColor: colors.bgCard, borderWidth: 1, borderColor: colors.border,
     alignItems: 'center', justifyContent: 'center',
   },
-  stepBtnText: { fontSize: 18, color: colors.textPrimary, lineHeight: 22 },
-  stepValue: { fontSize: 17, fontWeight: '700', color: colors.textPrimary, minWidth: 44, textAlign: 'center' },
+  stepBtnText: { fontSize: SIZE.title, color: colors.textPrimary, lineHeight: 24 },
+  stepValue: { fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary, minWidth: 44, textAlign: 'center' },
   resultsRow: { flexDirection: 'row', justifyContent: 'space-around' },
   resultCell: { alignItems: 'center', gap: 3 },
-  resultValue: { fontSize: 16, fontWeight: '700', color: colors.textPrimary },
-  resultLabel: { fontSize: 10, color: colors.textMuted },
+  resultValue: { fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary },
+  resultLabel: { fontSize: SIZE.micro, color: colors.textMuted },
   applyBtn: {
     backgroundColor: colors.accent + '22',
     borderRadius: 10,
@@ -478,7 +479,7 @@ const kl = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.accent + '66',
   },
-  applyText: { fontSize: 14, fontWeight: '700', color: colors.accent },
+  applyText: { fontSize: SIZE.body, fontWeight: '700', color: colors.accent },
 });
 
 // ── Main Screen ────────────────────────────────────────────────────────────────
@@ -1537,7 +1538,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   betModeBtnActive: { backgroundColor: colors.purple },
-  betModeTxt: { fontSize: 15, fontWeight: '600', color: colors.textSecondary },
+  betModeTxt: { fontSize: SIZE.lead, fontWeight: '600', color: colors.textSecondary },
   betModeTxtActive: { color: '#fff' },
 
   legCard: {
@@ -1556,13 +1557,13 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   legTitle: {
-    fontSize: 12,
+    fontSize: SIZE.caption,
     fontWeight: '700',
     color: colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  legRemove: { fontSize: 16, color: colors.lost },
+  legRemove: { fontSize: SIZE.lead, color: colors.lost },
   legSportChip: {
     paddingHorizontal: 9,
     paddingVertical: 4,
@@ -1575,7 +1576,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.purple,
     borderColor: colors.purple,
   },
-  legSportChipText: { fontSize: 11, color: colors.textSecondary },
+  legSportChipText: { fontSize: SIZE.caption, color: colors.textSecondary },
   legSportChipTextActive: { color: '#fff', fontWeight: '700' },
   addLegBtn: {
     paddingVertical: 12,
@@ -1586,7 +1587,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  addLegText: { fontSize: 14, fontWeight: '600', color: colors.purpleText },
+  addLegText: { fontSize: SIZE.body, fontWeight: '600', color: colors.purpleText },
   expressOddsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -1598,8 +1599,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.purple + '44',
   },
-  expressOddsLabel: { fontSize: 13, color: colors.purpleText },
-  expressOddsValue: { fontSize: 18, fontWeight: '700', color: colors.purpleText },
+  expressOddsLabel: { fontSize: SIZE.body, color: colors.purpleText },
+  expressOddsValue: { fontSize: SIZE.title, fontWeight: '700', color: colors.purpleText },
 
   winPreview: {
     flexDirection: 'row',
@@ -1610,8 +1611,8 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 16,
   },
-  winLabel: { fontSize: 13, color: colors.accent },
-  winAmount: { fontSize: 16, fontWeight: '700', color: colors.accent },
+  winLabel: { fontSize: SIZE.body, color: colors.accent },
+  winAmount: { fontSize: SIZE.lead, fontWeight: '700', color: colors.accent },
 
   extraToggle: {
     paddingVertical: 12,
@@ -1624,7 +1625,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   extraToggleText: {
-    fontSize: 13,
+    fontSize: SIZE.body,
     color: colors.purpleText,
     fontWeight: '600',
   },
@@ -1639,7 +1640,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   freebetToggleActive: { borderColor: colors.accent + '66', backgroundColor: colors.accentDim },
-  freebetToggleText: { fontSize: 13, color: colors.textSecondary },
+  freebetToggleText: { fontSize: SIZE.body, color: colors.textSecondary },
   freebetToggleTextActive: { color: colors.accent, fontWeight: '600' },
   kellyToggle: {
     alignSelf: 'flex-start',
@@ -1652,7 +1653,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   kellyToggleActive: { borderColor: colors.accent + '66', backgroundColor: colors.accentDim },
-  kellyToggleText: { fontSize: 13, color: colors.textSecondary },
+  kellyToggleText: { fontSize: SIZE.body, color: colors.textSecondary },
   kellyToggleTextActive: { color: colors.accent, fontWeight: '600' },
 
   bookmakers: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
@@ -1662,7 +1663,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: colors.border,
   },
   bkBtnActive: { backgroundColor: colors.purple, borderColor: colors.purple },
-  bkText: { fontSize: 13, color: colors.textSecondary },
+  bkText: { fontSize: SIZE.body, color: colors.textSecondary },
   bkTextActive: { color: '#fff', fontWeight: '700' },
   notes: { height: 80 },
   bankShare: {
@@ -1671,10 +1672,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgCard, borderWidth: 1, borderColor: colors.border,
   },
   bankShareWarn: { borderColor: colors.lost + '77', backgroundColor: colors.lost + '11' },
-  bankShareLabel: { fontSize: 12, color: colors.textSecondary, fontWeight: '600' },
-  bankShareBank: { fontSize: 10, color: colors.textMuted, marginTop: 2 },
-  bankShareValue: { fontSize: 20, fontWeight: '800' },
-  bankShareHint: { fontSize: 10, color: colors.textMuted, marginTop: 2 },
+  bankShareLabel: { fontSize: SIZE.caption, color: colors.textSecondary, fontWeight: '600' },
+  bankShareBank: { fontSize: SIZE.micro, color: colors.textMuted, marginTop: 2 },
+  bankShareValue: { fontSize: SIZE.title, fontWeight: '800' },
+  bankShareHint: { fontSize: SIZE.micro, color: colors.textMuted, marginTop: 2 },
   outcomePicker: {
     flexDirection: 'row',
     gap: 8,
@@ -1693,7 +1694,7 @@ const styles = StyleSheet.create({
     borderColor: colors.purple,
   },
   outcomeTxt: {
-    fontSize: 13,
+    fontSize: SIZE.body,
     fontWeight: '600',
     color: colors.textSecondary,
   },
@@ -1705,5 +1706,5 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 8,
   },
-  submitText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  submitText: { fontSize: SIZE.lead, fontWeight: '700', color: '#fff' },
 });

@@ -12,7 +12,7 @@ import { useBetsStore } from '../../store/betsStore';
 import { useDrawer } from '../../components/DrawerContext';
 import { haptic } from '../../utils/haptics';
 import { colors, alpha, mix } from '../../theme/colors';
-import { numeric } from '../../theme/typography';
+import { numeric, SIZE, GLYPH } from '../../theme/typography';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ProGate } from '../../components/ProGate';
 import { useFormatMoney } from '../../utils/useFormatMoney';
@@ -318,11 +318,11 @@ const s = StyleSheet.create({
     alignItems: 'center',
   },
   periodBtnActive: { backgroundColor: colors.purple, borderColor: colors.purple },
-  periodLabel: { fontSize: 13, color: colors.textSecondary, fontWeight: '500' },
+  periodLabel: { fontSize: SIZE.body, color: colors.textSecondary, fontWeight: '500' },
   periodLabelActive: { color: '#fff', fontWeight: '700' },
 
   sectionTitle: {
-    fontSize: 12, color: colors.textMuted, textTransform: 'uppercase',
+    fontSize: SIZE.caption, color: colors.textMuted, textTransform: 'uppercase',
     letterSpacing: 0.6, fontWeight: '700', marginBottom: 10, marginTop: 6,
   },
 
@@ -333,37 +333,37 @@ const s = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 }, elevation: 3,
   },
   heroLabel: {
-    fontSize: 10, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.6,
+    fontSize: SIZE.micro, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.6,
   },
   heroName: {
-    fontSize: 15, fontWeight: '700', color: colors.textPrimary,
+    fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary,
     marginTop: 6, lineHeight: 19, minHeight: 38,
   },
-  heroSub: { fontSize: 10, color: colors.textMuted, marginTop: 2 },
-  heroPnl: { ...numeric, fontSize: 19, fontWeight: '800', marginTop: 8 },
-  heroRoi: { ...numeric, fontSize: 11, fontWeight: '600', marginTop: 1 },
+  heroSub: { fontSize: SIZE.micro, color: colors.textMuted, marginTop: 2 },
+  heroPnl: { ...numeric, fontSize: SIZE.title, fontWeight: '800', marginTop: 8 },
+  heroRoi: { ...numeric, fontSize: SIZE.caption, fontWeight: '600', marginTop: 1 },
 
   card: {
     backgroundColor: colors.bgCard, borderRadius: 14, padding: 4,
     borderWidth: 1, borderColor: colors.border, marginBottom: 16,
   },
-  empty: { fontSize: 13, color: colors.textMuted, lineHeight: 20, padding: 12 },
+  empty: { fontSize: SIZE.body, color: colors.textMuted, lineHeight: 22, padding: 12 },
 
   row: {
     flexDirection: 'row', alignItems: 'center',
     paddingVertical: 11, paddingHorizontal: 12,
     borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border,
   },
-  rowName: { fontSize: 14, fontWeight: '600', color: colors.textPrimary, marginBottom: 2 },
-  rowSub: { fontSize: 11, color: colors.textMuted },
-  rowPnl: { ...numeric, fontSize: 14, fontWeight: '700' },
-  rowRoi: { ...numeric, fontSize: 11, fontWeight: '600' },
-  chevron: { fontSize: 20, color: colors.textMuted, marginLeft: 6, marginTop: -2 },
+  rowName: { fontSize: SIZE.body, fontWeight: '600', color: colors.textPrimary, marginBottom: 2 },
+  rowSub: { fontSize: SIZE.caption, color: colors.textMuted },
+  rowPnl: { ...numeric, fontSize: SIZE.body, fontWeight: '700' },
+  rowRoi: { ...numeric, fontSize: SIZE.caption, fontWeight: '600' },
+  chevron: { fontSize: GLYPH.lg, color: colors.textMuted, marginLeft: 6, marginTop: -2 },
 
   moreBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
     paddingVertical: 12,
   },
-  moreText: { fontSize: 13, fontWeight: '700', color: colors.purpleText },
-  moreChevron: { fontSize: 10, color: colors.purpleText },
+  moreText: { fontSize: SIZE.body, fontWeight: '700', color: colors.purpleText },
+  moreChevron: { fontSize: GLYPH.sm, color: colors.purpleText },
 });

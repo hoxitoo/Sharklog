@@ -9,6 +9,7 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { colors } from '../../theme/colors';
 import { haptic } from '../../utils/haptics';
 import type { DiaryEntry } from '@sharklog/core';
+import { SIZE, GLYPH } from '../../theme/typography';
 
 const MOODS: Array<{ value: 1 | 2 | 3 | 4 | 5; emoji: string; label: string }> = [
   { value: 1, emoji: '😫', label: 'Тилт' },
@@ -92,8 +93,8 @@ const mp = StyleSheet.create({
     borderColor: colors.purple,
     backgroundColor: colors.purpleDim,
   },
-  emoji: { fontSize: 22 },
-  label: { fontSize: 9, color: colors.textMuted, marginTop: 3, textAlign: 'center' },
+  emoji: { fontSize: GLYPH.lg },
+  label: { fontSize: SIZE.micro, color: colors.textMuted, marginTop: 3, textAlign: 'center' },
   labelActive: { color: colors.purpleText },
 });
 
@@ -116,7 +117,7 @@ const card = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  title: { fontSize: 15, fontWeight: '700', color: colors.textPrimary, marginBottom: 14 },
+  title: { fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary, marginBottom: 14 },
 });
 
 export function DisciplineScreen() {
@@ -269,9 +270,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.lost + '44',
   },
-  tiltEmoji: { fontSize: 28 },
-  tiltTitle: { fontSize: 15, fontWeight: '700', color: colors.lost },
-  tiltSub: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
+  tiltEmoji: { fontSize: GLYPH.xl },
+  tiltTitle: { fontSize: SIZE.lead, fontWeight: '700', color: colors.lost },
+  tiltSub: { fontSize: SIZE.caption, color: colors.textSecondary, marginTop: 2 },
   noteInput: {
     marginTop: 12,
     backgroundColor: colors.bgElevated,
@@ -279,7 +280,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     color: colors.textPrimary,
-    fontSize: 14,
+    fontSize: SIZE.body,
     borderWidth: 1,
     borderColor: colors.border,
     height: 80,
@@ -291,7 +292,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     alignItems: 'center',
   },
-  saveBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  saveBtnText: { fontSize: SIZE.body, fontWeight: '700', color: '#fff' },
   savedRow: {
     marginTop: 12,
     alignItems: 'center',
@@ -301,11 +302,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.accent + '44',
   },
-  savedText: { fontSize: 14, fontWeight: '600', color: colors.accent },
+  savedText: { fontSize: SIZE.body, fontWeight: '600', color: colors.accent },
   tiltGrid: { flexDirection: 'row', justifyContent: 'space-around' },
   tiltStat: { alignItems: 'center', gap: 4 },
-  tiltStatValue: { fontSize: 28, fontWeight: '700', color: colors.textPrimary },
-  tiltStatLabel: { fontSize: 11, color: colors.textMuted, textAlign: 'center' },
+  tiltStatValue: { fontSize: SIZE.hero, fontWeight: '700', color: colors.textPrimary },
+  tiltStatLabel: { fontSize: SIZE.caption, color: colors.textMuted, textAlign: 'center' },
   ruleRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -323,8 +324,8 @@ const styles = StyleSheet.create({
     borderColor: colors.purple + '44',
     flexShrink: 0,
   },
-  ruleNumText: { fontSize: 12, fontWeight: '700', color: colors.purpleText },
-  ruleText: { fontSize: 14, color: colors.textPrimary, flex: 1, lineHeight: 20 },
+  ruleNumText: { fontSize: SIZE.caption, fontWeight: '700', color: colors.purpleText },
+  ruleText: { fontSize: SIZE.body, color: colors.textPrimary, flex: 1, lineHeight: 20 },
   diaryRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -333,7 +334,7 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  diaryEmoji: { fontSize: 22, marginTop: 1 },
-  diaryDate: { fontSize: 12, color: colors.textMuted, marginBottom: 2 },
-  diaryText: { fontSize: 13, color: colors.textSecondary },
+  diaryEmoji: { fontSize: GLYPH.lg, marginTop: 1 },
+  diaryDate: { fontSize: SIZE.caption, color: colors.textMuted, marginBottom: 2 },
+  diaryText: { fontSize: SIZE.body, color: colors.textSecondary },
 });

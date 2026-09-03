@@ -6,6 +6,7 @@ import type { DayStats } from '@sharklog/core';
 import { colors } from '../theme/colors';
 import { SERIES } from '../theme/chartColors';
 import { chartScale, formatChartYLabel } from '../utils/chartScale';
+import { SIZE } from '../theme/typography';
 
 interface Props {
   days: DayStats[];
@@ -119,6 +120,6 @@ export function BalanceChart({ days, width, height, color = SERIES.balance }: Pr
 
 const bc = StyleSheet.create({
   empty: { alignItems: 'center', justifyContent: 'center' },
-  emptyText: { fontSize: 12, color: colors.textMuted },
-  yLabel: { position: 'absolute', right: 0, fontSize: 10, color: colors.textMuted, textAlign: 'right' },
+  emptyText: { fontSize: SIZE.caption, color: colors.textMuted },
+  yLabel: { position: 'absolute', right: 0, fontSize: SIZE.micro, color: colors.textMuted, textAlign: 'right' },
 });

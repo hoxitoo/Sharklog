@@ -10,6 +10,7 @@ import { useBetsStore } from '../../store/betsStore';
 import { colors } from '../../theme/colors';
 import { ProGate } from '../../components/ProGate';
 import { haptic } from '../../utils/haptics';
+import { SIZE, GLYPH } from '../../theme/typography';
 
 const DISCLAIMER =
   'Данная стратегия носит рекомендательный характер и не гарантирует прибыли. ' +
@@ -211,58 +212,58 @@ const s = StyleSheet.create({
     borderRadius: 3, overflow: 'hidden', marginBottom: 6,
   },
   progressFill: { height: '100%', backgroundColor: colors.purple, borderRadius: 3 },
-  progressLabel: { fontSize: 11, color: colors.textMuted, marginBottom: 20 },
+  progressLabel: { fontSize: SIZE.caption, color: colors.textMuted, marginBottom: 20 },
   qCard: {
     backgroundColor: colors.bgCard, borderRadius: 14, padding: 20,
     borderWidth: 1, borderColor: colors.border, marginBottom: 16,
   },
   qText: {
-    fontSize: 18, fontWeight: '700', color: colors.textPrimary,
+    fontSize: SIZE.title, fontWeight: '700', color: colors.textPrimary,
     marginBottom: 20, lineHeight: 26,
   },
   optionBtn: {
     backgroundColor: colors.bgElevated, borderRadius: 12, padding: 14,
     borderWidth: 1, borderColor: colors.border, marginBottom: 10,
   },
-  optionLabel: { fontSize: 15, fontWeight: '600', color: colors.textPrimary },
-  optionDesc: { fontSize: 12, color: colors.textSecondary, marginTop: 3 },
+  optionLabel: { fontSize: SIZE.lead, fontWeight: '600', color: colors.textPrimary },
+  optionDesc: { fontSize: SIZE.caption, color: colors.textSecondary, marginTop: 3 },
   backBtn: { alignSelf: 'flex-start', paddingVertical: 8 },
-  backText: { fontSize: 13, color: colors.textSecondary },
+  backText: { fontSize: SIZE.body, color: colors.textSecondary },
   // Result
   badge: {
     alignSelf: 'flex-start', backgroundColor: colors.purple + '22',
     borderRadius: 8, paddingHorizontal: 12, paddingVertical: 5,
     borderWidth: 1, borderColor: colors.purple + '44', marginBottom: 14,
   },
-  badgeText: { fontSize: 12, fontWeight: '700', color: colors.purpleText },
+  badgeText: { fontSize: SIZE.caption, fontWeight: '700', color: colors.purpleText },
   resultName: {
-    fontSize: 24, fontWeight: '700', color: colors.textPrimary,
+    fontSize: SIZE.hero, fontWeight: '700', color: colors.textPrimary,
     letterSpacing: -0.5, marginBottom: 8,
   },
-  resultDesc: { fontSize: 13, color: colors.textSecondary, lineHeight: 20, marginBottom: 20 },
+  resultDesc: { fontSize: SIZE.body, color: colors.textSecondary, lineHeight: 22, marginBottom: 20 },
   recItem: {
     flexDirection: 'row', alignItems: 'center', gap: 14,
     backgroundColor: colors.bgCard, borderRadius: 10, padding: 14,
     borderWidth: 1, borderColor: colors.border, marginBottom: 10,
   },
-  recIcon: { fontSize: 22, width: 28, textAlign: 'center' },
-  recLabel: { fontSize: 11, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
-  recValue: { fontSize: 14, fontWeight: '600', color: colors.textPrimary, marginTop: 2 },
+  recIcon: { fontSize: GLYPH.lg, width: 28, textAlign: 'center' },
+  recLabel: { fontSize: SIZE.caption, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
+  recValue: { fontSize: SIZE.body, fontWeight: '600', color: colors.textPrimary, marginTop: 2 },
   disclaimerBox: {
     backgroundColor: colors.bgCard, borderRadius: 10, padding: 14,
     borderWidth: 1, borderColor: colors.border, marginVertical: 16,
   },
-  disclaimerText: { fontSize: 11, color: colors.textMuted, lineHeight: 18 },
+  disclaimerText: { fontSize: SIZE.caption, color: colors.textMuted, lineHeight: 20 },
   btnPrimary: {
     backgroundColor: colors.purple, borderRadius: 12, padding: 14,
     alignItems: 'center', marginBottom: 10,
   },
-  btnPrimaryText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  btnPrimaryText: { color: '#fff', fontWeight: '700', fontSize: SIZE.lead },
   btnSecondary: {
     borderRadius: 12, padding: 14, alignItems: 'center',
     borderWidth: 1, borderColor: colors.border,
   },
-  btnSecondaryText: { color: colors.textSecondary, fontWeight: '600', fontSize: 14 },
+  btnSecondaryText: { color: colors.textSecondary, fontWeight: '600', fontSize: SIZE.body },
   rationaleBox: {
     backgroundColor: colors.bgCard, borderRadius: 10, padding: 14,
     borderWidth: 1, borderColor: colors.border, marginBottom: 12,
@@ -272,11 +273,11 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: colors.border, marginBottom: 10,
   },
   sectionTitle: {
-    fontSize: 11, color: colors.textMuted, textTransform: 'uppercase',
+    fontSize: SIZE.caption, color: colors.textMuted, textTransform: 'uppercase',
     letterSpacing: 0.5, marginBottom: 10, fontWeight: '700',
   },
-  rationaleText: { fontSize: 13, color: colors.textSecondary, lineHeight: 20 },
-  subNote: { fontSize: 12, color: colors.textMuted, lineHeight: 18, marginTop: 8 },
+  rationaleText: { fontSize: SIZE.body, color: colors.textSecondary, lineHeight: 22 },
+  subNote: { fontSize: SIZE.caption, color: colors.textMuted, lineHeight: 18, marginTop: 8 },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   chip: {
     backgroundColor: colors.purple + '22', borderRadius: 6,
@@ -287,14 +288,14 @@ const s = StyleSheet.create({
     backgroundColor: colors.accent + '22',
     borderColor: colors.accent + '44',
   },
-  chipText: { fontSize: 12, fontWeight: '600', color: colors.purpleText },
-  chipTextGreen: { fontSize: 12, fontWeight: '600', color: colors.accent },
+  chipText: { fontSize: SIZE.caption, fontWeight: '600', color: colors.purpleText },
+  chipTextGreen: { fontSize: SIZE.caption, fontWeight: '600', color: colors.accent },
   principleRow: {
     flexDirection: 'row', gap: 10, alignItems: 'flex-start', marginBottom: 8,
   },
   principleNum: {
-    fontSize: 13, fontWeight: '700', color: colors.purpleText,
+    fontSize: SIZE.body, fontWeight: '700', color: colors.purpleText,
     width: 18, textAlign: 'center', marginTop: 1,
   },
-  principleText: { flex: 1, fontSize: 13, color: colors.textSecondary, lineHeight: 20 },
+  principleText: { flex: 1, fontSize: SIZE.body, color: colors.textSecondary, lineHeight: 22 },
 });

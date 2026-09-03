@@ -19,6 +19,7 @@ import { haptic } from '../../utils/haptics';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n/index';
+import { SIZE, GLYPH } from '../../theme/typography';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -356,7 +357,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     color: colors.textPrimary,
-    fontSize: 14,
+    fontSize: SIZE.body,
     borderWidth: 1,
     borderColor: colors.border,
   },
@@ -382,7 +383,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.purple,
     borderColor: colors.purple,
   },
-  filterText: { fontSize: 12, color: colors.textSecondary },
+  filterText: { fontSize: SIZE.caption, color: colors.textSecondary },
   filterTextActive: { color: '#fff', fontWeight: '700' },
   sortRow: {
     flexDirection: 'row',
@@ -403,7 +404,7 @@ const styles = StyleSheet.create({
     borderColor: colors.accent,
     backgroundColor: colors.accentDim,
   },
-  sortText: { fontSize: 11, color: colors.textMuted },
+  sortText: { fontSize: SIZE.caption, color: colors.textMuted },
   sortTextActive: { color: colors.accent, fontWeight: '600' },
   dateChip: {
     flexDirection: 'row', alignItems: 'center', gap: 8, alignSelf: 'flex-start',
@@ -411,8 +412,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.purpleDim, borderRadius: 20,
     borderWidth: 1, borderColor: colors.purple,
   },
-  dateChipText: { fontSize: 12, color: colors.purpleText, fontWeight: '700' },
-  dateChipX: { fontSize: 12, color: colors.purpleText, fontWeight: '700' },
+  dateChipText: { fontSize: SIZE.caption, color: colors.purpleText, fontWeight: '700' },
+  dateChipX: { fontSize: SIZE.caption, color: colors.purpleText, fontWeight: '700' },
   todayStrip: {
     flexDirection: 'row', alignItems: 'stretch',
     marginHorizontal: 16, marginBottom: 12, padding: 12, borderRadius: 18,
@@ -423,9 +424,9 @@ const styles = StyleSheet.create({
   },
   todayCell: { flex: 1, paddingHorizontal: 4 },
   todayDivider: { width: 1, backgroundColor: colors.border, marginHorizontal: 4 },
-  todayLabel: { fontSize: 10, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.4 },
-  todayValue: { fontSize: 16, fontWeight: '800', marginTop: 3 },
-  todaySub: { fontSize: 9, color: colors.textMuted, marginTop: 2 },
+  todayLabel: { fontSize: SIZE.micro, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.4 },
+  todayValue: { fontSize: SIZE.lead, fontWeight: '800', marginTop: 3 },
+  todaySub: { fontSize: SIZE.micro, color: colors.textMuted, marginTop: 2 },
   list: { paddingBottom: 96 }, // clear the floating "+" FAB so the last row isn't covered
   sectionHeader: {
     flexDirection: 'row',
@@ -435,12 +436,12 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 4,
   },
-  sectionDate: { fontSize: 11, color: colors.textMuted, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
-  sectionPnl: { fontSize: 12, fontWeight: '700' },
+  sectionDate: { fontSize: SIZE.caption, color: colors.textMuted, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+  sectionPnl: { fontSize: SIZE.caption, fontWeight: '700' },
   empty: { alignItems: 'center', paddingTop: 80 },
   emptyIcon: { width: 90, height: 90, marginBottom: 12, alignSelf: 'center' },
-  emptyTitle: { fontSize: 18, fontWeight: '600', color: colors.textPrimary, marginBottom: 6 },
-  emptySubtitle: { fontSize: 14, color: colors.textSecondary, textAlign: 'center' },
+  emptyTitle: { fontSize: SIZE.title, fontWeight: '600', color: colors.textPrimary, marginBottom: 6 },
+  emptySubtitle: { fontSize: SIZE.body, color: colors.textSecondary, textAlign: 'center' },
   limitBanner: {
     margin: 16,
     padding: 12,
@@ -449,7 +450,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.lost + '44',
   },
-  limitText: { color: colors.lost, fontSize: 13, textAlign: 'center', fontWeight: '600' },
+  limitText: { color: colors.lost, fontSize: SIZE.body, textAlign: 'center', fontWeight: '600' },
   tiltBanner: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -462,7 +463,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.lost + '55',
   },
-  tiltEmoji: { fontSize: 22 },
-  tiltTitle: { fontSize: 14, fontWeight: '700', color: colors.lost },
-  tiltSub: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
+  tiltEmoji: { fontSize: GLYPH.lg },
+  tiltTitle: { fontSize: SIZE.body, fontWeight: '700', color: colors.lost },
+  tiltSub: { fontSize: SIZE.caption, color: colors.textSecondary, marginTop: 2 },
 });

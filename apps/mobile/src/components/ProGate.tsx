@@ -11,6 +11,7 @@ import {
   restorePurchases,
   type OfferingPackages,
 } from '../services/revenueCat';
+import { SIZE, GLYPH } from '../theme/typography';
 
 interface Props {
   children: React.ReactNode;
@@ -131,13 +132,13 @@ const styles = StyleSheet.create({
     padding: 32,
     backgroundColor: colors.bg,
   },
-  icon: { fontSize: 48, marginBottom: 12 },
-  title: { fontSize: 24, fontWeight: '700', color: colors.gold, marginBottom: 6 },
-  subtitle: { fontSize: 15, color: colors.textSecondary, textAlign: 'center', marginBottom: 20 },
+  icon: { fontSize: GLYPH.hero, marginBottom: 12 },
+  title: { fontSize: SIZE.hero, fontWeight: '700', color: colors.gold, marginBottom: 6 },
+  subtitle: { fontSize: SIZE.lead, color: colors.textSecondary, textAlign: 'center', marginBottom: 20 },
   perks: { alignSelf: 'stretch', marginBottom: 16 },
-  perk: { fontSize: 14, color: colors.textPrimary, marginBottom: 6 },
+  perk: { fontSize: SIZE.body, color: colors.textPrimary, marginBottom: 6 },
   trialBadge: {
-    fontSize: 13,
+    fontSize: SIZE.body,
     color: colors.accent,
     fontWeight: '600',
     marginBottom: 24,
@@ -156,9 +157,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.purple,
   },
-  buttonText: { fontSize: 15, fontWeight: '700', color: '#fff' },
-  buttonSub: { fontSize: 12, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
-  buttonTextSecondary: { fontSize: 15, fontWeight: '600', color: colors.purpleText },
+  buttonText: { fontSize: SIZE.lead, fontWeight: '700', color: '#fff' },
+  buttonSub: { fontSize: SIZE.caption, color: 'rgba(255,255,255,0.7)', marginTop: 2 },
+  buttonTextSecondary: { fontSize: SIZE.lead, fontWeight: '600', color: colors.purpleText },
   restore: { marginTop: 16 },
-  restoreText: { fontSize: 13, color: colors.textSecondary },
+  restoreText: { fontSize: SIZE.body, color: colors.textSecondary },
 });

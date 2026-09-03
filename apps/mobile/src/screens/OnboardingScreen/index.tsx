@@ -27,6 +27,7 @@ function uuid(): string {
 }
 import { useBetsStore } from '../../store/betsStore';
 import { colors } from '../../theme/colors';
+import { SIZE, GLYPH } from '../../theme/typography';
 
 const STEPS = 3;
 
@@ -244,12 +245,12 @@ const styles = StyleSheet.create({
   dotActive: { width: 20, backgroundColor: colors.purple },
   stepContent: { flex: 1, paddingHorizontal: 28, paddingTop: 24, paddingBottom: 16 },
   logo: { width: 180, height: 180, alignSelf: 'center', marginBottom: 8 },
-  tagline: { fontSize: 16, color: colors.textSecondary, textAlign: 'center', marginBottom: 36, marginTop: 6 },
+  tagline: { fontSize: SIZE.lead, color: colors.textSecondary, textAlign: 'center', marginBottom: 36, marginTop: 6 },
   features: { gap: 16, marginBottom: 28 },
   featureRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
-  featureEmoji: { fontSize: 28, width: 40, textAlign: 'center' },
-  featureLabel: { fontSize: 16, fontWeight: '600', color: colors.textPrimary },
-  featureDesc: { fontSize: 13, color: colors.textSecondary, marginTop: 1 },
+  featureEmoji: { fontSize: GLYPH.xl, width: 40, textAlign: 'center' },
+  featureLabel: { fontSize: SIZE.lead, fontWeight: '600', color: colors.textPrimary },
+  featureDesc: { fontSize: SIZE.body, color: colors.textSecondary, marginTop: 1 },
   freeBadge: {
     backgroundColor: colors.gold + '18',
     borderRadius: 12,
@@ -257,25 +258,25 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.gold + '44',
   },
-  freeBadgeText: { fontSize: 14, color: colors.gold, textAlign: 'center', fontWeight: '600' },
-  stepEmoji: { fontSize: 52, textAlign: 'center', marginBottom: 16 },
-  stepTitle: { fontSize: 26, fontWeight: '700', color: colors.textPrimary, textAlign: 'center', marginBottom: 10 },
-  stepSubtitle: { fontSize: 15, color: colors.textSecondary, textAlign: 'center', marginBottom: 28, lineHeight: 22 },
+  freeBadgeText: { fontSize: SIZE.body, color: colors.gold, textAlign: 'center', fontWeight: '600' },
+  stepEmoji: { fontSize: GLYPH.hero, textAlign: 'center', marginBottom: 16 },
+  stepTitle: { fontSize: SIZE.hero, fontWeight: '700', color: colors.textPrimary, textAlign: 'center', marginBottom: 10 },
+  stepSubtitle: { fontSize: SIZE.lead, color: colors.textSecondary, textAlign: 'center', marginBottom: 28, lineHeight: 23 },
   bankInput: {
     backgroundColor: colors.bgCard,
     borderRadius: 12,
     paddingHorizontal: 20,
     paddingVertical: 16,
     color: colors.textPrimary,
-    fontSize: 24,
+    fontSize: SIZE.hero,
     fontWeight: '700',
     borderWidth: 1,
     borderColor: colors.purple + '66',
     textAlign: 'center',
     marginBottom: 12,
   },
-  bankPreview: { fontSize: 14, color: colors.accent, textAlign: 'center', marginBottom: 16, fontWeight: '600' },
-  skipHint: { fontSize: 12, color: colors.textMuted, textAlign: 'center', marginTop: 8, lineHeight: 18 },
+  bankPreview: { fontSize: SIZE.body, color: colors.accent, textAlign: 'center', marginBottom: 16, fontWeight: '600' },
+  skipHint: { fontSize: SIZE.caption, color: colors.textMuted, textAlign: 'center', marginTop: 8, lineHeight: 18 },
   bkGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
   bkChip: {
     paddingHorizontal: 14, paddingVertical: 8,
@@ -283,26 +284,26 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: colors.border,
   },
   bkChipActive: { backgroundColor: colors.purple, borderColor: colors.purple },
-  bkChipText: { fontSize: 14, color: colors.textSecondary },
+  bkChipText: { fontSize: SIZE.body, color: colors.textSecondary },
   bkChipTextActive: { color: '#fff', fontWeight: '600' },
   addRow: { flexDirection: 'row', gap: 8, marginBottom: 8 },
   addInput: {
     flex: 1, backgroundColor: colors.bgCard,
     borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10,
-    color: colors.textPrimary, fontSize: 14,
+    color: colors.textPrimary, fontSize: SIZE.body,
     borderWidth: 1, borderColor: colors.border,
   },
   addBtn: {
     backgroundColor: colors.purple, width: 42, height: 42,
     borderRadius: 10, alignItems: 'center', justifyContent: 'center',
   },
-  addBtnText: { fontSize: 24, color: '#fff', fontWeight: '700', lineHeight: 28 },
+  addBtnText: { fontSize: SIZE.hero, color: '#fff', fontWeight: '700', lineHeight: 30 },
   nav: { paddingHorizontal: 28, gap: 10 },
   nextBtn: {
     backgroundColor: colors.purple, borderRadius: 14,
     paddingVertical: 16, alignItems: 'center',
   },
-  nextBtnText: { fontSize: 17, fontWeight: '700', color: '#fff' },
-  skipText: { fontSize: 14, color: colors.textMuted, textAlign: 'center', paddingVertical: 4 },
-  backText: { fontSize: 14, color: colors.textMuted, textAlign: 'center', paddingVertical: 4 },
+  nextBtnText: { fontSize: SIZE.lead, fontWeight: '700', color: '#fff' },
+  skipText: { fontSize: SIZE.body, color: colors.textMuted, textAlign: 'center', paddingVertical: 4 },
+  backText: { fontSize: SIZE.body, color: colors.textMuted, textAlign: 'center', paddingVertical: 4 },
 });

@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef } from 'react';
 import { View, StyleSheet, Animated, Easing } from 'react-native';
 import { AppText as Text } from './AppText';
-import { FONTS } from '../theme/typography';
+import { FONTS, SIZE } from '../theme/typography';
 import { colors } from '../theme/colors';
 
 interface Props {
@@ -140,7 +140,7 @@ const s = StyleSheet.create({
   },
   coeff: {
     position: 'absolute',
-    fontSize: 13,
+    fontSize: SIZE.body,
     fontWeight: '600',
     color: colors.accent,
     letterSpacing: 0.3,
@@ -156,7 +156,7 @@ const s = StyleSheet.create({
     backgroundColor: colors.accent,
   },
   name: {
-    fontSize: 34,
+    fontSize: SIZE.display,
     fontWeight: '800',
     color: colors.textPrimary,
     letterSpacing: -1,
@@ -166,7 +166,7 @@ const s = StyleSheet.create({
   // face itself — otherwise the first words of the app are in the system font.
   tagline: {
     fontFamily: FONTS.sans,
-    fontSize: 13,
+    fontSize: SIZE.body,
     color: colors.textMuted,
     letterSpacing: 0.5,
     marginTop: 6,

@@ -18,6 +18,7 @@ import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { useFormatMoney } from '../../utils/useFormatMoney';
 import { DailyChart, ChartLegend, SERIES } from './DailyChart';
 import { ExpandedDashboard } from './ExpandedDashboard';
+import { SIZE, GLYPH } from '../../theme/typography';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -73,7 +74,7 @@ const wl = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 }, elevation: 3,
   },
-  title: { fontSize: 11, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 },
+  title: { fontSize: SIZE.caption, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 },
   row: { flexDirection: 'row', gap: 6 },
   square: {
     width: 32,
@@ -88,7 +89,7 @@ const wl = StyleSheet.create({
   squareW: { backgroundColor: colors.won + '18', borderColor: colors.won + '55' },
   squareL: { backgroundColor: colors.lost + '18', borderColor: colors.lost + '55' },
   squareR: { backgroundColor: colors.refund + '18', borderColor: colors.refund + '55' },
-  letter: { fontSize: 13, fontWeight: '700' },
+  letter: { fontSize: SIZE.body, fontWeight: '700' },
 });
 
 function Heatmap({ bets }: { bets: Bet[] }) {
@@ -171,13 +172,13 @@ const hm = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 }, elevation: 3,
   },
-  title: { fontSize: 11, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 },
+  title: { fontSize: SIZE.caption, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 10 },
   grid: { flexDirection: 'row', gap: 3 },
   col: { gap: 3 },
   cell: { width: 16, height: 16, borderRadius: 3 },
   legend: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 8 },
   legendCell: { width: 10, height: 10, borderRadius: 2 },
-  legendText: { fontSize: 10, color: colors.textMuted },
+  legendText: { fontSize: SIZE.micro, color: colors.textMuted },
 });
 
 // ── Top card: period turnover + current bank ─────────────────────────────────
@@ -225,17 +226,17 @@ const tc = StyleSheet.create({
   },
   topRow: { flexDirection: 'row', alignItems: 'flex-start' },
   left: { flex: 1, marginRight: 12 },
-  label: { fontSize: 12, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
-  value: { fontSize: 32, fontWeight: '800', color: colors.textPrimary, marginTop: 4 },
+  label: { fontSize: SIZE.caption, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
+  value: { fontSize: SIZE.display, fontWeight: '800', color: colors.textPrimary, marginTop: 4 },
   bankBtn: {
     ...tileStyle, paddingHorizontal: 12, paddingVertical: 10,
     minWidth: 118, alignItems: 'flex-end',
   },
-  bankLabel: { fontSize: 10, color: colors.textMuted },
-  bankValue: { fontSize: 17, fontWeight: '700', marginTop: 3 },
+  bankLabel: { fontSize: SIZE.micro, color: colors.textMuted },
+  bankValue: { fontSize: SIZE.lead, fontWeight: '700', marginTop: 3 },
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 12 },
-  meta: { fontSize: 11, color: colors.textMuted },
-  metaDot: { fontSize: 11, color: colors.border },
+  meta: { fontSize: SIZE.caption, color: colors.textMuted },
+  metaDot: { fontSize: SIZE.caption, color: colors.border },
 });
 
 // ── Main block: interactive per-day dashboard ────────────────────────────────
@@ -365,34 +366,34 @@ const dd = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 }, elevation: 3,
   },
   header: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 12 },
-  title: { fontSize: 15, fontWeight: '700', color: colors.textPrimary },
-  subtitle: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
+  title: { fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary },
+  subtitle: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: 2 },
   expandBtn: {
     paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8,
     backgroundColor: colors.bgElevated, borderWidth: 1, borderColor: colors.purple + '66',
   },
-  expandText: { fontSize: 11, color: colors.purpleText, fontWeight: '700' },
+  expandText: { fontSize: SIZE.caption, color: colors.purpleText, fontWeight: '700' },
   chartWrap: { alignItems: 'center' },
-  hint: { fontSize: 11, color: colors.textMuted, marginTop: 12, textAlign: 'center' },
+  hint: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: 12, textAlign: 'center' },
   detail: { ...tileStyle, marginTop: 12 },
-  detailDate: { fontSize: 12, fontWeight: '700', color: colors.textPrimary, marginBottom: 8 },
+  detailDate: { fontSize: SIZE.caption, fontWeight: '700', color: colors.textPrimary, marginBottom: 8 },
   detailGrid: { flexDirection: 'row', justifyContent: 'space-between' },
   detailCell: { flex: 1 },
-  detailLabel: { fontSize: 10, color: colors.textMuted },
-  detailValue: { fontSize: 13, fontWeight: '700', color: colors.textPrimary, marginTop: 2 },
-  detailCash: { fontSize: 10, color: colors.textMuted, marginTop: 8 },
+  detailLabel: { fontSize: SIZE.micro, color: colors.textMuted },
+  detailValue: { fontSize: SIZE.body, fontWeight: '700', color: colors.textPrimary, marginTop: 2 },
+  detailCash: { fontSize: SIZE.micro, color: colors.textMuted, marginTop: 8 },
   detailLink: {
     marginTop: 10, paddingVertical: 8, borderRadius: 8, alignItems: 'center',
     backgroundColor: colors.purpleDim, borderWidth: 1, borderColor: colors.purple + '66',
   },
-  detailLinkText: { fontSize: 12, color: colors.purpleText, fontWeight: '700' },
+  detailLinkText: { fontSize: SIZE.caption, color: colors.purpleText, fontWeight: '700' },
   summaryRow: {
     flexDirection: 'row', marginTop: 14, paddingTop: 12,
     borderTopWidth: 1, borderTopColor: colors.border,
   },
   sumCell: { flex: 1 },
-  sumLabel: { fontSize: 10, color: colors.textMuted },
-  sumValue: { fontSize: 14, fontWeight: '700', color: colors.textPrimary, marginTop: 3 },
+  sumLabel: { fontSize: SIZE.micro, color: colors.textMuted },
+  sumValue: { fontSize: SIZE.body, fontWeight: '700', color: colors.textPrimary, marginTop: 3 },
 });
 
 export function DashboardScreen() {
@@ -581,7 +582,7 @@ export function DashboardScreen() {
               ]}>
                 <Text style={{
                   color: bet.status === 'won' ? colors.won : bet.status === 'lost' ? colors.lost : colors.pending,
-                  fontSize: 12, fontWeight: '600',
+                  fontSize: SIZE.caption, fontWeight: '600',
                 }}>
                   {bet.status === 'won' ? 'W' : bet.status === 'lost' ? 'L' : bet.status === 'refund' ? 'R' : bet.status === 'cashout' ? 'C' : '?'}
                 </Text>
@@ -613,10 +614,10 @@ const styles = StyleSheet.create({
     backgroundColor: colors.purple + '14', borderRadius: 10,
     borderWidth: 1, borderColor: colors.purple + '44',
   },
-  strategyIcon: { fontSize: 20 },
-  strategyName: { fontSize: 13, fontWeight: '700', color: colors.textPrimary },
-  strategySub: { fontSize: 11, color: colors.textSecondary, marginTop: 2 },
-  strategyArrow: { fontSize: 14, color: colors.textMuted },
+  strategyIcon: { fontSize: GLYPH.lg },
+  strategyName: { fontSize: SIZE.body, fontWeight: '700', color: colors.textPrimary },
+  strategySub: { fontSize: SIZE.caption, color: colors.textSecondary, marginTop: 2 },
+  strategyArrow: { fontSize: GLYPH.md, color: colors.textMuted },
   periodRow: {
     flexDirection: 'row',
     paddingHorizontal: 16,
@@ -636,7 +637,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.purple,
     borderColor: colors.purple,
   },
-  periodText: { fontSize: 12, fontWeight: '600', color: colors.textSecondary },
+  periodText: { fontSize: SIZE.caption, fontWeight: '600', color: colors.textSecondary },
   periodTextActive: { color: '#fff' },
   tiltAlert: {
     flexDirection: 'row',
@@ -650,13 +651,13 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.lost + '55',
   },
-  tiltIcon: { fontSize: 28 },
-  tiltTitle: { fontSize: 15, fontWeight: '700', color: colors.lost },
-  tiltSub: { fontSize: 12, color: colors.textSecondary, marginTop: 3 },
-  tiltDismiss: { fontSize: 16, color: colors.textMuted, paddingLeft: 8 },
+  tiltIcon: { fontSize: GLYPH.xl },
+  tiltTitle: { fontSize: SIZE.lead, fontWeight: '700', color: colors.lost },
+  tiltSub: { fontSize: SIZE.caption, color: colors.textSecondary, marginTop: 3 },
+  tiltDismiss: { fontSize: SIZE.lead, color: colors.textMuted, paddingLeft: 8 },
   section: { paddingHorizontal: 16, marginBottom: 20 },
-  sectionTitle: { fontSize: 16, fontWeight: '700', color: colors.textPrimary },
-  emptyText: { fontSize: 14, color: colors.textMuted },
+  sectionTitle: { fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary },
+  emptyText: { fontSize: SIZE.body, color: colors.textMuted },
   recentBet: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -667,8 +668,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  recentEvent: { fontSize: 14, fontWeight: '600', color: colors.textPrimary },
-  recentPick: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
+  recentEvent: { fontSize: SIZE.body, fontWeight: '600', color: colors.textPrimary },
+  recentPick: { fontSize: SIZE.caption, color: colors.textSecondary, marginTop: 2 },
   recentStatus: {
     width: 28, height: 28, borderRadius: 8,
     alignItems: 'center', justifyContent: 'center',
@@ -686,6 +687,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  heatmapToggleText: { fontSize: 13, fontWeight: '600', color: colors.textSecondary },
-  heatmapToggleChevron: { fontSize: 10, color: colors.textMuted },
+  heatmapToggleText: { fontSize: SIZE.body, fontWeight: '600', color: colors.textSecondary },
+  heatmapToggleChevron: { fontSize: GLYPH.sm, color: colors.textMuted },
 });

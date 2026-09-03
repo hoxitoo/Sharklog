@@ -19,6 +19,7 @@ import { AnalyticsScreen } from '../screens/AnalyticsScreen';
 import { DisciplineScreen } from '../screens/DisciplineScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import type { RootStackParamList } from './RootNavigator';
+import { SIZE, GLYPH } from '../theme/typography';
 
 export type DrawerScreen = 'Bets' | 'Dashboard' | 'Insights' | 'Analytics' | 'Discipline' | 'Settings';
 
@@ -356,7 +357,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   logoText: {
-    fontSize: 20,
+    fontSize: SIZE.title,
     fontWeight: '800',
     color: colors.textPrimary,
     letterSpacing: -0.5,
@@ -383,7 +384,7 @@ const styles = StyleSheet.create({
   },
   navLabel: {
     flex: 1,
-    fontSize: 15,
+    fontSize: SIZE.lead,
     fontWeight: '500',
     color: colors.textSecondary,
   },
@@ -400,7 +401,7 @@ const styles = StyleSheet.create({
     borderColor: colors.gold + '55',
   },
   proBadgeText: {
-    fontSize: 9,
+    fontSize: SIZE.micro,
     fontWeight: '800',
     color: colors.gold,
   },
@@ -423,12 +424,12 @@ const styles = StyleSheet.create({
     borderColor: colors.accent + '44',
   },
   partnersTitle: {
-    fontSize: 14,
+    fontSize: SIZE.body,
     fontWeight: '700',
     color: colors.accent,
   },
   partnersSub: {
-    fontSize: 11,
+    fontSize: SIZE.caption,
     color: colors.textSecondary,
     marginTop: 2,
   },
@@ -439,7 +440,7 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
   },
   responsible: {
-    fontSize: 11,
+    fontSize: SIZE.caption,
     color: colors.textMuted,
     textAlign: 'center',
   },
@@ -468,10 +469,11 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   fabText: {
-    fontSize: 30,
+    // A mark, not type. The line box has to grow with it or the plus clips.
+    fontSize: GLYPH.xxl,
     color: '#fff',
     fontWeight: '300',
-    lineHeight: 36,
+    lineHeight: 41,
     marginTop: -2,
   },
 });

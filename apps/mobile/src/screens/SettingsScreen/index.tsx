@@ -32,6 +32,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { ProGate } from '../../components/ProGate';
 import { restorePurchases } from '../../services/revenueCat';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import { SIZE, GLYPH } from '../../theme/typography';
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -46,7 +47,7 @@ const row = StyleSheet.create({
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.border,
   },
-  label: { fontSize: 15, color: colors.textPrimary, flex: 1 },
+  label: { fontSize: SIZE.lead, color: colors.textPrimary, flex: 1 },
   right: { alignItems: 'flex-end' },
 });
 
@@ -60,7 +61,7 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 }
 const sec = StyleSheet.create({
   container: { marginHorizontal: 16, marginBottom: 20 },
-  title: { fontSize: 12, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 },
+  title: { fontSize: SIZE.caption, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 },
   card: { backgroundColor: colors.bgCard, borderRadius: 14, paddingHorizontal: 16, borderWidth: 1, borderColor: colors.border },
 });
 
@@ -94,8 +95,8 @@ const step_ = StyleSheet.create({
     backgroundColor: colors.purple, alignItems: 'center', justifyContent: 'center',
   },
   btnDisabled: { backgroundColor: colors.bgElevated },
-  btnText: { fontSize: 18, color: '#fff', fontWeight: '700', lineHeight: 22 },
-  val: { fontSize: 16, fontWeight: '700', color: colors.textPrimary, minWidth: 28, textAlign: 'center' },
+  btnText: { fontSize: SIZE.title, color: '#fff', fontWeight: '700', lineHeight: 24 },
+  val: { fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary, minWidth: 28, textAlign: 'center' },
 });
 
 export function SettingsScreen() {
@@ -495,7 +496,7 @@ export function SettingsScreen() {
                 >
                   <View style={[styles.toggleThumb, !settings.disableChecklist && styles.toggleThumbOn]} />
                 </TouchableOpacity>
-                <Text style={[styles.value, { fontSize: 10 }]}>
+                <Text style={[styles.value, { fontSize: SIZE.micro }]}>
                   {settings.disableChecklist ? 'Отключён' : '5 вопросов (PRO)'}
                 </Text>
               </View>
@@ -678,17 +679,17 @@ const styles = StyleSheet.create({
   hamburger: {
     width: 36, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 8,
   },
-  title: { fontSize: 26, fontWeight: '700', color: colors.textPrimary, letterSpacing: -0.5 },
+  title: { fontSize: SIZE.hero, fontWeight: '700', color: colors.textPrimary, letterSpacing: -0.5 },
   strategyBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     marginHorizontal: 16, marginBottom: 16, padding: 14,
     backgroundColor: colors.purple + '14', borderRadius: 12,
     borderWidth: 1, borderColor: colors.purple + '44',
   },
-  strategyBtnIcon: { fontSize: 22 },
-  strategyBtnText: { fontSize: 14, fontWeight: '700', color: colors.textPrimary },
-  strategyBtnSub: { fontSize: 11, color: colors.textSecondary, marginTop: 2 },
-  strategyBtnArrow: { fontSize: 14, color: colors.textMuted },
+  strategyBtnIcon: { fontSize: GLYPH.lg },
+  strategyBtnText: { fontSize: SIZE.body, fontWeight: '700', color: colors.textPrimary },
+  strategyBtnSub: { fontSize: SIZE.caption, color: colors.textSecondary, marginTop: 2 },
+  strategyBtnArrow: { fontSize: GLYPH.md, color: colors.textMuted },
   partnersBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     marginHorizontal: 16, marginBottom: 16, padding: 14,
@@ -696,29 +697,29 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: colors.accent + '44',
   },
   proBtn: { backgroundColor: colors.gold, paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20 },
-  proBtnText: { fontSize: 13, fontWeight: '700', color: '#000' },
+  proBtnText: { fontSize: SIZE.body, fontWeight: '700', color: '#000' },
   proBadge: {
     backgroundColor: colors.gold + '22', paddingHorizontal: 12, paddingVertical: 6,
     borderRadius: 20, borderWidth: 1, borderColor: colors.gold + '66',
   },
-  proBadgeText: { fontSize: 13, fontWeight: '700', color: colors.gold },
-  value: { fontSize: 14, color: colors.textSecondary },
-  hint: { fontSize: 18, color: colors.textMuted },
-  removeText: { fontSize: 13, color: colors.lost },
+  proBadgeText: { fontSize: SIZE.body, fontWeight: '700', color: colors.gold },
+  value: { fontSize: SIZE.body, color: colors.textSecondary },
+  hint: { fontSize: SIZE.title, color: colors.textMuted },
+  removeText: { fontSize: SIZE.body, color: colors.lost },
   addBkRow: { flexDirection: 'row', gap: 8, paddingVertical: 12 },
   addBkInput: {
     flex: 1, backgroundColor: colors.bgElevated, borderRadius: 8,
     paddingHorizontal: 12, paddingVertical: 8, color: colors.textPrimary,
-    fontSize: 14, borderWidth: 1, borderColor: colors.border,
+    fontSize: SIZE.body, borderWidth: 1, borderColor: colors.border,
   },
   addBkBtn: {
     backgroundColor: colors.purple, width: 38, height: 38,
     borderRadius: 8, alignItems: 'center', justifyContent: 'center',
   },
-  addBkBtnText: { fontSize: 22, color: '#fff', fontWeight: '700', lineHeight: 26 },
+  addBkBtnText: { fontSize: SIZE.title, color: '#fff', fontWeight: '700', lineHeight: 24 },
   actionBtn: { paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.border },
   lastActionBtn: { borderBottomWidth: 0 },
-  actionBtnText: { fontSize: 15, color: colors.purpleText, fontWeight: '600' },
+  actionBtnText: { fontSize: SIZE.lead, color: colors.purpleText, fontWeight: '600' },
   toggle: {
     width: 44, height: 26, borderRadius: 13, backgroundColor: colors.border,
     justifyContent: 'center', paddingHorizontal: 3,
@@ -727,7 +728,7 @@ const styles = StyleSheet.create({
   toggleThumb: { width: 20, height: 20, borderRadius: 10, backgroundColor: '#fff' },
   toggleThumbOn: { alignSelf: 'flex-end' },
   dangerBtn: { paddingVertical: 14, alignItems: 'center' },
-  dangerBtnText: { fontSize: 15, color: colors.lost, fontWeight: '600' },
+  dangerBtnText: { fontSize: SIZE.lead, color: colors.lost, fontWeight: '600' },
   paywallBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
   paywallSheet: {
     backgroundColor: colors.bg, borderTopLeftRadius: 20, borderTopRightRadius: 20,
@@ -738,7 +739,7 @@ const styles = StyleSheet.create({
     width: 32, height: 32, borderRadius: 16,
     backgroundColor: colors.bgElevated, alignItems: 'center', justifyContent: 'center',
   },
-  paywallCloseText: { fontSize: 14, color: colors.textSecondary, fontWeight: '700' },
+  paywallCloseText: { fontSize: SIZE.body, color: colors.textSecondary, fontWeight: '700' },
 
   // Backup banner
   backupBanner: {
@@ -747,10 +748,10 @@ const styles = StyleSheet.create({
     backgroundColor: mix(colors.gold, colors.bgCard, 0.09), borderRadius: 12,
     borderWidth: 1, borderColor: alpha(colors.gold, 0.27),
   },
-  backupBannerIcon: { fontSize: 22 },
-  backupBannerTitle: { fontSize: 13, fontWeight: '700', color: colors.gold },
-  backupBannerSub: { fontSize: 11, color: colors.textSecondary, marginTop: 2 },
-  backupBannerArrow: { fontSize: 14, color: colors.textMuted },
+  backupBannerIcon: { fontSize: GLYPH.lg },
+  backupBannerTitle: { fontSize: SIZE.body, fontWeight: '700', color: colors.gold },
+  backupBannerSub: { fontSize: SIZE.caption, color: colors.textSecondary, marginTop: 2 },
+  backupBannerArrow: { fontSize: GLYPH.md, color: colors.textMuted },
 
   // Subscription card
   subscriptionCard: {
@@ -759,21 +760,21 @@ const styles = StyleSheet.create({
     padding: 16, borderWidth: 1, borderColor: colors.border, gap: 10,
   },
   subscriptionRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12 },
-  subscriptionIcon: { fontSize: 24, marginTop: 2 },
-  subscriptionTitle: { fontSize: 15, fontWeight: '700', color: colors.textPrimary, marginBottom: 4 },
-  subscriptionSub: { fontSize: 12, color: colors.textSecondary, lineHeight: 17 },
+  subscriptionIcon: { fontSize: GLYPH.xl, marginTop: 2 },
+  subscriptionTitle: { fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary, marginBottom: 4 },
+  subscriptionSub: { fontSize: SIZE.caption, color: colors.textSecondary, lineHeight: 17 },
   proUpgradeBtn: {
     backgroundColor: colors.gold, borderRadius: 10,
     paddingVertical: 10, alignItems: 'center',
   },
-  proUpgradeBtnText: { fontSize: 14, fontWeight: '700', color: '#000' },
+  proUpgradeBtnText: { fontSize: SIZE.body, fontWeight: '700', color: '#000' },
   restoreBtn: {
     backgroundColor: colors.bgElevated, borderRadius: 10,
     paddingVertical: 10, alignItems: 'center',
     borderWidth: 1, borderColor: colors.border,
   },
-  restoreBtnText: { fontSize: 14, fontWeight: '600', color: colors.textSecondary },
-  subscriptionHint: { fontSize: 11, color: colors.textMuted, textAlign: 'center', lineHeight: 16 },
+  restoreBtnText: { fontSize: SIZE.body, fontWeight: '600', color: colors.textSecondary },
+  subscriptionHint: { fontSize: SIZE.caption, color: colors.textMuted, textAlign: 'center', lineHeight: 17 },
 
   langRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, paddingVertical: 12 },
   langChip: {
@@ -782,7 +783,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgElevated, borderWidth: 1, borderColor: colors.border,
   },
   langChipActive: { backgroundColor: colors.purple + '22', borderColor: colors.purple },
-  langFlag: { fontSize: 18 },
-  langLabel: { fontSize: 13, color: colors.textSecondary, fontWeight: '500' },
+  langFlag: { fontSize: GLYPH.lg },
+  langLabel: { fontSize: SIZE.body, color: colors.textSecondary, fontWeight: '500' },
   langLabelActive: { color: colors.purpleText, fontWeight: '700' },
 });

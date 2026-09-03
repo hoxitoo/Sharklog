@@ -5,6 +5,7 @@ import {
 import { AppText as Text } from '../../components/AppText';
 import { colors } from '../../theme/colors';
 import { haptic } from '../../utils/haptics';
+import { SIZE, GLYPH } from '../../theme/typography';
 
 const DELETE_W = 76;
 
@@ -107,6 +108,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   deleteBtn: { alignItems: 'center', gap: 3 },
-  deleteIcon: { fontSize: 18 },
-  deleteText: { fontSize: 10, fontWeight: '700', color: '#fff' },
+  deleteIcon: { fontSize: GLYPH.lg },
+  deleteText: { fontSize: SIZE.micro, fontWeight: '700', color: '#fff' },
 });

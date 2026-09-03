@@ -4,6 +4,7 @@ import { AppText as Text } from './AppText';
 import type { BetStatus } from '@sharklog/core';
 import { colors } from '../theme/colors';
 import { useTranslation } from 'react-i18next';
+import { SIZE } from '../theme/typography';
 
 /** Shared so the card's edge rail always matches the badge. */
 export const STATUS_COLORS: Record<BetStatus, string> = {
@@ -31,5 +32,5 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     alignSelf: 'flex-start',
   },
-  text: { fontSize: 11, fontWeight: '600' },
+  text: { fontSize: SIZE.caption, fontWeight: '600' },
 });

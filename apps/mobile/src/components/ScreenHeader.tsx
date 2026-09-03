@@ -4,7 +4,7 @@ import { AppText as Text } from './AppText';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../theme/colors';
-import { FONTS } from '../theme/typography';
+import { FONTS, SIZE } from '../theme/typography';
 import { useDrawer } from './DrawerContext';
 
 interface Props {
@@ -54,14 +54,14 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   center: { flex: 1 },
-  title: { fontSize: 24, fontFamily: FONTS.sansBold, color: colors.textPrimary, letterSpacing: -0.5 },
-  subtitle: { fontSize: 13, fontFamily: FONTS.sans, color: colors.textSecondary, marginTop: 2 },
+  title: { fontSize: SIZE.hero, fontFamily: FONTS.sansBold, color: colors.textPrimary, letterSpacing: -0.5 },
+  subtitle: { fontSize: SIZE.body, fontFamily: FONTS.sans, color: colors.textSecondary, marginTop: 2 },
   action: {
     backgroundColor: colors.purple,
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
   },
-  actionText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  actionText: { fontSize: SIZE.body, fontWeight: '700', color: '#fff' },
   actionPlaceholder: { width: 36 },
 });

@@ -3,6 +3,7 @@ import { View, StyleSheet, TouchableOpacity, Animated } from 'react-native';
 import { AppText as Text } from './AppText';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors } from '../theme/colors';
+import { SIZE } from '../theme/typography';
 
 interface Props {
   storageKey: string;
@@ -79,9 +80,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
-  title: { fontSize: 14, fontWeight: '700', color: '#fff' },
-  close: { fontSize: 12, color: 'rgba(255,255,255,0.7)' },
-  body: { fontSize: 13, color: 'rgba(255,255,255,0.85)', lineHeight: 19, marginBottom: 12 },
+  title: { fontSize: SIZE.body, fontWeight: '700', color: '#fff' },
+  close: { fontSize: SIZE.caption, color: 'rgba(255,255,255,0.7)' },
+  body: { fontSize: SIZE.body, color: 'rgba(255,255,255,0.85)', lineHeight: 20, marginBottom: 12 },
   btn: {
     alignSelf: 'flex-end',
     backgroundColor: 'rgba(255,255,255,0.2)',
@@ -89,5 +90,5 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 8,
   },
-  btnText: { fontSize: 13, fontWeight: '600', color: '#fff' },
+  btnText: { fontSize: SIZE.body, fontWeight: '600', color: '#fff' },
 });
