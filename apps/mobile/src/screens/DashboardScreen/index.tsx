@@ -480,11 +480,13 @@ export function DashboardScreen() {
 
   return (
     <View style={styles.flex}>
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      {/* Pinned, like every other drawer screen: the hamburger is the only way
+          into the menu, and it must not scroll off the top of the page. */}
       <ScreenHeader
         title="Дашборд"
         subtitle={new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}
       />
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
 
       {settings.generatedStrategy && (
         <TouchableOpacity

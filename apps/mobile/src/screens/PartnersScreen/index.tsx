@@ -83,7 +83,7 @@ export function PartnersScreen() {
       style={styles.root}
       contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 24 }}
     >
-      <Text style={styles.title}>Партнёры</Text>
+      {/* The native stack header already says "Партнёры" — one title is enough. */}
       <Text style={styles.subtitle}>
         Используй реферальную ссылку и получи бонус при регистрации у букмекера.
       </Text>
@@ -127,10 +127,6 @@ export function PartnersScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
-  title: {
-    fontSize: SIZE.hero, fontWeight: '800', color: colors.textPrimary,
-    marginBottom: 6,
-  },
   subtitle: {
     fontSize: SIZE.body, color: colors.textSecondary, lineHeight: 20, marginBottom: 14,
   },

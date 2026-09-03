@@ -3,8 +3,7 @@ import {
   View, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal, ActivityIndicator, Pressable,
 } from 'react-native';
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
-import { Ionicons } from '@expo/vector-icons';
-import { useDrawer } from '../../components/DrawerContext';
+import { ScreenHeader } from '../../components/ScreenHeader';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -103,7 +102,6 @@ export function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { settings, updateSettings, bets, clearAll } = useBetsStore();
-  const { openDrawer } = useDrawer();
   const { t } = useTranslation();
   const [newBookmaker, setNewBookmaker] = useState('');
   const [exporting, setExporting] = useState(false);
@@ -378,18 +376,15 @@ export function SettingsScreen() {
         </Pressable>
       </Modal>
 
+      {/* Pinned, like every other drawer screen — a hamburger that scrolls away
+          takes the only route into the menu with it. */}
+      <ScreenHeader title={t('settings.title')} />
+
       <ScrollView
         style={styles.container}
         contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
         showsVerticalScrollIndicator={false}
       >
-        <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
-          <TouchableOpacity onPress={openDrawer} activeOpacity={0.7} style={styles.hamburger} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-            <Ionicons name="menu" size={24} color={colors.textSecondary} />
-          </TouchableOpacity>
-          <Text style={styles.title}>{t('settings.title')}</Text>
-        </View>
-
         {/* Backup reminder banner */}
         {showBackupBanner && (
           <TouchableOpacity style={styles.backupBanner} onPress={handleBackupJSON} activeOpacity={0.8}>
@@ -672,14 +667,6 @@ export function SettingsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  header: {
-    flexDirection: 'row', alignItems: 'center', gap: 12,
-    paddingHorizontal: 16, paddingBottom: 16,
-  },
-  hamburger: {
-    width: 36, height: 36, alignItems: 'center', justifyContent: 'center', borderRadius: 8,
-  },
-  title: { fontSize: SIZE.hero, fontWeight: '700', color: colors.textPrimary, letterSpacing: -0.5 },
   strategyBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 12,
     marginHorizontal: 16, marginBottom: 16, padding: 14,
