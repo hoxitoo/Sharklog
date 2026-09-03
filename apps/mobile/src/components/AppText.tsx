@@ -1,9 +1,9 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import {
   Text as RNText, TextInput as RNTextInput, StyleSheet,
   type TextProps, type TextInputProps, type TextStyle,
 } from 'react-native';
-import { FONTS, sansFor, monoFor } from '../theme/typography';
+import { resolveFont } from '../theme/typography';
 
 /**
  * `Text` with the app's typeface applied.
@@ -25,10 +25,13 @@ import { FONTS, sansFor, monoFor } from '../theme/typography';
  *    right DM Mono cut for its weight rather than always the regular one.
  *
  * An explicit `fontFamily` in the incoming style always wins.
+ *
+ * One thing to know when nesting: a resolved family is written onto every
+ * `Text`, so a nested `<Text>` that carries only a colour no longer inherits
+ * its parent's weight — it must state its own.
  */
 export function AppText({ style, ...rest }: TextProps) {
-  const resolved = useMemo(() => resolveFont(style), [style]);
-  return <RNText {...rest} style={[base.text, style, resolved]} />;
+  return <RNText {...rest} style={[base.text, style, fontFor(style)]} />;
 }
 
 /**
@@ -42,27 +45,13 @@ export function AppText({ style, ...rest }: TextProps) {
 export function AppTextInput({ style, ref, ...rest }: TextInputProps & {
   ref?: React.Ref<RNTextInput>;
 }) {
-  const resolved = useMemo(() => resolveFont(style), [style]);
-  return <RNTextInput {...rest} ref={ref} style={[base.text, style, resolved]} />;
+  return <RNTextInput {...rest} ref={ref} style={[base.text, style, fontFor(style)]} />;
 }
 
-/**
- * Turns the flattened style's `fontWeight` into a concrete font file.
- * Returns the family plus `fontWeight: undefined` so the platform is never
- * asked to bolden a face that is already the bold one.
- */
-function resolveFont(style: TextProps['style']): TextStyle {
+/** Flattens whatever style shape the caller passed, then asks the theme. */
+function fontFor(style: TextProps['style']): TextStyle {
   const flat = StyleSheet.flatten(style) as TextStyle | undefined;
-  const family = flat?.fontFamily;
-  const weight = flat?.fontWeight;
-
-  // Callers that name a face directly keep it; only the weight-to-file mapping
-  // is applied, so `numeric` (mono) plus `fontWeight: '700'` gets mono medium.
-  if (family) {
-    const isMono = family === FONTS.mono || family === FONTS.monoMedium;
-    return { fontFamily: isMono ? monoFor(weight) : family, fontWeight: undefined };
-  }
-  return { fontFamily: sansFor(weight), fontWeight: undefined };
+  return resolveFont(flat?.fontFamily, flat?.fontWeight);
 }
 
 const base = StyleSheet.create({

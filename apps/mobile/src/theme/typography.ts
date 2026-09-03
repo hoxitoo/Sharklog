@@ -1,4 +1,6 @@
-import { StyleSheet, type TextStyle } from 'react-native';
+// Type-only import on purpose: this module stays free of the react-native
+// runtime so the weight→face mapping can be unit-tested in plain Node.
+import type { TextStyle } from 'react-native';
 import { colors } from './colors';
 
 export const FONTS = {
@@ -39,7 +41,7 @@ export function monoFor(weight: TextStyle['fontWeight']): string {
   }
 }
 
-export const typography = StyleSheet.create({
+export const typography: Record<string, TextStyle> = {
   h1: { fontSize: 28, fontFamily: FONTS.sansBold, color: colors.textPrimary, letterSpacing: -0.5 },
   h2: { fontSize: 22, fontFamily: FONTS.sansSemiBold, color: colors.textPrimary },
   h3: { fontSize: 18, fontFamily: FONTS.sansSemiBold, color: colors.textPrimary },
@@ -47,7 +49,34 @@ export const typography = StyleSheet.create({
   bodySmall: { fontSize: 13, fontFamily: FONTS.sans, color: colors.textSecondary },
   caption: { fontSize: 11, fontFamily: FONTS.sans, color: colors.textMuted },
   mono: { fontSize: 14, fontFamily: FONTS.mono, color: colors.textPrimary },
-});
+};
+
+/**
+ * The whole font decision for one text style, given its flattened family and
+ * weight. Lives here rather than in `AppText` so it can be tested without a
+ * react-native runtime — the failure mode is a face silently rendering one cut
+ * too light, which no type-check catches and no screenshot makes obvious.
+ *
+ * Always returns `fontWeight: undefined`: once the weight has picked the file,
+ * leaving it set makes Android fake-bold on top of an already-bold face.
+ */
+export function resolveFont(
+  family: string | undefined,
+  weight: TextStyle['fontWeight'],
+): TextStyle {
+  if (!family) return { fontFamily: sansFor(weight), fontWeight: undefined };
+
+  // A named sans face is taken at its word.
+  if (family !== FONTS.mono && family !== FONTS.monoMedium) {
+    return { fontFamily: family, fontWeight: undefined };
+  }
+
+  // Naming a mono face IS a weight statement. Re-deriving the file from
+  // `fontWeight` alone would turn a style that says `monoMedium` and nothing
+  // else into Regular — that is the headline bank figure on Bankroll.
+  const implied = family === FONTS.monoMedium ? '500' : undefined;
+  return { fontFamily: monoFor(weight ?? implied), fontWeight: undefined };
+}
 
 /**
  * Money, odds and percentages.

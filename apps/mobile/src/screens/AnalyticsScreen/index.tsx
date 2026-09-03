@@ -341,7 +341,7 @@ function LuckCard({ bets }: { bets: Bet[] }) {
         <Text style={luck.winsLabel}>Побед: факт / по кэфам</Text>
         <Text style={luck.winsValue}>
           {l.actualWins} / {l.expectedWins.toFixed(1)}
-          <Text style={{ color: swing >= 0 ? colors.won : colors.lost }}>
+          <Text style={[luck.winsSwing, { color: swing >= 0 ? colors.won : colors.lost }]}>
             {'  '}{swing >= 0 ? '+' : ''}{swing.toFixed(1)}
           </Text>
         </Text>
@@ -363,7 +363,10 @@ const luck = StyleSheet.create({
     marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.border,
   },
   winsLabel: { fontSize: 12, color: colors.textSecondary },
-  winsValue: { fontSize: 14, fontWeight: '700', color: colors.textPrimary },
+  winsValue: { ...numeric, fontSize: 14, fontWeight: '700', color: colors.textPrimary },
+  // A nested Text gets its own resolved family, so it has to restate the
+  // weight — inheritance from `winsValue` no longer reaches it.
+  winsSwing: { ...numeric, fontSize: 14, fontWeight: '700' },
   verdict: { fontSize: 12, color: colors.textSecondary, lineHeight: 17, marginTop: 10 },
   caption: { fontSize: 11, color: colors.textMuted, marginTop: 8, lineHeight: 15 },
 });
