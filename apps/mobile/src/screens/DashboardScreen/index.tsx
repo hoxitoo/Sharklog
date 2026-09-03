@@ -371,7 +371,7 @@ const dd = StyleSheet.create({
   hint: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: SPACE.md, textAlign: 'center' },
   detail: { ...tileStyle, marginTop: SPACE.md },
   detailDate: { fontSize: SIZE.caption, fontWeight: '700', color: colors.textPrimary, marginBottom: SPACE.sm },
-  detailGrid: { flexDirection: 'row', justifyContent: 'space-between' },
+  detailGrid: { flexDirection: 'row', gap: SPACE.sm },
   detailCell: { flex: 1 },
   detailLabel: { fontSize: SIZE.micro, color: colors.textMuted },
   detailValue: { fontSize: SIZE.body, fontWeight: '700', color: colors.textPrimary, marginTop: 2 },
