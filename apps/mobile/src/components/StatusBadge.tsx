@@ -1,8 +1,11 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { SPACE, RADIUS } from '../theme/layout';
+import { View, StyleSheet } from 'react-native';
+import { AppText as Text } from './AppText';
 import type { BetStatus } from '@sharklog/core';
 import { colors } from '../theme/colors';
 import { useTranslation } from 'react-i18next';
+import { SIZE } from '../theme/typography';
 
 /** Shared so the card's edge rail always matches the badge. */
 export const STATUS_COLORS: Record<BetStatus, string> = {
@@ -25,10 +28,10 @@ export function StatusBadge({ status }: { status: BetStatus }) {
 
 const styles = StyleSheet.create({
   badge: {
-    paddingHorizontal: 8,
+    paddingHorizontal: SPACE.sm,
     paddingVertical: 3,
-    borderRadius: 6,
+    borderRadius: RADIUS.sm,
     alignSelf: 'flex-start',
   },
-  text: { fontSize: 11, fontWeight: '600' },
+  text: { fontSize: SIZE.caption, fontWeight: '600' },
 });

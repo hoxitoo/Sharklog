@@ -1,11 +1,15 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, FlatList } from 'react-native';
+import { SPACE } from '../../theme/layout';
+import { cardSurface } from '../../components/Card';
+import { View, StyleSheet, FlatList } from 'react-native';
+import { AppText as Text } from '../../components/AppText';
 import type { Bet } from '@sharklog/core';
 import { formatMoney } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { colors, toneSurface } from '../../theme/colors';
 import { BetCard } from '../BetsScreen/BetCard';
 import { useBetActions } from '../../components/useBetActions';
+import { SIZE, GLYPH } from '../../theme/typography';
 
 /** Kick-off timestamp, parsed as LOCAL time (a bare date string would read as UTC). */
 function startedAt(bet: Bet): number {
@@ -119,25 +123,23 @@ export function PendingScreen() {
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   header: {
-    flexDirection: 'row', margin: 16, padding: 14, borderRadius: 18,
-    ...toneSurface('warn'), borderWidth: 1,
-    shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 }, elevation: 3,
+    ...cardSurface, ...toneSurface('warn'),
+    flexDirection: 'row', margin: SPACE.lg, padding: SPACE.lg,
   },
-  headerCell: { flex: 1, paddingHorizontal: 4 },
-  headerDivider: { width: 1, backgroundColor: colors.border, marginHorizontal: 6 },
-  headerLabel: { fontSize: 10, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.4 },
-  headerValue: { fontSize: 17, fontWeight: '800', marginTop: 3 },
-  headerSub: { fontSize: 9, color: colors.textMuted, marginTop: 2 },
-  list: { paddingBottom: 32 },
+  headerCell: { flex: 1, paddingHorizontal: SPACE.xs },
+  headerDivider: { width: 1, backgroundColor: colors.border, marginHorizontal: SPACE.xs },
+  headerLabel: { fontSize: SIZE.micro, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.4 },
+  headerValue: { fontSize: SIZE.lead, fontWeight: '800', marginTop: 3 },
+  headerSub: { fontSize: SIZE.micro, color: colors.textMuted, marginTop: 2 },
+  list: { paddingBottom: SPACE.xxl },
   timeRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 20, marginBottom: 4, marginTop: 6,
+    paddingHorizontal: SPACE.lg, marginBottom: SPACE.xs, marginTop: SPACE.xs,
   },
-  timeText: { fontSize: 11, color: colors.textMuted, fontWeight: '600' },
-  agoText: { fontSize: 11, color: colors.pending, fontWeight: '600' },
-  empty: { alignItems: 'center', paddingTop: 60, paddingHorizontal: 32 },
-  emptyIcon: { fontSize: 40, marginBottom: 12 },
-  emptyTitle: { fontSize: 16, fontWeight: '700', color: colors.textPrimary },
-  emptyText: { fontSize: 13, color: colors.textMuted, textAlign: 'center', marginTop: 6, lineHeight: 19 },
+  timeText: { fontSize: SIZE.caption, color: colors.textMuted, fontWeight: '600' },
+  agoText: { fontSize: SIZE.caption, color: colors.pending, fontWeight: '600' },
+  empty: { alignItems: 'center', paddingTop: 60, paddingHorizontal: SPACE.xxl },
+  emptyIcon: { fontSize: GLYPH.xxl, marginBottom: SPACE.md },
+  emptyTitle: { fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary },
+  emptyText: { fontSize: SIZE.body, color: colors.textMuted, textAlign: 'center', marginTop: SPACE.xs, lineHeight: 20 },
 });

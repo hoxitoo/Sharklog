@@ -1,5 +1,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Alert } from 'react-native';
+import { SPACE, RADIUS, TOUCH } from '../../theme/layout';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Alert } from 'react-native';
+import { AppText as Text } from '../../components/AppText';
 import { PieChart } from 'react-native-gifted-charts';
 import {
   calcByField, calcByOddsRange, calcByDayOfWeek, calcDashboard,
@@ -17,10 +19,11 @@ import { useFormatMoney } from '../../utils/useFormatMoney';
 import { uses12HourClock } from '../../utils/clockFormat';
 import { haptic } from '../../utils/haptics';
 import { colors, alpha, toneSurface } from '../../theme/colors';
+import { numeric, SIZE, GLYPH } from '../../theme/typography';
 
 /** The donut lives in a pink-toned Card, so its hole must match that surface. */
 const DONUT_SURFACE = toneSurface('pink').backgroundColor;
-import { Card, tileStyle } from '../../components/Card';
+import { cardSurface, Card, tileStyle } from '../../components/Card';
 import { PnlBars } from '../../components/PnlBars';
 
 const { width } = Dimensions.get('window');
@@ -111,7 +114,7 @@ function HeroPnl({ bets, period }: { bets: Bet[]; period: APeriodFilter }) {
           </View>
           <PnlBars
             buckets={buckets}
-            width={width - 68}
+            width={width - 64}
             selected={selected}
             onSelect={(i) => { haptic.selection(); setSelected(i); }}
             labelFor={(b, i) => (i % every === 0 || i === buckets.length - 1 ? bucketLabel(b, granularity) : '')}
@@ -124,22 +127,20 @@ function HeroPnl({ bets, period }: { bets: Bet[]; period: APeriodFilter }) {
 
 const hero = StyleSheet.create({
   box: {
-    backgroundColor: colors.bgCard, borderRadius: 18, padding: 18,
-    marginHorizontal: 16, marginBottom: 12, borderWidth: 1, borderColor: colors.border,
-    shadowColor: '#000', shadowOpacity: 0.35, shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 }, elevation: 3,
+    ...cardSurface,
+    padding: SPACE.lg, marginHorizontal: SPACE.lg, marginBottom: SPACE.md,
   },
-  label: { fontSize: 12, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
-  value: { fontSize: 34, fontWeight: '800', marginTop: 4, marginBottom: 12 },
+  label: { fontSize: SIZE.caption, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
+  value: { ...numeric, fontSize: SIZE.display, fontWeight: '800', marginTop: SPACE.xs, marginBottom: SPACE.md },
   metaRow: { flexDirection: 'row', justifyContent: 'space-between' },
   metaCell: { alignItems: 'center', flex: 1 },
-  metaValue: { fontSize: 17, fontWeight: '700', color: colors.textPrimary },
-  metaLabel: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
-  chart: { marginTop: 14 },
-  chartHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 },
-  chartTitle: { fontSize: 12, fontWeight: '700', color: colors.textSecondary },
-  chartValue: { fontSize: 13, fontWeight: '700' },
-  chartHint: { fontSize: 10, color: colors.textMuted },
+  metaValue: { ...numeric, fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary },
+  metaLabel: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: 2 },
+  chart: { marginTop: SPACE.md },
+  chartHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: SPACE.xs },
+  chartTitle: { fontSize: SIZE.caption, fontWeight: '700', color: colors.textSecondary },
+  chartValue: { ...numeric, fontSize: SIZE.body, fontWeight: '700' },
+  chartHint: { fontSize: SIZE.micro, color: colors.textMuted },
 });
 
 // ── Two-tile row (streaks, extremes) ─────────────────────────────────────────
@@ -172,17 +173,17 @@ function MiniTile({ label, value, color, sub, info }: {
 
 const tile = StyleSheet.create({
   box: { ...tileStyle, flex: 1 },
-  label: { fontSize: 11, color: colors.textMuted, marginBottom: 6, lineHeight: 14, height: 28 }, // reserve 2 lines
-  labelWithInfo: { paddingRight: 18 }, // keep clear of the "?" badge
-  value: { fontSize: 20, fontWeight: '800', height: 26, textAlignVertical: 'center' },
-  sub: { fontSize: 10, color: colors.textMuted, marginTop: 4, height: 13 }, // always reserved
+  label: { fontSize: SIZE.caption, color: colors.textMuted, marginBottom: SPACE.xs, lineHeight: 15, height: 30 }, // reserve 2 lines
+  labelWithInfo: { paddingRight: SPACE.lg }, // keep clear of the "?" badge
+  value: { fontSize: SIZE.title, fontWeight: '800', height: 26, textAlignVertical: 'center' },
+  sub: { fontSize: SIZE.micro, color: colors.textMuted, marginTop: SPACE.xs, height: 13 }, // always reserved
   infoBtn: {
     position: 'absolute', top: 8, right: 8,
-    width: 16, height: 16, borderRadius: 8,
+    width: 16, height: 16, borderRadius: RADIUS.sm,
     backgroundColor: colors.bg, borderWidth: 1, borderColor: colors.borderStrong,
     alignItems: 'center', justifyContent: 'center',
   },
-  infoBtnText: { fontSize: 10, color: colors.textMuted, fontWeight: '700' },
+  infoBtnText: { fontSize: SIZE.micro, color: colors.textMuted, fontWeight: '700' },
 });
 
 function StreaksCard({ bets }: { bets: Bet[] }) {
@@ -289,7 +290,7 @@ function EdgeRiskCard({ bets }: { bets: Bet[] }) {
 }
 
 const edge = StyleSheet.create({
-  caption: { fontSize: 11, color: colors.textMuted, marginTop: 10, lineHeight: 15 },
+  caption: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: SPACE.sm, lineHeight: 16 },
 });
 
 // ── Luck vs decisions ────────────────────────────────────────────────────────
@@ -339,7 +340,7 @@ function LuckCard({ bets }: { bets: Bet[] }) {
         <Text style={luck.winsLabel}>Побед: факт / по кэфам</Text>
         <Text style={luck.winsValue}>
           {l.actualWins} / {l.expectedWins.toFixed(1)}
-          <Text style={{ color: swing >= 0 ? colors.won : colors.lost }}>
+          <Text style={[luck.winsSwing, { color: swing >= 0 ? colors.won : colors.lost }]}>
             {'  '}{swing >= 0 ? '+' : ''}{swing.toFixed(1)}
           </Text>
         </Text>
@@ -358,12 +359,15 @@ function LuckCard({ bets }: { bets: Bet[] }) {
 const luck = StyleSheet.create({
   winsRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.border,
+    marginTop: SPACE.md, paddingTop: SPACE.sm, borderTopWidth: 1, borderTopColor: colors.border,
   },
-  winsLabel: { fontSize: 12, color: colors.textSecondary },
-  winsValue: { fontSize: 14, fontWeight: '700', color: colors.textPrimary },
-  verdict: { fontSize: 12, color: colors.textSecondary, lineHeight: 17, marginTop: 10 },
-  caption: { fontSize: 11, color: colors.textMuted, marginTop: 8, lineHeight: 15 },
+  winsLabel: { fontSize: SIZE.caption, color: colors.textSecondary },
+  winsValue: { ...numeric, fontSize: SIZE.body, fontWeight: '700', color: colors.textPrimary },
+  // A nested Text gets its own resolved family, so it has to restate the
+  // weight — inheritance from `winsValue` no longer reaches it.
+  winsSwing: { ...numeric, fontSize: SIZE.body, fontWeight: '700' },
+  verdict: { fontSize: SIZE.caption, color: colors.textSecondary, lineHeight: 17, marginTop: SPACE.sm },
+  caption: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: SPACE.sm, lineHeight: 16 },
 });
 
 // ── Staking-plan compliance ──────────────────────────────────────────────────
@@ -477,7 +481,7 @@ function PlanCard({ bets, allBets }: { bets: Bet[]; allBets: Bet[] }) {
           <Text style={plan_.worstTitle}>Самые крупные отклонения</Text>
           {plan.worst.map((w) => (
             <View key={w.betId} style={plan_.worstRow}>
-              <View style={{ flex: 1, marginRight: 8 }}>
+              <View style={{ flex: 1, marginRight: SPACE.sm }}>
                 <Text style={plan_.worstEvent} numberOfLines={1}>{w.event}</Text>
                 <Text style={plan_.worstDate}>
                   {w.date.split('-').reverse().slice(0, 2).join('.')} · {fmt(w.stake)}
@@ -493,32 +497,33 @@ function PlanCard({ bets, allBets }: { bets: Bet[]; allBets: Bet[] }) {
 }
 
 const plan_ = StyleSheet.create({
-  empty: { fontSize: 12, color: colors.textSecondary, lineHeight: 17 },
+  empty: { fontSize: SIZE.caption, color: colors.textSecondary, lineHeight: 17 },
   cta: {
-    marginTop: 12, paddingVertical: 10, borderRadius: 10, alignItems: 'center',
+    minHeight: TOUCH, justifyContent: 'center',
+    marginTop: SPACE.md, paddingVertical: SPACE.sm, borderRadius: RADIUS.sm, alignItems: 'center',
     backgroundColor: alpha(colors.gold, 0.16), borderWidth: 1, borderColor: colors.gold,
   },
-  ctaText: { fontSize: 13, fontWeight: '700', color: colors.gold },
+  ctaText: { fontSize: SIZE.body, fontWeight: '700', color: colors.gold },
   splitRow: {
     flexDirection: 'row', alignItems: 'center',
-    marginTop: 12, paddingTop: 10, borderTopWidth: 1, borderTopColor: colors.border,
+    marginTop: SPACE.md, paddingTop: SPACE.sm, borderTopWidth: 1, borderTopColor: colors.border,
   },
   splitCell: { flex: 1 },
-  splitDivider: { width: 1, height: 28, backgroundColor: colors.border, marginHorizontal: 10 },
-  splitLabel: { fontSize: 11, color: colors.textMuted },
-  splitValue: { fontSize: 15, fontWeight: '700', marginTop: 2 },
-  verdict: { fontSize: 12, color: colors.textSecondary, lineHeight: 17, marginTop: 10 },
+  splitDivider: { width: 1, height: 28, backgroundColor: colors.border, marginHorizontal: SPACE.sm },
+  splitLabel: { fontSize: SIZE.caption, color: colors.textMuted },
+  splitValue: { fontSize: SIZE.lead, fontWeight: '700', marginTop: 2 },
+  verdict: { fontSize: SIZE.caption, color: colors.textSecondary, lineHeight: 17, marginTop: SPACE.sm },
   worstTitle: {
-    fontSize: 11, color: colors.textMuted, textTransform: 'uppercase',
-    letterSpacing: 0.5, marginTop: 14, marginBottom: 6,
+    fontSize: SIZE.caption, color: colors.textMuted, textTransform: 'uppercase',
+    letterSpacing: 0.5, marginTop: SPACE.md, marginBottom: SPACE.xs,
   },
   worstRow: {
     flexDirection: 'row', alignItems: 'center',
-    paddingVertical: 7, borderTopWidth: 1, borderTopColor: colors.border,
+    paddingVertical: SPACE.sm, borderTopWidth: 1, borderTopColor: colors.border,
   },
-  worstEvent: { fontSize: 13, fontWeight: '600', color: colors.textPrimary },
-  worstDate: { fontSize: 11, color: colors.textMuted, marginTop: 1 },
-  worstShare: { fontSize: 14, fontWeight: '700', color: colors.lost },
+  worstEvent: { fontSize: SIZE.body, fontWeight: '600', color: colors.textPrimary },
+  worstDate: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: 1 },
+  worstShare: { fontSize: SIZE.body, fontWeight: '700', color: colors.lost },
 });
 
 // ── Monthly P&L trend (6 compact bars) ───────────────────────────────────────
@@ -562,14 +567,16 @@ function MonthlyBars({ data, selected, onSelect }: {
 }
 
 const mbars = StyleSheet.create({
-  wrap: { flexDirection: 'row', marginTop: 16 },
-  col: { flex: 1, alignItems: 'center', borderRadius: 8, paddingVertical: 2 },
+  wrap: { flexDirection: 'row', marginTop: SPACE.lg },
+  // A chart column, not a button: its stacked bar halves set the height, and
+  // centering them would move the baseline every column shares.
+  col: { flex: 1, alignItems: 'center', borderRadius: RADIUS.sm, paddingVertical: 2 },
   colSelected: { backgroundColor: colors.bgElevated },
   top: { height: 34, justifyContent: 'flex-end', width: '100%', alignItems: 'center' },
   bottom: { height: 34, justifyContent: 'flex-start', width: '100%', alignItems: 'center' },
   mid: { height: 1, backgroundColor: colors.border, alignSelf: 'stretch' },
-  bar: { width: 14, borderRadius: 3 },
-  label: { fontSize: 10, color: colors.textMuted, marginTop: 5 },
+  bar: { width: 14, borderRadius: RADIUS.xs },
+  label: { fontSize: SIZE.micro, color: colors.textMuted, marginTop: SPACE.xs },
   labelSelected: { color: colors.textPrimary, fontWeight: '700' },
 });
 
@@ -629,13 +636,13 @@ function LastMonthCard({ bets }: { bets: Bet[] }) {
 const month = StyleSheet.create({
   rowWrap: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   main: { flex: 1 },
-  pnl: { fontSize: 26, fontWeight: '800' },
-  sub: { fontSize: 12, color: colors.textMuted, marginTop: 4 },
+  pnl: { fontSize: SIZE.hero, fontWeight: '800' },
+  sub: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: SPACE.xs },
   side: { alignItems: 'flex-end' },
-  roi: { fontSize: 16, fontWeight: '700' },
-  trend: { fontSize: 12, marginTop: 4, fontWeight: '600' },
-  empty: { fontSize: 13, color: colors.textMuted },
-  barsCaption: { fontSize: 10, color: colors.textMuted, textAlign: 'center', marginTop: 8 },
+  roi: { fontSize: SIZE.lead, fontWeight: '700' },
+  trend: { fontSize: SIZE.caption, marginTop: SPACE.xs, fontWeight: '600' },
+  empty: { fontSize: SIZE.body, color: colors.textMuted },
+  barsCaption: { fontSize: SIZE.micro, color: colors.textMuted, textAlign: 'center', marginTop: SPACE.sm },
 });
 
 // ── Time of day: top hours + donut ───────────────────────────────────────────
@@ -703,20 +710,20 @@ function TimeCard({ bets }: { bets: Bet[] }) {
 }
 
 const time = StyleSheet.create({
-  empty: { fontSize: 13, color: colors.textMuted },
-  topRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
+  empty: { fontSize: SIZE.body, color: colors.textMuted },
+  topRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: SPACE.lg },
   topCell: { alignItems: 'center', flex: 1 },
-  topHour: { fontSize: 13, fontWeight: '700', color: colors.textPrimary },
-  topPnl: { fontSize: 12, fontWeight: '700', marginTop: 3 },
-  topCount: { fontSize: 10, color: colors.textMuted, marginTop: 2 },
+  topHour: { fontSize: SIZE.body, fontWeight: '700', color: colors.textPrimary },
+  topPnl: { fontSize: SIZE.caption, fontWeight: '700', marginTop: 3 },
+  topCount: { fontSize: SIZE.micro, color: colors.textMuted, marginTop: 2 },
   donutRow: { flexDirection: 'row', alignItems: 'center' },
-  centerValue: { fontSize: 20, fontWeight: '800', color: colors.textPrimary },
-  centerLabel: { fontSize: 10, color: colors.textMuted },
-  legend: { flex: 1, marginLeft: 18 },
-  legendRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 6 },
-  dot: { width: 10, height: 10, borderRadius: 5, marginRight: 8 },
-  legendLabel: { fontSize: 12, color: colors.textSecondary, flex: 1 },
-  legendCount: { fontSize: 12, color: colors.textMuted, fontWeight: '600' },
+  centerValue: { fontSize: SIZE.title, fontWeight: '800', color: colors.textPrimary },
+  centerLabel: { fontSize: SIZE.micro, color: colors.textMuted },
+  legend: { flex: 1, marginLeft: SPACE.lg },
+  legendRow: { flexDirection: 'row', alignItems: 'center', marginBottom: SPACE.xs },
+  dot: { width: 10, height: 10, borderRadius: RADIUS.pill, marginRight: SPACE.sm },
+  legendLabel: { fontSize: SIZE.caption, color: colors.textSecondary, flex: 1 },
+  legendCount: { fontSize: SIZE.caption, color: colors.textMuted, fontWeight: '600' },
 });
 
 // ── CLV ──────────────────────────────────────────────────────────────────────
@@ -766,7 +773,7 @@ function ClvCard({ bets }: { bets: Bet[] }) {
 }
 
 const clv = StyleSheet.create({
-  hint: { fontSize: 12, color: colors.textSecondary, lineHeight: 18 },
+  hint: { fontSize: SIZE.caption, color: colors.textSecondary, lineHeight: 18 },
 });
 
 // ── Extended (detailed slices) ───────────────────────────────────────────────
@@ -793,15 +800,15 @@ function SliceRow({ stat, maxPnl }: { stat: SliceStats; maxPnl: number }) {
 }
 
 const slice = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
+  row: { flexDirection: 'row', alignItems: 'center', marginBottom: SPACE.md },
   labelCol: { width: 90 },
-  label: { fontSize: 13, color: colors.textPrimary, fontWeight: '500' },
-  meta: { fontSize: 10, color: colors.textMuted, marginTop: 1 },
-  barCol: { flex: 1, height: 6, backgroundColor: colors.bgElevated, borderRadius: 3, marginHorizontal: 8 },
-  bar: { height: 6, borderRadius: 3 },
+  label: { fontSize: SIZE.body, color: colors.textPrimary, fontWeight: '500' },
+  meta: { fontSize: SIZE.micro, color: colors.textMuted, marginTop: 1 },
+  barCol: { flex: 1, height: 6, backgroundColor: colors.bgElevated, borderRadius: RADIUS.xs, marginHorizontal: SPACE.sm },
+  bar: { height: 6, borderRadius: RADIUS.xs },
   valueCol: { width: 62, alignItems: 'flex-end' },
-  pnl: { fontSize: 13, fontWeight: '700' },
-  pnlSub: { fontSize: 10, color: colors.textMuted },
+  pnl: { fontSize: SIZE.body, fontWeight: '700' },
+  pnlSub: { fontSize: SIZE.micro, color: colors.textMuted },
 });
 
 function ExtendedSection({ title, stats }: { title: string; stats: SliceStats[] }) {
@@ -848,7 +855,7 @@ function AnalyticsContent() {
   }), [filteredBets]);
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
+    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: SPACE.xxl }}>
       <View style={styles.periodRow}>
         {A_PERIOD_OPTIONS.map((p) => (
           <TouchableOpacity
@@ -909,20 +916,22 @@ export function AnalyticsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  periodRow: { flexDirection: 'row', paddingHorizontal: 16, gap: 8, marginTop: 10, marginBottom: 12 },
+  periodRow: { flexDirection: 'row', paddingHorizontal: SPACE.lg, gap: SPACE.sm, marginTop: SPACE.sm, marginBottom: SPACE.md },
   periodBtn: {
-    flex: 1, paddingVertical: 7, borderRadius: 8, backgroundColor: colors.bgCard,
+    minHeight: TOUCH, justifyContent: 'center',
+    flex: 1, paddingVertical: SPACE.sm, borderRadius: RADIUS.sm, backgroundColor: colors.bgCard,
     alignItems: 'center', borderWidth: 1, borderColor: colors.border,
   },
   periodBtnActive: { backgroundColor: colors.purple, borderColor: colors.purple },
-  periodText: { fontSize: 12, fontWeight: '600', color: colors.textSecondary },
+  periodText: { fontSize: SIZE.caption, fontWeight: '600', color: colors.textSecondary },
   periodTextActive: { color: '#fff' },
   extToggle: {
+    minHeight: TOUCH,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    marginHorizontal: 16, marginTop: 4, marginBottom: 12, paddingVertical: 12, paddingHorizontal: 16,
-    backgroundColor: colors.bgElevated, borderRadius: 14,
+    marginHorizontal: SPACE.lg, marginTop: SPACE.xs, marginBottom: SPACE.md, paddingVertical: SPACE.md, paddingHorizontal: SPACE.lg,
+    backgroundColor: colors.bgElevated, borderRadius: RADIUS.md,
     borderWidth: 1, borderColor: alpha(colors.purple, 0.35),
   },
-  extToggleText: { fontSize: 14, fontWeight: '700', color: colors.purpleText },
-  extChevron: { fontSize: 12, color: colors.textMuted },
+  extToggleText: { fontSize: SIZE.body, fontWeight: '700', color: colors.purpleText },
+  extChevron: { fontSize: GLYPH.sm, color: colors.textMuted },
 });

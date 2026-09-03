@@ -1,10 +1,14 @@
 import React from 'react';
+import { SPACE, RADIUS, TOUCH } from '../../theme/layout';
+import { cardSurface } from '../../components/Card';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking, Alert,
+  View, StyleSheet, ScrollView, TouchableOpacity, Linking, Alert,
 } from 'react-native';
+import { AppText as Text } from '../../components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../../theme/colors';
 import { Analytics } from '../../services/analytics';
+import { SIZE, GLYPH } from '../../theme/typography';
 
 const PARTNERS = [
   {
@@ -79,9 +83,9 @@ export function PartnersScreen() {
   return (
     <ScrollView
       style={styles.root}
-      contentContainerStyle={{ padding: 16, paddingBottom: insets.bottom + 24 }}
+      contentContainerStyle={{ padding: SPACE.lg, paddingBottom: insets.bottom + 24 }}
     >
-      <Text style={styles.title}>Партнёры</Text>
+      {/* The native stack header already says "Партнёры" — one title is enough. */}
       <Text style={styles.subtitle}>
         Используй реферальную ссылку и получи бонус при регистрации у букмекера.
       </Text>
@@ -125,44 +129,39 @@ export function PartnersScreen() {
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
-  title: {
-    fontSize: 26, fontWeight: '800', color: colors.textPrimary,
-    marginBottom: 6,
-  },
   subtitle: {
-    fontSize: 14, color: colors.textSecondary, lineHeight: 20, marginBottom: 14,
+    fontSize: SIZE.body, color: colors.textSecondary, lineHeight: 20, marginBottom: SPACE.md,
   },
   notice: {
-    backgroundColor: colors.bgElevated, borderRadius: 10,
-    padding: 12, marginBottom: 20,
+    backgroundColor: colors.bgElevated, borderRadius: RADIUS.sm,
+    padding: SPACE.md, marginBottom: SPACE.lg,
     borderWidth: 1, borderColor: colors.border,
   },
-  noticeText: { fontSize: 12, color: colors.textMuted, lineHeight: 18 },
+  noticeText: { fontSize: SIZE.caption, color: colors.textMuted, lineHeight: 18 },
   card: {
-    backgroundColor: colors.bgCard, borderRadius: 16,
-    padding: 16, marginBottom: 14,
-    borderWidth: 1, borderColor: colors.border,
-    gap: 10,
+    ...cardSurface,
+    padding: SPACE.lg, marginBottom: SPACE.md, gap: SPACE.md,
   },
-  cardTop: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  emoji: { fontSize: 32 },
+  cardTop: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md },
+  emoji: { fontSize: GLYPH.xxl },
   cardInfo: { flex: 1 },
   partnerName: {
-    fontSize: 17, fontWeight: '700', color: colors.textPrimary, marginBottom: 4,
+    fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary, marginBottom: SPACE.xs,
   },
   categoryBadge: {
     alignSelf: 'flex-start', backgroundColor: colors.purple + '22',
-    borderRadius: 4, paddingHorizontal: 6, paddingVertical: 2,
+    borderRadius: RADIUS.xs, paddingHorizontal: SPACE.xs, paddingVertical: 2,
   },
-  categoryText: { fontSize: 11, color: colors.purpleText, fontWeight: '600' },
-  description: { fontSize: 13, color: colors.textSecondary, lineHeight: 19 },
+  categoryText: { fontSize: SIZE.caption, color: colors.purpleText, fontWeight: '600' },
+  description: { fontSize: SIZE.body, color: colors.textSecondary, lineHeight: 20 },
   bonusRow: {
-    backgroundColor: colors.accent + '18', borderRadius: 8, padding: 10,
+    backgroundColor: colors.accent + '18', borderRadius: RADIUS.sm, padding: SPACE.sm,
   },
-  bonusText: { fontSize: 13, color: colors.accent, fontWeight: '600' },
+  bonusText: { fontSize: SIZE.body, color: colors.accent, fontWeight: '600' },
   btn: {
-    backgroundColor: colors.purple, borderRadius: 10,
-    paddingVertical: 11, alignItems: 'center',
+    minHeight: TOUCH, justifyContent: 'center',
+    backgroundColor: colors.purple, borderRadius: RADIUS.sm,
+    paddingVertical: SPACE.md, alignItems: 'center',
   },
-  btnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  btnText: { fontSize: SIZE.body, fontWeight: '700', color: '#fff' },
 });

@@ -1,10 +1,12 @@
 import React, { useRef, useState } from 'react';
+import { SPACE, RADIUS } from '../../theme/layout';
 import {
-  Animated, PanResponder, StyleSheet, TouchableOpacity,
-  TouchableWithoutFeedback, View, Text,
+  Animated, PanResponder, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View,
 } from 'react-native';
+import { AppText as Text } from '../../components/AppText';
 import { colors } from '../../theme/colors';
 import { haptic } from '../../utils/haptics';
+import { SIZE, GLYPH } from '../../theme/typography';
 
 const DELETE_W = 76;
 
@@ -96,17 +98,17 @@ const styles = StyleSheet.create({
   },
   deleteZone: {
     position: 'absolute',
-    // Align with BetCard's card area (marginHorizontal:16, marginBottom:10)
-    right: 16,
+    // Align with BetCard's card area: same horizontal margin, same bottom gap.
+    right: SPACE.lg,
     top: 0,
-    bottom: 10,
+    bottom: SPACE.md,
     backgroundColor: colors.lost,
     // Must match BetCard's radius, or the red backing peeks out at the corners.
-    borderRadius: 16,
+    borderRadius: RADIUS.lg,
     alignItems: 'center',
     justifyContent: 'center',
   },
   deleteBtn: { alignItems: 'center', gap: 3 },
-  deleteIcon: { fontSize: 18 },
-  deleteText: { fontSize: 10, fontWeight: '700', color: '#fff' },
+  deleteIcon: { fontSize: GLYPH.lg },
+  deleteText: { fontSize: SIZE.micro, fontWeight: '700', color: '#fff' },
 });

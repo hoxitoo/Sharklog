@@ -1,6 +1,9 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { SPACE, RADIUS, TOUCH } from '../theme/layout';
+import { View, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
+import { AppText as Text } from './AppText';
 import { colors } from '../theme/colors';
+import { SIZE, GLYPH } from '../theme/typography';
 
 interface Props { children: React.ReactNode }
 interface State { error: Error | null }
@@ -40,10 +43,10 @@ export class ErrorBoundary extends React.Component<Props, State> {
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
-  content: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: 32 },
-  emoji: { fontSize: 48, marginBottom: 12 },
-  title: { fontSize: 22, fontWeight: '700', color: colors.textPrimary, marginBottom: 8, textAlign: 'center' },
-  msg: { fontSize: 13, color: colors.lost, marginBottom: 24, textAlign: 'center', fontFamily: 'DMMono_400Regular' },
-  btn: { backgroundColor: colors.purple, borderRadius: 12, paddingVertical: 14, paddingHorizontal: 28 },
-  btnText: { color: '#fff', fontWeight: '700', fontSize: 15 },
+  content: { flexGrow: 1, alignItems: 'center', justifyContent: 'center', padding: SPACE.xxl },
+  emoji: { fontSize: GLYPH.hero, marginBottom: SPACE.md },
+  title: { fontSize: SIZE.title, fontWeight: '700', color: colors.textPrimary, marginBottom: SPACE.sm, textAlign: 'center' },
+  msg: { fontSize: SIZE.body, color: colors.lost, marginBottom: SPACE.xl, textAlign: 'center', fontFamily: 'DMMono_400Regular' },
+  btn: { minHeight: TOUCH, justifyContent: 'center', backgroundColor: colors.purple, borderRadius: RADIUS.md, paddingVertical: SPACE.md, paddingHorizontal: SPACE.xl },
+  btnText: { color: '#fff', fontWeight: '700', fontSize: SIZE.lead },
 });

@@ -124,10 +124,19 @@ export default function App() {
     }
   }, [appReady]);
 
-  // Keep showing splash until BOTH animation is done AND store is loaded.
+  // Keep showing splash until the animation is done AND the store is loaded AND
+  // the fonts are registered.
+  //
   // Without the isLoaded guard, returning users briefly see OnboardingScreen
   // (settings.onboardingComplete defaults to false before load() resolves).
-  if (!splashDone || !isLoaded) {
+  //
+  // The fonts guard matters since the native stack header started naming a
+  // family: react-native-screens resolves the typeface once, in the native
+  // config, and Android's font manager caches the system fallback under that
+  // family key if the asset is not registered yet. A JS `Text` re-renders when
+  // the fonts flip; the native header does not, so the miss sticks for the
+  // whole session — five screen titles in Roboto.
+  if (!splashDone || !appReady) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.bg }}>
         <StatusBar style="light" />

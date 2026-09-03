@@ -1,8 +1,12 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { SPACE, RADIUS, TOUCH } from '../../theme/layout';
+import { cardSurface } from '../../components/Card';
+import { View, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { AppText as Text } from '../../components/AppText';
 import type { Bet, TournamentStats } from '@sharklog/core';
 import { calcBetYears, betsInYear, calcByTournament } from '@sharklog/core';
 import { colors, alpha } from '../../theme/colors';
+import { numeric, SIZE } from '../../theme/typography';
 import { useFormatMoney } from '../../utils/useFormatMoney';
 import { haptic } from '../../utils/haptics';
 
@@ -165,42 +169,43 @@ function Bar({ row, peak, fmt, onPress }: {
 
 const y = StyleSheet.create({
   sectionTitle: {
-    fontSize: 12, color: colors.textMuted, textTransform: 'uppercase',
-    letterSpacing: 0.6, fontWeight: '700', marginBottom: 10, marginTop: 6,
+    fontSize: SIZE.caption, color: colors.textMuted, textTransform: 'uppercase',
+    letterSpacing: 0.6, fontWeight: '700', marginBottom: SPACE.sm, marginTop: SPACE.xs,
   },
-  yearRow: { gap: 8, paddingBottom: 12 },
+  yearRow: { gap: SPACE.sm, paddingBottom: SPACE.md },
   yearChip: {
-    paddingHorizontal: 16, paddingVertical: 8, borderRadius: 10,
+    minHeight: TOUCH, justifyContent: 'center',
+    paddingHorizontal: SPACE.lg, paddingVertical: SPACE.sm, borderRadius: RADIUS.sm,
     backgroundColor: colors.bgCard, borderWidth: 1, borderColor: colors.border,
   },
   yearChipActive: { backgroundColor: colors.purple, borderColor: colors.purple },
-  yearLabel: { fontSize: 13, color: colors.textSecondary, fontWeight: '600' },
+  yearLabel: { fontSize: SIZE.body, color: colors.textSecondary, fontWeight: '600' },
   yearLabelActive: { color: '#fff', fontWeight: '700' },
 
   card: {
-    backgroundColor: colors.bgCard, borderRadius: 14, padding: 14,
-    borderWidth: 1, borderColor: colors.border, marginBottom: 16,
+    ...cardSurface,
+    padding: SPACE.lg, marginBottom: SPACE.lg,
   },
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
-  headLabel: { fontSize: 13, fontWeight: '700', color: colors.textPrimary },
-  headValue: { fontSize: 17, fontWeight: '800' },
-  headSub: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
+  headLabel: { fontSize: SIZE.body, fontWeight: '700', color: colors.textPrimary },
+  headValue: { ...numeric, fontSize: SIZE.lead, fontWeight: '800' },
+  headSub: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: 2 },
 
-  bars: { marginTop: 14, gap: 12 },
+  bars: { marginTop: SPACE.md, gap: SPACE.md },
   barRow: {},
-  barHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 },
-  barName: { fontSize: 13, fontWeight: '600', color: colors.textPrimary, flex: 1, marginRight: 8 },
-  barValue: { fontSize: 12, fontWeight: '700' },
+  barHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: SPACE.xs },
+  barName: { fontSize: SIZE.body, fontWeight: '600', color: colors.textPrimary, flex: 1, marginRight: SPACE.sm },
+  barValue: { ...numeric, fontSize: SIZE.caption, fontWeight: '700' },
   track: {
-    height: 10, borderRadius: 5, backgroundColor: colors.bgSunken,
+    height: 10, borderRadius: RADIUS.pill, backgroundColor: colors.bgSunken,
     borderWidth: 1, borderColor: colors.border, justifyContent: 'center',
   },
   zeroLine: {
     position: 'absolute', left: '50%', top: 0, bottom: 0,
     width: 1, backgroundColor: alpha(colors.borderStrong, 0.9),
   },
-  bar: { position: 'absolute', top: 1, bottom: 1, borderRadius: 4 },
+  bar: { position: 'absolute', top: 1, bottom: 1, borderRadius: RADIUS.pill },
 
-  moreBtn: { alignItems: 'center', paddingTop: 14, paddingBottom: 2 },
-  moreText: { fontSize: 13, fontWeight: '700', color: colors.purpleText },
+  moreBtn: { alignItems: 'center', paddingTop: SPACE.md, paddingBottom: 2 },
+  moreText: { fontSize: SIZE.body, fontWeight: '700', color: colors.purpleText },
 });

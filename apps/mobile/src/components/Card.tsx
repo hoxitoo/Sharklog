@@ -1,6 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet, type ViewStyle, type StyleProp } from 'react-native';
+import { View, StyleSheet, type ViewStyle, type StyleProp } from 'react-native';
+import { AppText as Text } from './AppText';
 import { colors, alpha, toneSurface, TONE_ACCENT, type CardTone } from '../theme/colors';
+import { RADIUS, SPACE } from '../theme/layout';
+import { SIZE } from '../theme/typography';
 
 interface Props {
   title?: string;
@@ -40,32 +43,47 @@ export function Card({ title, subtitle, tone = 'neutral', right, children, style
   );
 }
 
+/**
+ * The card shell on its own — background, radius, border, lift.
+ *
+ * `Card` is the whole component: shell plus the heading row with its coloured
+ * rail. Plenty of places need a card-shaped surface without a heading (a bet
+ * row, a partner tile, the Kelly panel), and those used to redeclare the shape
+ * by hand, which is how one object ended up with four radii. Spread this and
+ * override only what genuinely differs.
+ */
+export const cardSurface: ViewStyle = {
+  backgroundColor: colors.bgCard,
+  borderRadius: RADIUS.lg,
+  borderWidth: 1,
+  borderColor: colors.border,
+  // Lifts the card off the page on both platforms.
+  shadowColor: '#000',
+  shadowOpacity: 0.35,
+  shadowRadius: 12,
+  shadowOffset: { width: 0, height: 4 },
+  elevation: 3,
+};
+
 const card = StyleSheet.create({
   box: {
-    borderRadius: 18,
-    padding: 16,
-    marginHorizontal: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    // Lifts the card off the page on both platforms.
-    shadowColor: '#000',
-    shadowOpacity: 0.35,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
+    ...cardSurface,
+    padding: SPACE.lg,
+    marginHorizontal: SPACE.lg,
+    marginBottom: SPACE.md,
   },
-  head: { flexDirection: 'row', alignItems: 'center', marginBottom: 14 },
-  rail: { width: 3, height: 18, borderRadius: 2, marginRight: 10 },
+  head: { flexDirection: 'row', alignItems: 'center', marginBottom: SPACE.md },
+  rail: { width: 3, height: 18, borderRadius: RADIUS.xs, marginRight: SPACE.sm },
   headText: { flex: 1 },
-  title: { fontSize: 14, fontWeight: '700', color: colors.textPrimary, letterSpacing: 0.2 },
-  subtitle: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
+  title: { fontSize: SIZE.body, fontWeight: '700', color: colors.textPrimary, letterSpacing: 0.2 },
+  subtitle: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: 2 },
 });
 
-/** Nested tile inside a Card — the second surface level. */
+/** Nested tile inside a Card — the second surface level, one radius down. */
 export const tileStyle: ViewStyle = {
   backgroundColor: colors.bgElevated,
-  borderRadius: 14,
-  padding: 12,
+  borderRadius: RADIUS.md,
+  padding: SPACE.md,
   borderWidth: 1,
   borderColor: alpha(colors.borderStrong, 0.55),
 };

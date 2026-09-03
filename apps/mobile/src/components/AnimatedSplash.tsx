@@ -1,5 +1,8 @@
 import React, { useEffect, useMemo, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
+import { SPACE, RADIUS } from '../theme/layout';
+import { View, StyleSheet, Animated, Easing } from 'react-native';
+import { AppText as Text } from './AppText';
+import { FONTS, SIZE } from '../theme/typography';
 import { colors } from '../theme/colors';
 
 interface Props {
@@ -138,33 +141,36 @@ const s = StyleSheet.create({
   },
   coeff: {
     position: 'absolute',
-    fontSize: 13,
+    fontSize: SIZE.body,
     fontWeight: '600',
     color: colors.accent,
     letterSpacing: 0.3,
   },
   linesWrap: {
     alignItems: 'center',
-    gap: 7,
-    marginBottom: 28,
+    gap: SPACE.sm,
+    marginBottom: SPACE.xl,
   },
   line: {
     height: 2,
-    borderRadius: 1,
+    borderRadius: RADIUS.xs,
     backgroundColor: colors.accent,
   },
   name: {
-    fontSize: 34,
+    fontSize: SIZE.display,
     fontWeight: '800',
     color: colors.textPrimary,
     letterSpacing: -1,
     textAlign: 'center',
   },
+  // Animated.Text is not covered by the AppText alias, so this one names the
+  // face itself — otherwise the first words of the app are in the system font.
   tagline: {
-    fontSize: 13,
+    fontFamily: FONTS.sans,
+    fontSize: SIZE.body,
     color: colors.textMuted,
     letterSpacing: 0.5,
-    marginTop: 6,
+    marginTop: SPACE.xs,
     textAlign: 'center',
   },
 });

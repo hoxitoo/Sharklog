@@ -1,8 +1,10 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
+import { SPACE, RADIUS, TOUCH, hitSlopFor } from '../../theme/layout';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Alert, KeyboardAvoidingView, Platform,
+  View, StyleSheet, ScrollView, TouchableOpacity, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native';
+import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
+import type { TextInput as TextInputRef } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
@@ -17,6 +19,9 @@ import { useBetsStore } from '../../store/betsStore';
 import { haptic } from '../../utils/haptics';
 import { Analytics } from '../../services/analytics';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
+import { SIZE, GLYPH } from '../../theme/typography';
+
+const STEP_SLOP = hitSlopFor(32);
 
 type Nav = NativeStackNavigationProp<RootStackParamList, 'AddBet'>;
 type Route = RouteProp<RootStackParamList, 'AddBet'>;
@@ -120,16 +125,17 @@ function SegmentedControl<T extends string>({
 }
 
 const sc = StyleSheet.create({
-  container: { marginBottom: 16 },
-  label: { fontSize: 12, color: colors.textSecondary, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
-  row: { flexDirection: 'row', gap: 6 },
+  container: { marginBottom: SPACE.lg },
+  label: { fontSize: SIZE.caption, color: colors.textSecondary, marginBottom: SPACE.xs, textTransform: 'uppercase', letterSpacing: 0.5 },
+  row: { flexDirection: 'row', gap: SPACE.xs },
   item: {
-    paddingHorizontal: 12, paddingVertical: 7,
-    borderRadius: 8, backgroundColor: colors.bgCard,
+    minHeight: TOUCH, justifyContent: 'center',
+    paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm,
+    borderRadius: RADIUS.sm, backgroundColor: colors.bgCard,
     borderWidth: 1, borderColor: colors.border,
   },
   itemActive: { backgroundColor: colors.purple, borderColor: colors.purple },
-  text: { fontSize: 13, color: colors.textSecondary },
+  text: { fontSize: SIZE.body, color: colors.textSecondary },
   textActive: { color: '#fff', fontWeight: '700' },
 });
 
@@ -146,18 +152,18 @@ function Field({ label, error, children }: { label: string; error?: string; chil
 }
 
 const field = StyleSheet.create({
-  container: { marginBottom: 16 },
-  label: { fontSize: 12, color: colors.textSecondary, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
-  error: { fontSize: 12, color: colors.lost, marginTop: 4 },
+  container: { marginBottom: SPACE.lg },
+  label: { fontSize: SIZE.caption, color: colors.textSecondary, marginBottom: SPACE.xs, textTransform: 'uppercase', letterSpacing: 0.5 },
+  error: { fontSize: SIZE.caption, color: colors.lost, marginTop: SPACE.xs },
 });
 
 const inputStyle = {
   backgroundColor: colors.bgCard,
-  borderRadius: 10,
-  paddingHorizontal: 14,
-  paddingVertical: 12,
+  borderRadius: RADIUS.sm,
+  paddingHorizontal: SPACE.md,
+  paddingVertical: SPACE.md,
   color: colors.textPrimary,
-  fontSize: 15,
+  fontSize: SIZE.lead,
   borderWidth: 1,
   borderColor: colors.border,
 };
@@ -170,7 +176,7 @@ function SingleTeamInput({
   value: string;
   onChange: (v: string) => void;
   onSubmitEditing?: () => void;
-  textInputRef?: React.RefObject<TextInput>;
+  textInputRef?: React.RefObject<TextInputRef>;
   placeholder?: string;
   sport: Sport;
   discipline: EsportsDiscipline;
@@ -252,33 +258,34 @@ const ac = StyleSheet.create({
     right: 0,
     zIndex: 100,
     backgroundColor: colors.bgElevated,
-    borderRadius: 10,
+    borderRadius: RADIUS.sm,
     borderWidth: 1,
     borderColor: colors.border,
-    marginTop: 4,
+    marginTop: SPACE.xs,
     overflow: 'hidden',
   },
   item: {
+    minHeight: TOUCH,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingHorizontal: SPACE.md,
+    paddingVertical: SPACE.sm,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  name: { fontSize: 14, color: colors.textPrimary, flex: 1 },
-  right: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  name: { fontSize: SIZE.body, color: colors.textPrimary, flex: 1 },
+  right: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs },
   badge: {
     backgroundColor: colors.purpleDim,
-    paddingHorizontal: 6,
+    paddingHorizontal: SPACE.xs,
     paddingVertical: 2,
-    borderRadius: 6,
+    borderRadius: RADIUS.sm,
     borderWidth: 1,
     borderColor: colors.purple + '44',
   },
-  badgeText: { fontSize: 10, color: colors.purpleText, fontWeight: '600' },
-  count: { fontSize: 11, color: colors.textMuted },
+  badgeText: { fontSize: SIZE.micro, color: colors.purpleText, fontWeight: '600' },
+  count: { fontSize: SIZE.caption, color: colors.textMuted },
 });
 
 // ── Tournament Input with autocomplete ────────────────────────────────────────
@@ -404,11 +411,11 @@ function KellyHelper({ odds, bankKopecks, onApply }: {
       <View style={kl.stepRow}>
         <Text style={kl.stepLabel}>Моя оценка</Text>
         <View style={kl.stepper}>
-          <TouchableOpacity style={kl.stepBtn} onPress={() => step(-1)} activeOpacity={0.7}>
+          <TouchableOpacity style={kl.stepBtn} hitSlop={STEP_SLOP} onPress={() => step(-1)} activeOpacity={0.7}>
             <Text style={kl.stepBtnText}>−</Text>
           </TouchableOpacity>
           <Text style={kl.stepValue}>{(prob * 100).toFixed(0)}%</Text>
-          <TouchableOpacity style={kl.stepBtn} onPress={() => step(1)} activeOpacity={0.7}>
+          <TouchableOpacity style={kl.stepBtn} hitSlop={STEP_SLOP} onPress={() => step(1)} activeOpacity={0.7}>
             <Text style={kl.stepBtnText}>+</Text>
           </TouchableOpacity>
         </View>
@@ -445,39 +452,40 @@ function KellyHelper({ odds, bankKopecks, onApply }: {
 const kl = StyleSheet.create({
   container: {
     backgroundColor: colors.bgElevated,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 16,
+    borderRadius: RADIUS.md,
+    padding: SPACE.md,
+    marginBottom: SPACE.lg,
     borderWidth: 1,
     borderColor: colors.border,
-    gap: 12,
+    gap: SPACE.md,
   },
   impliedRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  impliedLabel: { fontSize: 12, color: colors.textMuted },
-  impliedValue: { fontSize: 13, fontWeight: '600', color: colors.textSecondary },
+  impliedLabel: { fontSize: SIZE.caption, color: colors.textMuted },
+  impliedValue: { fontSize: SIZE.body, fontWeight: '600', color: colors.textSecondary },
   stepRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  stepLabel: { fontSize: 13, color: colors.textPrimary, fontWeight: '500' },
-  stepper: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  stepLabel: { fontSize: SIZE.body, color: colors.textPrimary, fontWeight: '500' },
+  stepper: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md },
   stepBtn: {
-    width: 32, height: 32, borderRadius: 8,
+    width: 32, height: 32, borderRadius: RADIUS.sm,
     backgroundColor: colors.bgCard, borderWidth: 1, borderColor: colors.border,
     alignItems: 'center', justifyContent: 'center',
   },
-  stepBtnText: { fontSize: 18, color: colors.textPrimary, lineHeight: 22 },
-  stepValue: { fontSize: 17, fontWeight: '700', color: colors.textPrimary, minWidth: 44, textAlign: 'center' },
+  stepBtnText: { fontSize: GLYPH.md, color: colors.textPrimary, lineHeight: 20 },
+  stepValue: { fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary, minWidth: 44, textAlign: 'center' },
   resultsRow: { flexDirection: 'row', justifyContent: 'space-around' },
   resultCell: { alignItems: 'center', gap: 3 },
-  resultValue: { fontSize: 16, fontWeight: '700', color: colors.textPrimary },
-  resultLabel: { fontSize: 10, color: colors.textMuted },
+  resultValue: { fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary },
+  resultLabel: { fontSize: SIZE.micro, color: colors.textMuted },
   applyBtn: {
+    minHeight: TOUCH, justifyContent: 'center',
     backgroundColor: colors.accent + '22',
-    borderRadius: 10,
-    paddingVertical: 10,
+    borderRadius: RADIUS.sm,
+    paddingVertical: SPACE.sm,
     alignItems: 'center',
     borderWidth: 1,
     borderColor: colors.accent + '66',
   },
-  applyText: { fontSize: 14, fontWeight: '700', color: colors.accent },
+  applyText: { fontSize: SIZE.body, fontWeight: '700', color: colors.accent },
 });
 
 // ── Main Screen ────────────────────────────────────────────────────────────────
@@ -487,7 +495,7 @@ export function AddBetScreen() {
   const route = useRoute<Route>();
   const { bets, addBet, updateBet, settings, bankroll, canAddBet } = useBetsStore();
   const [kellyOpen, setKellyOpen] = useState(false);
-  const team2Ref = useRef<TextInput>(null);
+  const team2Ref = useRef<TextInputRef>(null);
   const scrollRef = useRef<ScrollView>(null);
 
   const editBet = route.params?.betId
@@ -921,8 +929,8 @@ export function AddBetScreen() {
                 </View>
 
                 {/* Per-leg sport chips */}
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
-                  <View style={{ flexDirection: 'row', gap: 5 }}>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: SPACE.sm }}>
+                  <View style={{ flexDirection: 'row', gap: SPACE.xs }}>
                     {sportOptions.map((opt) => (
                       <TouchableOpacity
                         key={opt.key}
@@ -939,8 +947,8 @@ export function AddBetScreen() {
 
                 {/* Per-leg discipline (only when esports) */}
                 {leg.sport === 'esports' && (
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
-                    <View style={{ flexDirection: 'row', gap: 5 }}>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: SPACE.sm }}>
+                    <View style={{ flexDirection: 'row', gap: SPACE.xs }}>
                       {disciplineOptions.map((opt) => (
                         <TouchableOpacity
                           key={opt.key}
@@ -956,7 +964,7 @@ export function AddBetScreen() {
                   </ScrollView>
                 )}
 
-                <View style={{ marginBottom: 8 }}>
+                <View style={{ marginBottom: SPACE.sm }}>
                   <SingleTeamInput
                     value={leg.team1}
                     onChange={(v) => updateLeg(i, 'team1', v)}
@@ -965,7 +973,7 @@ export function AddBetScreen() {
                     discipline={leg.discipline}
                   />
                 </View>
-                <View style={{ marginBottom: 8 }}>
+                <View style={{ marginBottom: SPACE.sm }}>
                   <SingleTeamInput
                     value={leg.team2}
                     onChange={(v) => updateLeg(i, 'team2', v)}
@@ -1516,56 +1524,58 @@ export function AddBetScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1, backgroundColor: colors.bg },
   container: { flex: 1, backgroundColor: colors.bg },
-  content: { padding: 16, paddingBottom: 40 },
-  row2: { flexDirection: 'row', gap: 12 },
+  content: { padding: SPACE.lg, paddingBottom: 40 },
+  row2: { flexDirection: 'row', gap: SPACE.md },
   halfInput: { flex: 1 },
 
   betModeRow: {
     flexDirection: 'row',
     backgroundColor: colors.bgCard,
-    borderRadius: 12,
-    padding: 4,
-    marginBottom: 20,
+    borderRadius: RADIUS.md,
+    padding: SPACE.xs,
+    marginBottom: SPACE.lg,
     borderWidth: 1,
     borderColor: colors.border,
   },
   betModeBtn: {
+    minHeight: TOUCH, justifyContent: 'center',
     flex: 1,
-    paddingVertical: 10,
-    borderRadius: 9,
+    paddingVertical: SPACE.sm,
+    borderRadius: RADIUS.sm,
     alignItems: 'center',
   },
   betModeBtnActive: { backgroundColor: colors.purple },
-  betModeTxt: { fontSize: 15, fontWeight: '600', color: colors.textSecondary },
+  betModeTxt: { fontSize: SIZE.lead, fontWeight: '600', color: colors.textSecondary },
   betModeTxtActive: { color: '#fff' },
 
   legCard: {
     backgroundColor: colors.bgCard,
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 12,
+    borderRadius: RADIUS.md,
+    padding: SPACE.md,
+    marginBottom: SPACE.md,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  legOddsRow: { flexDirection: 'row', gap: 8 },
+  legOddsRow: { flexDirection: 'row', gap: SPACE.sm },
   legHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: SPACE.sm,
   },
   legTitle: {
-    fontSize: 12,
+    fontSize: SIZE.caption,
     fontWeight: '700',
     color: colors.textSecondary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
-  legRemove: { fontSize: 16, color: colors.lost },
+  legRemove: { fontSize: SIZE.lead, color: colors.lost },
   legSportChip: {
-    paddingHorizontal: 9,
-    paddingVertical: 4,
-    borderRadius: 6,
+    minHeight: TOUCH, justifyContent: 'center',
+    paddingHorizontal: SPACE.sm,
+    paddingVertical: SPACE.xs,
+    borderRadius: RADIUS.sm,
     backgroundColor: colors.bgElevated,
     borderWidth: 1,
     borderColor: colors.border,
@@ -1574,114 +1584,120 @@ const styles = StyleSheet.create({
     backgroundColor: colors.purple,
     borderColor: colors.purple,
   },
-  legSportChipText: { fontSize: 11, color: colors.textSecondary },
+  legSportChipText: { fontSize: SIZE.caption, color: colors.textSecondary },
   legSportChipTextActive: { color: '#fff', fontWeight: '700' },
   addLegBtn: {
-    paddingVertical: 12,
-    borderRadius: 10,
+    minHeight: TOUCH, justifyContent: 'center',
+    paddingVertical: SPACE.md,
+    borderRadius: RADIUS.sm,
     borderWidth: 1,
     borderColor: colors.purple + '88',
     borderStyle: 'dashed',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: SPACE.md,
   },
-  addLegText: { fontSize: 14, fontWeight: '600', color: colors.purpleText },
+  addLegText: { fontSize: SIZE.body, fontWeight: '600', color: colors.purpleText },
   expressOddsRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: colors.purpleDim,
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 16,
+    borderRadius: RADIUS.sm,
+    padding: SPACE.md,
+    marginBottom: SPACE.lg,
     borderWidth: 1,
     borderColor: colors.purple + '44',
   },
-  expressOddsLabel: { fontSize: 13, color: colors.purpleText },
-  expressOddsValue: { fontSize: 18, fontWeight: '700', color: colors.purpleText },
+  expressOddsLabel: { fontSize: SIZE.body, color: colors.purpleText },
+  expressOddsValue: { fontSize: SIZE.title, fontWeight: '700', color: colors.purpleText },
 
   winPreview: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     backgroundColor: colors.accentDim,
-    borderRadius: 10,
-    padding: 12,
-    marginBottom: 16,
+    borderRadius: RADIUS.sm,
+    padding: SPACE.md,
+    marginBottom: SPACE.lg,
   },
-  winLabel: { fontSize: 13, color: colors.accent },
-  winAmount: { fontSize: 16, fontWeight: '700', color: colors.accent },
+  winLabel: { fontSize: SIZE.body, color: colors.accent },
+  winAmount: { fontSize: SIZE.lead, fontWeight: '700', color: colors.accent },
 
   extraToggle: {
-    paddingVertical: 12,
-    paddingHorizontal: 14,
+    minHeight: TOUCH, justifyContent: 'center',
+    paddingVertical: SPACE.md,
+    paddingHorizontal: SPACE.md,
     backgroundColor: colors.bgElevated,
-    borderRadius: 10,
-    marginBottom: 16,
+    borderRadius: RADIUS.sm,
+    marginBottom: SPACE.lg,
     borderWidth: 1,
     borderColor: colors.border,
     alignItems: 'center',
   },
   extraToggleText: {
-    fontSize: 13,
+    fontSize: SIZE.body,
     color: colors.purpleText,
     fontWeight: '600',
   },
   freebetToggle: {
+    minHeight: TOUCH, justifyContent: 'center',
     alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 8,
+    paddingHorizontal: SPACE.md,
+    paddingVertical: SPACE.sm,
+    borderRadius: RADIUS.sm,
     backgroundColor: colors.bgCard,
     borderWidth: 1,
     borderColor: colors.border,
-    marginBottom: 12,
+    marginBottom: SPACE.md,
   },
   freebetToggleActive: { borderColor: colors.accent + '66', backgroundColor: colors.accentDim },
-  freebetToggleText: { fontSize: 13, color: colors.textSecondary },
+  freebetToggleText: { fontSize: SIZE.body, color: colors.textSecondary },
   freebetToggleTextActive: { color: colors.accent, fontWeight: '600' },
   kellyToggle: {
+    minHeight: TOUCH, justifyContent: 'center',
     alignSelf: 'flex-start',
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 8,
+    paddingHorizontal: SPACE.md,
+    paddingVertical: SPACE.sm,
+    borderRadius: RADIUS.sm,
     backgroundColor: colors.bgCard,
     borderWidth: 1,
     borderColor: colors.border,
-    marginBottom: 12,
+    marginBottom: SPACE.md,
   },
   kellyToggleActive: { borderColor: colors.accent + '66', backgroundColor: colors.accentDim },
-  kellyToggleText: { fontSize: 13, color: colors.textSecondary },
+  kellyToggleText: { fontSize: SIZE.body, color: colors.textSecondary },
   kellyToggleTextActive: { color: colors.accent, fontWeight: '600' },
 
-  bookmakers: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  bookmakers: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.xs },
   bkBtn: {
-    paddingHorizontal: 12, paddingVertical: 7,
-    borderRadius: 8, backgroundColor: colors.bgCard,
+    minHeight: TOUCH, justifyContent: 'center',
+    paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm,
+    borderRadius: RADIUS.sm, backgroundColor: colors.bgCard,
     borderWidth: 1, borderColor: colors.border,
   },
   bkBtnActive: { backgroundColor: colors.purple, borderColor: colors.purple },
-  bkText: { fontSize: 13, color: colors.textSecondary },
+  bkText: { fontSize: SIZE.body, color: colors.textSecondary },
   bkTextActive: { color: '#fff', fontWeight: '700' },
   notes: { height: 80 },
   bankShare: {
     flexDirection: 'row', alignItems: 'center',
-    marginBottom: 16, padding: 14, borderRadius: 12,
+    marginBottom: SPACE.lg, padding: SPACE.md, borderRadius: RADIUS.md,
     backgroundColor: colors.bgCard, borderWidth: 1, borderColor: colors.border,
   },
   bankShareWarn: { borderColor: colors.lost + '77', backgroundColor: colors.lost + '11' },
-  bankShareLabel: { fontSize: 12, color: colors.textSecondary, fontWeight: '600' },
-  bankShareBank: { fontSize: 10, color: colors.textMuted, marginTop: 2 },
-  bankShareValue: { fontSize: 20, fontWeight: '800' },
-  bankShareHint: { fontSize: 10, color: colors.textMuted, marginTop: 2 },
+  bankShareLabel: { fontSize: SIZE.caption, color: colors.textSecondary, fontWeight: '600' },
+  bankShareBank: { fontSize: SIZE.micro, color: colors.textMuted, marginTop: 2 },
+  bankShareValue: { fontSize: SIZE.title, fontWeight: '800' },
+  bankShareHint: { fontSize: SIZE.micro, color: colors.textMuted, marginTop: 2 },
   outcomePicker: {
     flexDirection: 'row',
-    gap: 8,
+    gap: SPACE.sm,
   },
   outcomeBtn: {
+    minHeight: TOUCH, justifyContent: 'center',
     flex: 1,
-    paddingVertical: 11,
-    borderRadius: 10,
+    paddingVertical: SPACE.md,
+    borderRadius: RADIUS.sm,
     alignItems: 'center',
     backgroundColor: colors.bgCard,
     borderWidth: 1,
@@ -1692,17 +1708,17 @@ const styles = StyleSheet.create({
     borderColor: colors.purple,
   },
   outcomeTxt: {
-    fontSize: 13,
+    fontSize: SIZE.body,
     fontWeight: '600',
     color: colors.textSecondary,
   },
   outcomeTxtActive: { color: '#fff' },
   submitBtn: {
     backgroundColor: colors.purple,
-    borderRadius: 14,
-    paddingVertical: 16,
+    borderRadius: RADIUS.md,
+    paddingVertical: SPACE.lg,
     alignItems: 'center',
-    marginTop: 8,
+    marginTop: SPACE.sm,
   },
-  submitText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  submitText: { fontSize: SIZE.lead, fontWeight: '700', color: '#fff' },
 });

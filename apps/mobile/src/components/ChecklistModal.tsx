@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
+import { SPACE, RADIUS, TOUCH } from '../theme/layout';
 import {
-  Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView,
+  Modal, View, StyleSheet, TouchableOpacity, ScrollView,
 } from 'react-native';
+import { AppText as Text } from './AppText';
 import { colors } from '../theme/colors';
+import { SIZE, GLYPH } from '../theme/typography';
 
 const CHECKLIST = [
   { emoji: '🧠', text: 'Я не в состоянии тилта' },
@@ -54,7 +57,7 @@ export function ChecklistModal({ visible, onConfirm, onCancel }: Props) {
             Отметь все пункты — это занимает 10 секунд и сохраняет дисциплину
           </Text>
 
-          <ScrollView style={{ marginBottom: 20 }} showsVerticalScrollIndicator={false}>
+          <ScrollView style={{ marginBottom: SPACE.lg }} showsVerticalScrollIndicator={false}>
             {CHECKLIST.map((item, i) => (
               <TouchableOpacity
                 key={i}
@@ -101,9 +104,9 @@ const styles = StyleSheet.create({
   },
   sheet: {
     backgroundColor: colors.bgCard,
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
+    borderTopLeftRadius: RADIUS.sheet,
+    borderTopRightRadius: RADIUS.sheet,
+    padding: SPACE.xl,
     paddingBottom: 40,
     borderTopWidth: 1,
     borderTopColor: colors.border,
@@ -112,32 +115,33 @@ const styles = StyleSheet.create({
     width: 36,
     height: 4,
     backgroundColor: colors.border,
-    borderRadius: 2,
+    borderRadius: RADIUS.xs,
     alignSelf: 'center',
-    marginBottom: 20,
+    marginBottom: SPACE.lg,
   },
   title: {
-    fontSize: 22,
+    fontSize: SIZE.title,
     fontWeight: '700',
     color: colors.textPrimary,
-    marginBottom: 6,
+    marginBottom: SPACE.xs,
     textAlign: 'center',
   },
   subtitle: {
-    fontSize: 13,
+    fontSize: SIZE.body,
     color: colors.textSecondary,
     textAlign: 'center',
-    marginBottom: 24,
+    marginBottom: SPACE.xl,
     lineHeight: 18,
   },
   item: {
+    minHeight: TOUCH,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    padding: 14,
-    borderRadius: 12,
+    gap: SPACE.md,
+    padding: SPACE.md,
+    borderRadius: RADIUS.md,
     backgroundColor: colors.bgElevated,
-    marginBottom: 8,
+    marginBottom: SPACE.sm,
     borderWidth: 1,
     borderColor: colors.border,
   },
@@ -148,7 +152,7 @@ const styles = StyleSheet.create({
   checkbox: {
     width: 24,
     height: 24,
-    borderRadius: 7,
+    borderRadius: RADIUS.sm,
     borderWidth: 2,
     borderColor: colors.border,
     alignItems: 'center',
@@ -159,24 +163,24 @@ const styles = StyleSheet.create({
     borderColor: colors.accent,
     backgroundColor: colors.accent,
   },
-  checkmark: { fontSize: 14, color: '#000', fontWeight: '700' },
-  emoji: { fontSize: 18, flexShrink: 0 },
-  itemText: { fontSize: 14, color: colors.textSecondary, flex: 1, lineHeight: 20 },
+  checkmark: { fontSize: SIZE.body, color: '#000', fontWeight: '700' },
+  emoji: { fontSize: GLYPH.lg, flexShrink: 0 },
+  itemText: { fontSize: SIZE.body, color: colors.textSecondary, flex: 1, lineHeight: 20 },
   itemTextChecked: { color: colors.textPrimary },
   confirmBtn: {
     backgroundColor: colors.purple,
-    borderRadius: 14,
-    paddingVertical: 16,
+    borderRadius: RADIUS.md,
+    paddingVertical: SPACE.lg,
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: SPACE.md,
   },
   confirmBtnDisabled: {
     backgroundColor: colors.bgElevated,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  confirmText: { fontSize: 16, fontWeight: '700', color: '#fff' },
+  confirmText: { fontSize: SIZE.lead, fontWeight: '700', color: '#fff' },
   confirmTextDisabled: { color: colors.textMuted },
-  cancelBtn: { alignItems: 'center', paddingVertical: 8 },
-  cancelText: { fontSize: 14, color: colors.textMuted },
+  cancelBtn: { minHeight: TOUCH, justifyContent: 'center', alignItems: 'center', paddingVertical: SPACE.sm },
+  cancelText: { fontSize: SIZE.body, color: colors.textMuted },
 });

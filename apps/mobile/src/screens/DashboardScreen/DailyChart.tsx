@@ -1,9 +1,12 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { SPACE, RADIUS } from '../../theme/layout';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { AppText as Text } from '../../components/AppText';
 import Svg, { Polyline, Circle, Rect } from 'react-native-svg';
 import type { DayStats } from '@sharklog/core';
 import { colors } from '../../theme/colors';
 import { SERIES } from '../../theme/chartColors';
+import { SIZE } from '../../theme/typography';
 
 export { SERIES } from '../../theme/chartColors';
 
@@ -84,7 +87,7 @@ export function DailyChart({ days, width, height, toggles, selected, onSelect, l
                 <View style={{ height: half, justifyContent: 'flex-end', alignItems: 'center' }}>
                   {winH > 0 && (
                     <View style={{
-                      width: barW, height: winH, borderTopLeftRadius: 3, borderTopRightRadius: 3,
+                      width: barW, height: winH, borderTopLeftRadius: RADIUS.xs, borderTopRightRadius: RADIUS.xs,
                       backgroundColor: isSel ? SERIES.win : SERIES.win + 'CC',
                     }} />
                   )}
@@ -93,7 +96,7 @@ export function DailyChart({ days, width, height, toggles, selected, onSelect, l
                 <View style={{ height: half, justifyContent: 'flex-start', alignItems: 'center' }}>
                   {lossH > 0 && (
                     <View style={{
-                      width: barW, height: lossH, borderBottomLeftRadius: 3, borderBottomRightRadius: 3,
+                      width: barW, height: lossH, borderBottomLeftRadius: RADIUS.xs, borderBottomRightRadius: RADIUS.xs,
                       backgroundColor: isSel ? SERIES.loss : SERIES.loss + 'CC',
                     }} />
                   )}
@@ -135,7 +138,7 @@ export function DailyChart({ days, width, height, toggles, selected, onSelect, l
       </View>
 
       {/* X labels */}
-      <View style={{ flexDirection: 'row', width, marginTop: 4 }}>
+      <View style={{ flexDirection: 'row', width, marginTop: SPACE.xs }}>
         {days.map((d, i) => (
           <View key={`lbl-${d.date}`} style={{ width: colW, alignItems: 'center' }}>
             {(i % step === 0 || selected === i) && (
@@ -151,8 +154,8 @@ export function DailyChart({ days, width, height, toggles, selected, onSelect, l
 }
 
 const ch = StyleSheet.create({
-  colSelected: { backgroundColor: colors.bgElevated, borderRadius: 6 },
-  xLabel: { fontSize: 9, color: colors.textMuted },
+  colSelected: { backgroundColor: colors.bgElevated, borderRadius: RADIUS.sm },
+  xLabel: { fontSize: SIZE.micro, color: colors.textMuted },
   xLabelSel: { color: colors.textPrimary, fontWeight: '700' },
 });
 
@@ -181,8 +184,8 @@ export function ChartLegend({ toggles }: { toggles: ChartToggles }) {
 }
 
 const lg = StyleSheet.create({
-  wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 12, marginTop: 10 },
-  item: { flexDirection: 'row', alignItems: 'center', gap: 5 },
-  dot: { width: 8, height: 8, borderRadius: 2 },
-  text: { fontSize: 10, color: colors.textMuted },
+  wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.md, marginTop: SPACE.sm },
+  item: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs },
+  dot: { width: 8, height: 8, borderRadius: RADIUS.xs },
+  text: { fontSize: SIZE.micro, color: colors.textMuted },
 });

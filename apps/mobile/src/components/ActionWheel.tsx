@@ -1,10 +1,13 @@
 import React, { useEffect, useRef } from 'react';
+import { SPACE } from '../theme/layout';
 import {
-  Modal, View, Text, StyleSheet, Animated, Pressable, useWindowDimensions,
+  Modal, View, StyleSheet, Animated, Pressable, useWindowDimensions,
 } from 'react-native';
+import { AppText as Text } from './AppText';
 import Svg, { Path } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, alpha, mix } from '../theme/colors';
+import { SIZE } from '../theme/typography';
 
 export interface WheelAction {
   key: string;
@@ -30,7 +33,7 @@ interface Props {
 
 const GAP = 0.02;        // radians of background showing between sectors
 const LABEL_WIDTH = 78;
-const LABEL_HEIGHT = 54;  // icon + up to two wrapped lines
+const LABEL_HEIGHT = 58;  // icon + up to two wrapped lines
 
 function polar(cx: number, cy: number, r: number, a: number): [number, number] {
   return [cx + r * Math.cos(a), cy + r * Math.sin(a)];
@@ -167,14 +170,14 @@ const wheel = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   stage: { alignItems: 'center' },
-  head: { alignItems: 'center', marginBottom: 18, paddingHorizontal: 32 },
-  title: { fontSize: 16, fontWeight: '700', color: colors.textPrimary, textAlign: 'center' },
-  subtitle: { fontSize: 12, color: colors.textMuted, marginTop: 3, textAlign: 'center' },
+  head: { alignItems: 'center', marginBottom: SPACE.lg, paddingHorizontal: SPACE.xxl },
+  title: { fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary, textAlign: 'center' },
+  subtitle: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: 3, textAlign: 'center' },
   label: {
     position: 'absolute', width: LABEL_WIDTH, height: LABEL_HEIGHT,
-    alignItems: 'center', justifyContent: 'center', gap: 4,
+    alignItems: 'center', justifyContent: 'center', gap: SPACE.xs,
   },
-  labelText: { fontSize: 11, fontWeight: '600', textAlign: 'center' },
+  labelText: { fontSize: SIZE.caption, fontWeight: '600', textAlign: 'center' },
   center: {
     position: 'absolute', alignItems: 'center', justifyContent: 'center',
     backgroundColor: colors.lost,

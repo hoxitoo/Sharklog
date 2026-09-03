@@ -1,8 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableWithoutFeedback } from 'react-native';
+import { View, StyleSheet, TouchableWithoutFeedback } from 'react-native';
+import { AppText as Text } from './AppText';
 import Svg, { Rect, Line } from 'react-native-svg';
 import type { PnlBucket } from '@sharklog/core';
 import { colors, alpha } from '../theme/colors';
+import { SIZE } from '../theme/typography';
 
 interface Props {
   buckets: PnlBucket[];
@@ -90,5 +92,5 @@ export function PnlBars({ buckets, width, height = 120, selected, onSelect, labe
 
 const bars = StyleSheet.create({
   labels: { position: 'absolute', bottom: 0, left: 0, flexDirection: 'row' },
-  label: { fontSize: 9, color: colors.textMuted, textAlign: 'center' },
+  label: { fontSize: SIZE.micro, color: colors.textMuted, textAlign: 'center' },
 });

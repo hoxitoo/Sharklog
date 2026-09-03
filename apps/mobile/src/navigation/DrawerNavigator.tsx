@@ -1,8 +1,9 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { SPACE, RADIUS, TOUCH, FAB_SIZE, FAB_BOTTOM } from '../theme/layout';
 import {
-  View, Text, StyleSheet, TouchableOpacity, Animated,
-  Pressable, ScrollView, Image, Alert, PanResponder, BackHandler,
+  View, StyleSheet, TouchableOpacity, Animated, Pressable, ScrollView, Image, Alert, PanResponder, BackHandler,
 } from 'react-native';
+import { AppText as Text } from '../components/AppText';
 import { Ionicons } from '@expo/vector-icons';
 import { ChecklistModal } from '../components/ChecklistModal';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,6 +20,7 @@ import { AnalyticsScreen } from '../screens/AnalyticsScreen';
 import { DisciplineScreen } from '../screens/DisciplineScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import type { RootStackParamList } from './RootNavigator';
+import { SIZE, GLYPH } from '../theme/typography';
 
 export type DrawerScreen = 'Bets' | 'Dashboard' | 'Insights' | 'Analytics' | 'Discipline' | 'Settings';
 
@@ -202,7 +204,7 @@ export function DrawerNavigator() {
         {/* FAB — Add Bet (only on Bets screen) */}
         {screen === 'Bets' && (
           <TouchableOpacity
-            style={[styles.fab, { bottom: insets.bottom + 20 }]}
+            style={[styles.fab, { bottom: insets.bottom + FAB_BOTTOM }]}
             onPress={handleAddBet}
             activeOpacity={0.85}
           >
@@ -346,32 +348,33 @@ const styles = StyleSheet.create({
   drawerLogo: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingHorizontal: 16,
-    paddingBottom: 16,
+    gap: SPACE.sm,
+    paddingHorizontal: SPACE.lg,
+    paddingBottom: SPACE.lg,
   },
   logoImg: {
     width: 36,
     height: 36,
-    borderRadius: 8,
+    borderRadius: RADIUS.sm,
   },
   logoText: {
-    fontSize: 20,
+    fontSize: SIZE.title,
     fontWeight: '800',
     color: colors.textPrimary,
     letterSpacing: -0.5,
   },
   section: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+    paddingHorizontal: SPACE.sm,
+    paddingVertical: SPACE.xs,
   },
   navItem: {
+    minHeight: TOUCH,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    paddingVertical: 11,
-    paddingHorizontal: 12,
-    borderRadius: 10,
+    gap: SPACE.md,
+    paddingVertical: SPACE.md,
+    paddingHorizontal: SPACE.md,
+    borderRadius: RADIUS.sm,
     marginBottom: 1,
   },
   navItemActive: {
@@ -383,7 +386,7 @@ const styles = StyleSheet.create({
   },
   navLabel: {
     flex: 1,
-    fontSize: 15,
+    fontSize: SIZE.lead,
     fontWeight: '500',
     color: colors.textSecondary,
   },
@@ -393,53 +396,54 @@ const styles = StyleSheet.create({
   },
   proBadge: {
     backgroundColor: colors.gold + '22',
-    borderRadius: 4,
-    paddingHorizontal: 5,
+    borderRadius: RADIUS.xs,
+    paddingHorizontal: SPACE.xs,
     paddingVertical: 2,
     borderWidth: 1,
     borderColor: colors.gold + '55',
   },
   proBadgeText: {
-    fontSize: 9,
+    fontSize: SIZE.micro,
     fontWeight: '800',
     color: colors.gold,
   },
   divider: {
     height: 1,
     backgroundColor: colors.border,
-    marginHorizontal: 16,
-    marginVertical: 8,
+    marginHorizontal: SPACE.lg,
+    marginVertical: SPACE.sm,
   },
   partnersCard: {
+    minHeight: TOUCH,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginHorizontal: 8,
-    marginBottom: 4,
-    padding: 12,
+    gap: SPACE.md,
+    marginHorizontal: SPACE.sm,
+    marginBottom: SPACE.xs,
+    padding: SPACE.md,
     backgroundColor: colors.accent + '14',
-    borderRadius: 12,
+    borderRadius: RADIUS.md,
     borderWidth: 1,
     borderColor: colors.accent + '44',
   },
   partnersTitle: {
-    fontSize: 14,
+    fontSize: SIZE.body,
     fontWeight: '700',
     color: colors.accent,
   },
   partnersSub: {
-    fontSize: 11,
+    fontSize: SIZE.caption,
     color: colors.textSecondary,
     marginTop: 2,
   },
   drawerBottom: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
+    paddingHorizontal: SPACE.lg,
+    paddingTop: SPACE.md,
     borderTopWidth: 1,
     borderTopColor: colors.border,
   },
   responsible: {
-    fontSize: 11,
+    fontSize: SIZE.caption,
     color: colors.textMuted,
     textAlign: 'center',
   },
@@ -454,9 +458,9 @@ const styles = StyleSheet.create({
   fab: {
     position: 'absolute',
     right: 20,
-    width: 58,
-    height: 58,
-    borderRadius: 29,
+    width: FAB_SIZE,
+    height: FAB_SIZE,
+    borderRadius: RADIUS.pill,
     backgroundColor: colors.purple,
     alignItems: 'center',
     justifyContent: 'center',
@@ -468,10 +472,11 @@ const styles = StyleSheet.create({
     elevation: 6,
   },
   fabText: {
-    fontSize: 30,
+    // A mark, not type. The line box has to grow with it or the plus clips.
+    fontSize: GLYPH.xxl,
     color: '#fff',
     fontWeight: '300',
-    lineHeight: 36,
+    lineHeight: 41,
     marginTop: -2,
   },
 });

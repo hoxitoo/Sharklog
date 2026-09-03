@@ -1,6 +1,7 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { colors } from '../theme/colors';
+import { NAV_TITLE } from '../components/ScreenHeader';
 import { useTranslation } from 'react-i18next';
 import { BankrollScreen } from '../screens/BankrollScreen';
 import { AddBetScreen } from '../screens/AddBetScreen';
@@ -23,10 +24,16 @@ const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export function RootNavigator() {
   const { t } = useTranslation();
+  // Same title and same ground as the drawer screens' ScreenHeader, so pushing
+  // a screen does not change what a header looks like.
   const headerOpts = {
-    headerStyle: { backgroundColor: colors.bgCard },
+    headerStyle: { backgroundColor: colors.bg },
     headerTintColor: colors.textPrimary,
-    headerTitleStyle: { color: colors.textPrimary, fontWeight: '700' as const },
+    headerTitleStyle: NAV_TITLE,
+    // iOS draws the back label separately; without this it stays in SF next to
+    // a DM Sans title — the same drift this change is closing.
+    headerBackTitleStyle: NAV_TITLE,
+    headerShadowVisible: false,
   };
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>

@@ -1,7 +1,10 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import { SPACE, RADIUS, TOUCH } from '../theme/layout';
+import { View, StyleSheet, TouchableOpacity, Animated } from 'react-native';
+import { AppText as Text } from './AppText';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors } from '../theme/colors';
+import { SIZE } from '../theme/typography';
 
 interface Props {
   storageKey: string;
@@ -64,8 +67,8 @@ const styles = StyleSheet.create({
   bottom: { bottom: 100 },
   bubble: {
     backgroundColor: colors.purple,
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: RADIUS.md,
+    padding: SPACE.lg,
     shadowColor: colors.purple,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
@@ -76,17 +79,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: SPACE.sm,
   },
-  title: { fontSize: 14, fontWeight: '700', color: '#fff' },
-  close: { fontSize: 12, color: 'rgba(255,255,255,0.7)' },
-  body: { fontSize: 13, color: 'rgba(255,255,255,0.85)', lineHeight: 19, marginBottom: 12 },
+  title: { fontSize: SIZE.body, fontWeight: '700', color: '#fff' },
+  close: { fontSize: SIZE.caption, color: 'rgba(255,255,255,0.7)' },
+  body: { fontSize: SIZE.body, color: 'rgba(255,255,255,0.85)', lineHeight: 20, marginBottom: SPACE.md },
   btn: {
+    minHeight: TOUCH, justifyContent: 'center',
     alignSelf: 'flex-end',
     backgroundColor: 'rgba(255,255,255,0.2)',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderRadius: 8,
+    paddingHorizontal: SPACE.md,
+    paddingVertical: SPACE.xs,
+    borderRadius: RADIUS.sm,
   },
-  btnText: { fontSize: 13, fontWeight: '600', color: '#fff' },
+  btnText: { fontSize: SIZE.body, fontWeight: '600', color: '#fff' },
 });

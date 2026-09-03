@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
+import { SPACE, RADIUS, TOUCH } from '../../theme/layout';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Alert,
+  View, StyleSheet, ScrollView, TouchableOpacity, Alert,
 } from 'react-native';
+import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
 import { calcDashboard, isInTilt, toYmd } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { colors } from '../../theme/colors';
 import { haptic } from '../../utils/haptics';
 import type { DiaryEntry } from '@sharklog/core';
+import { SIZE, GLYPH } from '../../theme/typography';
 
 const MOODS: Array<{ value: 1 | 2 | 3 | 4 | 5; emoji: string; label: string }> = [
   { value: 1, emoji: '😫', label: 'Тилт' },
@@ -78,12 +80,13 @@ function MoodPicker({
 }
 
 const mp = StyleSheet.create({
-  row: { flexDirection: 'row', justifyContent: 'space-between', gap: 6 },
+  row: { flexDirection: 'row', justifyContent: 'space-between', gap: SPACE.xs },
   btn: {
+    minHeight: TOUCH, justifyContent: 'center',
     flex: 1,
     alignItems: 'center',
-    paddingVertical: 10,
-    borderRadius: 12,
+    paddingVertical: SPACE.sm,
+    borderRadius: RADIUS.md,
     backgroundColor: colors.bgElevated,
     borderWidth: 1,
     borderColor: colors.border,
@@ -92,8 +95,8 @@ const mp = StyleSheet.create({
     borderColor: colors.purple,
     backgroundColor: colors.purpleDim,
   },
-  emoji: { fontSize: 22 },
-  label: { fontSize: 9, color: colors.textMuted, marginTop: 3, textAlign: 'center' },
+  emoji: { fontSize: GLYPH.lg },
+  label: { fontSize: SIZE.micro, color: colors.textMuted, marginTop: 3, textAlign: 'center' },
   labelActive: { color: colors.purpleText },
 });
 
@@ -109,14 +112,14 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
 const card = StyleSheet.create({
   container: {
     backgroundColor: colors.bgCard,
-    borderRadius: 14,
-    padding: 16,
-    marginHorizontal: 16,
-    marginBottom: 14,
+    borderRadius: RADIUS.md,
+    padding: SPACE.lg,
+    marginHorizontal: SPACE.lg,
+    marginBottom: SPACE.md,
     borderWidth: 1,
     borderColor: colors.border,
   },
-  title: { fontSize: 15, fontWeight: '700', color: colors.textPrimary, marginBottom: 14 },
+  title: { fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary, marginBottom: SPACE.md },
 });
 
 export function DisciplineScreen() {
@@ -152,7 +155,7 @@ export function DisciplineScreen() {
   return (
     <View style={styles.container}>
       <ScreenHeader title="Дисциплина" subtitle="Психология и контроль" />
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 32 }}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: SPACE.xxl }}>
 
         {inTilt && (
           <View style={styles.tiltBanner}>
@@ -260,62 +263,63 @@ const styles = StyleSheet.create({
   tiltBanner: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    marginHorizontal: 16,
-    marginBottom: 14,
-    padding: 14,
+    gap: SPACE.md,
+    marginHorizontal: SPACE.lg,
+    marginBottom: SPACE.md,
+    padding: SPACE.md,
     backgroundColor: colors.lost + '15',
-    borderRadius: 12,
+    borderRadius: RADIUS.md,
     borderWidth: 1,
     borderColor: colors.lost + '44',
   },
-  tiltEmoji: { fontSize: 28 },
-  tiltTitle: { fontSize: 15, fontWeight: '700', color: colors.lost },
-  tiltSub: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
+  tiltEmoji: { fontSize: GLYPH.xl },
+  tiltTitle: { fontSize: SIZE.lead, fontWeight: '700', color: colors.lost },
+  tiltSub: { fontSize: SIZE.caption, color: colors.textSecondary, marginTop: 2 },
   noteInput: {
-    marginTop: 12,
+    marginTop: SPACE.md,
     backgroundColor: colors.bgElevated,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderRadius: RADIUS.sm,
+    paddingHorizontal: SPACE.md,
+    paddingVertical: SPACE.sm,
     color: colors.textPrimary,
-    fontSize: 14,
+    fontSize: SIZE.body,
     borderWidth: 1,
     borderColor: colors.border,
     height: 80,
   },
   saveBtn: {
-    marginTop: 12,
+    minHeight: TOUCH, justifyContent: 'center',
+    marginTop: SPACE.md,
     backgroundColor: colors.purple,
-    borderRadius: 10,
-    paddingVertical: 12,
+    borderRadius: RADIUS.sm,
+    paddingVertical: SPACE.md,
     alignItems: 'center',
   },
-  saveBtnText: { fontSize: 14, fontWeight: '700', color: '#fff' },
+  saveBtnText: { fontSize: SIZE.body, fontWeight: '700', color: '#fff' },
   savedRow: {
-    marginTop: 12,
+    marginTop: SPACE.md,
     alignItems: 'center',
-    paddingVertical: 10,
-    borderRadius: 10,
+    paddingVertical: SPACE.sm,
+    borderRadius: RADIUS.sm,
     backgroundColor: colors.accent + '15',
     borderWidth: 1,
     borderColor: colors.accent + '44',
   },
-  savedText: { fontSize: 14, fontWeight: '600', color: colors.accent },
+  savedText: { fontSize: SIZE.body, fontWeight: '600', color: colors.accent },
   tiltGrid: { flexDirection: 'row', justifyContent: 'space-around' },
-  tiltStat: { alignItems: 'center', gap: 4 },
-  tiltStatValue: { fontSize: 28, fontWeight: '700', color: colors.textPrimary },
-  tiltStatLabel: { fontSize: 11, color: colors.textMuted, textAlign: 'center' },
+  tiltStat: { alignItems: 'center', gap: SPACE.xs },
+  tiltStatValue: { fontSize: SIZE.hero, fontWeight: '700', color: colors.textPrimary },
+  tiltStatLabel: { fontSize: SIZE.caption, color: colors.textMuted, textAlign: 'center' },
   ruleRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 12,
-    marginBottom: 12,
+    gap: SPACE.md,
+    marginBottom: SPACE.md,
   },
   ruleNum: {
     width: 24,
     height: 24,
-    borderRadius: 12,
+    borderRadius: RADIUS.md,
     backgroundColor: colors.purpleDim,
     alignItems: 'center',
     justifyContent: 'center',
@@ -323,17 +327,17 @@ const styles = StyleSheet.create({
     borderColor: colors.purple + '44',
     flexShrink: 0,
   },
-  ruleNumText: { fontSize: 12, fontWeight: '700', color: colors.purpleText },
-  ruleText: { fontSize: 14, color: colors.textPrimary, flex: 1, lineHeight: 20 },
+  ruleNumText: { fontSize: SIZE.caption, fontWeight: '700', color: colors.purpleText },
+  ruleText: { fontSize: SIZE.body, color: colors.textPrimary, flex: 1, lineHeight: 20 },
   diaryRow: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 10,
-    paddingVertical: 8,
+    gap: SPACE.sm,
+    paddingVertical: SPACE.sm,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  diaryEmoji: { fontSize: 22, marginTop: 1 },
-  diaryDate: { fontSize: 12, color: colors.textMuted, marginBottom: 2 },
-  diaryText: { fontSize: 13, color: colors.textSecondary },
+  diaryEmoji: { fontSize: GLYPH.lg, marginTop: 1 },
+  diaryDate: { fontSize: SIZE.caption, color: colors.textMuted, marginBottom: 2 },
+  diaryText: { fontSize: SIZE.body, color: colors.textSecondary },
 });
