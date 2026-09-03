@@ -1,8 +1,9 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { SPACE, RADIUS, TOUCH, FAB_CLEARANCE } from '../../theme/layout';
 import { cardSurface } from '../../components/Card';
 import {
   View, SectionList, StyleSheet, TouchableOpacity, ScrollView, RefreshControl, Image,
+  Animated, Easing, type NativeScrollEvent, type NativeSyntheticEvent,
 } from 'react-native';
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
 import { useNavigation } from '@react-navigation/native';
@@ -56,6 +57,50 @@ export function BetsScreen({ filter, onClearFilter }: {
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortKey>('date_desc');
   const [refreshing, setRefreshing] = useState(false);
+
+  // The filter bar used to be a fixed sibling above the list: today's figures,
+  // search, status chips, sort and the tilt banner together ate about half the
+  // screen, and the bets scrolled in what was left. It now rides above the list
+  // and slides out of the way — down hides it, up brings it straight back, and
+  // near the top it is always open, so it is never more than a flick away.
+  const [barHeight, setBarHeight] = useState(0);
+  const barH = useRef(0);
+  const barY = useRef(new Animated.Value(0)).current;
+  const collapsed = useRef(false);
+  const lastY = useRef(0);
+
+  const setCollapsed = useCallback((next: boolean) => {
+    if (collapsed.current === next || barH.current === 0) return;
+    collapsed.current = next;
+    Animated.timing(barY, {
+      toValue: next ? -barH.current : 0,
+      duration: 180,
+      easing: Easing.out(Easing.quad),
+      useNativeDriver: true,
+    }).start();
+  }, [barY]);
+
+  const onScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const y = e.nativeEvent.contentOffset.y;
+    const dy = y - lastY.current;
+    lastY.current = y;
+    // Within the bar's own height of the top there is nothing to gain by
+    // hiding it, and this is what restores it after a scroll back up.
+    if (y <= barH.current * 0.5) { setCollapsed(false); return; }
+    // A threshold, so a finger resting on the list does not flicker it.
+    if (dy > 4) setCollapsed(true);
+    else if (dy < -4) setCollapsed(false);
+  }, [setCollapsed]);
+
+  const onBarLayout = useCallback((e: { nativeEvent: { layout: { height: number } } }) => {
+    const h = e.nativeEvent.layout.height;
+    if (h === barH.current) return;
+    barH.current = h;
+    setBarHeight(h);
+    // The bar grows and shrinks with the date chip and the tilt banner; if it
+    // is hidden when that happens, re-hide it by the new height.
+    if (collapsed.current) barY.setValue(-h);
+  }, [barY]);
 
   // Working context while logging bets: today's result, money currently at risk, bank.
   const today = useMemo(() => calcDailyBreakdown(bets, [], { days: 1 })[0] ?? null, [bets]);
@@ -170,162 +215,175 @@ export function BetsScreen({ filter, onClearFilter }: {
         subtitle={settings.isPro ? `${bets.length} ${t('common.bets')}` : `${freeLeft} ${t('common.of')} 50`}
       />
 
-      {filterLabel && (
-        <TouchableOpacity
-          style={styles.dateChip}
-          onPress={() => { haptic.selection(); onClearFilter?.(); }}
-          activeOpacity={0.75}
-        >
-          <Text style={styles.dateChipText} numberOfLines={1}>{filterLabel}</Text>
-          <Text style={styles.dateChipX}>✕</Text>
-        </TouchableOpacity>
-      )}
-
-      <View style={styles.todayStrip}>
-        <View style={styles.todayCell}>
-          <Text style={styles.todayLabel}>Сегодня</Text>
-          <Text style={[
-            styles.todayValue,
-            { color: !today || today.settledCount === 0 ? colors.textMuted
-              : today.pnl >= 0 ? colors.won : colors.lost },
-          ]} numberOfLines={1} adjustsFontSizeToFit>
-            {today && today.settledCount > 0
-              ? `${today.pnl >= 0 ? '+' : ''}${formatMoney(today.pnl)}`
-              : '—'}
-          </Text>
-          <Text style={styles.todaySub}>{today?.betCount ?? 0} ст. · {formatMoney(today?.turnover ?? 0)}</Text>
-        </View>
-        <View style={styles.todayDivider} />
-        <TouchableOpacity
-          style={styles.todayCell}
-          onPress={() => { haptic.selection(); navigation.navigate('Pending'); }}
-          activeOpacity={0.75}
-        >
-          <Text style={styles.todayLabel}>В игре →</Text>
-          <Text style={[styles.todayValue, { color: exposure > 0 ? colors.pending : colors.textMuted }]} numberOfLines={1} adjustsFontSizeToFit>
-            {exposure > 0 ? formatMoney(exposure) : '—'}
-          </Text>
-          <Text style={styles.todaySub}>закрыть результаты</Text>
-        </TouchableOpacity>
-        <View style={styles.todayDivider} />
-        <TouchableOpacity style={styles.todayCell} onPress={() => { haptic.selection(); navigation.navigate('Bankroll'); }} activeOpacity={0.75}>
-          <Text style={styles.todayLabel}>Банк →</Text>
-          <Text style={[styles.todayValue, { color: bank >= 0 ? colors.textPrimary : colors.lost }]} numberOfLines={1} adjustsFontSizeToFit>
-            {formatMoney(bank)}
-          </Text>
-          <Text style={styles.todaySub}>текущий баланс</Text>
-        </TouchableOpacity>
-      </View>
-
-      <TextInput
-        style={styles.search}
-        placeholder={t('bet.searchPlaceholder')}
-        placeholderTextColor={colors.textMuted}
-        value={search}
-        onChangeText={setSearch}
-      />
-
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll} contentContainerStyle={styles.filters}>
-        {STATUS_FILTER_KEYS.map((key) => (
-          <TouchableOpacity
-            key={key}
-            style={[styles.filterBtn, statusFilter === key && styles.filterBtnActive]}
-            onPress={() => { haptic.selection(); setStatusFilter(key); }}
-          >
-            <Text style={[styles.filterText, statusFilter === key && styles.filterTextActive]}>
-              {key === 'all' ? t('status.all') : t(`status.${key}`)}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
-      <View style={styles.sortRow}>
-        {(['date_desc', 'date_asc', 'odds_desc', 'stake_desc'] as const).map((key) => {
-          const isOdds = key === 'odds_desc';
-          const isStake = key === 'stake_desc';
-          const isActive =
-            sort === key ||
-            (isOdds && sort === 'odds_asc') ||
-            (isStake && sort === 'stake_asc');
-          const label = isOdds
-            ? `${t('bet.sortByOdds')} ${sort === 'odds_asc' ? '↑' : '↓'}`
-            : isStake
-            ? `${t('bet.sortByStake')} ${sort === 'stake_asc' ? '↑' : '↓'}`
-            : key === 'date_desc' ? t('bet.sortNewest') : t('bet.sortOldest');
-          return (
-            <TouchableOpacity
-              key={key}
-              style={[styles.sortBtn, isActive && styles.sortBtnActive]}
-              onPress={() => {
-                haptic.selection();
-                if (isOdds) setSort(sort === 'odds_desc' ? 'odds_asc' : 'odds_desc');
-                else if (isStake) setSort(sort === 'stake_desc' ? 'stake_asc' : 'stake_desc');
-                else setSort(key);
-              }}
-            >
-              <Text style={[styles.sortText, isActive && styles.sortTextActive]}>{label}</Text>
-            </TouchableOpacity>
-          );
-        })}
-      </View>
-
-      {inTilt && (
-        <View style={styles.tiltBanner}>
-          <Text style={styles.tiltEmoji}>🔥</Text>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.tiltTitle}>{t('bet.tiltTitle')}</Text>
-            <Text style={styles.tiltSub}>{t('bet.tiltSub')}</Text>
-          </View>
-        </View>
-      )}
-
-      <SectionList
-        sections={sections}
-        keyExtractor={(item) => item.id}
-        renderItem={useCallback(({ item }: { item: import('@sharklog/core').Bet }) => (
-          <SwipeableRow onDelete={() => { haptic.error(); deleteBet(item.id); }}>
-            <BetCard
-              bet={item}
-              onPress={betActions.open}
-              cashoutOpen={betActions.cashoutFor === item.id}
-              onRequestCashout={() => betActions.openCashout(item.id)}
-              onCloseCashout={betActions.closeCashout}
+      <View style={styles.body}>
+        <SectionList
+          style={styles.listFlex}
+          sections={sections}
+          keyExtractor={(item) => item.id}
+          renderItem={useCallback(({ item }: { item: import('@sharklog/core').Bet }) => (
+            <SwipeableRow onDelete={() => { haptic.error(); deleteBet(item.id); }}>
+              <BetCard
+                bet={item}
+                onPress={betActions.open}
+                cashoutOpen={betActions.cashoutFor === item.id}
+                onRequestCashout={() => betActions.openCashout(item.id)}
+                onCloseCashout={betActions.closeCashout}
+              />
+            </SwipeableRow>
+          // eslint-disable-next-line react-hooks/exhaustive-deps
+          ), [deleteBet, betActions.cashoutFor])}
+          renderSectionHeader={useCallback(({ section }: { section: { title: string; dailyPnl: number } }) => (
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionDate}>{section.title}</Text>
+              {section.dailyPnl !== 0 && (
+                <Text style={[styles.sectionPnl, { color: section.dailyPnl > 0 ? colors.won : colors.lost }]}>
+                  {section.dailyPnl > 0 ? '+' : ''}{formatMoney(section.dailyPnl)}
+                </Text>
+              )}
+            </View>
+          ), [])}
+          stickySectionHeadersEnabled={false}
+          contentContainerStyle={[styles.list, { paddingTop: barHeight }]}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+          onScroll={onScroll}
+          scrollEventThrottle={16}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={colors.purple}
+              colors={[colors.purple]}
+              progressViewOffset={barHeight}
             />
-          </SwipeableRow>
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-        ), [deleteBet, betActions.cashoutFor])}
-        renderSectionHeader={useCallback(({ section }: { section: { title: string; dailyPnl: number } }) => (
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionDate}>{section.title}</Text>
-            {section.dailyPnl !== 0 && (
-              <Text style={[styles.sectionPnl, { color: section.dailyPnl > 0 ? colors.won : colors.lost }]}>
-                {section.dailyPnl > 0 ? '+' : ''}{formatMoney(section.dailyPnl)}
+          }
+          ListEmptyComponent={
+            <View style={styles.empty}>
+              <Image source={require('../../../assets/adaptive-icon.png')} style={styles.emptyIcon} resizeMode="contain" />
+              <Text style={styles.emptyTitle}>{t('bet.noBetsYet')}</Text>
+              <Text style={styles.emptySubtitle}>
+                {search ? t('bet.notFound') : t('bet.noBetsStart')}
               </Text>
-            )}
+            </View>
+          }
+        />
+
+        {/* Rides above the list so it can slide away without moving it. */}
+        <Animated.View
+          style={[styles.topBar, { transform: [{ translateY: barY }] }]}
+          onLayout={onBarLayout}
+        >
+          {filterLabel && (
+            <TouchableOpacity
+              style={styles.dateChip}
+              onPress={() => { haptic.selection(); onClearFilter?.(); }}
+              activeOpacity={0.75}
+            >
+              <Text style={styles.dateChipText} numberOfLines={1}>{filterLabel}</Text>
+              <Text style={styles.dateChipX}>✕</Text>
+            </TouchableOpacity>
+          )}
+
+          <View style={styles.todayStrip}>
+            <View style={styles.todayCell}>
+              <Text style={styles.todayLabel}>Сегодня</Text>
+              <Text style={[
+                styles.todayValue,
+                { color: !today || today.settledCount === 0 ? colors.textMuted
+                  : today.pnl >= 0 ? colors.won : colors.lost },
+              ]} numberOfLines={1} adjustsFontSizeToFit>
+                {today && today.settledCount > 0
+                  ? `${today.pnl >= 0 ? '+' : ''}${formatMoney(today.pnl)}`
+                  : '—'}
+              </Text>
+              <Text style={styles.todaySub}>{today?.betCount ?? 0} ст. · {formatMoney(today?.turnover ?? 0)}</Text>
+            </View>
+            <View style={styles.todayDivider} />
+            <TouchableOpacity
+              style={styles.todayCell}
+              onPress={() => { haptic.selection(); navigation.navigate('Pending'); }}
+              activeOpacity={0.75}
+            >
+              <Text style={styles.todayLabel}>В игре →</Text>
+              <Text style={[styles.todayValue, { color: exposure > 0 ? colors.pending : colors.textMuted }]} numberOfLines={1} adjustsFontSizeToFit>
+                {exposure > 0 ? formatMoney(exposure) : '—'}
+              </Text>
+              <Text style={styles.todaySub}>закрыть результаты</Text>
+            </TouchableOpacity>
+            <View style={styles.todayDivider} />
+            <TouchableOpacity style={styles.todayCell} onPress={() => { haptic.selection(); navigation.navigate('Bankroll'); }} activeOpacity={0.75}>
+              <Text style={styles.todayLabel}>Банк →</Text>
+              <Text style={[styles.todayValue, { color: bank >= 0 ? colors.textPrimary : colors.lost }]} numberOfLines={1} adjustsFontSizeToFit>
+                {formatMoney(bank)}
+              </Text>
+              <Text style={styles.todaySub}>текущий баланс</Text>
+            </TouchableOpacity>
           </View>
-        ), [])}
-        stickySectionHeadersEnabled={false}
-        contentContainerStyle={styles.list}
-        showsVerticalScrollIndicator={false}
-        keyboardShouldPersistTaps="handled"
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={colors.purple}
-            colors={[colors.purple]}
+
+          <TextInput
+            style={styles.search}
+            placeholder={t('bet.searchPlaceholder')}
+            placeholderTextColor={colors.textMuted}
+            value={search}
+            onChangeText={setSearch}
           />
-        }
-        ListEmptyComponent={
-          <View style={styles.empty}>
-            <Image source={require('../../../assets/adaptive-icon.png')} style={styles.emptyIcon} resizeMode="contain" />
-            <Text style={styles.emptyTitle}>{t('bet.noBetsYet')}</Text>
-            <Text style={styles.emptySubtitle}>
-              {search ? t('bet.notFound') : t('bet.noBetsStart')}
-            </Text>
+
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll} contentContainerStyle={styles.filters}>
+            {STATUS_FILTER_KEYS.map((key) => (
+              <TouchableOpacity
+                key={key}
+                style={[styles.filterBtn, statusFilter === key && styles.filterBtnActive]}
+                onPress={() => { haptic.selection(); setStatusFilter(key); }}
+              >
+                <Text style={[styles.filterText, statusFilter === key && styles.filterTextActive]}>
+                  {key === 'all' ? t('status.all') : t(`status.${key}`)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
+          <View style={styles.sortRow}>
+            {(['date_desc', 'date_asc', 'odds_desc', 'stake_desc'] as const).map((key) => {
+              const isOdds = key === 'odds_desc';
+              const isStake = key === 'stake_desc';
+              const isActive =
+                sort === key ||
+                (isOdds && sort === 'odds_asc') ||
+                (isStake && sort === 'stake_asc');
+              const label = isOdds
+                ? `${t('bet.sortByOdds')} ${sort === 'odds_asc' ? '↑' : '↓'}`
+                : isStake
+                ? `${t('bet.sortByStake')} ${sort === 'stake_asc' ? '↑' : '↓'}`
+                : key === 'date_desc' ? t('bet.sortNewest') : t('bet.sortOldest');
+              return (
+                <TouchableOpacity
+                  key={key}
+                  style={[styles.sortBtn, isActive && styles.sortBtnActive]}
+                  onPress={() => {
+                    haptic.selection();
+                    if (isOdds) setSort(sort === 'odds_desc' ? 'odds_asc' : 'odds_desc');
+                    else if (isStake) setSort(sort === 'stake_desc' ? 'stake_asc' : 'stake_desc');
+                    else setSort(key);
+                  }}
+                >
+                  <Text style={[styles.sortText, isActive && styles.sortTextActive]}>{label}</Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
-        }
-      />
+
+          {inTilt && (
+            <View style={styles.tiltBanner}>
+              <Text style={styles.tiltEmoji}>🔥</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.tiltTitle}>{t('bet.tiltTitle')}</Text>
+                <Text style={styles.tiltSub}>{t('bet.tiltSub')}</Text>
+              </View>
+            </View>
+          )}
+        </Animated.View>
+      </View>
+
 
       {!settings.isPro && bets.length >= 40 && (
         <View style={styles.limitBanner}>
@@ -429,6 +487,20 @@ const styles = StyleSheet.create({
   todayLabel: { fontSize: SIZE.micro, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.4 },
   todayValue: { fontSize: SIZE.lead, fontWeight: '800', marginTop: 3 },
   todaySub: { fontSize: SIZE.micro, color: colors.textMuted, marginTop: 2 },
+  // overflow hidden, or the hidden bar keeps painting over the screen header:
+  // RN does not clip absolutely-positioned children by default.
+  body: { flex: 1, overflow: 'hidden' },
+  // Absolute so sliding it never reflows the list, and last in the tree so it
+  // paints over the rows on both platforms without fighting zIndex.
+  topBar: {
+    position: 'absolute', top: 0, left: 0, right: 0,
+    backgroundColor: colors.bg,
+    paddingBottom: SPACE.xs,
+    // The cards carry elevation 3 of their own, and on Android that can lift a
+    // row above a sibling that merely comes later in the tree.
+    zIndex: 2, elevation: 4,
+  },
+  listFlex: { flex: 1 },
   list: { paddingBottom: FAB_CLEARANCE }, // clear the floating "+" FAB so the last row isn't covered
   sectionHeader: {
     flexDirection: 'row',
