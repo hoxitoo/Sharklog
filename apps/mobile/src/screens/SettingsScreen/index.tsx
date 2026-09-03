@@ -674,7 +674,8 @@ export function SettingsScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  strategyBtn: { minHeight: TOUCH,
+  strategyBtn: {
+    minHeight: TOUCH,
     flexDirection: 'row', alignItems: 'center', gap: SPACE.md,
     marginHorizontal: SPACE.lg, marginBottom: SPACE.lg, padding: SPACE.md,
     backgroundColor: colors.purple + '14', borderRadius: RADIUS.md,
@@ -736,7 +737,8 @@ const styles = StyleSheet.create({
   paywallCloseText: { fontSize: SIZE.body, color: colors.textSecondary, fontWeight: '700' },
 
   // Backup banner
-  backupBanner: { minHeight: TOUCH,
+  backupBanner: {
+    minHeight: TOUCH,
     flexDirection: 'row', alignItems: 'center', gap: SPACE.sm,
     marginHorizontal: SPACE.lg, marginBottom: SPACE.md, padding: SPACE.md,
     backgroundColor: mix(colors.gold, colors.bgCard, 0.09), borderRadius: RADIUS.md,
@@ -757,12 +759,14 @@ const styles = StyleSheet.create({
   subscriptionIcon: { fontSize: GLYPH.xl, marginTop: 2 },
   subscriptionTitle: { fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary, marginBottom: SPACE.xs },
   subscriptionSub: { fontSize: SIZE.caption, color: colors.textSecondary, lineHeight: 17 },
-  proUpgradeBtn: { minHeight: TOUCH, justifyContent: 'center',
+  proUpgradeBtn: {
+    minHeight: TOUCH, justifyContent: 'center',
     backgroundColor: colors.gold, borderRadius: RADIUS.sm,
     paddingVertical: SPACE.sm, alignItems: 'center',
   },
   proUpgradeBtnText: { fontSize: SIZE.body, fontWeight: '700', color: '#000' },
-  restoreBtn: { minHeight: TOUCH, justifyContent: 'center',
+  restoreBtn: {
+    minHeight: TOUCH, justifyContent: 'center',
     backgroundColor: colors.bgElevated, borderRadius: RADIUS.sm,
     paddingVertical: SPACE.sm, alignItems: 'center',
     borderWidth: 1, borderColor: colors.border,
@@ -771,7 +775,8 @@ const styles = StyleSheet.create({
   subscriptionHint: { fontSize: SIZE.caption, color: colors.textMuted, textAlign: 'center', lineHeight: 17 },
 
   langRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm, paddingVertical: SPACE.md },
-  langChip: { minHeight: TOUCH,
+  langChip: {
+    minHeight: TOUCH,
     flexDirection: 'row', alignItems: 'center', gap: SPACE.xs,
     paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm, borderRadius: RADIUS.lg,
     backgroundColor: colors.bgElevated, borderWidth: 1, borderColor: colors.border,

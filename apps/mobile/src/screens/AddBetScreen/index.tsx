@@ -128,7 +128,8 @@ const sc = StyleSheet.create({
   container: { marginBottom: SPACE.lg },
   label: { fontSize: SIZE.caption, color: colors.textSecondary, marginBottom: SPACE.xs, textTransform: 'uppercase', letterSpacing: 0.5 },
   row: { flexDirection: 'row', gap: SPACE.xs },
-  item: { minHeight: TOUCH, justifyContent: 'center',
+  item: {
+    minHeight: TOUCH, justifyContent: 'center',
     paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm,
     borderRadius: RADIUS.sm, backgroundColor: colors.bgCard,
     borderWidth: 1, borderColor: colors.border,
@@ -263,7 +264,8 @@ const ac = StyleSheet.create({
     marginTop: SPACE.xs,
     overflow: 'hidden',
   },
-  item: { minHeight: TOUCH,
+  item: {
+    minHeight: TOUCH,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
@@ -474,7 +476,8 @@ const kl = StyleSheet.create({
   resultCell: { alignItems: 'center', gap: 3 },
   resultValue: { fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary },
   resultLabel: { fontSize: SIZE.micro, color: colors.textMuted },
-  applyBtn: { minHeight: TOUCH, justifyContent: 'center',
+  applyBtn: {
+    minHeight: TOUCH, justifyContent: 'center',
     backgroundColor: colors.accent + '22',
     borderRadius: RADIUS.sm,
     paddingVertical: SPACE.sm,
@@ -1534,7 +1537,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  betModeBtn: { minHeight: TOUCH, justifyContent: 'center',
+  betModeBtn: {
+    minHeight: TOUCH, justifyContent: 'center',
     flex: 1,
     paddingVertical: SPACE.sm,
     borderRadius: RADIUS.sm,
@@ -1567,7 +1571,8 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   legRemove: { fontSize: SIZE.lead, color: colors.lost },
-  legSportChip: { minHeight: TOUCH, justifyContent: 'center',
+  legSportChip: {
+    minHeight: TOUCH, justifyContent: 'center',
     paddingHorizontal: SPACE.sm,
     paddingVertical: SPACE.xs,
     borderRadius: RADIUS.sm,
@@ -1581,7 +1586,8 @@ const styles = StyleSheet.create({
   },
   legSportChipText: { fontSize: SIZE.caption, color: colors.textSecondary },
   legSportChipTextActive: { color: '#fff', fontWeight: '700' },
-  addLegBtn: { minHeight: TOUCH, justifyContent: 'center',
+  addLegBtn: {
+    minHeight: TOUCH, justifyContent: 'center',
     paddingVertical: SPACE.md,
     borderRadius: RADIUS.sm,
     borderWidth: 1,
@@ -1617,7 +1623,8 @@ const styles = StyleSheet.create({
   winLabel: { fontSize: SIZE.body, color: colors.accent },
   winAmount: { fontSize: SIZE.lead, fontWeight: '700', color: colors.accent },
 
-  extraToggle: { minHeight: TOUCH, justifyContent: 'center',
+  extraToggle: {
+    minHeight: TOUCH, justifyContent: 'center',
     paddingVertical: SPACE.md,
     paddingHorizontal: SPACE.md,
     backgroundColor: colors.bgElevated,
@@ -1632,7 +1639,8 @@ const styles = StyleSheet.create({
     color: colors.purpleText,
     fontWeight: '600',
   },
-  freebetToggle: { minHeight: TOUCH, justifyContent: 'center',
+  freebetToggle: {
+    minHeight: TOUCH, justifyContent: 'center',
     alignSelf: 'flex-start',
     paddingHorizontal: SPACE.md,
     paddingVertical: SPACE.sm,
@@ -1645,7 +1653,8 @@ const styles = StyleSheet.create({
   freebetToggleActive: { borderColor: colors.accent + '66', backgroundColor: colors.accentDim },
   freebetToggleText: { fontSize: SIZE.body, color: colors.textSecondary },
   freebetToggleTextActive: { color: colors.accent, fontWeight: '600' },
-  kellyToggle: { minHeight: TOUCH, justifyContent: 'center',
+  kellyToggle: {
+    minHeight: TOUCH, justifyContent: 'center',
     alignSelf: 'flex-start',
     paddingHorizontal: SPACE.md,
     paddingVertical: SPACE.sm,
@@ -1660,7 +1669,8 @@ const styles = StyleSheet.create({
   kellyToggleTextActive: { color: colors.accent, fontWeight: '600' },
 
   bookmakers: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.xs },
-  bkBtn: { minHeight: TOUCH, justifyContent: 'center',
+  bkBtn: {
+    minHeight: TOUCH, justifyContent: 'center',
     paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm,
     borderRadius: RADIUS.sm, backgroundColor: colors.bgCard,
     borderWidth: 1, borderColor: colors.border,
@@ -1683,7 +1693,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: SPACE.sm,
   },
-  outcomeBtn: { minHeight: TOUCH, justifyContent: 'center',
+  outcomeBtn: {
+    minHeight: TOUCH, justifyContent: 'center',
     flex: 1,
     paddingVertical: SPACE.md,
     borderRadius: RADIUS.sm,

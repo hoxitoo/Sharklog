@@ -144,7 +144,8 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: SPACE.xl,
   },
-  button: { minHeight: TOUCH, justifyContent: 'center',
+  button: {
+    minHeight: TOUCH, justifyContent: 'center',
     alignSelf: 'stretch',
     paddingHorizontal: SPACE.xl,
     paddingVertical: SPACE.md,

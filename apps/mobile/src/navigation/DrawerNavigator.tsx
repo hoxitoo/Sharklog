@@ -367,7 +367,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.sm,
     paddingVertical: SPACE.xs,
   },
-  navItem: { minHeight: TOUCH,
+  navItem: {
+    minHeight: TOUCH,
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACE.md,
@@ -412,7 +413,8 @@ const styles = StyleSheet.create({
     marginHorizontal: SPACE.lg,
     marginVertical: SPACE.sm,
   },
-  partnersCard: { minHeight: TOUCH,
+  partnersCard: {
+    minHeight: TOUCH,
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACE.md,

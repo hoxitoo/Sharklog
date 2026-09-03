@@ -498,7 +498,8 @@ function PlanCard({ bets, allBets }: { bets: Bet[]; allBets: Bet[] }) {
 
 const plan_ = StyleSheet.create({
   empty: { fontSize: SIZE.caption, color: colors.textSecondary, lineHeight: 17 },
-  cta: { minHeight: TOUCH, justifyContent: 'center',
+  cta: {
+    minHeight: TOUCH, justifyContent: 'center',
     marginTop: SPACE.md, paddingVertical: SPACE.sm, borderRadius: RADIUS.sm, alignItems: 'center',
     backgroundColor: alpha(colors.gold, 0.16), borderWidth: 1, borderColor: colors.gold,
   },
@@ -916,14 +917,16 @@ export function AnalyticsScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
   periodRow: { flexDirection: 'row', paddingHorizontal: SPACE.lg, gap: SPACE.sm, marginTop: SPACE.sm, marginBottom: SPACE.md },
-  periodBtn: { minHeight: TOUCH, justifyContent: 'center',
+  periodBtn: {
+    minHeight: TOUCH, justifyContent: 'center',
     flex: 1, paddingVertical: SPACE.sm, borderRadius: RADIUS.sm, backgroundColor: colors.bgCard,
     alignItems: 'center', borderWidth: 1, borderColor: colors.border,
   },
   periodBtnActive: { backgroundColor: colors.purple, borderColor: colors.purple },
   periodText: { fontSize: SIZE.caption, fontWeight: '600', color: colors.textSecondary },
   periodTextActive: { color: '#fff' },
-  extToggle: { minHeight: TOUCH,
+  extToggle: {
+    minHeight: TOUCH,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
     marginHorizontal: SPACE.lg, marginTop: SPACE.xs, marginBottom: SPACE.md, paddingVertical: SPACE.md, paddingHorizontal: SPACE.lg,
     backgroundColor: colors.bgElevated, borderRadius: RADIUS.md,

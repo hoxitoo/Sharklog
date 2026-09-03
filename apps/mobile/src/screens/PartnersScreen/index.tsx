@@ -158,7 +158,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.accent + '18', borderRadius: RADIUS.sm, padding: SPACE.sm,
   },
   bonusText: { fontSize: SIZE.body, color: colors.accent, fontWeight: '600' },
-  btn: { minHeight: TOUCH, justifyContent: 'center',
+  btn: {
+    minHeight: TOUCH, justifyContent: 'center',
     backgroundColor: colors.purple, borderRadius: RADIUS.sm,
     paddingVertical: SPACE.md, alignItems: 'center',
   },

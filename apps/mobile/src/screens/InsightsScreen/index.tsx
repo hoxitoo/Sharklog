@@ -314,7 +314,8 @@ const s = StyleSheet.create({
   scroll: { padding: SPACE.lg, paddingBottom: SPACE.xxl },
 
   periodRow: { flexDirection: 'row', gap: SPACE.sm, marginBottom: SPACE.lg },
-  periodBtn: { minHeight: TOUCH, justifyContent: 'center',
+  periodBtn: {
+    minHeight: TOUCH, justifyContent: 'center',
     flex: 1, paddingVertical: SPACE.sm, borderRadius: RADIUS.sm,
     backgroundColor: colors.bgCard, borderWidth: 1, borderColor: colors.border,
     alignItems: 'center',
@@ -352,7 +353,8 @@ const s = StyleSheet.create({
   },
   empty: { fontSize: SIZE.body, color: colors.textMuted, lineHeight: 22, padding: SPACE.md },
 
-  row: { minHeight: TOUCH,
+  row: {
+    minHeight: TOUCH,
     flexDirection: 'row', alignItems: 'center',
     paddingVertical: SPACE.md, paddingHorizontal: SPACE.md,
     borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.border,
@@ -363,7 +365,8 @@ const s = StyleSheet.create({
   rowRoi: { ...numeric, fontSize: SIZE.caption, fontWeight: '600' },
   chevron: { fontSize: GLYPH.lg, color: colors.textMuted, marginLeft: SPACE.xs, marginTop: -2 },
 
-  moreBtn: { minHeight: TOUCH,
+  moreBtn: {
+    minHeight: TOUCH,
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: SPACE.xs,
     paddingVertical: SPACE.md,
   },

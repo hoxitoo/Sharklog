@@ -212,7 +212,8 @@ const ex = StyleSheet.create({
   headerStat: { fontSize: SIZE.caption, color: colors.textMuted },
   headerStatVal: { fontSize: SIZE.caption, color: colors.textPrimary, fontWeight: '700' },
   headerStatDim: { fontSize: SIZE.caption, color: colors.textMuted, fontWeight: '400' },
-  closeBtn: { minHeight: TOUCH, justifyContent: 'center',
+  closeBtn: {
+    minHeight: TOUCH, justifyContent: 'center',
     paddingHorizontal: SPACE.md, paddingVertical: SPACE.xs, borderRadius: RADIUS.sm,
     backgroundColor: colors.bgCard, borderWidth: 1, borderColor: colors.border,
   },
@@ -221,7 +222,8 @@ const ex = StyleSheet.create({
   controls: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs, marginTop: SPACE.sm, flexWrap: 'wrap' },
   controlLabel: { fontSize: SIZE.caption, color: colors.textMuted },
   controlDivider: { width: 1, height: 16, backgroundColor: colors.border, marginHorizontal: SPACE.xs },
-  chip: { minHeight: TOUCH,
+  chip: {
+    minHeight: TOUCH,
     flexDirection: 'row', alignItems: 'center', gap: SPACE.xs,
     paddingHorizontal: SPACE.sm, paddingVertical: SPACE.xs, borderRadius: RADIUS.sm,
     backgroundColor: colors.bgCard, borderWidth: 1, borderColor: colors.border,
@@ -249,7 +251,8 @@ const ex = StyleSheet.create({
     borderBottomWidth: 1, borderBottomColor: colors.border,
   },
   th: { fontSize: SIZE.micro, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.4 },
-  tr: { minHeight: TOUCH,
+  tr: {
+    minHeight: TOUCH,
     flexDirection: 'row', paddingVertical: SPACE.sm,
     borderBottomWidth: 1, borderBottomColor: colors.border + '55',
   },

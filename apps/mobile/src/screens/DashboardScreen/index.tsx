@@ -222,7 +222,8 @@ const tc = StyleSheet.create({
   left: { flex: 1, marginRight: SPACE.md },
   label: { fontSize: SIZE.caption, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
   value: { fontSize: SIZE.display, fontWeight: '800', color: colors.textPrimary, marginTop: SPACE.xs },
-  bankBtn: { minHeight: TOUCH, justifyContent: 'center',
+  bankBtn: {
+    minHeight: TOUCH, justifyContent: 'center',
     ...tileStyle, paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm,
     minWidth: 118, alignItems: 'flex-end',
   },
@@ -360,7 +361,8 @@ const dd = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: SPACE.md },
   title: { fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary },
   subtitle: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: 2 },
-  expandBtn: { minHeight: TOUCH, justifyContent: 'center',
+  expandBtn: {
+    minHeight: TOUCH, justifyContent: 'center',
     paddingHorizontal: SPACE.sm, paddingVertical: SPACE.xs, borderRadius: RADIUS.sm,
     backgroundColor: colors.bgElevated, borderWidth: 1, borderColor: colors.purple + '66',
   },
@@ -374,7 +376,8 @@ const dd = StyleSheet.create({
   detailLabel: { fontSize: SIZE.micro, color: colors.textMuted },
   detailValue: { fontSize: SIZE.body, fontWeight: '700', color: colors.textPrimary, marginTop: 2 },
   detailCash: { fontSize: SIZE.micro, color: colors.textMuted, marginTop: SPACE.sm },
-  detailLink: { minHeight: TOUCH, justifyContent: 'center',
+  detailLink: {
+    minHeight: TOUCH, justifyContent: 'center',
     marginTop: SPACE.sm, paddingVertical: SPACE.sm, borderRadius: RADIUS.sm, alignItems: 'center',
     backgroundColor: colors.purpleDim, borderWidth: 1, borderColor: colors.purple + '66',
   },
@@ -602,7 +605,8 @@ export function DashboardScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   container: { flex: 1, backgroundColor: colors.bg },
-  strategyBadge: { minHeight: TOUCH,
+  strategyBadge: {
+    minHeight: TOUCH,
     flexDirection: 'row', alignItems: 'center', gap: SPACE.sm,
     marginHorizontal: SPACE.lg, marginBottom: SPACE.md, padding: SPACE.md,
     backgroundColor: colors.purple + '14', borderRadius: RADIUS.sm,
@@ -618,7 +622,8 @@ const styles = StyleSheet.create({
     gap: SPACE.sm,
     marginBottom: SPACE.md,
   },
-  periodBtn: { minHeight: TOUCH, justifyContent: 'center',
+  periodBtn: {
+    minHeight: TOUCH, justifyContent: 'center',
     flex: 1,
     paddingVertical: SPACE.sm,
     borderRadius: RADIUS.sm,
@@ -652,7 +657,8 @@ const styles = StyleSheet.create({
   section: { paddingHorizontal: SPACE.lg, marginBottom: SPACE.lg },
   sectionTitle: { fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary },
   emptyText: { fontSize: SIZE.body, color: colors.textMuted },
-  recentBet: { minHeight: TOUCH,
+  recentBet: {
+    minHeight: TOUCH,
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: colors.bgCard,
@@ -668,7 +674,8 @@ const styles = StyleSheet.create({
     width: 28, height: 28, borderRadius: RADIUS.sm,
     alignItems: 'center', justifyContent: 'center',
   },
-  heatmapToggle: { minHeight: TOUCH,
+  heatmapToggle: {
+    minHeight: TOUCH,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',

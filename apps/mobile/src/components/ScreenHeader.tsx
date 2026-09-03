@@ -81,7 +81,8 @@ const styles = StyleSheet.create({
   center: { flex: 1 },
   title: HEADER_TITLE,
   subtitle: { fontSize: SIZE.body, fontFamily: FONTS.sans, color: colors.textSecondary, marginTop: 2 },
-  action: { minHeight: TOUCH, justifyContent: 'center',
+  action: {
+    minHeight: TOUCH, justifyContent: 'center',
     backgroundColor: colors.purple,
     paddingHorizontal: SPACE.md,
     paddingVertical: SPACE.sm,

@@ -258,7 +258,8 @@ const tf = StyleSheet.create({
   hintValue: { fontSize: SIZE.lead, fontWeight: '700' },
   hintNote: { fontSize: SIZE.caption, color: colors.textMuted, lineHeight: 17 },
   actions: { flexDirection: 'row', gap: SPACE.sm },
-  cancelBtn: { minHeight: TOUCH, justifyContent: 'center',
+  cancelBtn: {
+    minHeight: TOUCH, justifyContent: 'center',
     flex: 1, backgroundColor: colors.bgElevated, borderRadius: RADIUS.sm,
     paddingVertical: SPACE.md, alignItems: 'center', borderWidth: 1, borderColor: colors.border,
   },
@@ -312,7 +313,8 @@ function TxRow({ tx, onDelete }: { tx: BankrollTransaction; onDelete: () => void
 }
 
 const tx_ = StyleSheet.create({
-  row: { minHeight: TOUCH,
+  row: {
+    minHeight: TOUCH,
     flexDirection: 'row', alignItems: 'center', gap: SPACE.sm,
     backgroundColor: colors.bgCard, borderRadius: RADIUS.sm,
     padding: SPACE.md, marginBottom: SPACE.xs, borderWidth: 1, borderColor: colors.border,
@@ -552,7 +554,8 @@ const bk = StyleSheet.create({
   stepBtnText: { fontSize: SIZE.title, color: colors.textPrimary, fontWeight: '700', lineHeight: 24 },
   unitPct: { fontSize: SIZE.lead, fontWeight: '700', color: colors.accent, minWidth: 40, textAlign: 'center' },
   txButtons: { flexDirection: 'row', gap: SPACE.sm },
-  adjustBtn: { minHeight: TOUCH, justifyContent: 'center',
+  adjustBtn: {
+    minHeight: TOUCH, justifyContent: 'center',
     flex: 1, borderRadius: RADIUS.sm, paddingVertical: SPACE.md, alignItems: 'center',
     backgroundColor: alpha(colors.violet, 0.16), borderWidth: 1, borderColor: colors.violet,
   },
@@ -560,7 +563,8 @@ const bk = StyleSheet.create({
   exposureNote: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: SPACE.sm, textAlign: 'center' },
   depositBtn: { minHeight: TOUCH, justifyContent: 'center', flex: 1, backgroundColor: colors.purple, borderRadius: RADIUS.sm, paddingVertical: SPACE.md, alignItems: 'center' },
   depositBtnText: { fontSize: SIZE.lead, fontWeight: '700', color: '#fff' },
-  withdrawBtn: { minHeight: TOUCH, justifyContent: 'center',
+  withdrawBtn: {
+    minHeight: TOUCH, justifyContent: 'center',
     flex: 1, backgroundColor: 'transparent', borderRadius: RADIUS.sm, paddingVertical: SPACE.md, alignItems: 'center',
     borderWidth: 1, borderColor: colors.lost,
   },

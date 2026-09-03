@@ -66,7 +66,8 @@ const styles = StyleSheet.create({
     backgroundColor: colors.bgCard,
     overflow: 'hidden',
   },
-  header: { minHeight: TOUCH,
+  header: {
+    minHeight: TOUCH,
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACE.sm,

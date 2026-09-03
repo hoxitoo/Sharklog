@@ -84,7 +84,8 @@ const styles = StyleSheet.create({
   title: { fontSize: SIZE.body, fontWeight: '700', color: '#fff' },
   close: { fontSize: SIZE.caption, color: 'rgba(255,255,255,0.7)' },
   body: { fontSize: SIZE.body, color: 'rgba(255,255,255,0.85)', lineHeight: 20, marginBottom: SPACE.md },
-  btn: { minHeight: TOUCH, justifyContent: 'center',
+  btn: {
+    minHeight: TOUCH, justifyContent: 'center',
     alignSelf: 'flex-end',
     backgroundColor: 'rgba(255,255,255,0.2)',
     paddingHorizontal: SPACE.md,

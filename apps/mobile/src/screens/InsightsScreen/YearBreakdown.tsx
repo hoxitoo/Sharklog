@@ -173,7 +173,8 @@ const y = StyleSheet.create({
     letterSpacing: 0.6, fontWeight: '700', marginBottom: SPACE.sm, marginTop: SPACE.xs,
   },
   yearRow: { gap: SPACE.sm, paddingBottom: SPACE.md },
-  yearChip: { minHeight: TOUCH, justifyContent: 'center',
+  yearChip: {
+    minHeight: TOUCH, justifyContent: 'center',
     paddingHorizontal: SPACE.lg, paddingVertical: SPACE.sm, borderRadius: RADIUS.sm,
     backgroundColor: colors.bgCard, borderWidth: 1, borderColor: colors.border,
   },

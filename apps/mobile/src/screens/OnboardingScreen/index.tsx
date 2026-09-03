@@ -279,7 +279,8 @@ const styles = StyleSheet.create({
   bankPreview: { fontSize: SIZE.body, color: colors.accent, textAlign: 'center', marginBottom: SPACE.lg, fontWeight: '600' },
   skipHint: { fontSize: SIZE.caption, color: colors.textMuted, textAlign: 'center', marginTop: SPACE.sm, lineHeight: 18 },
   bkGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm, marginBottom: SPACE.lg },
-  bkChip: { minHeight: TOUCH, justifyContent: 'center',
+  bkChip: {
+    minHeight: TOUCH, justifyContent: 'center',
     paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm,
     borderRadius: RADIUS.sm, backgroundColor: colors.bgCard,
     borderWidth: 1, borderColor: colors.border,

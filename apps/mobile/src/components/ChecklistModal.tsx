@@ -133,7 +133,8 @@ const styles = StyleSheet.create({
     marginBottom: SPACE.xl,
     lineHeight: 18,
   },
-  item: { minHeight: TOUCH,
+  item: {
+    minHeight: TOUCH,
     flexDirection: 'row',
     alignItems: 'center',
     gap: SPACE.md,

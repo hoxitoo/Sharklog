@@ -81,7 +81,8 @@ function MoodPicker({
 
 const mp = StyleSheet.create({
   row: { flexDirection: 'row', justifyContent: 'space-between', gap: SPACE.xs },
-  btn: { minHeight: TOUCH, justifyContent: 'center',
+  btn: {
+    minHeight: TOUCH, justifyContent: 'center',
     flex: 1,
     alignItems: 'center',
     paddingVertical: SPACE.sm,
@@ -286,7 +287,8 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     height: 80,
   },
-  saveBtn: { minHeight: TOUCH, justifyContent: 'center',
+  saveBtn: {
+    minHeight: TOUCH, justifyContent: 'center',
     marginTop: SPACE.md,
     backgroundColor: colors.purple,
     borderRadius: RADIUS.sm,

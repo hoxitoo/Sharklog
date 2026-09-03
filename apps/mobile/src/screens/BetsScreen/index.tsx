@@ -371,7 +371,8 @@ const styles = StyleSheet.create({
     paddingBottom: 2,
     alignItems: 'center',
   },
-  filterBtn: { minHeight: TOUCH, justifyContent: 'center',
+  filterBtn: {
+    minHeight: TOUCH, justifyContent: 'center',
     flexShrink: 0,
     paddingHorizontal: SPACE.md,
     paddingVertical: SPACE.xs,
@@ -394,7 +395,8 @@ const styles = StyleSheet.create({
     marginBottom: SPACE.sm,
     alignItems: 'center',
   },
-  sortBtn: { minHeight: TOUCH, justifyContent: 'center',
+  sortBtn: {
+    minHeight: TOUCH, justifyContent: 'center',
     paddingHorizontal: SPACE.sm,
     paddingVertical: SPACE.xs,
     borderRadius: RADIUS.sm,
@@ -408,7 +410,8 @@ const styles = StyleSheet.create({
   },
   sortText: { fontSize: SIZE.caption, color: colors.textMuted },
   sortTextActive: { color: colors.accent, fontWeight: '600' },
-  dateChip: { minHeight: TOUCH,
+  dateChip: {
+    minHeight: TOUCH,
     flexDirection: 'row', alignItems: 'center', gap: SPACE.sm, alignSelf: 'flex-start',
     marginHorizontal: SPACE.lg, marginBottom: SPACE.sm, paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm,
     backgroundColor: colors.purpleDim, borderRadius: RADIUS.lg,

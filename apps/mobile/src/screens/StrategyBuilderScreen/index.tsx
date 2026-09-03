@@ -222,7 +222,8 @@ const s = StyleSheet.create({
     fontSize: SIZE.title, fontWeight: '700', color: colors.textPrimary,
     marginBottom: SPACE.lg, lineHeight: 26,
   },
-  optionBtn: { minHeight: TOUCH, justifyContent: 'center',
+  optionBtn: {
+    minHeight: TOUCH, justifyContent: 'center',
     backgroundColor: colors.bgElevated, borderRadius: RADIUS.md, padding: SPACE.md,
     borderWidth: 1, borderColor: colors.border, marginBottom: SPACE.sm,
   },
@@ -255,12 +256,14 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: colors.border, marginVertical: SPACE.lg,
   },
   disclaimerText: { fontSize: SIZE.caption, color: colors.textMuted, lineHeight: 20 },
-  btnPrimary: { minHeight: TOUCH, justifyContent: 'center',
+  btnPrimary: {
+    minHeight: TOUCH, justifyContent: 'center',
     backgroundColor: colors.purple, borderRadius: RADIUS.md, padding: SPACE.md,
     alignItems: 'center', marginBottom: SPACE.sm,
   },
   btnPrimaryText: { color: '#fff', fontWeight: '700', fontSize: SIZE.lead },
-  btnSecondary: { minHeight: TOUCH, justifyContent: 'center',
+  btnSecondary: {
+    minHeight: TOUCH, justifyContent: 'center',
     borderRadius: RADIUS.md, padding: SPACE.md, alignItems: 'center',
     borderWidth: 1, borderColor: colors.border,
   },
