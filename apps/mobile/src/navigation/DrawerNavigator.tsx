@@ -1,8 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, Animated,
-  Pressable, ScrollView, Image, Alert, PanResponder, BackHandler,
+  View, StyleSheet, TouchableOpacity, Animated, Pressable, ScrollView, Image, Alert, PanResponder, BackHandler,
 } from 'react-native';
+import { AppText as Text } from '../components/AppText';
 import { Ionicons } from '@expo/vector-icons';
 import { ChecklistModal } from '../components/ChecklistModal';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useRef } from 'react';
-import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
+import { View, StyleSheet, Animated, Easing } from 'react-native';
+import { AppText as Text } from './AppText';
+import { FONTS } from '../theme/typography';
 import { colors } from '../theme/colors';
 
 interface Props {
@@ -160,7 +162,10 @@ const s = StyleSheet.create({
     letterSpacing: -1,
     textAlign: 'center',
   },
+  // Animated.Text is not covered by the AppText alias, so this one names the
+  // face itself — otherwise the first words of the app are in the system font.
   tagline: {
+    fontFamily: FONTS.sans,
     fontSize: 13,
     color: colors.textMuted,
     letterSpacing: 0.5,

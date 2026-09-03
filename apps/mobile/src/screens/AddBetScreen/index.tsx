@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Alert, KeyboardAvoidingView, Platform,
+  View, StyleSheet, ScrollView, TouchableOpacity, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native';
+import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
+import type { TextInput as TextInputRef } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
@@ -170,7 +171,7 @@ function SingleTeamInput({
   value: string;
   onChange: (v: string) => void;
   onSubmitEditing?: () => void;
-  textInputRef?: React.RefObject<TextInput>;
+  textInputRef?: React.RefObject<TextInputRef>;
   placeholder?: string;
   sport: Sport;
   discipline: EsportsDiscipline;
@@ -487,7 +488,7 @@ export function AddBetScreen() {
   const route = useRoute<Route>();
   const { bets, addBet, updateBet, settings, bankroll, canAddBet } = useBetsStore();
   const [kellyOpen, setKellyOpen] = useState(false);
-  const team2Ref = useRef<TextInput>(null);
+  const team2Ref = useRef<TextInputRef>(null);
   const scrollRef = useRef<ScrollView>(null);
 
   const editBet = route.params?.betId

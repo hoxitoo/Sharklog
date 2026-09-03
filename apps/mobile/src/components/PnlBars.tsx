@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableWithoutFeedback } from 'react-native';
+import { View, StyleSheet, TouchableWithoutFeedback } from 'react-native';
+import { AppText as Text } from './AppText';
 import Svg, { Rect, Line } from 'react-native-svg';
 import type { PnlBucket } from '@sharklog/core';
 import { colors, alpha } from '../theme/colors';

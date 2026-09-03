@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, Modal, FlatList, useWindowDimensions,
+  View, StyleSheet, TouchableOpacity, Modal, FlatList, useWindowDimensions,
 } from 'react-native';
+import { AppText as Text } from '../../components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { DayStats } from '@sharklog/core';
 import { summarizeDays } from '@sharklog/core';

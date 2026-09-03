@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Alert } from 'react-native';
+import { AppText as Text } from '../../components/AppText';
 import { PieChart } from 'react-native-gifted-charts';
 import {
   calcByField, calcByOddsRange, calcByDayOfWeek, calcDashboard,
@@ -17,6 +18,7 @@ import { useFormatMoney } from '../../utils/useFormatMoney';
 import { uses12HourClock } from '../../utils/clockFormat';
 import { haptic } from '../../utils/haptics';
 import { colors, alpha, toneSurface } from '../../theme/colors';
+import { numeric } from '../../theme/typography';
 
 /** The donut lives in a pink-toned Card, so its hole must match that surface. */
 const DONUT_SURFACE = toneSurface('pink').backgroundColor;
@@ -130,15 +132,15 @@ const hero = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 }, elevation: 3,
   },
   label: { fontSize: 12, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
-  value: { fontSize: 34, fontWeight: '800', marginTop: 4, marginBottom: 12 },
+  value: { ...numeric, fontSize: 34, fontWeight: '800', marginTop: 4, marginBottom: 12 },
   metaRow: { flexDirection: 'row', justifyContent: 'space-between' },
   metaCell: { alignItems: 'center', flex: 1 },
-  metaValue: { fontSize: 17, fontWeight: '700', color: colors.textPrimary },
+  metaValue: { ...numeric, fontSize: 17, fontWeight: '700', color: colors.textPrimary },
   metaLabel: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
   chart: { marginTop: 14 },
   chartHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 6 },
   chartTitle: { fontSize: 12, fontWeight: '700', color: colors.textSecondary },
-  chartValue: { fontSize: 13, fontWeight: '700' },
+  chartValue: { ...numeric, fontSize: 13, fontWeight: '700' },
   chartHint: { fontSize: 10, color: colors.textMuted },
 });
 

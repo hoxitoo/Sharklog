@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { AppText as Text } from './AppText';
 import type { BetStatus } from '@sharklog/core';
 import { colors } from '../theme/colors';
 import { useTranslation } from 'react-i18next';

@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Alert,
+  View, StyleSheet, ScrollView, TouchableOpacity, Alert,
 } from 'react-native';
+import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
 import { calcDashboard, isInTilt, toYmd } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { ScreenHeader } from '../../components/ScreenHeader';

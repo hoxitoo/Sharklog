@@ -12,9 +12,17 @@
       html, body, #root { height: 100%; }
       body {
         font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-        background: #080810;
-        color: #E2E2EF;
+        /* Was #080810/#E2E2EF — the pre-rework palette. The page painted a
+           slightly different dark behind the app than the app painted itself,
+           which showed as a seam wherever a surface did not cover the viewport. */
+        background: #06070D;
+        color: #EAEBF5;
         -webkit-font-smoothing: antialiased;
+        /* Digits in a proportional face have different widths, so a column of
+           sums never lines up and the eye re-finds the decimal on every row.
+           This is a dashboard: nearly every number on screen is in a column. */
+        font-variant-numeric: tabular-nums;
+        font-feature-settings: 'tnum' 1;
       }
       ::-webkit-scrollbar { width: 6px; }
       ::-webkit-scrollbar-track { background: transparent; }

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { View, Text, StyleSheet, FlatList } from 'react-native';
+import { View, StyleSheet, FlatList } from 'react-native';
+import { AppText as Text } from '../../components/AppText';
 import type { Bet } from '@sharklog/core';
 import { formatMoney } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';

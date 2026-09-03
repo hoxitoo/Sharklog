@@ -1,7 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, StyleSheet, LayoutAnimation, Platform, UIManager,
+  View, ScrollView, TouchableOpacity, StyleSheet, LayoutAnimation, Platform, UIManager,
 } from 'react-native';
+import { AppText as Text } from '../../components/AppText';
 import {
   calcByTournament, calcByTeam, formatPercent,
   SPORTS, ESPORTS_DISCIPLINES, toYmd,
@@ -11,6 +12,7 @@ import { useBetsStore } from '../../store/betsStore';
 import { useDrawer } from '../../components/DrawerContext';
 import { haptic } from '../../utils/haptics';
 import { colors, alpha, mix } from '../../theme/colors';
+import { numeric } from '../../theme/typography';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ProGate } from '../../components/ProGate';
 import { useFormatMoney } from '../../utils/useFormatMoney';
@@ -338,8 +340,8 @@ const s = StyleSheet.create({
     marginTop: 6, lineHeight: 19, minHeight: 38,
   },
   heroSub: { fontSize: 10, color: colors.textMuted, marginTop: 2 },
-  heroPnl: { fontSize: 19, fontWeight: '800', marginTop: 8 },
-  heroRoi: { fontSize: 11, fontWeight: '600', marginTop: 1 },
+  heroPnl: { ...numeric, fontSize: 19, fontWeight: '800', marginTop: 8 },
+  heroRoi: { ...numeric, fontSize: 11, fontWeight: '600', marginTop: 1 },
 
   card: {
     backgroundColor: colors.bgCard, borderRadius: 14, padding: 4,
@@ -354,8 +356,8 @@ const s = StyleSheet.create({
   },
   rowName: { fontSize: 14, fontWeight: '600', color: colors.textPrimary, marginBottom: 2 },
   rowSub: { fontSize: 11, color: colors.textMuted },
-  rowPnl: { fontSize: 14, fontWeight: '700' },
-  rowRoi: { fontSize: 11, fontWeight: '600' },
+  rowPnl: { ...numeric, fontSize: 14, fontWeight: '700' },
+  rowRoi: { ...numeric, fontSize: 11, fontWeight: '600' },
   chevron: { fontSize: 20, color: colors.textMuted, marginLeft: 6, marginTop: -2 },
 
   moreBtn: {

@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
 import type { Bet } from '@sharklog/core';
 import { SPORTS, BET_TYPES, formatMoney, formatOdds, parseMoneyInput } from '@sharklog/core';
 import { colors } from '../../theme/colors';
+import { numeric } from '../../theme/typography';
 import { StatusBadge, STATUS_COLORS } from '../../components/StatusBadge';
 import { useBetsStore } from '../../store/betsStore';
 import { haptic } from '../../utils/haptics';
@@ -217,9 +219,9 @@ const styles = StyleSheet.create({
   sport: { fontSize: 11, color: colors.textMuted, marginBottom: 2 },
   event: { fontSize: 15, fontWeight: '600', color: colors.textPrimary, marginBottom: 2 },
   pick: { fontSize: 13, color: colors.accent },
-  odds: { fontSize: 18, fontWeight: '700', color: colors.textPrimary },
-  stake: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
-  pnl: { fontSize: 13, fontWeight: '600', marginTop: 2 },
+  odds: { ...numeric, fontSize: 18, fontWeight: '700', color: colors.textPrimary },
+  stake: { ...numeric, fontSize: 13, color: colors.textSecondary, marginTop: 2 },
+  pnl: { ...numeric, fontSize: 13, fontWeight: '600', marginTop: 2 },
   footer: { flexDirection: 'row', alignItems: 'center', marginTop: 10, gap: 8 },
   date: { fontSize: 11, color: colors.textMuted, flex: 1 },
   bkBadge: {
@@ -284,7 +286,7 @@ const styles = StyleSheet.create({
   cashoutCancel: { backgroundColor: colors.bgElevated, borderColor: colors.border },
   cashoutBtnText: { fontSize: 16, fontWeight: '700' },
   notes: { fontSize: 12, color: colors.textMuted, marginTop: 6, fontStyle: 'italic' },
-  cashoutAmt: { fontSize: 11, color: colors.refund, marginTop: 1 },
+  cashoutAmt: { ...numeric, fontSize: 11, color: colors.refund, marginTop: 1 },
   freebetBadge: {
     backgroundColor: colors.accent + '1A',
     borderRadius: 6,

@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, StyleSheet, type ViewStyle, type StyleProp } from 'react-native';
+import { View, StyleSheet, type ViewStyle, type StyleProp } from 'react-native';
+import { AppText as Text } from './AppText';
 import { colors, alpha, toneSurface, TONE_ACCENT, type CardTone } from '../theme/colors';
 
 interface Props {

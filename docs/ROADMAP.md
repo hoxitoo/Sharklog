@@ -245,3 +245,10 @@ _Обновлено: 2026-06-06 (UX/UI v2)_
 | Cloud sync (Supabase?) | 🔴 high | Phase 4 |
 | i18n-рефакторинг (500+ строк) | 🟡 medium | Phase 4 |
 | E2E Detox (mobile) | 🟢 low | Phase 4 |
+
+## Дизайн-долг
+
+Аудит, приоритеты и отложенные референсы (Robinhood, Copilot Money, Linear,
+TradingView) — в `docs/DESIGN_NOTES.md`. Пункты 1–2 (шрифты, табличные цифры)
+сделаны; 3–7 (шкала типографики, разнести `<Card>`, сетка 4 px, зоны нажатия,
+единая шапка) ждут.

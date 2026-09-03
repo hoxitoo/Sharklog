@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import {
-  View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert,
+  View, StyleSheet, TouchableOpacity, ScrollView, Alert,
 } from 'react-native';
+import { AppText as Text } from '../../components/AppText';
 import { STRATEGY_QUESTIONS, buildStrategy, STRATEGIES, BET_TYPES } from '@sharklog/core';
 import i18n from '../../i18n';
 import type { StrategyAnswers, GeneratedStrategy } from '@sharklog/core';

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import {
-  Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView,
+  Modal, View, StyleSheet, TouchableOpacity, ScrollView,
 } from 'react-native';
+import { AppText as Text } from './AppText';
 import { colors } from '../theme/colors';
 
 const CHECKLIST = [

@@ -1,8 +1,8 @@
 import React, { useRef, useState } from 'react';
 import {
-  Animated, PanResponder, StyleSheet, TouchableOpacity,
-  TouchableWithoutFeedback, View, Text,
+  Animated, PanResponder, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View,
 } from 'react-native';
+import { AppText as Text } from '../../components/AppText';
 import { colors } from '../../theme/colors';
 import { haptic } from '../../utils/haptics';
 

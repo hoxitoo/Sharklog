@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Alert, useWindowDimensions,
+  View, StyleSheet, ScrollView, TouchableOpacity, Alert, useWindowDimensions,
 } from 'react-native';
+import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
 import { calcDashboard, formatMoney, parseMoneyInput, kellyFraction, expectedValue, impliedProbability, calcDailyBreakdown, currentBank, pendingExposure } from '@sharklog/core';
 
 function uuid(): string {
@@ -28,7 +28,7 @@ import type { BankrollTransaction, BankrollTxType } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { ProGate } from '../../components/ProGate';
 import { colors, alpha, toneSurface } from '../../theme/colors';
-import { FONTS } from '../../theme/typography';
+import { FONTS, numeric } from '../../theme/typography';
 import { BalanceChart } from '../../components/BalanceChart';
 import { SERIES } from '../../theme/chartColors';
 
@@ -534,7 +534,7 @@ const bk = StyleSheet.create({
   metaRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 16 },
   metaCell: {},
   metaLabel: { fontSize: 11, color: colors.textMuted },
-  metaValue: { fontSize: 15, fontWeight: '600', color: colors.textPrimary, marginTop: 2 },
+  metaValue: { ...numeric, fontSize: 15, fontWeight: '600', color: colors.textPrimary, marginTop: 2 },
   unitRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     paddingTop: 12, marginTop: 4, borderTopWidth: 1, borderTopColor: colors.border, marginBottom: 16,
@@ -571,7 +571,7 @@ const bk = StyleSheet.create({
   },
   chartHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 4 },
   chartTitle: { fontSize: 13, fontWeight: '700', color: colors.textPrimary },
-  chartCurrentBank: { fontSize: 14, fontWeight: '700' },
+  chartCurrentBank: { ...numeric, fontSize: 14, fontWeight: '700' },
   chartHint: { fontSize: 10, color: colors.textMuted, marginBottom: 8 },
   legendRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 10 },
   legendPeriod: { fontSize: 10, color: colors.textMuted, flex: 1 },

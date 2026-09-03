@@ -1,7 +1,8 @@
 import React from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking, Alert,
+  View, StyleSheet, ScrollView, TouchableOpacity, Linking, Alert,
 } from 'react-native';
+import { AppText as Text } from '../../components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../../theme/colors';
 import { Analytics } from '../../services/analytics';

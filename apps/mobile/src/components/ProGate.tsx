@@ -1,12 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  ActivityIndicator,
-  Alert,
+  View, StyleSheet, TouchableOpacity, ActivityIndicator, Alert,
 } from 'react-native';
+import { AppText as Text } from './AppText';
 import { colors } from '../theme/colors';
 import { useBetsStore } from '../store/betsStore';
 import {

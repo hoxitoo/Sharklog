@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { AppText as Text } from '../../components/AppText';
 import Svg, { Polyline, Circle, Rect } from 'react-native-svg';
 import type { DayStats } from '@sharklog/core';
 import { colors } from '../../theme/colors';

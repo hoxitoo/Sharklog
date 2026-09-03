@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import {
-  Modal, View, Text, StyleSheet, Animated, Pressable, useWindowDimensions,
+  Modal, View, StyleSheet, Animated, Pressable, useWindowDimensions,
 } from 'react-native';
+import { AppText as Text } from './AppText';
 import Svg, { Path } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, alpha, mix } from '../theme/colors';

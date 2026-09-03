@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  TextInput, Alert, Modal, ActivityIndicator, Pressable,
+  View, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal, ActivityIndicator, Pressable,
 } from 'react-native';
+import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
 import { Ionicons } from '@expo/vector-icons';
 import { useDrawer } from '../../components/DrawerContext';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

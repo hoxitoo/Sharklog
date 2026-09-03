@@ -1,8 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { AppText as Text } from '../../components/AppText';
 import type { Bet, TournamentStats } from '@sharklog/core';
 import { calcBetYears, betsInYear, calcByTournament } from '@sharklog/core';
 import { colors, alpha } from '../../theme/colors';
+import { numeric } from '../../theme/typography';
 import { useFormatMoney } from '../../utils/useFormatMoney';
 import { haptic } from '../../utils/haptics';
 
@@ -183,14 +185,14 @@ const y = StyleSheet.create({
   },
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline' },
   headLabel: { fontSize: 13, fontWeight: '700', color: colors.textPrimary },
-  headValue: { fontSize: 17, fontWeight: '800' },
+  headValue: { ...numeric, fontSize: 17, fontWeight: '800' },
   headSub: { fontSize: 11, color: colors.textMuted, marginTop: 2 },
 
   bars: { marginTop: 14, gap: 12 },
   barRow: {},
   barHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 5 },
   barName: { fontSize: 13, fontWeight: '600', color: colors.textPrimary, flex: 1, marginRight: 8 },
-  barValue: { fontSize: 12, fontWeight: '700' },
+  barValue: { ...numeric, fontSize: 12, fontWeight: '700' },
   track: {
     height: 10, borderRadius: 5, backgroundColor: colors.bgSunken,
     borderWidth: 1, borderColor: colors.border, justifyContent: 'center',
