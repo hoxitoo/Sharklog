@@ -19,7 +19,7 @@ import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { useFormatMoney } from '../../utils/useFormatMoney';
 import { DailyChart, ChartLegend, SERIES } from './DailyChart';
 import { ExpandedDashboard } from './ExpandedDashboard';
-import { SIZE, GLYPH } from '../../theme/typography';
+import { SIZE, GLYPH, numeric } from '../../theme/typography';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -279,19 +279,20 @@ function DailyDashboardCard({ days, onExpand }: { days: DayStats[]; onExpand: ()
           <View style={dd.detailGrid}>
             <View style={dd.detailCell}>
               <Text style={dd.detailLabel}>Оборот</Text>
-              <Text style={dd.detailValue}>{fmt(sel.turnover)}</Text>
+              <Text style={dd.detailValue} numberOfLines={1} adjustsFontSizeToFit>{fmt(sel.turnover)}</Text>
             </View>
             <View style={dd.detailCell}>
               <Text style={dd.detailLabel}>Выигрыш</Text>
-              <Text style={[dd.detailValue, { color: SERIES.win }]}>{fmt(sel.wonAmount)}</Text>
+              <Text style={[dd.detailValue, { color: SERIES.win }]} numberOfLines={1} adjustsFontSizeToFit>{fmt(sel.wonAmount)}</Text>
             </View>
             <View style={dd.detailCell}>
               <Text style={dd.detailLabel}>Проигрыш</Text>
-              <Text style={[dd.detailValue, { color: SERIES.loss }]}>{fmt(sel.lostAmount)}</Text>
+              <Text style={[dd.detailValue, { color: SERIES.loss }]} numberOfLines={1} adjustsFontSizeToFit>{fmt(sel.lostAmount)}</Text>
             </View>
             <View style={dd.detailCell}>
               <Text style={dd.detailLabel}>Профит</Text>
-              <Text style={[dd.detailValue, { color: sel.pnl >= 0 ? SERIES.win : SERIES.loss }]}>
+              <Text style={[dd.detailValue, { color: sel.pnl >= 0 ? SERIES.win : SERIES.loss }]}
+                numberOfLines={1} adjustsFontSizeToFit>
                 {sel.pnl >= 0 ? '+' : ''}{fmt(sel.pnl)}
               </Text>
             </View>
@@ -374,7 +375,7 @@ const dd = StyleSheet.create({
   detailGrid: { flexDirection: 'row', gap: SPACE.sm },
   detailCell: { flex: 1 },
   detailLabel: { fontSize: SIZE.micro, color: colors.textMuted },
-  detailValue: { fontSize: SIZE.body, fontWeight: '700', color: colors.textPrimary, marginTop: 2 },
+  detailValue: { ...numeric, fontSize: SIZE.body, fontWeight: '700', color: colors.textPrimary, marginTop: 2 },
   detailCash: { fontSize: SIZE.micro, color: colors.textMuted, marginTop: SPACE.sm },
   detailLink: {
     minHeight: TOUCH, justifyContent: 'center',

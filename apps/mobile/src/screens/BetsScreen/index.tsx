@@ -92,6 +92,18 @@ export function BetsScreen({ filter, onClearFilter }: {
     else if (dy < -4) setCollapsed(false);
   }, [setCollapsed]);
 
+  // A hidden bar is only recoverable by scrolling up, so it must never be
+  // hidden over a list that cannot scroll: delete rows until the content fits
+  // the screen and the filters would be stranded off-screen with no way back.
+  const viewportH = useRef(0);
+  const onContentSizeChange = useCallback((_w: number, h: number) => {
+    if (h <= viewportH.current + barH.current) setCollapsed(false);
+  }, [setCollapsed]);
+
+  const onListLayout = useCallback((e: { nativeEvent: { layout: { height: number } } }) => {
+    viewportH.current = e.nativeEvent.layout.height;
+  }, []);
+
   const onBarLayout = useCallback((e: { nativeEvent: { layout: { height: number } } }) => {
     const h = e.nativeEvent.layout.height;
     if (h === barH.current) return;
@@ -248,6 +260,8 @@ export function BetsScreen({ filter, onClearFilter }: {
           keyboardShouldPersistTaps="handled"
           onScroll={onScroll}
           scrollEventThrottle={16}
+          onContentSizeChange={onContentSizeChange}
+          onLayout={onListLayout}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
