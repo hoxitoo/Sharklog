@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { SPACE, RADIUS, TOUCH, FAB_SIZE, FAB_BOTTOM } from '../theme/layout';
 import {
   View, StyleSheet, TouchableOpacity, Animated, Pressable, ScrollView, Image, Alert, PanResponder, BackHandler,
+  Keyboard,
 } from 'react-native';
 import { AppText as Text } from '../components/AppText';
 import { Ionicons } from '@expo/vector-icons';
@@ -73,6 +74,10 @@ export function DrawerNavigator() {
   const { settings, canAddBet } = useBetsStore();
 
   function openDrawer() {
+    // A keyboard left up behind a full-height drawer is both nonsense to look
+    // at and the reason the first tap on a menu item did nothing: RN hands
+    // that tap to dismissing the keyboard, not to the item under the finger.
+    Keyboard.dismiss();
     setDrawerVisible(true);
     Animated.parallel([
       Animated.spring(translateX, {
@@ -240,7 +245,7 @@ function DrawerContent({ currentScreen, onNavigate, onClose, insets }: DrawerCon
         <Text style={styles.logoText}>SharkLog</Text>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
+      <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
         {/* Main nav items */}
         <View style={styles.section}>
           {MAIN_ITEMS.map((item) => {

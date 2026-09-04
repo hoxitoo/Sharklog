@@ -224,7 +224,7 @@ export function InsightsScreen() {
   return (
     <View style={s.root}>
       <ScreenHeader title="Инсайты" subtitle="Турниры и команды" />
-      <ScrollView contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
         <View style={s.periodRow}>
           {PERIOD_OPTIONS.map((p) => (
             <TouchableOpacity

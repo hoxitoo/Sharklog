@@ -105,7 +105,7 @@ function SegmentedControl<T extends string>({
   return (
     <View style={sc.container}>
       <Text style={sc.label}>{label}</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+      <ScrollView keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false}>
         <View style={sc.row}>
           {options.map((opt) => (
             <TouchableOpacity
@@ -929,7 +929,7 @@ export function AddBetScreen() {
                 </View>
 
                 {/* Per-leg sport chips */}
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: SPACE.sm }}>
+                <ScrollView keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: SPACE.sm }}>
                   <View style={{ flexDirection: 'row', gap: SPACE.xs }}>
                     {sportOptions.map((opt) => (
                       <TouchableOpacity
@@ -947,7 +947,7 @@ export function AddBetScreen() {
 
                 {/* Per-leg discipline (only when esports) */}
                 {leg.sport === 'esports' && (
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: SPACE.sm }}>
+                  <ScrollView keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: SPACE.sm }}>
                     <View style={{ flexDirection: 'row', gap: SPACE.xs }}>
                       {disciplineOptions.map((opt) => (
                         <TouchableOpacity

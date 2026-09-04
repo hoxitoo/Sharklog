@@ -98,7 +98,7 @@ export function OnboardingScreen() {
 
       {/* Step 0: Welcome */}
       {step === 0 && (
-        <ScrollView contentContainerStyle={styles.stepContent} showsVerticalScrollIndicator={false}>
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.stepContent} showsVerticalScrollIndicator={false}>
           <Image source={require('../../../assets/adaptive-icon.png')} style={styles.logo} resizeMode="contain" />
           <Text style={styles.tagline}>Профессиональный трекер ставок</Text>
 
@@ -153,7 +153,7 @@ export function OnboardingScreen() {
 
       {/* Step 2: Bookmakers */}
       {step === 2 && (
-        <ScrollView contentContainerStyle={styles.stepContent} showsVerticalScrollIndicator={false}>
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.stepContent} showsVerticalScrollIndicator={false}>
           <Text style={styles.stepEmoji}>🎰</Text>
           <Text style={styles.stepTitle}>Твои букмекеры</Text>
           <Text style={styles.stepSubtitle}>

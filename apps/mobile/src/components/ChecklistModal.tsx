@@ -57,7 +57,7 @@ export function ChecklistModal({ visible, onConfirm, onCancel }: Props) {
             Отметь все пункты — это занимает 10 секунд и сохраняет дисциплину
           </Text>
 
-          <ScrollView style={{ marginBottom: SPACE.lg }} showsVerticalScrollIndicator={false}>
+          <ScrollView keyboardShouldPersistTaps="handled" style={{ marginBottom: SPACE.lg }} showsVerticalScrollIndicator={false}>
             {CHECKLIST.map((item, i) => (
               <TouchableOpacity
                 key={i}

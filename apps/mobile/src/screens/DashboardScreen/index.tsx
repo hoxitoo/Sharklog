@@ -481,7 +481,7 @@ export function DashboardScreen() {
         title="Дашборд"
         subtitle={new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}
       />
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView keyboardShouldPersistTaps="handled" style={styles.container} showsVerticalScrollIndicator={false}>
 
       {settings.generatedStrategy && (
         <TouchableOpacity

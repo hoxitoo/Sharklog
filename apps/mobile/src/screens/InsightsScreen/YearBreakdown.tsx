@@ -70,7 +70,7 @@ export function YearBreakdown({ bets, onOpen }: Props) {
     <View>
       <Text style={y.sectionTitle}>По годам</Text>
 
-      <ScrollView
+      <ScrollView keyboardShouldPersistTaps="handled"
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={y.yearRow}

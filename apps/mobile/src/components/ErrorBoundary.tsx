@@ -28,7 +28,7 @@ export class ErrorBoundary extends React.Component<Props, State> {
 
     return (
       <View style={s.root}>
-        <ScrollView contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
           <Text style={s.emoji}>🦈💥</Text>
           <Text style={s.title}>Что-то пошло не так</Text>
           <Text style={s.msg}>{error.message}</Text>

@@ -81,7 +81,7 @@ export function PartnersScreen() {
   const insets = useSafeAreaInsets();
 
   return (
-    <ScrollView
+    <ScrollView keyboardShouldPersistTaps="handled"
       style={styles.root}
       contentContainerStyle={{ padding: SPACE.lg, paddingBottom: insets.bottom + 24 }}
     >

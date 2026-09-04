@@ -328,7 +328,7 @@ export function BetsScreen({ filter, onClearFilter }: {
             onChangeText={setSearch}
           />
 
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll} contentContainerStyle={styles.filters}>
+          <ScrollView keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll} contentContainerStyle={styles.filters}>
             {STATUS_FILTER_KEYS.map((key) => (
               <TouchableOpacity
                 key={key}
