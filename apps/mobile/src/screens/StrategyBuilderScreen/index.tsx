@@ -37,7 +37,7 @@ function ResultScreen({ strategy, onReset }: { strategy: GeneratedStrategy; onRe
   }
 
   return (
-    <ScrollView contentContainerStyle={s.scroll}>
+    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.scroll}>
       <View style={s.badge}>
         <Text style={s.badgeText}>🎯 Стратегия готова</Text>
       </View>
@@ -145,7 +145,7 @@ function WizardScreen({ onDone }: { onDone: (strategy: GeneratedStrategy) => voi
   const progress = step / total;
 
   return (
-    <ScrollView contentContainerStyle={s.scroll}>
+    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.scroll}>
       {/* Progress */}
       <View style={s.progressWrap}>
         <View style={[s.progressFill, { width: `${Math.round(progress * 100)}%` as any }]} />

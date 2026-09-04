@@ -171,7 +171,7 @@ export function ExpandedDashboard({ visible, days, onClose }: Props) {
             <Text style={[ex.th, ex.cMoney]}>Профит</Text>
             <Text style={[ex.th, ex.cMoney]}>Баланс</Text>
           </View>
-          <FlatList
+          <FlatList keyboardShouldPersistTaps="handled"
             data={shown}
             keyExtractor={(d) => d.date}
             style={{ flex: 1 }}

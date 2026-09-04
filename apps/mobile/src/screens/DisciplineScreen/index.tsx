@@ -155,7 +155,7 @@ export function DisciplineScreen() {
   return (
     <View style={styles.container}>
       <ScreenHeader title="Дисциплина" subtitle="Психология и контроль" />
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: SPACE.xxl }}>
+      <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: SPACE.xxl }}>
 
         {inTilt && (
           <View style={styles.tiltBanner}>

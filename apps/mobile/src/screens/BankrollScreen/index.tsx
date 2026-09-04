@@ -427,7 +427,7 @@ function BankrollContent() {
   }
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: SPACE.xl }}>
+    <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: SPACE.xl }}>
 
       {/* Summary card */}
       <View style={bk.summaryCard}>

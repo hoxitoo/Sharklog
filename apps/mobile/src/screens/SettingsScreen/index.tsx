@@ -387,7 +387,7 @@ export function SettingsScreen() {
           takes the only route into the menu with it. */}
       <ScreenHeader title={t('settings.title')} />
 
-      <ScrollView
+      <ScrollView keyboardShouldPersistTaps="handled"
         style={styles.container}
         contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
         showsVerticalScrollIndicator={false}

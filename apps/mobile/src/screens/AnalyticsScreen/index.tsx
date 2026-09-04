@@ -855,7 +855,7 @@ function AnalyticsContent() {
   }), [filteredBets]);
 
   return (
-    <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: SPACE.xxl }}>
+    <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: SPACE.xxl }}>
       <View style={styles.periodRow}>
         {A_PERIOD_OPTIONS.map((p) => (
           <TouchableOpacity
