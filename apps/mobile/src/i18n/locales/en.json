@@ -79,7 +79,13 @@
     "duplicate": "Copy",
     "changeResult": "Result",
     "tipWheel": "Tap a bet for the action wheel · Swipe left to delete · + to add",
-    "editShort": "Edit"
+    "editShort": "Edit",
+    "filterStatus": "Status",
+    "filterSort": "Sort",
+    "sortOddsDesc": "Odds ↓",
+    "sortOddsAsc": "Odds ↑",
+    "sortStakeDesc": "Stake ↓",
+    "sortStakeAsc": "Stake ↑"
   },
   "dashboard": {
     "title": "Dashboard",

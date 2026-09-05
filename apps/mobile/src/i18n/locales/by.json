@@ -79,7 +79,13 @@
     "duplicate": "Копія",
     "changeResult": "Вынік",
     "tipWheel": "Тап па стаўцы — кола дзеянняў · Свайп улева — выдаліць · + — новая стаўка",
-    "editShort": "Змяніць"
+    "editShort": "Змяніць",
+    "filterStatus": "Статус",
+    "filterSort": "Сартаванне",
+    "sortOddsDesc": "Каэф ↓",
+    "sortOddsAsc": "Каэф ↑",
+    "sortStakeDesc": "Сума ↓",
+    "sortStakeAsc": "Сума ↑"
   },
   "dashboard": {
     "title": "Дашборд",

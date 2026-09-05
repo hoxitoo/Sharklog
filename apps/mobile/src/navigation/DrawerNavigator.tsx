@@ -121,7 +121,13 @@ export function DrawerNavigator() {
         duration: 200,
         useNativeDriver: true,
       }),
-    ]).start(() => {
+    ]).start(({ finished }) => {
+      // Interrupted means an open started while we were closing — tapping the
+      // hamburger during the 200ms close used to land here anyway, switching
+      // pointerEvents off on a drawer that was visually open. The panel then
+      // ignored every tap until it was closed and opened again, which is what
+      // "sometimes it takes two taps" was.
+      if (!finished) return;
       setDrawerVisible(false);
       callback?.();
     });
