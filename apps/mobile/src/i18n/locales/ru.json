@@ -79,7 +79,13 @@
     "duplicate": "Копия",
     "changeResult": "Результат",
     "tipWheel": "Тап по ставке — колесо действий · Свайп влево — удалить · + — новая ставка",
-    "editShort": "Изменить"
+    "editShort": "Изменить",
+    "filterStatus": "Статус",
+    "filterSort": "Сортировка",
+    "sortOddsDesc": "Кэф ↓",
+    "sortOddsAsc": "Кэф ↑",
+    "sortStakeDesc": "Сумма ↓",
+    "sortStakeAsc": "Сумма ↑"
   },
   "dashboard": {
     "title": "Дашборд",

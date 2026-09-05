@@ -16,13 +16,14 @@ import type { BetsFilter } from '../../components/DrawerContext';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { BetCard } from './BetCard';
 import { SwipeableRow } from './SwipeableRow';
+import { FilterPicker } from '../../components/FilterPicker';
 import { useBetActions } from '../../components/useBetActions';
 import { Coachmark } from '../../components/Coachmark';
 import { haptic } from '../../utils/haptics';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { useTranslation } from 'react-i18next';
 import i18n from '../../i18n/index';
-import { SIZE, GLYPH } from '../../theme/typography';
+import { SIZE, GLYPH, numeric } from '../../theme/typography';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -43,6 +44,23 @@ const STATUS_FILTER_KEYS: Array<BetStatus | 'all'> = ['all', 'pending', 'won', '
 
 type SortKey = 'date_desc' | 'date_asc' | 'odds_desc' | 'odds_asc' | 'stake_desc' | 'stake_asc';
 
+type T = (key: string) => string;
+
+/** Both filters spell out every option, so no state is hidden behind a toggle. */
+const STATUS_OPTIONS = (t: T) => STATUS_FILTER_KEYS.map((key) => ({
+  key,
+  label: key === 'all' ? t('status.all') : t(`status.${key}`),
+}));
+
+const SORT_OPTIONS = (t: T): Array<{ key: SortKey; label: string }> => [
+  { key: 'date_desc',  label: t('bet.sortNewest') },
+  { key: 'date_asc',   label: t('bet.sortOldest') },
+  { key: 'odds_desc',  label: t('bet.sortOddsDesc') },
+  { key: 'odds_asc',   label: t('bet.sortOddsAsc') },
+  { key: 'stake_desc', label: t('bet.sortStakeDesc') },
+  { key: 'stake_asc',  label: t('bet.sortStakeAsc') },
+];
+
 export function BetsScreen({ filter, onClearFilter }: {
   filter?: BetsFilter | null;
   onClearFilter?: () => void;
@@ -58,43 +76,53 @@ export function BetsScreen({ filter, onClearFilter }: {
   const [sort, setSort] = useState<SortKey>('date_desc');
   const [refreshing, setRefreshing] = useState(false);
 
-  // The filter bar used to be a fixed sibling above the list: today's figures,
-  // search, status chips, sort and the tilt banner together ate about half the
-  // screen, and the bets scrolled in what was left. It now rides above the list
-  // and slides out of the way — down hides it, up brings it straight back, and
-  // near the top it is always open, so it is never more than a flick away.
+  // The filter bar rides above the list rather than pushing it down, and when
+  // you scroll it does not vanish — it collapses into a small floating tray
+  // that still says what is filtered and what today came to. Vanishing left a
+  // band of empty page at the top, because the list keeps the bar's padding.
   const [barHeight, setBarHeight] = useState(0);
+  const [collapsedState, setCollapsedState] = useState(false);
   const barH = useRef(0);
-  const barY = useRef(new Animated.Value(0)).current;
+  // 0 = full panel, 1 = tray. One value drives both layers so they cross-fade.
+  const t01 = useRef(new Animated.Value(0)).current;
   const collapsed = useRef(false);
   const lastY = useRef(0);
+  const listRef = useRef<SectionList<Bet, { title: string; dailyPnl: number }>>(null);
 
   const setCollapsed = useCallback((next: boolean) => {
     if (collapsed.current === next || barH.current === 0) return;
     collapsed.current = next;
-    Animated.timing(barY, {
-      toValue: next ? -barH.current : 0,
-      duration: 180,
+    setCollapsedState(next);
+    Animated.timing(t01, {
+      toValue: next ? 1 : 0,
+      duration: 200,
       easing: Easing.out(Easing.quad),
       useNativeDriver: true,
     }).start();
-  }, [barY]);
+  }, [t01]);
 
   const onScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const y = e.nativeEvent.contentOffset.y;
     const dy = y - lastY.current;
     lastY.current = y;
-    // Within the bar's own height of the top there is nothing to gain by
-    // hiding it, and this is what restores it after a scroll back up.
-    if (y <= barH.current * 0.5) { setCollapsed(false); return; }
+    // The list reserves the panel's height at the top. While any of that
+    // reserved band is on screen the panel has to be in it, or the user sees a
+    // strip of empty page where the panel used to be.
+    if (y < barH.current) { setCollapsed(false); return; }
     // A threshold, so a finger resting on the list does not flicker it.
     if (dy > 4) setCollapsed(true);
     else if (dy < -4) setCollapsed(false);
   }, [setCollapsed]);
 
-  // A hidden bar is only recoverable by scrolling up, so it must never be
-  // hidden over a list that cannot scroll: delete rows until the content fits
-  // the screen and the filters would be stranded off-screen with no way back.
+  /** Tapping the tray returns to the top, where the full panel lives. */
+  const expandFromTray = useCallback(() => {
+    haptic.selection();
+    listRef.current?.getScrollResponder()?.scrollTo({ y: 0, animated: true });
+    setCollapsed(false);
+  }, [setCollapsed]);
+
+  // A collapsed panel is only recoverable by scrolling up or tapping the tray,
+  // so it must never be collapsed over a list that cannot scroll.
   const viewportH = useRef(0);
   const onContentSizeChange = useCallback((_w: number, h: number) => {
     if (h <= viewportH.current + barH.current) setCollapsed(false);
@@ -109,10 +137,7 @@ export function BetsScreen({ filter, onClearFilter }: {
     if (h === barH.current) return;
     barH.current = h;
     setBarHeight(h);
-    // The bar grows and shrinks with the date chip and the tilt banner; if it
-    // is hidden when that happens, re-hide it by the new height.
-    if (collapsed.current) barY.setValue(-h);
-  }, [barY]);
+  }, []);
 
   // Working context while logging bets: today's result, money currently at risk, bank.
   const today = useMemo(() => calcDailyBreakdown(bets, [], { days: 1 })[0] ?? null, [bets]);
@@ -229,6 +254,7 @@ export function BetsScreen({ filter, onClearFilter }: {
 
       <View style={styles.body}>
         <SectionList
+          ref={listRef}
           style={styles.listFlex}
           sections={sections}
           keyExtractor={(item) => item.id}
@@ -282,9 +308,13 @@ export function BetsScreen({ filter, onClearFilter }: {
           }
         />
 
-        {/* Rides above the list so it can slide away without moving it. */}
+        {/* Two layers over the list: the full panel, and the tray it becomes. */}
         <Animated.View
-          style={[styles.topBar, { transform: [{ translateY: barY }] }]}
+          style={[styles.topBar, {
+            opacity: t01.interpolate({ inputRange: [0, 0.6], outputRange: [1, 0], extrapolate: 'clamp' }),
+            transform: [{ translateY: t01.interpolate({ inputRange: [0, 1], outputRange: [0, -barHeight] }) }],
+          }]}
+          pointerEvents={collapsedState ? 'none' : 'auto'}
           onLayout={onBarLayout}
         >
           {filterLabel && (
@@ -342,48 +372,21 @@ export function BetsScreen({ filter, onClearFilter }: {
             onChangeText={setSearch}
           />
 
-          <ScrollView keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} style={styles.filtersScroll} contentContainerStyle={styles.filters}>
-            {STATUS_FILTER_KEYS.map((key) => (
-              <TouchableOpacity
-                key={key}
-                style={[styles.filterBtn, statusFilter === key && styles.filterBtnActive]}
-                onPress={() => { haptic.selection(); setStatusFilter(key); }}
-              >
-                <Text style={[styles.filterText, statusFilter === key && styles.filterTextActive]}>
-                  {key === 'all' ? t('status.all') : t(`status.${key}`)}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-
-          <View style={styles.sortRow}>
-            {(['date_desc', 'date_asc', 'odds_desc', 'stake_desc'] as const).map((key) => {
-              const isOdds = key === 'odds_desc';
-              const isStake = key === 'stake_desc';
-              const isActive =
-                sort === key ||
-                (isOdds && sort === 'odds_asc') ||
-                (isStake && sort === 'stake_asc');
-              const label = isOdds
-                ? `${t('bet.sortByOdds')} ${sort === 'odds_asc' ? '↑' : '↓'}`
-                : isStake
-                ? `${t('bet.sortByStake')} ${sort === 'stake_asc' ? '↑' : '↓'}`
-                : key === 'date_desc' ? t('bet.sortNewest') : t('bet.sortOldest');
-              return (
-                <TouchableOpacity
-                  key={key}
-                  style={[styles.sortBtn, isActive && styles.sortBtnActive]}
-                  onPress={() => {
-                    haptic.selection();
-                    if (isOdds) setSort(sort === 'odds_desc' ? 'odds_asc' : 'odds_desc');
-                    else if (isStake) setSort(sort === 'stake_desc' ? 'stake_asc' : 'stake_desc');
-                    else setSort(key);
-                  }}
-                >
-                  <Text style={[styles.sortText, isActive && styles.sortTextActive]}>{label}</Text>
-                </TouchableOpacity>
-              );
-            })}
+          <View style={styles.filterRow}>
+            <FilterPicker
+              label={t('bet.filterStatus')}
+              options={STATUS_OPTIONS(t)}
+              value={statusFilter}
+              onChange={setStatusFilter}
+              active={statusFilter !== 'all'}
+            />
+            <FilterPicker
+              label={t('bet.filterSort')}
+              options={SORT_OPTIONS(t)}
+              value={sort}
+              onChange={setSort}
+              active={sort !== 'date_desc'}
+            />
           </View>
 
           {inTilt && (
@@ -395,6 +398,36 @@ export function BetsScreen({ filter, onClearFilter }: {
               </View>
             </View>
           )}
+        </Animated.View>
+
+        {/* The collapsed form: a floating pill that still answers "what am I
+            looking at, and how did today go", and taps back to the top. */}
+        <Animated.View
+          style={[styles.trayWrap, {
+            opacity: t01.interpolate({ inputRange: [0.4, 1], outputRange: [0, 1], extrapolate: 'clamp' }),
+            transform: [
+              { translateY: t01.interpolate({ inputRange: [0, 1], outputRange: [-12, 0] }) },
+              { scale: t01.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1] }) },
+            ],
+          }]}
+          pointerEvents={collapsedState ? 'box-none' : 'none'}
+        >
+          <TouchableOpacity style={styles.tray} onPress={expandFromTray} activeOpacity={0.8}>
+            <Text style={styles.trayFilter} numberOfLines={1}>
+              {statusFilter === 'all' ? t('status.all') : t(`status.${statusFilter}`)}
+            </Text>
+            <View style={styles.trayDot} />
+            <Text style={[
+              styles.trayPnl,
+              { color: !today || today.settledCount === 0 ? colors.textMuted
+                : today.pnl >= 0 ? colors.won : colors.lost },
+            ]} numberOfLines={1}>
+              {today && today.settledCount > 0
+                ? `${today.pnl >= 0 ? '+' : ''}${formatMoney(today.pnl)}`
+                : '—'}
+            </Text>
+            <Text style={styles.trayCaret}>⌃</Text>
+          </TouchableOpacity>
         </Animated.View>
       </View>
 
@@ -435,53 +468,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  filtersScroll: { marginBottom: SPACE.sm, flexGrow: 0, flexShrink: 0 },
-  filters: {
-    flexDirection: 'row',
-    paddingHorizontal: SPACE.lg,
-    gap: SPACE.xs,
-    paddingBottom: 2,
-    alignItems: 'center',
-  },
-  filterBtn: {
-    minHeight: TOUCH, justifyContent: 'center',
-    flexShrink: 0,
-    paddingHorizontal: SPACE.md,
-    paddingVertical: SPACE.xs,
-    borderRadius: RADIUS.sm,
-    backgroundColor: colors.bgCard,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignSelf: 'center',
-  },
-  filterBtnActive: {
-    backgroundColor: colors.purple,
-    borderColor: colors.purple,
-  },
-  filterText: { fontSize: SIZE.caption, color: colors.textSecondary },
-  filterTextActive: { color: '#fff', fontWeight: '700' },
-  sortRow: {
-    flexDirection: 'row',
-    paddingHorizontal: SPACE.lg,
-    gap: SPACE.xs,
-    marginBottom: SPACE.sm,
-    alignItems: 'center',
-  },
-  sortBtn: {
-    minHeight: TOUCH, justifyContent: 'center',
-    paddingHorizontal: SPACE.sm,
-    paddingVertical: SPACE.xs,
-    borderRadius: RADIUS.sm,
-    backgroundColor: colors.bgElevated,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  sortBtnActive: {
-    borderColor: colors.accent,
-    backgroundColor: colors.accentDim,
-  },
-  sortText: { fontSize: SIZE.caption, color: colors.textMuted },
-  sortTextActive: { color: colors.accent, fontWeight: '600' },
+  filterRow: { flexDirection: 'row', gap: SPACE.sm, marginHorizontal: SPACE.lg, marginBottom: SPACE.sm },
   dateChip: {
     minHeight: TOUCH,
     flexDirection: 'row', alignItems: 'center', gap: SPACE.sm, alignSelf: 'flex-start',
@@ -515,6 +502,21 @@ const styles = StyleSheet.create({
     zIndex: 2, elevation: 4,
   },
   listFlex: { flex: 1 },
+  trayWrap: { position: 'absolute', top: SPACE.sm, left: 0, right: 0, alignItems: 'center' },
+  tray: {
+    flexDirection: 'row', alignItems: 'center', gap: SPACE.sm,
+    paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm,
+    minHeight: TOUCH,
+    backgroundColor: colors.bgElevated,
+    borderRadius: RADIUS.pill,
+    borderWidth: 1, borderColor: colors.borderStrong,
+    shadowColor: '#000', shadowOpacity: 0.45, shadowRadius: 12,
+    shadowOffset: { width: 0, height: 4 }, elevation: 6,
+  },
+  trayFilter: { fontSize: SIZE.body, fontWeight: '700', color: colors.textPrimary },
+  trayDot: { width: 3, height: 3, borderRadius: RADIUS.pill, backgroundColor: colors.textMuted },
+  trayPnl: { ...numeric, fontSize: SIZE.body, fontWeight: '700' },
+  trayCaret: { fontSize: GLYPH.md, color: colors.textMuted, marginTop: 2 },
   list: { paddingBottom: FAB_CLEARANCE }, // clear the floating "+" FAB so the last row isn't covered
   sectionHeader: {
     flexDirection: 'row',

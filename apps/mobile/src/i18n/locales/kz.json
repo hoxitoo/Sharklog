@@ -79,7 +79,13 @@
     "duplicate": "Көшірме",
     "changeResult": "Нәтиже",
     "tipWheel": "Ставкаға түртіңіз — әрекеттер дөңгелегі · Солға сырғытыңыз — жою · + — жаңа ставка",
-    "editShort": "Өңдеу"
+    "editShort": "Өңдеу",
+    "filterStatus": "Мәртебе",
+    "filterSort": "Сұрыптау",
+    "sortOddsDesc": "Коэф. ↓",
+    "sortOddsAsc": "Коэф. ↑",
+    "sortStakeDesc": "Сома ↓",
+    "sortStakeAsc": "Сома ↑"
   },
   "dashboard": {
     "title": "Дашборд",
