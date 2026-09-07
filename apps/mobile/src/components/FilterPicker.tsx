@@ -40,9 +40,13 @@ export function FilterPicker<T extends string>({ label, options, value, onChange
   // thumb goes after reading a sheet — it goes down.
   const dragY = useRef(new Animated.Value(0)).current;
 
+  function open_() {
+    dragY.setValue(0);
+    setOpen(true);
+  }
+
   function close() {
     setOpen(false);
-    dragY.setValue(0);
   }
 
   const drag = useRef(
@@ -50,6 +54,9 @@ export function FilterPicker<T extends string>({ label, options, value, onChange
       // Claim only a clear downward drag, so the option list can still scroll.
       onMoveShouldSetPanResponder: (_, g) => g.dy > 6 && Math.abs(g.dy) > Math.abs(g.dx),
       onPanResponderMove: (_, g) => { if (g.dy > 0) dragY.setValue(g.dy); },
+      onPanResponderTerminate: () => {
+        Animated.spring(dragY, { toValue: 0, useNativeDriver: true, bounciness: 4 }).start();
+      },
       onPanResponderRelease: (_, g) => {
         // Past a third of the way, or thrown down fast enough to mean it.
         if (g.dy > 120 || g.vy > 0.6) {
@@ -66,7 +73,7 @@ export function FilterPicker<T extends string>({ label, options, value, onChange
     <>
       <TouchableOpacity
         style={[picker.btn, active && picker.btnActive]}
-        onPress={() => { haptic.selection(); setOpen(true); }}
+        onPress={() => { haptic.selection(); open_(); }}
         activeOpacity={0.75}
       >
         <View style={picker.btnText}>
@@ -82,12 +89,16 @@ export function FilterPicker<T extends string>({ label, options, value, onChange
         {/* Tap outside, or drag the sheet down. */}
         <Pressable style={picker.backdrop} onPress={close}>
           <Animated.View style={[picker.sheet, { transform: [{ translateY: dragY }] }]}>
-            <Pressable onPress={(e) => e.stopPropagation()} {...drag.panHandlers}>
-              {/* The grab area: the handle plus the title row around it. */}
-              <View style={picker.handle} />
-              <Text style={picker.sheetTitle}>{label}</Text>
-            </Pressable>
-            <ScrollView keyboardShouldPersistTaps="handled" style={picker.sheetScroll}>
+            {/* Shields the WHOLE sheet from the backdrop's dismiss. Without it,
+                a thumb landing in the sheet's own padding — the 40pt band under
+                the last option — closes it instead of choosing. */}
+            <Pressable onPress={(e) => e.stopPropagation()}>
+              <View {...drag.panHandlers}>
+                {/* The grab area: the handle plus the title beside it. */}
+                <View style={picker.handle} />
+                <Text style={picker.sheetTitle}>{label}</Text>
+              </View>
+              <ScrollView keyboardShouldPersistTaps="handled" style={picker.sheetScroll}>
               {options.map((o) => {
                 const isCurrent = o.key === value;
                 return (
@@ -104,7 +115,8 @@ export function FilterPicker<T extends string>({ label, options, value, onChange
                   </TouchableOpacity>
                 );
               })}
-            </ScrollView>
+              </ScrollView>
+            </Pressable>
           </Animated.View>
         </Pressable>
       </Modal>

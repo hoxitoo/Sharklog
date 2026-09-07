@@ -336,7 +336,10 @@ export function BetsScreen({ filter, onClearFilter }: {
             opacity: t01.interpolate({ inputRange: [0, 0.6], outputRange: [1, 0], extrapolate: 'clamp' }),
             transform: [{ translateY: t01.interpolate({ inputRange: [0, 1], outputRange: [0, -barHeight] }) }],
           }]}
-          pointerEvents={collapsedState ? 'none' : 'auto'}
+          // 'box-only', not 'none': during the 200ms fade the panel is still
+          // largely opaque, and 'none' let a tap on a visible "Банк →" fall
+          // through to the bet card underneath and open its action wheel.
+          pointerEvents={collapsedState ? 'box-only' : 'auto'}
           onLayout={onBarLayout}
         >
           {filterLabel && (
@@ -545,11 +548,15 @@ const styles = StyleSheet.create({
     zIndex: 2, elevation: 4,
   },
   listFlex: { flex: 1 },
-  trayWrap: { position: 'absolute', top: SPACE.sm, left: 0, right: 0, alignItems: 'center' },
+  // Stretched, not centred: `adjustsFontSizeToFit` only shrinks against a
+  // bounded width, and a content-sized row grows instead — a bank of
+  // "1 234 567,89 ₽" ran straight out of the pill rather than scaling down.
+  trayWrap: { position: 'absolute', top: SPACE.sm, left: 0, right: 0 },
   tray: {
-    flexDirection: 'row', alignItems: 'center', gap: SPACE.md,
-    paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm,
+    flexDirection: 'row', alignItems: 'center', gap: SPACE.sm,
+    paddingHorizontal: SPACE.md, paddingVertical: SPACE.xs,
     marginHorizontal: SPACE.lg,
+    minHeight: TOUCH,
     backgroundColor: colors.bgElevated,
     borderRadius: RADIUS.pill,
     borderWidth: 1, borderColor: colors.borderStrong,
@@ -560,10 +567,12 @@ const styles = StyleSheet.create({
     width: 28, height: 28, borderRadius: RADIUS.pill,
     alignItems: 'center', justifyContent: 'center',
   },
-  trayDivider: { width: 1, height: 24, backgroundColor: colors.border },
-  trayCell: { alignItems: 'center', minWidth: 76 },
-  trayLabel: { fontSize: SIZE.micro, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
-  trayValue: { ...numeric, fontSize: SIZE.body, fontWeight: '700', marginTop: 1 },
+  trayDivider: { width: 1, height: 20, backgroundColor: colors.border },
+  // One line rather than label-over-value: the tray floats over the topmost bet
+  // row and claims every touch inside it, so its height is dead space.
+  trayCell: { flex: 1, flexDirection: 'row', alignItems: 'baseline', justifyContent: 'center', gap: SPACE.xs },
+  trayLabel: { fontSize: SIZE.micro, color: colors.textMuted },
+  trayValue: { ...numeric, fontSize: SIZE.body, fontWeight: '700', flexShrink: 1 },
   /** A live status filter is not visible in the collapsed form otherwise. */
   trayFilterDot: { width: 6, height: 6, borderRadius: RADIUS.pill, backgroundColor: colors.purple },
   list: { paddingBottom: FAB_CLEARANCE }, // clear the floating "+" FAB so the last row isn't covered
