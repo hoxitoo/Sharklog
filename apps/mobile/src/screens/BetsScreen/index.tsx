@@ -1,15 +1,18 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react';
-import { SPACE, RADIUS, TOUCH, FAB_CLEARANCE } from '../../theme/layout';
+import { SPACE, RADIUS, TOUCH, FAB_CLEARANCE, hitSlopFor } from '../../theme/layout';
 import { cardSurface } from '../../components/Card';
 import {
   View, SectionList, StyleSheet, TouchableOpacity, ScrollView, RefreshControl, Image,
   Animated, Easing, type NativeScrollEvent, type NativeSyntheticEvent,
 } from 'react-native';
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
+import type { TextInput as TextInputRef } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useFormatMoney } from '../../utils/useFormatMoney';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { Bet, BetStatus } from '@sharklog/core';
-import { formatMoney, isInTilt, calcDailyBreakdown, currentBank, betBacksTeam, toYmd } from '@sharklog/core';
+import { isInTilt, calcDailyBreakdown, currentBank, betBacksTeam, toYmd } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { colors, mix, toneSurface } from '../../theme/colors';
 import type { BetsFilter } from '../../components/DrawerContext';
@@ -52,6 +55,8 @@ const STATUS_OPTIONS = (t: T) => STATUS_FILTER_KEYS.map((key) => ({
   label: key === 'all' ? t('status.all') : t(`status.${key}`),
 }));
 
+const SEARCH_SLOP = hitSlopFor(28);
+
 const SORT_OPTIONS = (t: T): Array<{ key: SortKey; label: string }> => [
   { key: 'date_desc',  label: t('bet.sortNewest') },
   { key: 'date_asc',   label: t('bet.sortOldest') },
@@ -75,6 +80,7 @@ export function BetsScreen({ filter, onClearFilter }: {
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortKey>('date_desc');
   const [refreshing, setRefreshing] = useState(false);
+  const fmt = useFormatMoney();
 
   // The filter bar rides above the list rather than pushing it down, and when
   // you scroll it does not vanish — it collapses into a small floating tray
@@ -101,6 +107,11 @@ export function BetsScreen({ filter, onClearFilter }: {
     }).start();
   }, [t01]);
 
+  // Distance since the last direction change, not the jump between two frames:
+  // a slow drag delivers 1–3px per event and never crossed a per-event
+  // threshold, so the panel could sit half-gone for another seven rows.
+  const acc = useRef(0);
+
   const onScroll = useCallback((e: NativeSyntheticEvent<NativeScrollEvent>) => {
     const y = e.nativeEvent.contentOffset.y;
     const dy = y - lastY.current;
@@ -108,17 +119,25 @@ export function BetsScreen({ filter, onClearFilter }: {
     // The list reserves the panel's height at the top. While any of that
     // reserved band is on screen the panel has to be in it, or the user sees a
     // strip of empty page where the panel used to be.
-    if (y < barH.current) { setCollapsed(false); return; }
-    // A threshold, so a finger resting on the list does not flicker it.
-    if (dy > 4) setCollapsed(true);
-    else if (dy < -4) setCollapsed(false);
+    if (y < barH.current) { acc.current = 0; setCollapsed(false); return; }
+    if (dy === 0) return;
+    // Reverse direction and the tally starts over, so a flick back up counts
+    // from zero rather than having to undo the whole scroll down.
+    if ((dy > 0) !== (acc.current > 0)) acc.current = 0;
+    acc.current += dy;
+    if (acc.current > 24) setCollapsed(true);
+    else if (acc.current < -24) setCollapsed(false);
   }, [setCollapsed]);
 
   /** Tapping the tray returns to the top, where the full panel lives. */
-  const expandFromTray = useCallback(() => {
+  const searchRef = useRef<TextInputRef>(null);
+  const expandFromTray = useCallback((focusSearch?: boolean) => {
     haptic.selection();
     listRef.current?.getScrollResponder()?.scrollTo({ y: 0, animated: true });
     setCollapsed(false);
+    // The magnifier is the collapsed form of the search field, so it should
+    // land in the field — not merely show it.
+    if (focusSearch) requestAnimationFrame(() => searchRef.current?.focus());
   }, [setCollapsed]);
 
   // A collapsed panel is only recoverable by scrolling up or tapping the tray,
@@ -275,11 +294,14 @@ export function BetsScreen({ filter, onClearFilter }: {
               <Text style={styles.sectionDate}>{section.title}</Text>
               {section.dailyPnl !== 0 && (
                 <Text style={[styles.sectionPnl, { color: section.dailyPnl > 0 ? colors.won : colors.lost }]}>
-                  {section.dailyPnl > 0 ? '+' : ''}{formatMoney(section.dailyPnl)}
+                  {section.dailyPnl > 0 ? '+' : ''}{fmt(section.dailyPnl)}
                 </Text>
               )}
             </View>
-          ), [])}
+          // `fmt` is a fresh closure per render and carries the rounding
+          // setting, so a memo that omits it freezes the section totals at
+          // whatever the setting was on mount.
+          ), [fmt])}
           stickySectionHeadersEnabled={false}
           contentContainerStyle={[styles.list, { paddingTop: barHeight }]}
           showsVerticalScrollIndicator={false}
@@ -337,10 +359,10 @@ export function BetsScreen({ filter, onClearFilter }: {
                   : today.pnl >= 0 ? colors.won : colors.lost },
               ]} numberOfLines={1} adjustsFontSizeToFit>
                 {today && today.settledCount > 0
-                  ? `${today.pnl >= 0 ? '+' : ''}${formatMoney(today.pnl)}`
+                  ? `${today.pnl >= 0 ? '+' : ''}${fmt(today.pnl)}`
                   : '—'}
               </Text>
-              <Text style={styles.todaySub}>{today?.betCount ?? 0} ст. · {formatMoney(today?.turnover ?? 0)}</Text>
+              <Text style={styles.todaySub}>{today?.betCount ?? 0} ст. · {fmt(today?.turnover ?? 0)}</Text>
             </View>
             <View style={styles.todayDivider} />
             <TouchableOpacity
@@ -350,7 +372,7 @@ export function BetsScreen({ filter, onClearFilter }: {
             >
               <Text style={styles.todayLabel}>В игре →</Text>
               <Text style={[styles.todayValue, { color: exposure > 0 ? colors.pending : colors.textMuted }]} numberOfLines={1} adjustsFontSizeToFit>
-                {exposure > 0 ? formatMoney(exposure) : '—'}
+                {exposure > 0 ? fmt(exposure) : '—'}
               </Text>
               <Text style={styles.todaySub}>закрыть результаты</Text>
             </TouchableOpacity>
@@ -358,13 +380,14 @@ export function BetsScreen({ filter, onClearFilter }: {
             <TouchableOpacity style={styles.todayCell} onPress={() => { haptic.selection(); navigation.navigate('Bankroll'); }} activeOpacity={0.75}>
               <Text style={styles.todayLabel}>Банк →</Text>
               <Text style={[styles.todayValue, { color: bank >= 0 ? colors.textPrimary : colors.lost }]} numberOfLines={1} adjustsFontSizeToFit>
-                {formatMoney(bank)}
+                {fmt(bank)}
               </Text>
               <Text style={styles.todaySub}>текущий баланс</Text>
             </TouchableOpacity>
           </View>
 
           <TextInput
+            ref={searchRef}
             style={styles.search}
             placeholder={t('bet.searchPlaceholder')}
             placeholderTextColor={colors.textMuted}
@@ -412,21 +435,41 @@ export function BetsScreen({ filter, onClearFilter }: {
           }]}
           pointerEvents={collapsedState ? 'box-none' : 'none'}
         >
-          <TouchableOpacity style={styles.tray} onPress={expandFromTray} activeOpacity={0.8}>
-            <Text style={styles.trayFilter} numberOfLines={1}>
-              {statusFilter === 'all' ? t('status.all') : t(`status.${statusFilter}`)}
-            </Text>
-            <View style={styles.trayDot} />
-            <Text style={[
-              styles.trayPnl,
-              { color: !today || today.settledCount === 0 ? colors.textMuted
-                : today.pnl >= 0 ? colors.won : colors.lost },
-            ]} numberOfLines={1}>
-              {today && today.settledCount > 0
-                ? `${today.pnl >= 0 ? '+' : ''}${formatMoney(today.pnl)}`
-                : '—'}
-            </Text>
-            <Text style={styles.trayCaret}>⌃</Text>
+          <TouchableOpacity style={styles.tray} onPress={() => expandFromTray()} activeOpacity={0.85}>
+            <TouchableOpacity
+              style={styles.traySearch}
+              onPress={() => expandFromTray(true)}
+              hitSlop={SEARCH_SLOP}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="search" size={GLYPH.md} color={colors.textSecondary} />
+            </TouchableOpacity>
+
+            <View style={styles.trayDivider} />
+
+            <View style={styles.trayCell}>
+              {/* Same words as the expanded panel, so the tray reads as the
+                  same thing shrunk rather than a different one. */}
+              <Text style={styles.trayLabel}>Банк</Text>
+              <Text style={[styles.trayValue, { color: bank >= 0 ? colors.textPrimary : colors.lost }]}
+                numberOfLines={1} adjustsFontSizeToFit>
+                {fmt(bank)}
+              </Text>
+            </View>
+
+            <View style={styles.trayDivider} />
+
+            <View style={styles.trayCell}>
+              <Text style={styles.trayLabel}>В игре</Text>
+              <Text style={[styles.trayValue, { color: exposure > 0 ? colors.pending : colors.textMuted }]}
+                numberOfLines={1} adjustsFontSizeToFit>
+                {exposure > 0 ? fmt(exposure) : '—'}
+              </Text>
+            </View>
+
+            {statusFilter !== 'all' && (
+              <View style={styles.trayFilterDot} />
+            )}
           </TouchableOpacity>
         </Animated.View>
       </View>
@@ -504,19 +547,25 @@ const styles = StyleSheet.create({
   listFlex: { flex: 1 },
   trayWrap: { position: 'absolute', top: SPACE.sm, left: 0, right: 0, alignItems: 'center' },
   tray: {
-    flexDirection: 'row', alignItems: 'center', gap: SPACE.sm,
+    flexDirection: 'row', alignItems: 'center', gap: SPACE.md,
     paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm,
-    minHeight: TOUCH,
+    marginHorizontal: SPACE.lg,
     backgroundColor: colors.bgElevated,
     borderRadius: RADIUS.pill,
     borderWidth: 1, borderColor: colors.borderStrong,
     shadowColor: '#000', shadowOpacity: 0.45, shadowRadius: 12,
     shadowOffset: { width: 0, height: 4 }, elevation: 6,
   },
-  trayFilter: { fontSize: SIZE.body, fontWeight: '700', color: colors.textPrimary },
-  trayDot: { width: 3, height: 3, borderRadius: RADIUS.pill, backgroundColor: colors.textMuted },
-  trayPnl: { ...numeric, fontSize: SIZE.body, fontWeight: '700' },
-  trayCaret: { fontSize: GLYPH.md, color: colors.textMuted, marginTop: 2 },
+  traySearch: {
+    width: 28, height: 28, borderRadius: RADIUS.pill,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  trayDivider: { width: 1, height: 24, backgroundColor: colors.border },
+  trayCell: { alignItems: 'center', minWidth: 76 },
+  trayLabel: { fontSize: SIZE.micro, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
+  trayValue: { ...numeric, fontSize: SIZE.body, fontWeight: '700', marginTop: 1 },
+  /** A live status filter is not visible in the collapsed form otherwise. */
+  trayFilterDot: { width: 6, height: 6, borderRadius: RADIUS.pill, backgroundColor: colors.purple },
   list: { paddingBottom: FAB_CLEARANCE }, // clear the floating "+" FAB so the last row isn't covered
   sectionHeader: {
     flexDirection: 'row',

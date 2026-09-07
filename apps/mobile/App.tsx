@@ -33,7 +33,7 @@ export default function App() {
   const updateSettings = useBetsStore((s) => s.updateSettings);
   const [splashDone, setSplashDone] = useState(false);
 
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     DMSans_400Regular,
     DMSans_500Medium,
     DMSans_600SemiBold,
@@ -115,7 +115,9 @@ export default function App() {
     });
   }, []);
 
-  const appReady = isLoaded && fontsLoaded;
+  // A failed font load must not hang the app on the splash forever.
+  const fontsSettled = fontsLoaded || !!fontError;
+  const appReady = isLoaded && fontsSettled;
 
   // Hide native splash once React Native is ready to show our custom JS splash
   useEffect(() => {
@@ -140,7 +142,14 @@ export default function App() {
     return (
       <View style={{ flex: 1, backgroundColor: colors.bg }}>
         <StatusBar style="light" />
-        {!splashDone && <AnimatedSplash onFinish={() => setSplashDone(true)} />}
+        {/* Only once the fonts are registered. The splash names DM Sans, and
+            Android measures a Text with whatever font is available at the time:
+            mounting first meant the tagline was measured in the fallback and
+            then clipped when the wider face arrived — "Трекер ставок" rendered
+            as "Трекер". It also means the animation starts when it becomes
+            visible, instead of playing its first frames under the native
+            splash. */}
+        {!splashDone && fontsSettled && <AnimatedSplash onFinish={() => setSplashDone(true)} />}
       </View>
     );
   }
