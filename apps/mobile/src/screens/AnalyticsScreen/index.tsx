@@ -6,13 +6,10 @@ import { PieChart } from 'react-native-gifted-charts';
 import {
   calcByField, calcByOddsRange, calcByDayOfWeek, calcDashboard,
   calcStreaks, calcExtremes, calcLastFullMonth, calcMonthResult, calcTimeStats, calcCLV,
-  calcMaxDrawdown, calcEdge, calcMonthlyPnl, calcPnlBuckets, calcLuck, calcPlanCompliance, RELIABLE_SAMPLE_MIN,
+  calcMaxDrawdown, calcEdge, calcMonthlyPnl, calcPnlBuckets, calcLuck, RELIABLE_SAMPLE_MIN,
   SPORTS, BET_TYPES, STRATEGIES, formatPercent, toYmd } from '@sharklog/core';
 import type { SliceStats, Bet, MonthlyPnl, PnlBucket, Granularity } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { ProGate } from '../../components/ProGate';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { useFormatMoney } from '../../utils/useFormatMoney';
@@ -28,14 +25,11 @@ import { PnlBars } from '../../components/PnlBars';
 
 const { width } = Dimensions.get('window');
 
-type AnalyticsNav = NativeStackNavigationProp<RootStackParamList>;
-
 // Distinct "time of day" ramp for the 6 four-hour donut segments.
 const BUCKET_COLORS = ['#3B4A8C', '#5B6AF0', '#22D3A0', '#F59E0B', '#A78BFA', '#546E9C'];
 
 const MONTHS_RU = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 const MONTHS_SHORT_RU = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
-
 
 // ── Hero: headline P&L with per-period bars ──────────────────────────────────
 
@@ -368,162 +362,6 @@ const luck = StyleSheet.create({
   winsSwing: { ...numeric, fontSize: SIZE.body, fontWeight: '700' },
   verdict: { fontSize: SIZE.caption, color: colors.textSecondary, lineHeight: 17, marginTop: SPACE.sm },
   caption: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: SPACE.sm, lineHeight: 16 },
-});
-
-// ── Staking-plan compliance ──────────────────────────────────────────────────
-
-/** A stake against a near-empty bank produces a true but unreadable percent. */
-function fmtShare(pct: number): string {
-  return pct >= 1000 ? '>999%' : `${pct.toFixed(1)}%`;
-}
-
-
-function PlanCard({ bets, allBets }: { bets: Bet[]; allBets: Bet[] }) {
-  const fmt = useFormatMoney();
-  const navigation = useNavigation<AnalyticsNav>();
-  const { bankroll, settings } = useBetsStore();
-  const limitPct = settings.generatedStrategy?.stakePercent ?? null;
-
-  // Full history feeds the bank, the period slice is what gets judged.
-  const plan = useMemo(
-    () => (limitPct
-      ? calcPlanCompliance(allBets, bankroll.transactions, limitPct, { evaluate: bets })
-      : null),
-    [allBets, bets, bankroll.transactions, limitPct],
-  );
-
-  // Without a plan there is nothing to comply with — offer to build one instead
-  // of showing an empty card.
-  if (!limitPct) {
-    return (
-      <Card title="Соблюдение плана" tone="warn">
-        <Text style={plan_.empty}>
-          Собери стратегию — она задаст лимит на ставку в % от банка, и здесь появится, насколько ты его держишь.
-        </Text>
-        <TouchableOpacity
-          style={plan_.cta}
-          onPress={() => { haptic.selection(); navigation.navigate('StrategyBuilder'); }}
-          activeOpacity={0.8}
-        >
-          <Text style={plan_.ctaText}>Собрать стратегию →</Text>
-        </TouchableOpacity>
-      </Card>
-    );
-  }
-
-  if (!plan) {
-    return (
-      <Card title="Соблюдение плана" tone="warn">
-        <Text style={plan_.empty}>
-          Нужен банк и хотя бы одна ставка своими деньгами, чтобы посчитать долю от банка.
-        </Text>
-      </Card>
-    );
-  }
-
-  const clean = plan.breachRate === 0;
-
-  return (
-    <Card title="Соблюдение плана" tone="warn" subtitle={`Лимит ${plan.limitPct}% банка на ставку`}>
-      <View style={row.wrap}>
-        <MiniTile
-          label="Ставок сверх лимита"
-          value={`${plan.breachRate.toFixed(0)}%`}
-          color={clean ? colors.won : plan.breachRate > 25 ? colors.lost : colors.pending}
-          sub={`${plan.over} из ${plan.total}`}
-          info={{
-            title: 'Ставок сверх лимита',
-            text: 'Доля ставок, где сумма превысила твой план в % от банка.\n\nБанк берётся на НАЧАЛО дня ставки: пополнения того дня уже учтены, а результаты того дня — ещё нет, потому что на момент ставки они не были известны.\n\nФрибеты не считаются: там своих денег не было.',
-          }}
-        />
-        <View style={{ width: 10 }} />
-        <MiniTile
-          label="Средняя доля банка"
-          value={fmtShare(plan.avgSharePct)}
-          color={plan.avgSharePct > plan.limitPct ? colors.lost : colors.won}
-          sub={`план ${plan.limitPct}%`}
-          info={{
-            title: 'Средняя доля банка',
-            text: 'Средний размер ставки в процентах от банка на тот момент.\n\nЕсли она заметно выше плана — дело не в отдельных срывах, а в том, что реальный размер ставки просто больше выбранного. Тогда честнее пересобрать стратегию под свой стиль, чем каждый раз нарушать её.',
-          }}
-        />
-      </View>
-
-      {!clean && (
-        <View style={plan_.splitRow}>
-          <View style={plan_.splitCell}>
-            <Text style={plan_.splitLabel}>P&L в лимите</Text>
-            <Text style={[plan_.splitValue, { color: plan.pnlWithin >= 0 ? colors.won : colors.lost }]}>
-              {plan.pnlWithin >= 0 ? '+' : ''}{fmt(plan.pnlWithin)}
-            </Text>
-          </View>
-          <View style={plan_.splitDivider} />
-          <View style={plan_.splitCell}>
-            <Text style={plan_.splitLabel}>P&L сверх лимита · {plan.settledOver} расч.</Text>
-            <Text style={[plan_.splitValue, { color: plan.pnlOver >= 0 ? colors.won : colors.lost }]}>
-              {plan.pnlOver >= 0 ? '+' : ''}{fmt(plan.pnlOver)}
-            </Text>
-          </View>
-        </View>
-      )}
-
-      {clean ? (
-        <Text style={plan_.verdict}>Ни одна ставка не вышла за лимит. Это и есть дисциплина.</Text>
-      ) : (
-        <>
-          <Text style={plan_.verdict}>
-            {plan.settledOver === 0
-              ? 'Ставки сверх лимита ещё не рассчитаны — итог по ним будет виден после результата.'
-              : plan.pnlOver < 0
-              ? `Ставки сверх лимита забрали ${fmt(Math.abs(plan.pnlOver))}.`
-              : 'Ставки сверх лимита пока в плюсе — но именно они однажды дадут самую глубокую просадку.'}
-          </Text>
-          <Text style={plan_.worstTitle}>Самые крупные отклонения</Text>
-          {plan.worst.map((w) => (
-            <View key={w.betId} style={plan_.worstRow}>
-              <View style={{ flex: 1, marginRight: SPACE.sm }}>
-                <Text style={plan_.worstEvent} numberOfLines={1}>{w.event}</Text>
-                <Text style={plan_.worstDate}>
-                  {w.date.split('-').reverse().slice(0, 2).join('.')} · {fmt(w.stake)}
-                </Text>
-              </View>
-              <Text style={plan_.worstShare}>{fmtShare(w.sharePct)}</Text>
-            </View>
-          ))}
-        </>
-      )}
-    </Card>
-  );
-}
-
-const plan_ = StyleSheet.create({
-  empty: { fontSize: SIZE.caption, color: colors.textSecondary, lineHeight: 17 },
-  cta: {
-    minHeight: TOUCH, justifyContent: 'center',
-    marginTop: SPACE.md, paddingVertical: SPACE.sm, borderRadius: RADIUS.sm, alignItems: 'center',
-    backgroundColor: alpha(colors.gold, 0.16), borderWidth: 1, borderColor: colors.gold,
-  },
-  ctaText: { fontSize: SIZE.body, fontWeight: '700', color: colors.gold },
-  splitRow: {
-    flexDirection: 'row', alignItems: 'center',
-    marginTop: SPACE.md, paddingTop: SPACE.sm, borderTopWidth: 1, borderTopColor: colors.border,
-  },
-  splitCell: { flex: 1 },
-  splitDivider: { width: 1, height: 28, backgroundColor: colors.border, marginHorizontal: SPACE.sm },
-  splitLabel: { fontSize: SIZE.caption, color: colors.textMuted },
-  splitValue: { fontSize: SIZE.lead, fontWeight: '700', marginTop: 2 },
-  verdict: { fontSize: SIZE.caption, color: colors.textSecondary, lineHeight: 17, marginTop: SPACE.sm },
-  worstTitle: {
-    fontSize: SIZE.caption, color: colors.textMuted, textTransform: 'uppercase',
-    letterSpacing: 0.5, marginTop: SPACE.md, marginBottom: SPACE.xs,
-  },
-  worstRow: {
-    flexDirection: 'row', alignItems: 'center',
-    paddingVertical: SPACE.sm, borderTopWidth: 1, borderTopColor: colors.border,
-  },
-  worstEvent: { fontSize: SIZE.body, fontWeight: '600', color: colors.textPrimary },
-  worstDate: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: 1 },
-  worstShare: { fontSize: SIZE.body, fontWeight: '700', color: colors.lost },
 });
 
 // ── Monthly P&L trend (6 compact bars) ───────────────────────────────────────
@@ -874,7 +712,9 @@ function AnalyticsContent() {
       <ExtremesCard bets={filteredBets} />
       <EdgeRiskCard bets={filteredBets} />
       <LuckCard bets={filteredBets} />
-      <PlanCard bets={filteredBets} allBets={bets} />
+      {/* Promoted out of the collapsed section: which sport actually earns is
+          a first-screen question, and the bars answer it without arithmetic. */}
+      <ExtendedSection title="По виду спорта" stats={extended.sport} />
       <LastMonthCard bets={bets} />
       <TimeCard bets={filteredBets} />
       <ClvCard bets={filteredBets} />
@@ -891,7 +731,6 @@ function AnalyticsContent() {
 
       {extendedOpen && (
         <>
-          <ExtendedSection title="По виду спорта" stats={extended.sport} />
           <ExtendedSection title="По типу ставки" stats={extended.betType} />
           <ExtendedSection title="По букмекеру" stats={extended.bookmaker} />
           <ExtendedSection title="По стратегии" stats={extended.strategy} />

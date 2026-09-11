@@ -95,13 +95,16 @@ export function BetsScreen({ filter, onClearFilter }: {
   const lastY = useRef(0);
   const listRef = useRef<SectionList<Bet, { title: string; dailyPnl: number }>>(null);
 
-  const setCollapsed = useCallback((next: boolean) => {
+  const setCollapsed = useCallback((next: boolean, instant?: boolean) => {
     if (collapsed.current === next || barH.current === 0) return;
     collapsed.current = next;
     setCollapsedState(next);
     Animated.timing(t01, {
       toValue: next ? 1 : 0,
-      duration: 200,
+      // Arriving at the top under a fling, the reserved band shows up before a
+      // 200ms fade can fill it — a strip of bare page with the panel sliding
+      // in after. At that speed there is nothing to animate for anyway.
+      duration: instant ? 0 : 200,
       easing: Easing.out(Easing.quad),
       useNativeDriver: true,
     }).start();
@@ -119,14 +122,17 @@ export function BetsScreen({ filter, onClearFilter }: {
     // The list reserves the panel's height at the top. While any of that
     // reserved band is on screen the panel has to be in it, or the user sees a
     // strip of empty page where the panel used to be.
-    if (y < barH.current) { acc.current = 0; setCollapsed(false); return; }
+    // A fling covers several hundred px per animation frame; anything near that
+    // needs the panel already seated, not on its way.
+    if (y < barH.current) { acc.current = 0; setCollapsed(false, dy < -30); return; }
     if (dy === 0) return;
-    // Reverse direction and the tally starts over, so a flick back up counts
-    // from zero rather than having to undo the whole scroll down.
+    // Deliberately one-way: scrolling up does NOT bring the panel back. A small
+    // upward nudge used to slam the full panel over the rows you were reading.
+    // It returns by scrolling to the top (the clamp above), by tapping the tray,
+    // or when the list stops being scrollable at all (onContentSizeChange).
     if ((dy > 0) !== (acc.current > 0)) acc.current = 0;
     acc.current += dy;
     if (acc.current > 24) setCollapsed(true);
-    else if (acc.current < -24) setCollapsed(false);
   }, [setCollapsed]);
 
   /** Tapping the tray returns to the top, where the full panel lives. */
