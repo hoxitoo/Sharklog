@@ -61,3 +61,24 @@ export function formatChartYLabel(v: string): string {
   if (Math.abs(n) >= 1000) return `${(n / 1000).toFixed(1)}k`;
   return String(Math.round(n));
 }
+
+/**
+ * Marker radius the balance line insets its first and last point by, so those
+ * dots are not clipped at the viewport edge.
+ */
+export const PLOT_INSET = 4;
+
+/**
+ * Which point a scrub at `locationX` lands on.
+ *
+ * Lives here rather than beside the chart so it can be tested in plain Node —
+ * the mobile jest setup has no react-native runtime, and the chart module
+ * pulls one in. The inset has to be undone exactly, or every reading drifts
+ * toward the middle: plausible-looking and wrong.
+ */
+export function pickIndex(locationX: number, plotW: number, count: number): number {
+  if (count <= 1) return 0;
+  const usable = Math.max(plotW - 2 * PLOT_INSET, 1);
+  const i = Math.round(((locationX - PLOT_INSET) / usable) * (count - 1));
+  return Math.min(Math.max(i, 0), count - 1);
+}
