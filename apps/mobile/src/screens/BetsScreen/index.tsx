@@ -121,12 +121,13 @@ export function BetsScreen({ filter, onClearFilter }: {
     // strip of empty page where the panel used to be.
     if (y < barH.current) { acc.current = 0; setCollapsed(false); return; }
     if (dy === 0) return;
-    // Reverse direction and the tally starts over, so a flick back up counts
-    // from zero rather than having to undo the whole scroll down.
+    // Deliberately one-way: scrolling up does NOT bring the panel back. A small
+    // upward nudge used to slam the full panel over the rows you were reading.
+    // The two ways back are scrolling to the top (the clamp above) and tapping
+    // the tray — both of them things you do on purpose.
     if ((dy > 0) !== (acc.current > 0)) acc.current = 0;
     acc.current += dy;
     if (acc.current > 24) setCollapsed(true);
-    else if (acc.current < -24) setCollapsed(false);
   }, [setCollapsed]);
 
   /** Tapping the tray returns to the top, where the full panel lives. */
