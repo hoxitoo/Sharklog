@@ -1,4 +1,4 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, StyleSheet, PanResponder } from 'react-native';
 import { AppText as Text } from './AppText';
 import Svg, { Polyline, Polygon, Line, Circle } from 'react-native-svg';
@@ -38,28 +38,58 @@ export function BalanceChart({ days, width, height, color = SERIES.balance }: Pr
   const [sel, setSel] = useState<number | null>(null);
   const [pillW, setPillW] = useState(0);
 
-  // The responder is created once, so it must not close over `days`/`plotW` —
-  // a stale count maps every touch to the wrong day after a period change.
+  // A touch that leaves the plot must keep reading the plot's own x. Android
+  // recomputes `locationX` against whatever view is under the finger on every
+  // move, so dragging off the left edge into the Y-axis gutter jumps the
+  // reading several days FORWARD. `pageX` minus the origin captured at
+  // touch-down (where locationX is still trustworthy) is stable for the whole
+  // gesture. iOS does not have this problem, so it will not show in a sim.
+  const originX = useRef(0);
+  const selRef = useRef<number | null>(null);
+
+  // Written in an effect, not during render: a ref assignment in render is a
+  // side effect React is allowed to throw away. Effects run before any touch
+  // can arrive, so the handler is never stale.
   const pick = useRef<(x: number) => void>(() => {});
-  pick.current = (x: number) => {
-    if (days.length < 2) return;
-    const i = pickIndex(x, plotW, days.length);
-    setSel((prev) => {
-      if (prev !== i) haptic.selection();
-      return i;
-    });
-  };
+  useEffect(() => {
+    pick.current = (x: number) => {
+      if (days.length < 2) return;
+      const i = pickIndex(x, plotW, days.length);
+      if (selRef.current === i) return;
+      // Outside the state updater: React may re-run an updater when rebasing,
+      // and a haptic is not something to fire twice.
+      selRef.current = i;
+      haptic.selection();
+      setSel(i);
+    };
+  });
+
+  // The series can shift under a held selection — deleting the oldest
+  // transaction moves every day one slot left — and a marker the user never
+  // placed would keep pointing at a different day.
+  useEffect(() => {
+    selRef.current = null;
+    setSel(null);
+  }, [days]);
 
   const scrub = useRef(
     PanResponder.create({
-      // Claim on touch-down so a plain tap reads a value...
+      // Claim on touch-down so a plain tap reads a value.
       onStartShouldSetPanResponder: () => true,
-      // ...but hand the gesture back the moment the enclosing ScrollView wants
-      // it, or the chart becomes a 150pt dead zone you cannot scroll past.
+      // Android only: without this, becoming the JS responder calls
+      // requestDisallowInterceptTouchEvent(true) on every ancestor, and the
+      // enclosing ScrollView never sees the gesture — the chart becomes a
+      // 150pt band you cannot scroll past. `onPanResponderTerminationRequest`
+      // does NOT cover this: Android cancels the responder outright rather
+      // than asking, so it is consulted only on an iOS-style JS handover.
+      onShouldBlockNativeResponder: () => false,
       onPanResponderTerminationRequest: () => true,
-      onMoveShouldSetPanResponder: (_, g) => Math.abs(g.dx) > Math.abs(g.dy),
-      onPanResponderGrant: (e) => pick.current(e.nativeEvent.locationX),
-      onPanResponderMove: (e) => pick.current(e.nativeEvent.locationX),
+      onPanResponderGrant: (e) => {
+        const { pageX, locationX } = e.nativeEvent;
+        originX.current = pageX - locationX;
+        pick.current(locationX);
+      },
+      onPanResponderMove: (e) => pick.current(e.nativeEvent.pageX - originX.current),
     }),
   ).current;
 
@@ -164,7 +194,7 @@ export function BalanceChart({ days, width, height, color = SERIES.balance }: Pr
 
         {active && (
           <View
-            style={[bc.pill, { left: pillLeft }]}
+            style={[bc.pill, { left: pillLeft, opacity: pillW > 0 ? 1 : 0 }]}
             onLayout={(e) => setPillW(e.nativeEvent.layout.width)}
             pointerEvents="none"
           >

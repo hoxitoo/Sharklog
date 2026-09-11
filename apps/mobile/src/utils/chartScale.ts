@@ -63,10 +63,14 @@ export function formatChartYLabel(v: string): string {
 }
 
 /**
- * Marker radius the balance line insets its first and last point by, so those
- * dots are not clipped at the viewport edge.
+ * How far the balance line insets its first and last point, so the markers
+ * drawn there are not clipped by the viewport.
+ *
+ * Sized to the WIDEST thing drawn at an end: the scrubber's selection dot is
+ * r=5 with a 2px ring, i.e. 6 from its centre. The plain end dot is only 3.5,
+ * which is why 4 was enough before the scrubber existed.
  */
-export const PLOT_INSET = 4;
+export const PLOT_INSET = 6;
 
 /**
  * Which point a scrub at `locationX` lands on.
