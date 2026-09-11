@@ -78,7 +78,10 @@ export function BetsScreen({ filter, onClearFilter }: {
   const { t } = useTranslation();
   const todayLabel = t('dashboard.today');
   const yesterdayLabel = t('dashboard.yesterday');
-  const inTilt = isInTilt(bets, settings.tiltThreshold);
+  const inTilt = useMemo(
+    () => isInTilt(bets, settings.tiltThreshold),
+    [bets, settings.tiltThreshold],
+  );
   const [statusFilter, setStatusFilter] = useState<BetStatus | 'all'>('all');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortKey>('date_desc');
@@ -320,11 +323,10 @@ export function BetsScreen({ filter, onClearFilter }: {
           stickySectionHeadersEnabled={false}
           // RN keeps 21 screens of content mounted by default. At 229 bets that
           // is hundreds of live cards, each with its own swipe PanResponder —
-          // paid on mount and on every list update.
+          // paid on mount and on every list update. This is the only knob worth
+          // turning here: maxToRenderPerBatch below its default of 10 just adds
+          // blank space on a fling, and 50ms batching IS the default.
           windowSize={9}
-          initialNumToRender={8}
-          maxToRenderPerBatch={8}
-          updateCellsBatchingPeriod={50}
           contentContainerStyle={listContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"

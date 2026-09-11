@@ -447,8 +447,14 @@ export function DashboardScreen() {
   const stats = useMemo(() => calcDashboard(filteredBets), [filteredBets]);
   // Tilt is an all-time discipline signal; compute the streak from the same (all-bets)
   // dataset the banner is gated on, so the displayed count always matches `inTilt`.
-  const allTimeStats = period === 'all' ? stats : calcDashboard(bets);
-  const inTilt = isInTilt(bets, settings.tiltThreshold);
+  const allTimeStats = useMemo(
+    () => (period === 'all' ? stats : calcDashboard(bets)),
+    [period, stats, bets],
+  );
+  const inTilt = useMemo(
+    () => isInTilt(bets, settings.tiltThreshold),
+    [bets, settings.tiltThreshold],
+  );
 
   useEffect(() => {
     if (inTilt && !prevInTilt.current) {

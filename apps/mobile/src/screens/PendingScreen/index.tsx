@@ -85,8 +85,6 @@ export function PendingScreen() {
         keyExtractor={(b) => b.id}
         keyboardShouldPersistTaps="handled"
         windowSize={9}
-        initialNumToRender={8}
-        maxToRenderPerBatch={8}
         contentContainerStyle={s.list}
         ListEmptyComponent={
           <View style={s.empty}>

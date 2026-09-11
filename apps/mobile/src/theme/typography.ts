@@ -97,6 +97,27 @@ export const typography: Record<string, TextStyle> = {
 };
 
 /**
+ * Every `Text` in the app asks for this on every render, so the answer is
+ * cached. The inputs are two short strings from a closed set — six faces and a
+ * handful of weights — so the map settles at a couple of dozen entries and
+ * never grows again, while the allocation it saves scales with the size of the
+ * screen being drawn.
+ */
+const fontCache = new Map<string, TextStyle>();
+
+export function resolveFont(
+  family: string | undefined,
+  weight: TextStyle['fontWeight'],
+): TextStyle {
+  const key = `${family ?? ''}|${weight ?? ''}`;
+  const hit = fontCache.get(key);
+  if (hit) return hit;
+  const resolved = computeFont(family, weight);
+  fontCache.set(key, resolved);
+  return resolved;
+}
+
+/**
  * The whole font decision for one text style, given its flattened family and
  * weight. Lives here rather than in `AppText` so it can be tested without a
  * react-native runtime — the failure mode is a face silently rendering one cut
@@ -105,7 +126,7 @@ export const typography: Record<string, TextStyle> = {
  * Always returns `fontWeight: undefined`: once the weight has picked the file,
  * leaving it set makes Android fake-bold on top of an already-bold face.
  */
-export function resolveFont(
+function computeFont(
   family: string | undefined,
   weight: TextStyle['fontWeight'],
 ): TextStyle {

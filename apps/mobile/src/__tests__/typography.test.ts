@@ -59,6 +59,16 @@ describe('theme/typography', () => {
     });
   });
 
+  it('hands back the same object for the same request', () => {
+    // Every Text in a screen asks on every render; the allocation is what the
+    // cache is for, so identity — not just equality — is the thing to pin.
+    expect(resolveFont(FONTS.mono, '700')).toBe(resolveFont(FONTS.mono, '700'));
+    expect(resolveFont(undefined, '400')).toBe(resolveFont(undefined, '400'));
+    // Different requests must not collide on one cache key.
+    expect(resolveFont(undefined, '700')).not.toBe(resolveFont(undefined, '400'));
+    expect(resolveFont(FONTS.mono, '700').fontFamily).toBe(FONTS.monoMedium);
+  });
+
   it('numeric asks for tabular figures on top of the mono face', () => {
     expect(numeric.fontFamily).toBe(FONTS.mono);
     expect(numeric.fontVariant).toContain('tabular-nums');
