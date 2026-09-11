@@ -395,7 +395,9 @@ const dd = StyleSheet.create({
 export function DashboardScreen() {
   const navigation = useNavigation<Nav>();
   const { width } = useWindowDimensions();
-  const { bets, settings, bankroll } = useBetsStore();
+  const bets = useBetsStore((s) => s.bets);
+  const settings = useBetsStore((s) => s.settings);
+  const bankroll = useBetsStore((s) => s.bankroll);
   const fmt = useFormatMoney();
   const [period, setPeriod] = useState<PeriodFilter>('all');
   const [showHeatmap, setShowHeatmap] = useState(false);
@@ -442,7 +444,7 @@ export function DashboardScreen() {
   // render hundreds of 1px columns and stall the modal.
   const expandedDays = useMemo(() => fullDays.slice(-365), [fullDays]);
 
-  const stats = calcDashboard(filteredBets);
+  const stats = useMemo(() => calcDashboard(filteredBets), [filteredBets]);
   // Tilt is an all-time discipline signal; compute the streak from the same (all-bets)
   // dataset the banner is gated on, so the displayed count always matches `inTilt`.
   const allTimeStats = period === 'all' ? stats : calcDashboard(bets);

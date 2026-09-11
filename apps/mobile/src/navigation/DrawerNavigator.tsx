@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { SPACE, RADIUS, TOUCH, FAB_SIZE, FAB_BOTTOM } from '../theme/layout';
 import {
   View, StyleSheet, TouchableOpacity, Animated, Pressable, ScrollView, Image, Alert, PanResponder, BackHandler,
@@ -46,7 +46,12 @@ const MAIN_ITEMS: NavItem[] = [
   { screen: 'Settings',   icon: 'settings-outline',   iconActive: 'settings',       labelKey: 'nav.settings' },
 ];
 
-function ActiveScreen({ screen, betsFilter, onClearBetsFilter }: {
+/**
+ * Memoised: opening the drawer, closing it, or toggling the checklist are
+ * drawer state, and without this each of them re-rendered the entire screen
+ * behind the drawer — charts, lists and all — while an animation was running.
+ */
+const ActiveScreen = React.memo(function ActiveScreen({ screen, betsFilter, onClearBetsFilter }: {
   screen: DrawerScreen;
   betsFilter: BetsFilter | null;
   onClearBetsFilter: () => void;
@@ -59,7 +64,7 @@ function ActiveScreen({ screen, betsFilter, onClearBetsFilter }: {
     case 'Discipline': return <DisciplineScreen />;
     case 'Settings': return <SettingsScreen />;
   }
-}
+});
 
 export function DrawerNavigator() {
   const [screen, setScreen] = useState<DrawerScreen>('Bets');
@@ -71,7 +76,8 @@ export function DrawerNavigator() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { t } = useTranslation();
-  const { settings, canAddBet } = useBetsStore();
+  const settings = useBetsStore((s) => s.settings);
+  const canAddBet = useBetsStore((s) => s.canAddBet);
 
   function openDrawer() {
     // A keyboard left up behind a full-height drawer is both nonsense to look
@@ -133,6 +139,10 @@ export function DrawerNavigator() {
     });
   }
 
+  // Stable identity: a new arrow on every render re-renders the whole active
+  // screen tree, which is the expensive half of this app.
+  const clearBetsFilter = useCallback(() => setBetsFilter(null), []);
+
   function goToBets(filter?: BetsFilter) {
     setBetsFilter(filter ?? null);
     setScreen('Bets');
@@ -140,7 +150,13 @@ export function DrawerNavigator() {
 
   function handleNavigate(s: DrawerScreen) {
     setBetsFilter(null); // explicit navigation clears any drill-down
-    closeDrawer(() => setScreen(s));
+    // Switch FIRST, then close over it. The close runs on the native driver,
+    // so the new screen can mount while the drawer is still covering it and
+    // the animation does not stutter — waiting for the callback put the whole
+    // mount cost in the frame right after the drawer got out of the way, which
+    // is exactly where it reads as a freeze.
+    setScreen(s);
+    closeDrawer();
   }
 
   // Android hardware back. Without this the drawer stays open behind the press
@@ -183,7 +199,7 @@ export function DrawerNavigator() {
           <ActiveScreen
             screen={screen}
             betsFilter={betsFilter}
-            onClearBetsFilter={() => setBetsFilter(null)}
+            onClearBetsFilter={clearBetsFilter}
           />
         </View>
 
@@ -237,7 +253,7 @@ interface DrawerContentProps {
 function DrawerContent({ currentScreen, onNavigate, onClose, insets }: DrawerContentProps) {
   const { t } = useTranslation();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { settings } = useBetsStore();
+  const settings = useBetsStore((s) => s.settings);
 
   function goStack(name: 'Bankroll' | 'StrategyBuilder' | 'Partners') {
     onClose(() => navigation.navigate(name));

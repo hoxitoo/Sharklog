@@ -52,7 +52,7 @@ function bucketTitle(b: PnlBucket, granularity: Granularity): string {
 
 function HeroPnl({ bets, period }: { bets: Bet[]; period: APeriodFilter }) {
   const fmt = useFormatMoney();
-  const stats = calcDashboard(bets);
+  const stats = useMemo(() => calcDashboard(bets), [bets]);
   const positive = stats.pnl >= 0;
   const lineColor = positive ? colors.won : colors.lost;
 
@@ -181,7 +181,7 @@ const tile = StyleSheet.create({
 });
 
 function StreaksCard({ bets }: { bets: Bet[] }) {
-  const s = calcStreaks(bets);
+  const s = useMemo(() => calcStreaks(bets), [bets]);
   const cur = s.current;
   const curLabel = cur.type === 'none' ? '—' : `${cur.count}`;
   const curColor = cur.type === 'win' ? colors.won : cur.type === 'loss' ? colors.lost : colors.textMuted;
@@ -205,7 +205,7 @@ function StreaksCard({ bets }: { bets: Bet[] }) {
 
 function ExtremesCard({ bets }: { bets: Bet[] }) {
   const fmt = useFormatMoney();
-  const e = calcExtremes(bets);
+  const e = useMemo(() => calcExtremes(bets), [bets]);
   const cleanEvent = (ev: string) => ev.split(' / ')[0]?.split('|')[0]?.trim() ?? ev;
   return (
     <Card title="Рекорды" tone="violet">
@@ -670,7 +670,7 @@ const A_PERIOD_OPTIONS: Array<{ key: APeriodFilter; label: string }> = [
 ];
 
 function AnalyticsContent() {
-  const { bets } = useBetsStore();
+  const bets = useBetsStore((s) => s.bets);
   const [period, setPeriod] = useState<APeriodFilter>('all');
   const [extendedOpen, setExtendedOpen] = useState(false);
 

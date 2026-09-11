@@ -338,9 +338,11 @@ const tx_ = StyleSheet.create({
 
 function BankrollContent() {
   const fmt = useFormatMoney();
-  const { bets, bankroll, updateBankroll } = useBetsStore();
+  const bets = useBetsStore((s) => s.bets);
+  const bankroll = useBetsStore((s) => s.bankroll);
+  const updateBankroll = useBetsStore((s) => s.updateBankroll);
   const { width } = useWindowDimensions();
-  const stats = calcDashboard(bets);
+  const stats = useMemo(() => calcDashboard(bets), [bets]);
   const [activeTxForm, setActiveTxForm] = useState<TxType | null>(null);
 
   const deposited = bankroll.transactions.filter((t) => t.type === 'deposit').reduce((s, t) => s + t.amount, 0);

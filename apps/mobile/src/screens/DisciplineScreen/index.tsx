@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { SPACE, RADIUS, TOUCH } from '../../theme/layout';
 import {
   View, StyleSheet, ScrollView, TouchableOpacity, Alert,
@@ -123,8 +123,11 @@ const card = StyleSheet.create({
 });
 
 export function DisciplineScreen() {
-  const { bets, diary, settings, addDiaryEntry } = useBetsStore();
-  const stats = calcDashboard(bets);
+  const bets = useBetsStore((s) => s.bets);
+  const diary = useBetsStore((s) => s.diary);
+  const settings = useBetsStore((s) => s.settings);
+  const addDiaryEntry = useBetsStore((s) => s.addDiaryEntry);
+  const stats = useMemo(() => calcDashboard(bets), [bets]);
   const inTilt = isInTilt(bets, settings.tiltThreshold);
 
   const today = todayStr();

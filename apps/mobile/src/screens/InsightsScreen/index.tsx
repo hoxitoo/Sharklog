@@ -166,7 +166,7 @@ function MoreToggle({ count, open, onToggle }: {
 // ── Screen ───────────────────────────────────────────────────────────────────
 
 export function InsightsScreen() {
-  const { bets } = useBetsStore();
+  const bets = useBetsStore((s) => s.bets);
   const { goToBets } = useDrawer();
   const [period, setPeriod] = useState<Period>('all');
   const [tOpen, setTOpen] = useState(false);

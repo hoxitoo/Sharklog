@@ -39,7 +39,7 @@ export function displayEvent(event: string): string {
 export const BetCard = React.memo(function BetCard({
   bet, onPress, cashoutOpen = false, onRequestCashout, onCloseCashout,
 }: Props) {
-  const { updateBet } = useBetsStore();
+  const updateBet = useBetsStore((s) => s.updateBet);
   const { t } = useTranslation();
   // Inline cashout entry: the amount is typed here rather than in the full editor.
   const [cashoutText, setCashoutText] = useState('');
