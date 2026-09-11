@@ -10,9 +10,6 @@ import {
   SPORTS, BET_TYPES, STRATEGIES, formatPercent, toYmd } from '@sharklog/core';
 import type { SliceStats, Bet, MonthlyPnl, PnlBucket, Granularity } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
-import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { ProGate } from '../../components/ProGate';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { useFormatMoney } from '../../utils/useFormatMoney';
@@ -28,14 +25,11 @@ import { PnlBars } from '../../components/PnlBars';
 
 const { width } = Dimensions.get('window');
 
-type AnalyticsNav = NativeStackNavigationProp<RootStackParamList>;
-
 // Distinct "time of day" ramp for the 6 four-hour donut segments.
 const BUCKET_COLORS = ['#3B4A8C', '#5B6AF0', '#22D3A0', '#F59E0B', '#A78BFA', '#546E9C'];
 
 const MONTHS_RU = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
 const MONTHS_SHORT_RU = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
-
 
 // ── Hero: headline P&L with per-period bars ──────────────────────────────────
 
@@ -370,6 +364,7 @@ const luck = StyleSheet.create({
   caption: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: SPACE.sm, lineHeight: 16 },
 });
 
+// ── Monthly P&L trend (6 compact bars) ───────────────────────────────────────
 
 function MonthlyBars({ data, selected, onSelect }: {
   data: MonthlyPnl[];
