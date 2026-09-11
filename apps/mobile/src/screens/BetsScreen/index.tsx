@@ -71,11 +71,17 @@ export function BetsScreen({ filter, onClearFilter }: {
   onClearFilter?: () => void;
 } = {}) {
   const navigation = useNavigation<Nav>();
-  const { bets, settings, bankroll, deleteBet } = useBetsStore();
+  const bets = useBetsStore((s) => s.bets);
+  const settings = useBetsStore((s) => s.settings);
+  const bankroll = useBetsStore((s) => s.bankroll);
+  const deleteBet = useBetsStore((s) => s.deleteBet);
   const { t } = useTranslation();
   const todayLabel = t('dashboard.today');
   const yesterdayLabel = t('dashboard.yesterday');
-  const inTilt = isInTilt(bets, settings.tiltThreshold);
+  const inTilt = useMemo(
+    () => isInTilt(bets, settings.tiltThreshold),
+    [bets, settings.tiltThreshold],
+  );
   const [statusFilter, setStatusFilter] = useState<BetStatus | 'all'>('all');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortKey>('date_desc');
@@ -94,6 +100,12 @@ export function BetsScreen({ filter, onClearFilter }: {
   const collapsed = useRef(false);
   const lastY = useRef(0);
   const listRef = useRef<SectionList<Bet, { title: string; dailyPnl: number }>>(null);
+  // A fresh array here re-applies the content style on every render, and the
+  // panel toggles twice per scroll gesture.
+  const listContent = useMemo(
+    () => [styles.list, { paddingTop: barHeight }],
+    [barHeight],
+  );
 
   const setCollapsed = useCallback((next: boolean, instant?: boolean) => {
     if (collapsed.current === next || barH.current === 0) return;
@@ -309,7 +321,13 @@ export function BetsScreen({ filter, onClearFilter }: {
           // whatever the setting was on mount.
           ), [fmt])}
           stickySectionHeadersEnabled={false}
-          contentContainerStyle={[styles.list, { paddingTop: barHeight }]}
+          // RN keeps 21 screens of content mounted by default. At 229 bets that
+          // is hundreds of live cards, each with its own swipe PanResponder —
+          // paid on mount and on every list update. This is the only knob worth
+          // turning here: maxToRenderPerBatch below its default of 10 just adds
+          // blank space on a fling, and 50ms batching IS the default.
+          windowSize={9}
+          contentContainerStyle={listContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
           onScroll={onScroll}

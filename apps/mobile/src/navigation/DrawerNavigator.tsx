@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { SPACE, RADIUS, TOUCH, FAB_SIZE, FAB_BOTTOM } from '../theme/layout';
 import {
   View, StyleSheet, TouchableOpacity, Animated, Pressable, ScrollView, Image, Alert, PanResponder, BackHandler,
@@ -46,7 +46,12 @@ const MAIN_ITEMS: NavItem[] = [
   { screen: 'Settings',   icon: 'settings-outline',   iconActive: 'settings',       labelKey: 'nav.settings' },
 ];
 
-function ActiveScreen({ screen, betsFilter, onClearBetsFilter }: {
+/**
+ * Memoised: opening the drawer, closing it, or toggling the checklist are
+ * drawer state, and without this each of them re-rendered the entire screen
+ * behind the drawer — charts, lists and all — while an animation was running.
+ */
+const ActiveScreen = React.memo(function ActiveScreen({ screen, betsFilter, onClearBetsFilter }: {
   screen: DrawerScreen;
   betsFilter: BetsFilter | null;
   onClearBetsFilter: () => void;
@@ -59,7 +64,7 @@ function ActiveScreen({ screen, betsFilter, onClearBetsFilter }: {
     case 'Discipline': return <DisciplineScreen />;
     case 'Settings': return <SettingsScreen />;
   }
-}
+});
 
 export function DrawerNavigator() {
   const [screen, setScreen] = useState<DrawerScreen>('Bets');
@@ -71,13 +76,21 @@ export function DrawerNavigator() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { t } = useTranslation();
-  const { settings, canAddBet } = useBetsStore();
+  const settings = useBetsStore((s) => s.settings);
+  const canAddBet = useBetsStore((s) => s.canAddBet);
 
-  function openDrawer() {
+  // Bumped on every open. The close callback checks it rather than `finished`:
+  // only a re-OPEN should cancel a pending navigation, but a second close —
+  // Android back pressed within the 200ms — reports unfinished too, and used
+  // to drop the item the user had just tapped.
+  const openToken = useRef(0);
+
+  const openDrawer = useCallback(() => {
     // A keyboard left up behind a full-height drawer is both nonsense to look
     // at and the reason the first tap on a menu item did nothing: RN hands
     // that tap to dismissing the keyboard, not to the item under the finger.
     Keyboard.dismiss();
+    openToken.current += 1;
     setDrawerVisible(true);
     Animated.parallel([
       Animated.spring(translateX, {
@@ -92,7 +105,7 @@ export function DrawerNavigator() {
         useNativeDriver: true,
       }),
     ]).start();
-  }
+  }, [translateX, overlayOpacity]);
 
   const drawerVisibleRef = useRef(false);
   drawerVisibleRef.current = drawerVisible;
@@ -110,6 +123,7 @@ export function DrawerNavigator() {
   ).current;
 
   function closeDrawer(callback?: () => void) {
+    const token = openToken.current;
     Animated.parallel([
       Animated.timing(translateX, {
         toValue: -DRAWER_WIDTH,
@@ -121,25 +135,40 @@ export function DrawerNavigator() {
         duration: 200,
         useNativeDriver: true,
       }),
-    ]).start(({ finished }) => {
-      // Interrupted means an open started while we were closing — tapping the
-      // hamburger during the 200ms close used to land here anyway, switching
-      // pointerEvents off on a drawer that was visually open. The panel then
-      // ignored every tap until it was closed and opened again, which is what
-      // "sometimes it takes two taps" was.
-      if (!finished) return;
+    ]).start(() => {
+      // Re-opened while we were closing: leave the state alone. Doing
+      // otherwise switched pointerEvents off on a drawer that was visually
+      // open, and it then ignored every tap until closed and opened again —
+      // that was the "sometimes it takes two taps".
+      if (openToken.current !== token) return;
       setDrawerVisible(false);
       callback?.();
     });
   }
 
-  function goToBets(filter?: BetsFilter) {
+  // Stable identity: a new arrow on every render re-renders the whole active
+  // screen tree, which is the expensive half of this app.
+  const clearBetsFilter = useCallback(() => setBetsFilter(null), []);
+
+  const goToBets = useCallback((filter?: BetsFilter) => {
     setBetsFilter(filter ?? null);
     setScreen('Bets');
-  }
+  }, []);
+
+  // Memoised, or React.memo on the screen buys nothing: context bypasses it,
+  // and a fresh value object re-rendered every consumer — ScreenHeader on all
+  // six screens, plus the Insights and Dashboard trees — on each drawer
+  // open, close and checklist toggle.
+  const drawerCtx = useMemo(() => ({ openDrawer, goToBets }), [openDrawer, goToBets]);
 
   function handleNavigate(s: DrawerScreen) {
     setBetsFilter(null); // explicit navigation clears any drill-down
+    // Deliberately AFTER the close, not before. Switching first looked like it
+    // would hide the mount behind the animation, but on the New Architecture
+    // the animation is queued to native in a setImmediate that runs after the
+    // React commit — so the drawer would sit still for the whole mount and
+    // only then slide. It also exposes the new screen under a scrim that still
+    // swallows taps, and shows the bet list's first-mount reflow.
     closeDrawer(() => setScreen(s));
   }
 
@@ -169,7 +198,7 @@ export function DrawerNavigator() {
   }
 
   return (
-    <DrawerContext.Provider value={{ openDrawer, goToBets }}>
+    <DrawerContext.Provider value={drawerCtx}>
       <View style={styles.root}>
         {/* Checklist modal (PRO pre-bet) */}
         <ChecklistModal
@@ -183,7 +212,7 @@ export function DrawerNavigator() {
           <ActiveScreen
             screen={screen}
             betsFilter={betsFilter}
-            onClearBetsFilter={() => setBetsFilter(null)}
+            onClearBetsFilter={clearBetsFilter}
           />
         </View>
 
@@ -237,7 +266,7 @@ interface DrawerContentProps {
 function DrawerContent({ currentScreen, onNavigate, onClose, insets }: DrawerContentProps) {
   const { t } = useTranslation();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { settings } = useBetsStore();
+  const settings = useBetsStore((s) => s.settings);
 
   function goStack(name: 'Bankroll' | 'StrategyBuilder' | 'Partners') {
     onClose(() => navigation.navigate(name));

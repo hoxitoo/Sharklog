@@ -108,7 +108,10 @@ const step_ = StyleSheet.create({
 export function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { settings, updateSettings, bets, clearAll } = useBetsStore();
+  const settings = useBetsStore((s) => s.settings);
+  const updateSettings = useBetsStore((s) => s.updateSettings);
+  const bets = useBetsStore((s) => s.bets);
+  const clearAll = useBetsStore((s) => s.clearAll);
   const { t } = useTranslation();
   const [newBookmaker, setNewBookmaker] = useState('');
   const [exporting, setExporting] = useState(false);

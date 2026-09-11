@@ -41,7 +41,9 @@ const FEATURES = [
 
 export function OnboardingScreen() {
   const insets = useSafeAreaInsets();
-  const { updateSettings, updateBankroll, bankroll } = useBetsStore();
+  const updateSettings = useBetsStore((s) => s.updateSettings);
+  const updateBankroll = useBetsStore((s) => s.updateBankroll);
+  const bankroll = useBetsStore((s) => s.bankroll);
 
   const [step, setStep] = useState(0);
   const [depositInput, setDepositInput] = useState('');

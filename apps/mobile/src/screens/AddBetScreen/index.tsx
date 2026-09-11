@@ -493,7 +493,12 @@ const kl = StyleSheet.create({
 export function AddBetScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
-  const { bets, addBet, updateBet, settings, bankroll, canAddBet } = useBetsStore();
+  const bets = useBetsStore((s) => s.bets);
+  const addBet = useBetsStore((s) => s.addBet);
+  const updateBet = useBetsStore((s) => s.updateBet);
+  const settings = useBetsStore((s) => s.settings);
+  const bankroll = useBetsStore((s) => s.bankroll);
+  const canAddBet = useBetsStore((s) => s.canAddBet);
   const [kellyOpen, setKellyOpen] = useState(false);
   const team2Ref = useRef<TextInputRef>(null);
   const scrollRef = useRef<ScrollView>(null);

@@ -18,7 +18,7 @@ const DISCLAIMER =
   'Ставки сопряжены с риском потери денег. Играйте ответственно.';
 
 function ResultScreen({ strategy, onReset }: { strategy: GeneratedStrategy; onReset: () => void }) {
-  const { updateSettings } = useBetsStore();
+  const updateSettings = useBetsStore((s) => s.updateSettings);
 
   const items = [
     { icon: '📅', label: 'Ставок в день',          value: `≤ ${strategy.betsPerDay}` },
@@ -178,7 +178,8 @@ function WizardScreen({ onDone }: { onDone: (strategy: GeneratedStrategy) => voi
 }
 
 export function StrategyBuilderScreen() {
-  const { settings, updateSettings } = useBetsStore();
+  const settings = useBetsStore((s) => s.settings);
+  const updateSettings = useBetsStore((s) => s.updateSettings);
   const [result, setResult] = useState<GeneratedStrategy | null>(settings.generatedStrategy ?? null);
   const [building, setBuilding] = useState(!settings.generatedStrategy);
 

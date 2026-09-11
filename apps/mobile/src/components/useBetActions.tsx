@@ -39,7 +39,8 @@ const STATUS_META: Array<{
  */
 export function useBetActions() {
   const navigation = useNavigation<Nav>();
-  const { updateBet, deleteBet } = useBetsStore();
+  const updateBet = useBetsStore((s) => s.updateBet);
+  const deleteBet = useBetsStore((s) => s.deleteBet);
   const { t } = useTranslation();
 
   const [bet, setBet] = useState<Bet | null>(null);
