@@ -48,6 +48,23 @@ const MAIN_ITEMS: NavItem[] = [
 ];
 
 /**
+ * One extra render before the freeze takes hold.
+ *
+ * Freezing in the same commit as the navigation denies the outgoing screen the
+ * chance to commit its final state — `react-native-screens` wraps `Freeze` the
+ * same way, for the same reason. A zero-delay timeout is enough.
+ */
+function DelayedFreeze({ freeze, children }: { freeze: boolean; children: React.ReactNode }) {
+  const [frozen, setFrozen] = useState(freeze);
+  useEffect(() => {
+    if (!freeze) { setFrozen(false); return; }
+    const id = setTimeout(() => setFrozen(true), 0);
+    return () => clearTimeout(id);
+  }, [freeze]);
+  return <Freeze freeze={freeze && frozen}>{children}</Freeze>;
+}
+
+/**
  * Memoised: opening the drawer, closing it, or toggling the checklist are
  * drawer state, and without this each of them re-rendered the entire screen
  * behind the drawer — charts, lists and all — while an animation was running.
@@ -225,13 +242,13 @@ export function DrawerNavigator() {
         <View style={styles.screen}>
           {visited.map((key) => (
             <View key={key} style={key === screen ? styles.screenActive : styles.screenHidden}>
-              <Freeze freeze={key !== screen}>
+              <DelayedFreeze freeze={key !== screen}>
                 <ActiveScreen
                   screen={key}
                   betsFilter={betsFilter}
                   onClearBetsFilter={clearBetsFilter}
                 />
-              </Freeze>
+              </DelayedFreeze>
             </View>
           ))}
         </View>

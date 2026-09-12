@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { SPACE, RADIUS, TOUCH, FAB_CLEARANCE, hitSlopFor } from '../../theme/layout';
 import { cardSurface } from '../../components/Card';
 import {
@@ -171,7 +171,11 @@ export function BetsScreen({ filter, onClearFilter }: {
 
   const onBarLayout = useCallback((e: { nativeEvent: { layout: { height: number } } }) => {
     const h = e.nativeEvent.layout.height;
-    if (h === barH.current) return;
+    // Zero means the screen is hidden (`display:'none'` in the drawer gives
+    // Yoga a zero-size node), not that the panel shrank. Taking it would drop
+    // the list's paddingTop, and the panel would sit over the first rows for a
+    // frame when the screen comes back.
+    if (h === 0 || h === barH.current) return;
     barH.current = h;
     setBarHeight(h);
   }, []);
@@ -194,6 +198,15 @@ export function BetsScreen({ filter, onClearFilter }: {
     haptic.selection();
     setTimeout(() => setRefreshing(false), 300);
   }, []);
+
+  // Arriving from an Insights row, the screen is no longer freshly mounted — the
+  // drawer keeps it alive — so it still holds the offset from last time. On a
+  // three-bet filter the list clamps to the bottom of its new content, and the
+  // row the user tapped is off-screen above.
+  useEffect(() => {
+    if (!filter) return;
+    listRef.current?.getScrollResponder()?.scrollTo({ y: 0, animated: false });
+  }, [filter]);
 
   const filterLabel = useMemo(() => {
     const dm = (ymd: string) => ymd.split('-').reverse().slice(0, 2).join('.');
