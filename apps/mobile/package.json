@@ -38,6 +38,7 @@
     "i18next": "^26.3.1",
     "promise": "^8.3.0",
     "react": "19.2.3",
+    "react-freeze": "^1.0.4",
     "react-hook-form": "^7.51.5",
     "react-i18next": "^17.0.8",
     "react-native": "0.85.3",

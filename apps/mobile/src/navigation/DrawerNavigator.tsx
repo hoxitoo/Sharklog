@@ -13,6 +13,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors } from '../theme/colors';
 import { useTranslation } from 'react-i18next';
 import { useBetsStore } from '../store/betsStore';
+import { Freeze } from 'react-freeze';
 import { DrawerContext, type BetsFilter } from '../components/DrawerContext';
 import { BetsScreen } from '../screens/BetsScreen';
 import { DashboardScreen } from '../screens/DashboardScreen';
@@ -47,6 +48,23 @@ const MAIN_ITEMS: NavItem[] = [
 ];
 
 /**
+ * One extra render before the freeze takes hold.
+ *
+ * Freezing in the same commit as the navigation denies the outgoing screen the
+ * chance to commit its final state — `react-native-screens` wraps `Freeze` the
+ * same way, for the same reason. A zero-delay timeout is enough.
+ */
+function DelayedFreeze({ freeze, children }: { freeze: boolean; children: React.ReactNode }) {
+  const [frozen, setFrozen] = useState(freeze);
+  useEffect(() => {
+    if (!freeze) { setFrozen(false); return; }
+    const id = setTimeout(() => setFrozen(true), 0);
+    return () => clearTimeout(id);
+  }, [freeze]);
+  return <Freeze freeze={freeze && frozen}>{children}</Freeze>;
+}
+
+/**
  * Memoised: opening the drawer, closing it, or toggling the checklist are
  * drawer state, and without this each of them re-rendered the entire screen
  * behind the drawer — charts, lists and all — while an animation was running.
@@ -68,6 +86,14 @@ const ActiveScreen = React.memo(function ActiveScreen({ screen, betsFilter, onCl
 
 export function DrawerNavigator() {
   const [screen, setScreen] = useState<DrawerScreen>('Bets');
+  // Screens are kept once visited, so only the FIRST visit pays for a mount.
+  // Lazily, not all six up front — that would move the whole cost to launch.
+  const [visited, setVisited] = useState<DrawerScreen[]>(['Bets']);
+
+  const showScreen = useCallback((s: DrawerScreen) => {
+    setScreen(s);
+    setVisited((v) => (v.includes(s) ? v : [...v, s]));
+  }, []);
   const [betsFilter, setBetsFilter] = useState<BetsFilter | null>(null);
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [showChecklist, setShowChecklist] = useState(false);
@@ -152,8 +178,8 @@ export function DrawerNavigator() {
 
   const goToBets = useCallback((filter?: BetsFilter) => {
     setBetsFilter(filter ?? null);
-    setScreen('Bets');
-  }, []);
+    showScreen('Bets');
+  }, [showScreen]);
 
   // Memoised, or React.memo on the screen buys nothing: context bypasses it,
   // and a fresh value object re-rendered every consumer — ScreenHeader on all
@@ -169,7 +195,7 @@ export function DrawerNavigator() {
     // React commit — so the drawer would sit still for the whole mount and
     // only then slide. It also exposes the new screen under a scrim that still
     // swallows taps, and shows the bet list's first-mount reflow.
-    closeDrawer(() => setScreen(s));
+    closeDrawer(() => showScreen(s));
   }
 
   // Android hardware back. Without this the drawer stays open behind the press
@@ -179,7 +205,7 @@ export function DrawerNavigator() {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
       if (drawerVisibleRef.current) { closeDrawer(); return true; }
       if (betsFilter) { setBetsFilter(null); return true; }
-      if (screen !== 'Bets') { setScreen('Bets'); return true; }
+      if (screen !== 'Bets') { showScreen('Bets'); return true; }
       return false;
     });
     return () => sub.remove();
@@ -207,13 +233,24 @@ export function DrawerNavigator() {
           onCancel={() => setShowChecklist(false)}
         />
 
-        {/* Active screen */}
+        {/* Every screen visited this session stays mounted. `Freeze` is the
+            part that makes that affordable: a hidden screen would otherwise
+            still re-render on every store write — six trees of charts redrawn
+            to settle one bet — because a hook update ignores React.memo.
+            Suspending the subtree stops those renders outright, and
+            `display: none` keeps it out of layout. */}
         <View style={styles.screen}>
-          <ActiveScreen
-            screen={screen}
-            betsFilter={betsFilter}
-            onClearBetsFilter={clearBetsFilter}
-          />
+          {visited.map((key) => (
+            <View key={key} style={key === screen ? styles.screenActive : styles.screenHidden}>
+              <DelayedFreeze freeze={key !== screen}>
+                <ActiveScreen
+                  screen={key}
+                  betsFilter={betsFilter}
+                  onClearBetsFilter={clearBetsFilter}
+                />
+              </DelayedFreeze>
+            </View>
+          ))}
         </View>
 
         {/* Left-edge swipe zone — opens drawer */}
@@ -361,6 +398,9 @@ const styles = StyleSheet.create({
   screen: {
     flex: 1,
   },
+  screenActive: { flex: 1 },
+  // Out of layout entirely, not just invisible.
+  screenHidden: { display: 'none' },
   overlay: {
     ...StyleSheet.absoluteFill,
     backgroundColor: 'rgba(0,0,0,0.55)',
