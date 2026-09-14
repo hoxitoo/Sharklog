@@ -5,7 +5,22 @@ import {
   View, StyleSheet, ScrollView, TouchableOpacity, Alert, useWindowDimensions,
 } from 'react-native';
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
+import { haptic } from '../../utils/haptics';
 import { calcDashboard, parseMoneyInput, kellyFraction, expectedValue, impliedProbability, calcDailyBreakdown, currentBank, pendingExposure } from '@sharklog/core';
+
+/** How much of the history the screen shows before asking. */
+const TX_PREVIEW = 5;
+
+/** 1 транзакция / 2 транзакции / 5 транзакций. */
+function txWord(n: number): string {
+  const tens = n % 100;
+  if (tens >= 11 && tens <= 14) return 'транзакций';
+  switch (n % 10) {
+    case 1: return 'транзакция';
+    case 2: case 3: case 4: return 'транзакции';
+    default: return 'транзакций';
+  }
+}
 
 function uuid(): string {
   const c = (globalThis as any).crypto;
@@ -344,6 +359,7 @@ function BankrollContent() {
   const { width } = useWindowDimensions();
   const stats = useMemo(() => calcDashboard(bets), [bets]);
   const [activeTxForm, setActiveTxForm] = useState<TxType | null>(null);
+  const [allTxShown, setAllTxShown] = useState(false);
 
   const deposited = bankroll.transactions.filter((t) => t.type === 'deposit').reduce((s, t) => s + t.amount, 0);
   const withdrawn = bankroll.transactions.filter((t) => t.type === 'withdrawal').reduce((s, t) => s + t.amount, 0);
@@ -427,6 +443,12 @@ function BankrollContent() {
     if (next < 0.5 || next > 10) return;
     updateBankroll({ unitPercent: next });
   }
+
+  // Newest first, and only the recent handful by default: the history grows
+  // without bound and used to push the Kelly calculator an entire screen up.
+  const orderedTx = useMemo(() => [...bankroll.transactions].reverse(), [bankroll.transactions]);
+  const shownTx = allTxShown ? orderedTx : orderedTx.slice(0, TX_PREVIEW);
+  const hiddenTxCount = orderedTx.length - shownTx.length;
 
   return (
     <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: SPACE.xl }}>
@@ -529,9 +551,20 @@ function BankrollContent() {
         {bankroll.transactions.length === 0 ? (
           <Text style={bk.emptyText}>Транзакций нет</Text>
         ) : (
-          [...bankroll.transactions].reverse().map((t) => (
-            <TxRow key={t.id} tx={t} onDelete={() => handleDeleteTx(t.id)} />
-          ))
+          <>
+            {shownTx.map((t) => (
+              <TxRow key={t.id} tx={t} onDelete={() => handleDeleteTx(t.id)} />
+            ))}
+            {hiddenTxCount > 0 && (
+              <TouchableOpacity
+                style={bk.moreTx}
+                onPress={() => { haptic.selection(); setAllTxShown(true); }}
+                activeOpacity={0.8}
+              >
+                <Text style={bk.moreTxText}>Ещё {hiddenTxCount} {txWord(hiddenTxCount)}</Text>
+              </TouchableOpacity>
+            )}
+          </>
         )}
       </View>
     </ScrollView>
@@ -602,6 +635,12 @@ const bk = StyleSheet.create({
   historyTitle: { fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary, marginBottom: 2 },
   historyHint: { fontSize: SIZE.caption, color: colors.textMuted, marginBottom: SPACE.sm },
   emptyText: { fontSize: SIZE.body, color: colors.textMuted },
+  moreTx: {
+    minHeight: TOUCH, alignItems: 'center', justifyContent: 'center',
+    borderRadius: RADIUS.sm, borderWidth: 1, borderColor: colors.border,
+    backgroundColor: colors.bgElevated, marginTop: SPACE.xs,
+  },
+  moreTxText: { fontSize: SIZE.body, fontWeight: '600', color: colors.textSecondary },
 });
 
 // ── Screen ────────────────────────────────────────────────────────────────────

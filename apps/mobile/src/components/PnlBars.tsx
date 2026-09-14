@@ -4,6 +4,7 @@ import { AppText as Text } from './AppText';
 import Svg, { Rect, Line } from 'react-native-svg';
 import type { PnlBucket } from '@sharklog/core';
 import { colors, alpha } from '../theme/colors';
+import { RADIUS } from '../theme/layout';
 import { SIZE } from '../theme/typography';
 
 interface Props {
@@ -45,6 +46,22 @@ export function PnlBars({ buckets, width, height = 120, selected, onSelect, labe
     <TouchableWithoutFeedback onPress={(e) => handleTouch(e.nativeEvent.locationX)}>
       <View style={{ width, height }}>
         <Svg width={width} height={height}>
+          {/* The column band, drawn first so bars and axis sit on top of it.
+              Dimming the other bars alone was too quiet a signal — on a month
+              that earned little there is barely any bar to dim, and nothing
+              said which one was picked except a bolder tick label. */}
+          {selected !== null && (
+            <Rect
+              x={selected * slot + 1}
+              y={0}
+              width={slot - 2}
+              height={height}
+              rx={RADIUS.xs}
+              fill={alpha(colors.textPrimary, 0.07)}
+              stroke={alpha(colors.textPrimary, 0.18)}
+              strokeWidth={1}
+            />
+          )}
           <Line x1={0} y1={zeroY} x2={width} y2={zeroY} stroke={colors.border} strokeWidth={1} />
           {buckets.map((b, i) => {
             const up = b.pnl >= 0;
@@ -61,7 +78,10 @@ export function PnlBars({ buckets, width, height = 120, selected, onSelect, labe
                 width={barW}
                 height={h}
                 rx={Math.min(3, barW / 2)}
-                fill={dim ? alpha(base, 0.3) : base}
+                // No outline on the selected bar itself: a stub is 2px tall and
+                // a 1px rim would repaint it white. The band behind it says
+                // which column is picked, and it says so at any bar height.
+                fill={dim ? alpha(base, 0.25) : base}
               />
             );
           })}
