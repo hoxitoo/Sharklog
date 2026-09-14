@@ -5,10 +5,10 @@ import { AppText as Text } from '../../components/AppText';
 import { PieChart } from 'react-native-gifted-charts';
 import {
   calcByField, calcByOddsRange, calcByDayOfWeek, calcDashboard,
-  calcStreaks, calcExtremes, calcLastFullMonth, calcMonthResult, calcTimeStats, calcCLV,
-  calcMaxDrawdown, calcEdge, calcMonthlyPnl, calcPnlBuckets, calcLuck, RELIABLE_SAMPLE_MIN,
+  calcStreaks, calcExtremes, calcTimeStats, calcCLV,
+  calcMaxDrawdown, calcEdge, calcPnlBuckets, calcLuck, RELIABLE_SAMPLE_MIN,
   SPORTS, BET_TYPES, STRATEGIES, formatPercent, toYmd } from '@sharklog/core';
-import type { SliceStats, Bet, MonthlyPnl, PnlBucket, Granularity } from '@sharklog/core';
+import type { SliceStats, Bet, PnlBucket, Granularity } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { ProGate } from '../../components/ProGate';
 import { ScreenHeader } from '../../components/ScreenHeader';
@@ -364,125 +364,6 @@ const luck = StyleSheet.create({
   caption: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: SPACE.sm, lineHeight: 16 },
 });
 
-// ── Monthly P&L trend (6 compact bars) ───────────────────────────────────────
-
-function MonthlyBars({ data, selected, onSelect }: {
-  data: MonthlyPnl[];
-  selected: { y: number; m: number };
-  onSelect: (y: number, m: number) => void;
-}) {
-  const maxAbs = Math.max(...data.map((d) => Math.abs(d.pnl)), 1);
-  const HALF = 34;
-
-  return (
-    <View style={mbars.wrap}>
-      {data.map((d) => {
-        const isSelected = d.year === selected.y && d.month === selected.m;
-        const frac = Math.abs(d.pnl) / maxAbs;
-        const barH = d.count === 0 ? 0 : Math.max(frac * HALF, 3);
-        const pos = d.pnl >= 0;
-        const barColor = (pos ? colors.won : colors.lost) + (isSelected ? '' : 'AA');
-        return (
-          <TouchableOpacity
-            key={`${d.year}-${d.month}`}
-            style={[mbars.col, isSelected && mbars.colSelected]}
-            onPress={() => { haptic.selection(); onSelect(d.year, d.month); }}
-            activeOpacity={0.7}
-          >
-            <View style={mbars.top}>
-              {pos && barH > 0 && <View style={[mbars.bar, { height: barH, backgroundColor: barColor }]} />}
-            </View>
-            <View style={mbars.mid} />
-            <View style={mbars.bottom}>
-              {!pos && barH > 0 && <View style={[mbars.bar, { height: barH, backgroundColor: barColor }]} />}
-            </View>
-            <Text style={[mbars.label, isSelected && mbars.labelSelected]}>{MONTHS_SHORT_RU[d.month]}</Text>
-          </TouchableOpacity>
-        );
-      })}
-    </View>
-  );
-}
-
-const mbars = StyleSheet.create({
-  wrap: { flexDirection: 'row', marginTop: SPACE.lg },
-  // A chart column, not a button: its stacked bar halves set the height, and
-  // centering them would move the baseline every column shares.
-  col: { flex: 1, alignItems: 'center', borderRadius: RADIUS.sm, paddingVertical: 2 },
-  colSelected: { backgroundColor: colors.bgElevated },
-  top: { height: 34, justifyContent: 'flex-end', width: '100%', alignItems: 'center' },
-  bottom: { height: 34, justifyContent: 'flex-start', width: '100%', alignItems: 'center' },
-  mid: { height: 1, backgroundColor: colors.border, alignSelf: 'stretch' },
-  bar: { width: 14, borderRadius: RADIUS.xs },
-  label: { fontSize: SIZE.micro, color: colors.textMuted, marginTop: SPACE.xs },
-  labelSelected: { color: colors.textPrimary, fontWeight: '700' },
-});
-
-// ── Month summary (last full month by default; bars select any of the last 6) ─
-
-function LastMonthCard({ bets }: { bets: Bet[] }) {
-  const fmt = useFormatMoney();
-  // null → default (last full month); set by tapping a bar. Tapping again resets.
-  const [sel, setSel] = useState<{ y: number; m: number } | null>(null);
-  const trend = useMemo(() => calcMonthlyPnl(bets, new Date(), 6), [bets]);
-  const m = useMemo(
-    () => (sel ? calcMonthResult(bets, sel.y, sel.m) : calcLastFullMonth(bets, new Date())),
-    [bets, sel],
-  );
-  const positive = m.pnl >= 0;
-  const pnlColor = positive ? colors.won : colors.lost;
-  const trendUp = m.deltaPnl >= 0;
-
-  const now = new Date();
-  const isCurrentMonth = m.year === now.getFullYear() && m.month === now.getMonth();
-  const monthName = `${MONTHS_RU[m.month]}${m.year !== now.getFullYear() ? ` ${m.year}` : ''}`;
-  const title = sel
-    ? `Итог месяца · ${monthName}${isCurrentMonth ? ' (идёт)' : ''}`
-    : `Прошлый месяц · ${monthName}`;
-
-  return (
-    <Card title={title} tone="warn">
-      {m.count === 0 ? (
-        <Text style={month.empty}>Нет закрытых ставок за {monthName}</Text>
-      ) : (
-        <View style={month.rowWrap}>
-          <View style={month.main}>
-            <Text style={[month.pnl, { color: pnlColor }]} numberOfLines={1} adjustsFontSizeToFit>
-              {positive ? '+' : ''}{fmt(m.pnl)}
-            </Text>
-            <Text style={month.sub}>{m.count} ставок · WR {m.winRate.toFixed(0)}%</Text>
-          </View>
-          <View style={month.side}>
-            <Text style={[month.roi, { color: pnlColor }]}>{formatPercent(m.roi)}</Text>
-            <Text style={[month.trend, { color: trendUp ? colors.won : colors.lost }]}>
-              {trendUp ? '▲' : '▼'} {fmt(Math.abs(m.deltaPnl))}
-            </Text>
-          </View>
-        </View>
-      )}
-      {/* 6-month trend for context — tap a bar to see that month's summary */}
-      <MonthlyBars
-        data={trend}
-        selected={{ y: m.year, m: m.month }}
-        onSelect={(y, mo) => setSel((prev) => (prev && prev.y === y && prev.m === mo ? null : { y, m: mo }))}
-      />
-      <Text style={month.barsCaption}>Последние 6 месяцев · нажми на месяц</Text>
-    </Card>
-  );
-}
-
-const month = StyleSheet.create({
-  rowWrap: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  main: { flex: 1 },
-  pnl: { fontSize: SIZE.hero, fontWeight: '800' },
-  sub: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: SPACE.xs },
-  side: { alignItems: 'flex-end' },
-  roi: { fontSize: SIZE.lead, fontWeight: '700' },
-  trend: { fontSize: SIZE.caption, marginTop: SPACE.xs, fontWeight: '600' },
-  empty: { fontSize: SIZE.body, color: colors.textMuted },
-  barsCaption: { fontSize: SIZE.micro, color: colors.textMuted, textAlign: 'center', marginTop: SPACE.sm },
-});
-
 // ── Time of day: top hours + donut ───────────────────────────────────────────
 
 function TimeCard({ bets }: { bets: Bet[] }) {
@@ -660,6 +541,92 @@ function ExtendedSection({ title, stats }: { title: string; stats: SliceStats[] 
   );
 }
 
+// ── By sport: diverging money bars ───────────────────────────────────────────
+
+/**
+ * Sport gets its own shape rather than the shared `SliceRow` list.
+ *
+ * In that row the bar is drawn from |P&L| while the big number beside it is
+ * ROI, and on real data the two contradict each other out loud: hockey
+ * (+71.5%, 25 108 ₽) and esports (−3.6%, −25 019 ₽) come out the same length,
+ * so the eye reads "these two are equal" while the number says one is twenty
+ * times the other. Here the bar and the headline are the same quantity —
+ * money — and it diverges around a zero axis, so the sign is structural rather
+ * than carried by colour alone.
+ *
+ * Money is the headline and ROI the footnote, not the other way round: ROI on
+ * 12 bets is mostly variance, while the rouble figure is what actually
+ * happened. Share of turnover sits next to it because a 90% winrate over 12
+ * bets and one over 206 are not the same claim.
+ */
+function SportBreakdown({ stats }: { stats: SliceStats[] }) {
+  const fmt = useFormatMoney();
+  const rows = useMemo(() => stats.filter((s) => s.count > 0), [stats]);
+  const peak = useMemo(() => Math.max(...rows.map((s) => Math.abs(s.pnl)), 1), [rows]);
+  const turnover = useMemo(() => rows.reduce((n, s) => n + s.totalStaked, 0), [rows]);
+  if (rows.length === 0) return null;
+
+  return (
+    <Card title="По виду спорта" tone="warn">
+      {rows.map((s) => {
+        const up = s.pnl >= 0;
+        // A sport that came out exactly even (all refunds, say) is neither a
+        // win nor a loss, and "+0 ₽" in green would claim it was one.
+        const tint = s.pnl > 0 ? colors.won : s.pnl < 0 ? colors.lost : colors.textMuted;
+        // Half the track per side. A non-zero result keeps a visible stub:
+        // a sport that lost a little must not read as one that never played.
+        const w = s.pnl === 0 ? 0 : Math.max(1.5, (Math.abs(s.pnl) / peak) * 50);
+        const share = turnover > 0 ? Math.round((s.totalStaked / turnover) * 100) : 0;
+        return (
+          <View key={s.label} style={sport.row}>
+            <View style={sport.head}>
+              <Text style={sport.name} numberOfLines={1}>{s.label}</Text>
+              <Text style={[sport.money, { color: tint }]} numberOfLines={1}>
+                {s.pnl > 0 ? '+' : ''}{fmt(s.pnl)}
+              </Text>
+            </View>
+            <View style={sport.track}>
+              <View
+                style={[
+                  sport.bar,
+                  { backgroundColor: tint },
+                  up ? { left: '50%', width: `${w}%` } : { right: '50%', width: `${w}%` },
+                ]}
+              />
+              {/* Drawn after the bar: a positive bar starts exactly on the axis
+                  and would otherwise bury the one line the shape is read from. */}
+              <View style={sport.axis} />
+            </View>
+            <View style={sport.metaRow}>
+              <Text style={sport.meta} numberOfLines={1}>
+                {s.count} ст · {s.winRate.toFixed(0)}% WR · {share}% оборота
+              </Text>
+              <Text style={[sport.roi, { color: tint }]}>ROI {formatPercent(s.roi)}</Text>
+            </View>
+          </View>
+        );
+      })}
+    </Card>
+  );
+}
+
+const sport = StyleSheet.create({
+  row: { marginBottom: SPACE.lg },
+  head: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
+  name: { flex: 1, fontSize: SIZE.body, fontWeight: '600', color: colors.textPrimary },
+  money: { ...numeric, fontSize: SIZE.body, fontWeight: '700', marginLeft: SPACE.sm },
+  track: {
+    height: 10, marginTop: SPACE.sm, marginBottom: SPACE.xs,
+    backgroundColor: colors.bgSunken, borderRadius: RADIUS.xs,
+    justifyContent: 'center',
+  },
+  axis: { position: 'absolute', left: '50%', top: 0, bottom: 0, width: 1, backgroundColor: colors.borderStrong },
+  bar: { position: 'absolute', height: 10, borderRadius: RADIUS.xs },
+  metaRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
+  meta: { flex: 1, fontSize: SIZE.micro, color: colors.textMuted },
+  roi: { ...numeric, fontSize: SIZE.micro, fontWeight: '700', marginLeft: SPACE.sm },
+});
+
 // ── Screen ───────────────────────────────────────────────────────────────────
 
 type APeriodFilter = '7d' | '30d' | 'all';
@@ -714,8 +681,7 @@ function AnalyticsContent() {
       <LuckCard bets={filteredBets} />
       {/* Promoted out of the collapsed section: which sport actually earns is
           a first-screen question, and the bars answer it without arithmetic. */}
-      <ExtendedSection title="По виду спорта" stats={extended.sport} />
-      <LastMonthCard bets={bets} />
+      <SportBreakdown stats={extended.sport} />
       <TimeCard bets={filteredBets} />
       <ClvCard bets={filteredBets} />
 
