@@ -66,6 +66,26 @@ describe('calcPnlBuckets', () => {
     expect(b.reduce((s, x) => s + x.bets, 0)).toBe(1);
   });
 
+  it('counts a winrate over won+lost only, not over every settled bet', () => {
+    // A refund and a cashout are neither a win nor a loss. Counting them in the
+    // denominator would report 25% for a day that actually went 1-1.
+    const bets = [
+      bet('2026-08-17'), bet('2026-08-17', { status: 'lost' }),
+      bet('2026-08-17', { status: 'refund' }),
+      bet('2026-08-17', { status: 'cashout', cashoutAmount: 150_000 }),
+    ];
+    const today = calcPnlBuckets(bets, 'day', 1, NOW)[0]!;
+    expect(today.bets).toBe(4);
+    expect(today.settled).toBe(2);
+    expect(today.won).toBe(1);
+  });
+
+  it('leaves a bucket with no settled bets at zero rather than undefined', () => {
+    const only = calcPnlBuckets([bet('2026-08-17', { status: 'refund' })], 'day', 1, NOW)[0]!;
+    expect(only.settled).toBe(0);
+    expect(only.won).toBe(0);
+  });
+
   it('sums to the same total the headline P&L shows for the window', () => {
     const bets = [
       bet('2026-08-15'), bet('2026-08-16', { status: 'lost' }),

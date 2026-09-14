@@ -11,10 +11,22 @@ import { SPACE, RADIUS } from '../theme/layout';
 import { useFormatMoney } from '../utils/useFormatMoney';
 import { haptic } from '../utils/haptics';
 
+/**
+ * `balance` — the bank itself. `pnl` — cumulative betting result.
+ *
+ * On an account that is topped up and cashed out often, the bank line is a
+ * sawtooth driven by transfers rather than by bets: it swings the full height
+ * of the plot on a day no bet was placed. The P&L line answers "am I winning",
+ * the balance line answers "how much is in there", and they are different
+ * questions — hence a switch instead of a redesign.
+ */
+export type ChartSeries = 'balance' | 'pnl';
+
 interface Props {
   days: DayStats[];
   width: number;
   height: number;
+  series?: ChartSeries;
   color?: string;
 }
 
@@ -32,7 +44,11 @@ function dayLabel(date: string): string {
  * line — gifted-charts' `customDataPoint` is swallowed by `hideDataPoints`, which is
  * why those markers never showed before.
  */
-export function BalanceChart({ days, width, height, color = SERIES.balance }: Props) {
+export function BalanceChart({ days, width, height, series = 'balance', color }: Props) {
+  const line = color ?? (series === 'pnl' ? SERIES.pnl : SERIES.balance);
+  const valueOf = series === 'pnl'
+    ? (d: DayStats) => d.cumPnl
+    : (d: DayStats) => d.balance;
   const plotW = Math.max(width - GUTTER, 40);
   const fmt = useFormatMoney();
   const [sel, setSel] = useState<number | null>(null);
@@ -95,7 +111,7 @@ export function BalanceChart({ days, width, height, color = SERIES.balance }: Pr
 
   const geom = useMemo(() => {
     if (days.length < 2) return null;
-    const vals = days.map((d) => d.balance / 100); // rubles for nice tick rounding
+    const vals = days.map((d) => valueOf(d) / 100); // rubles for nice tick rounding
     const scale = chartScale(vals, 4);
     const top = scale.maxValue;
     const bottom = scale.sectionsBelow > 0 ? scale.mostNegativeValue : 0;
@@ -104,7 +120,7 @@ export function BalanceChart({ days, width, height, color = SERIES.balance }: Pr
     const y = (rub: number) => ((top - rub) / span) * height;
     const x = (i: number) => R + (i / (days.length - 1)) * Math.max(plotW - 2 * R, 1);
 
-    const pts = days.map((d, i) => `${x(i)},${y(d.balance / 100)}`).join(' ');
+    const pts = days.map((d, i) => `${x(i)},${y(valueOf(d) / 100)}`).join(' ');
     const baselineY = y(Math.max(bottom, 0));
     const area = `${x(0)},${baselineY} ${pts} ${x(days.length - 1)},${baselineY}`;
 
@@ -113,13 +129,13 @@ export function BalanceChart({ days, width, height, color = SERIES.balance }: Pr
       ticks.push({ v, y: y(v) });
     }
 
-    const markers = days
+    const markers = series === 'pnl' ? [] : days
       .map((d, i) => ({ d, i }))
       .filter(({ d }) => d.deposits > 0 || d.withdrawals > 0)
       .map(({ d, i }) => ({
         key: d.date,
         cx: x(i),
-        cy: y(d.balance / 100),
+        cy: y(valueOf(d) / 100),
         // A day can hold both; deposit wins the dot, withdrawal gets a ring.
         fill: d.deposits > 0 ? SERIES.deposit : SERIES.withdrawal,
         both: d.deposits > 0 && d.withdrawals > 0,
@@ -129,14 +145,16 @@ export function BalanceChart({ days, width, height, color = SERIES.balance }: Pr
       pts, area, ticks, markers, x, y,
       zeroY: bottom < 0 ? y(0) : null,
       lastX: x(days.length - 1),
-      lastY: y(days[days.length - 1]!.balance / 100),
+      lastY: y(valueOf(days[days.length - 1]!) / 100),
     };
-  }, [days, plotW, height]);
+    // `series` rather than `valueOf`: the accessor is derived from it and a
+    // fresh closure each render would rebuild the geometry every render.
+  }, [days, plotW, height, series]);
 
   // Clamped so the pill never hangs off either edge of the plot.
   const active = sel != null ? days[sel] : undefined;
   const activeX = geom && sel != null ? geom.x(sel) : 0;
-  const activeY = geom && active ? geom.y(active.balance / 100) : 0;
+  const activeY = geom && active ? geom.y(valueOf(active) / 100) : 0;
   const pillLeft = Math.min(Math.max(activeX - pillW / 2, 0), Math.max(plotW - pillW, 0));
 
   if (!geom) {
@@ -174,20 +192,20 @@ export function BalanceChart({ days, width, height, color = SERIES.balance }: Pr
           {geom.zeroY != null && (
             <Line x1={0} y1={geom.zeroY} x2={plotW} y2={geom.zeroY} stroke={colors.border} strokeWidth={1.5} />
           )}
-          <Polygon points={geom.area} fill={color} opacity={0.13} />
-          <Polyline points={geom.pts} fill="none" stroke={color} strokeWidth={2} strokeLinejoin="round" />
+          <Polygon points={geom.area} fill={line} opacity={0.13} />
+          <Polyline points={geom.pts} fill="none" stroke={line} strokeWidth={2} strokeLinejoin="round" />
           {geom.markers.map((m) => (
             <React.Fragment key={m.key}>
               {m.both && <Circle cx={m.cx} cy={m.cy} r={6} fill="none" stroke={SERIES.withdrawal} strokeWidth={1.5} />}
               <Circle cx={m.cx} cy={m.cy} r={3.5} fill={m.fill} stroke={colors.bgCard} strokeWidth={1} />
             </React.Fragment>
           ))}
-          <Circle cx={geom.lastX} cy={geom.lastY} r={3.5} fill={color} />
+          <Circle cx={geom.lastX} cy={geom.lastY} r={3.5} fill={line} />
 
           {active && (
             <>
               <Line x1={activeX} y1={0} x2={activeX} y2={height} stroke={colors.borderStrong} strokeWidth={1} />
-              <Circle cx={activeX} cy={activeY} r={5} fill={color} stroke={colors.bgCard} strokeWidth={2} />
+              <Circle cx={activeX} cy={activeY} r={5} fill={line} stroke={colors.bgCard} strokeWidth={2} />
             </>
           )}
         </Svg>
@@ -199,13 +217,17 @@ export function BalanceChart({ days, width, height, color = SERIES.balance }: Pr
             pointerEvents="none"
           >
             <Text style={bc.pillDate}>{dayLabel(active.date)}</Text>
-            <Text style={[bc.pillValue, { color: active.balance >= 0 ? colors.textPrimary : colors.lost }]}>
-              {fmt(active.balance)}
+            <Text style={[bc.pillValue, { color: valueOf(active) >= 0 ? colors.textPrimary : colors.lost }]}>
+              {series === 'pnl' && valueOf(active) > 0 ? '+' : ''}{fmt(valueOf(active))}
             </Text>
-            {active.deposits > 0 && (
+            {/* Cash flow only on the bank line. Under a P&L figure a second
+                green number reads as part of the result, and it is not: that
+                deposit moved the balance and left the P&L exactly where it
+                was. */}
+            {series === 'balance' && active.deposits > 0 && (
               <Text style={[bc.pillFlow, { color: SERIES.deposit }]}>+{fmt(active.deposits)}</Text>
             )}
-            {active.withdrawals > 0 && (
+            {series === 'balance' && active.withdrawals > 0 && (
               <Text style={[bc.pillFlow, { color: SERIES.withdrawal }]}>−{fmt(active.withdrawals)}</Text>
             )}
           </View>

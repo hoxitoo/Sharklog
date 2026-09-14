@@ -308,6 +308,12 @@ export interface PnlBucket {
   pnl: number;
   /** Settled bets counted — pending ones contribute nothing yet. */
   bets: number;
+  /** Bets won. */
+  won: number;
+  /** Won + lost, the only denominator a winrate may use: a refund or a
+   *  cashout is neither a win nor a loss, and counting them drags the rate
+   *  towards zero for someone who did nothing wrong. */
+  settled: number;
 }
 
 /**
@@ -330,7 +336,7 @@ export function calcPnlBuckets(
 
   for (let i = count - 1; i >= 0; i--) {
     const [from, to] = bucketRange(granularity, now, i);
-    const bucket: PnlBucket = { start: toYmd(from), end: toYmd(to), pnl: 0, bets: 0 };
+    const bucket: PnlBucket = { start: toYmd(from), end: toYmd(to), pnl: 0, bets: 0, won: 0, settled: 0 };
     buckets.push(bucket);
     // A day belongs to exactly one bucket, so indexing every day it spans makes
     // assignment a lookup instead of a scan per bet.
@@ -343,6 +349,8 @@ export function calcPnlBuckets(
     if (bet.status === 'pending') continue;
     bucket.pnl += betPnl(bet);
     bucket.bets += 1;
+    if (bet.status === 'won') { bucket.won += 1; bucket.settled += 1; }
+    else if (bet.status === 'lost') bucket.settled += 1;
   }
 
   return buckets;
