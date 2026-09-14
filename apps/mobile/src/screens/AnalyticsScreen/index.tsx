@@ -33,6 +33,9 @@ const MONTHS_SHORT_RU = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Ию
 
 // ── Hero: headline P&L with per-period bars ──────────────────────────────────
 
+/** "к пред. месяцу" — the unit the trend arrow compares against. */
+const PREV_UNIT: Record<Granularity, string> = { day: 'дню', week: 'неделе', month: 'месяцу' };
+
 /** Bucket size that keeps the bar count readable for the selected period. */
 const BUCKETS: Record<APeriodFilter, { granularity: Granularity; count: number }> = {
   '7d':  { granularity: 'day',   count: 7 },
@@ -63,6 +66,14 @@ function HeroPnl({ bets, period }: { bets: Bet[]; period: APeriodFilter }) {
   // anything — keeping it would dim every bar and highlight none.
   useEffect(() => setSelected(null), [granularity, count]);
   const active = selected !== null ? buckets[selected] : undefined;
+  // Winrate and the step from the period before. Both came off the "Прошлый
+  // месяц" card when it went as a duplicate; they were the only two numbers on
+  // it the hero did not already carry.
+  const prev = selected !== null && selected > 0 ? buckets[selected - 1] : undefined;
+  const delta = active && prev ? active.pnl - prev.pnl : null;
+  // The newest bucket is still running: an arrow comparing half a month against
+  // a whole one reads as a collapse, so the period says it is unfinished.
+  const running = selected !== null && selected === buckets.length - 1;
 
   // Only every Nth tick gets a label — 30 daily bars cannot each carry a date.
   const every = Math.ceil(buckets.length / 6);
@@ -94,7 +105,8 @@ function HeroPnl({ bets, period }: { bets: Bet[]; period: APeriodFilter }) {
         <View style={hero.chart}>
           <View style={hero.chartHead}>
             <Text style={hero.chartTitle}>
-              {active ? bucketTitle(active, granularity) : granularity === 'month' ? 'По месяцам' : 'По дням'}
+              {active ? `${bucketTitle(active, granularity)}${running ? ' · идёт' : ''}`
+                : granularity === 'month' ? 'По месяцам' : 'По дням'}
             </Text>
             {active ? (
               <Text style={[hero.chartValue, {
@@ -105,6 +117,24 @@ function HeroPnl({ bets, period }: { bets: Bet[]; period: APeriodFilter }) {
             ) : (
               <Text style={hero.chartHint}>тап по столбцу</Text>
             )}
+          </View>
+          {/* Always rendered, never conditional: appearing only on selection
+              shifted the chart down by its own height, and the bars moved out
+              from under the finger that had just tapped one. */}
+          <View style={hero.chartMeta}>
+            <Text style={hero.chartMetaText} numberOfLines={1}>
+              {!active ? '' : active.settled > 0
+                ? `WR ${((active.won / active.settled) * 100).toFixed(0)}% · ${active.settled} расч.`
+                : 'Нет рассчитанных ставок'}
+            </Text>
+            <Text
+              numberOfLines={1}
+              style={[hero.chartMetaText, {
+                color: delta === null || delta === 0 ? colors.textMuted : delta > 0 ? colors.won : colors.lost,
+              }]}
+            >
+              {delta === null ? '' : `${delta > 0 ? '▲' : delta < 0 ? '▼' : '='} ${fmt(Math.abs(delta))} к пред. ${PREV_UNIT[granularity]}`}
+            </Text>
           </View>
           <PnlBars
             buckets={buckets}
@@ -135,6 +165,9 @@ const hero = StyleSheet.create({
   chartTitle: { fontSize: SIZE.caption, fontWeight: '700', color: colors.textSecondary },
   chartValue: { ...numeric, fontSize: SIZE.body, fontWeight: '700' },
   chartHint: { fontSize: SIZE.micro, color: colors.textMuted },
+  // Fixed height so selecting a bar never moves the chart under the finger.
+  chartMeta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', height: 14, marginBottom: SPACE.xs },
+  chartMetaText: { ...numeric, flexShrink: 1, fontSize: SIZE.micro, color: colors.textMuted, fontWeight: '600' },
 });
 
 // ── Two-tile row (streaks, extremes) ─────────────────────────────────────────

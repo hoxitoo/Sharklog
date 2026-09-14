@@ -6,10 +6,18 @@ import {
 } from 'react-native';
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
 import { haptic } from '../../utils/haptics';
+import type { ChartSeries } from '../../components/BalanceChart';
 import { calcDashboard, parseMoneyInput, kellyFraction, expectedValue, impliedProbability, calcDailyBreakdown, currentBank, pendingExposure } from '@sharklog/core';
 
 /** How much of the history the screen shows before asking. */
 const TX_PREVIEW = 5;
+
+/** Height of a series segment — deliberate, so the touch area is added back. */
+const SERIES_BTN_H = 28;
+const SERIES_OPTIONS: Array<{ key: ChartSeries; label: string }> = [
+  { key: 'pnl', label: 'P&L' },
+  { key: 'balance', label: 'Банк' },
+];
 
 /** 1 транзакция / 2 транзакции / 5 транзакций. */
 function txWord(n: number): string {
@@ -360,6 +368,9 @@ function BankrollContent() {
   const stats = useMemo(() => calcDashboard(bets), [bets]);
   const [activeTxForm, setActiveTxForm] = useState<TxType | null>(null);
   const [allTxShown, setAllTxShown] = useState(false);
+  // P&L by default: the bank line is mostly a record of transfers, and the
+  // question the screen is opened with is whether the betting is working.
+  const [series, setSeries] = useState<ChartSeries>('pnl');
 
   const deposited = bankroll.transactions.filter((t) => t.type === 'deposit').reduce((s, t) => s + t.amount, 0);
   const withdrawn = bankroll.transactions.filter((t) => t.type === 'withdrawal').reduce((s, t) => s + t.amount, 0);
@@ -377,37 +388,60 @@ function BankrollContent() {
 
   const chartBlock = useMemo(() => {
     if (dailySeries.length < 2) return null;
-    const hasDeposit = dailySeries.some((d) => d.deposits > 0);
-    const hasWithdrawal = dailySeries.some((d) => d.withdrawals > 0);
+    const isPnl = series === 'pnl';
+    // Legend dots describe marks on the line, and the P&L line carries none.
+    const hasDeposit = !isPnl && dailySeries.some((d) => d.deposits > 0);
+    const hasWithdrawal = !isPnl && dailySeries.some((d) => d.withdrawals > 0);
+    const headline = isPnl ? stats.pnl : bank;
     return (
       <View style={bk.chartCard}>
         <View style={bk.chartHeader}>
-          <Text style={bk.chartTitle}>Кривая банкролла</Text>
-          <Text style={[bk.chartCurrentBank, { color: bank >= 0 ? colors.won : colors.lost }]}>
-            {bank >= 0 ? '+' : ''}{fmt(bank)}
+          {/* The switch is the title: naming the series twice, once in a
+              heading and once on the active segment, says nothing extra. */}
+          <View style={bk.seriesSwitch}>
+            {SERIES_OPTIONS.map((o) => (
+              <TouchableOpacity
+                key={o.key}
+                style={[bk.seriesBtn, series === o.key && bk.seriesBtnActive]}
+                hitSlop={hitSlopFor(SERIES_BTN_H, { maxHorizontal: 0 })}
+                onPress={() => { haptic.selection(); setSeries(o.key); }}
+                activeOpacity={0.8}
+              >
+                <Text style={[bk.seriesText, series === o.key && bk.seriesTextActive]}>{o.label}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+          <Text style={[bk.chartCurrentBank, { color: headline >= 0 ? colors.won : colors.lost }]}>
+            {headline >= 0 ? '+' : ''}{fmt(headline)}
           </Text>
         </View>
-        <BalanceChart days={dailySeries} width={width - 64} height={150} />
+        <BalanceChart days={dailySeries} width={width - 64} height={150} series={series} />
         <View style={bk.legendRow}>
           <Text style={bk.legendPeriod}>
             {dailySeries.length} дней · с {dailySeries[0]!.date.split('-').reverse().slice(0, 2).join('.')}
           </Text>
-          {hasDeposit && (
-            <View style={bk.legendItem}>
-              <View style={[bk.legendDot, { backgroundColor: SERIES.deposit }]} />
-              <Text style={bk.legendText}>депозит</Text>
-            </View>
-          )}
-          {hasWithdrawal && (
-            <View style={bk.legendItem}>
-              <View style={[bk.legendDot, { backgroundColor: SERIES.withdrawal }]} />
-              <Text style={bk.legendText}>вывод</Text>
-            </View>
+          {isPnl ? (
+            <Text style={bk.legendText}>пополнения и выводы линию не двигают</Text>
+          ) : (
+            <>
+              {hasDeposit && (
+                <View style={bk.legendItem}>
+                  <View style={[bk.legendDot, { backgroundColor: SERIES.deposit }]} />
+                  <Text style={bk.legendText}>депозит</Text>
+                </View>
+              )}
+              {hasWithdrawal && (
+                <View style={bk.legendItem}>
+                  <View style={[bk.legendDot, { backgroundColor: SERIES.withdrawal }]} />
+                  <Text style={bk.legendText}>вывод</Text>
+                </View>
+              )}
+            </>
           )}
         </View>
       </View>
     );
-  }, [dailySeries, bank, width]);
+  }, [dailySeries, bank, width, series, stats.pnl, fmt]);
 
   function handleTxSubmit(type: TxType, amount: number, note: string) {
     if (type === 'adjustment') {
@@ -621,8 +655,7 @@ const bk = StyleSheet.create({
     ...cardSurface, ...toneSurface('violet'),
     padding: SPACE.lg, marginHorizontal: SPACE.lg, marginBottom: SPACE.md,
   },
-  chartHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: SPACE.xs },
-  chartTitle: { fontSize: SIZE.body, fontWeight: '700', color: colors.textPrimary },
+  chartHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: SPACE.sm },
   chartCurrentBank: { ...numeric, fontSize: SIZE.body, fontWeight: '700' },
   chartHint: { fontSize: SIZE.micro, color: colors.textMuted, marginBottom: SPACE.sm },
   legendRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md, marginTop: SPACE.sm },
@@ -635,6 +668,18 @@ const bk = StyleSheet.create({
   historyTitle: { fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary, marginBottom: 2 },
   historyHint: { fontSize: SIZE.caption, color: colors.textMuted, marginBottom: SPACE.sm },
   emptyText: { fontSize: SIZE.body, color: colors.textMuted },
+  seriesSwitch: {
+    flexDirection: 'row', backgroundColor: colors.bgSunken,
+    borderRadius: RADIUS.sm, padding: 2,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  seriesBtn: {
+    height: SERIES_BTN_H, paddingHorizontal: SPACE.md,
+    alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.xs,
+  },
+  seriesBtnActive: { backgroundColor: colors.bgElevated },
+  seriesText: { fontSize: SIZE.caption, fontWeight: '700', color: colors.textMuted },
+  seriesTextActive: { color: colors.textPrimary },
   moreTx: {
     minHeight: TOUCH, alignItems: 'center', justifyContent: 'center',
     borderRadius: RADIUS.sm, borderWidth: 1, borderColor: colors.border,
