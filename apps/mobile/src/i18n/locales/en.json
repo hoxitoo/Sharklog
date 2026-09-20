@@ -59,7 +59,7 @@
     "customStrategy": "Custom strategy",
     "pickOdds": "Odds",
     "pickOutcome": "Pick",
-    "searchPlaceholder": "Search by event or pick...",
+    "searchPlaceholder": "Event, pick or tournament...",
     "cashoutPrompt": "Cashout amount ₽",
     "notFound": "Nothing found",
     "tryOtherSearch": "Try a different query or clear filter",

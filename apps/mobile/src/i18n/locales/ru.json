@@ -59,7 +59,7 @@
     "customStrategy": "Своя стратегия",
     "pickOdds": "Коэф",
     "pickOutcome": "Исход",
-    "searchPlaceholder": "Поиск по событию или выбору...",
+    "searchPlaceholder": "Событие, исход или турнир...",
     "cashoutPrompt": "Сумма выкупа ₽",
     "notFound": "Ничего не найдено",
     "tryOtherSearch": "Попробуй другой запрос или очисти фильтр",

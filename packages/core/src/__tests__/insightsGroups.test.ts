@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { Bet } from '../types/bet';
-import { calcByTournament, calcByTeam } from '../utils/stats';
+import { calcByTournament, calcByTeam, betBacksTeam } from '../utils/stats';
 
 function bet(over: Partial<Bet> = {}): Bet {
   return {
@@ -82,5 +82,30 @@ describe('stale discipline on a bet that left esports', () => {
       bet({ tournament: 'X', sport: 'football', discipline: 'csgo' }),
     ]);
     expect(t!.discipline).toBeUndefined();
+  });
+});
+
+describe('betBacksTeam', () => {
+  const b = bet({ event: 'Сочи vs Ак Барс', pick: 'Ак Барс' });
+
+  it('matches the backed team exactly by default', () => {
+    expect(betBacksTeam(b, 'ак барс')).toBe(true);
+    expect(betBacksTeam(b, 'Ак')).toBe(false);
+  });
+
+  it('matches a fragment when asked — a typed field, not a tapped tile', () => {
+    expect(betBacksTeam(b, 'Ак', { partial: true })).toBe(true);
+    expect(betBacksTeam(b, 'барс', { partial: true })).toBe(true);
+  });
+
+  it('still refuses the team that was NOT backed, partial or not', () => {
+    // Сочи is in the event but the money went the other way; a filter that
+    // returned this bet would be answering a different question.
+    expect(betBacksTeam(b, 'Сочи')).toBe(false);
+    expect(betBacksTeam(b, 'Соч', { partial: true })).toBe(false);
+  });
+
+  it('never matches on empty input', () => {
+    expect(betBacksTeam(b, '   ', { partial: true })).toBe(false);
   });
 });

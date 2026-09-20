@@ -8,6 +8,8 @@ import { AddBetScreen } from '../screens/AddBetScreen';
 import { StrategyBuilderScreen } from '../screens/StrategyBuilderScreen';
 import { PartnersScreen } from '../screens/PartnersScreen';
 import { PendingScreen } from '../screens/PendingScreen';
+import { BetsFilterScreen } from '../screens/BetsFilterScreen';
+import { BetsQueryProvider } from '../components/BetsQueryContext';
 import { DrawerNavigator } from './DrawerNavigator';
 
 export type RootStackParamList = {
@@ -18,6 +20,7 @@ export type RootStackParamList = {
   StrategyBuilder: undefined;
   Partners: undefined;
   Pending: undefined;
+  BetsFilter: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -36,6 +39,9 @@ export function RootNavigator() {
     headerShadowVisible: false,
   };
   return (
+    // Around the whole stack: the filter screen and the bet list are siblings
+    // here, so this is the only place both of them are inside.
+    <BetsQueryProvider>
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Drawer" component={DrawerNavigator} />
       <Stack.Screen
@@ -59,10 +65,16 @@ export function RootNavigator() {
         options={{ headerShown: true, ...headerOpts, title: 'Ждут результата' }}
       />
       <Stack.Screen
+        name="BetsFilter"
+        component={BetsFilterScreen}
+        options={{ headerShown: true, ...headerOpts, title: 'Фильтры' }}
+      />
+      <Stack.Screen
         name="Partners"
         component={PartnersScreen}
         options={{ headerShown: true, ...headerOpts, title: t('nav.partners') }}
       />
     </Stack.Navigator>
+    </BetsQueryProvider>
   );
 }
