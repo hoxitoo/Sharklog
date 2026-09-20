@@ -20,6 +20,8 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { BetCard } from './BetCard';
 import { SwipeableRow } from './SwipeableRow';
 import { FilterPicker } from '../../components/FilterPicker';
+import { useBetsQuery } from '../../components/BetsQueryContext';
+import { applyBetsQuery, betsVocabulary, countBetsQuery, describeBetsQuery, suggest, EMPTY_BETS_QUERY } from '../../utils/betsQuery';
 import { useBetActions } from '../../components/useBetActions';
 import { Coachmark } from '../../components/Coachmark';
 import { haptic } from '../../utils/haptics';
@@ -86,6 +88,8 @@ export function BetsScreen({ filter, onClearFilter }: {
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<SortKey>('date_desc');
   const [refreshing, setRefreshing] = useState(false);
+  const { query, setQuery } = useBetsQuery();
+  const queryCount = countBetsQuery(query);
   const fmt = useFormatMoney();
 
   // The filter bar rides above the list rather than pushing it down, and when
@@ -180,6 +184,14 @@ export function BetsScreen({ filter, onClearFilter }: {
     setBarHeight(h);
   }, []);
 
+  // Tournaments and teams the user has actually entered. Rebuilt only when the
+  // bets change, not on every keystroke — it walks the whole history.
+  const vocab = useMemo(() => betsVocabulary(bets), [bets]);
+  const searchHints = useMemo(
+    () => suggest([...vocab.tournaments, ...vocab.teams], search, 4),
+    [vocab, search],
+  );
+
   // Working context while logging bets: today's result, money currently at risk, bank.
   const today = useMemo(() => calcDailyBreakdown(bets, [], { days: 1 })[0] ?? null, [bets]);
   const exposure = useMemo(
@@ -222,6 +234,8 @@ export function BetsScreen({ filter, onClearFilter }: {
     return null;
   }, [filter]);
 
+  const queryLabel = useMemo(() => describeBetsQuery(query), [query]);
+
   const sections = useMemo(() => {
     let result = [...bets];
     if (filter?.date) result = result.filter((b) => b.date === filter.date);
@@ -236,10 +250,16 @@ export function BetsScreen({ filter, onClearFilter }: {
     if (filter?.year) result = result.filter((b) => b.date.startsWith(String(filter.year)));
     if (filter?.noTournament) result = result.filter((b) => !(b.tournament ?? '').trim());
     if (statusFilter !== 'all') result = result.filter((b) => b.status === statusFilter);
+    result = applyBetsQuery(result, query);
     if (search.trim()) {
-      const q = search.toLowerCase();
+      const q = search.trim().toLowerCase();
+      // The tournament belongs in here. Without it, typing the name of a
+      // tournament that plainly exists returned "ничего не найдено", because
+      // the only fields searched were the event and the pick.
       result = result.filter(
-        (b) => b.event.toLowerCase().includes(q) || b.pick.toLowerCase().includes(q),
+        (b) => b.event.toLowerCase().includes(q)
+          || b.pick.toLowerCase().includes(q)
+          || (b.tournament ?? '').toLowerCase().includes(q),
       );
     }
 
@@ -289,7 +309,7 @@ export function BetsScreen({ filter, onClearFilter }: {
       }, 0);
       return { title: formatDateTitle(date, todayLabel, yesterdayLabel), date, dailyPnl, data };
     });
-  }, [bets, statusFilter, search, sort, filter, todayLabel, yesterdayLabel, t]);
+  }, [bets, statusFilter, search, sort, filter, query, todayLabel, yesterdayLabel, t]);
 
   const freeLeft = Math.max(0, 50 - bets.length);
 
@@ -390,6 +410,20 @@ export function BetsScreen({ filter, onClearFilter }: {
             </TouchableOpacity>
           )}
 
+          {/* A filter set on another screen and then forgotten is what makes a
+              short list look like lost data — the badge on the button says how
+              many, this says which, and clears them. */}
+          {queryLabel && (
+            <TouchableOpacity
+              style={styles.dateChip}
+              onPress={() => { haptic.selection(); setQuery(EMPTY_BETS_QUERY); }}
+              activeOpacity={0.75}
+            >
+              <Text style={styles.dateChipText} numberOfLines={1}>{queryLabel}</Text>
+              <Text style={styles.dateChipX}>✕</Text>
+            </TouchableOpacity>
+          )}
+
           <View style={styles.todayStrip}>
             <View style={styles.todayCell}>
               <Text style={styles.todayLabel}>Сегодня</Text>
@@ -433,15 +467,44 @@ export function BetsScreen({ filter, onClearFilter }: {
             placeholderTextColor={colors.textMuted}
             value={search}
             onChangeText={setSearch}
+            autoCorrect={false}
           />
 
+          {/* What exists in the data, offered while typing. The stored
+              tournament name carries a season the user never sees, so typing
+              it from memory was the one way to get an empty list out of a
+              tournament that plainly has bets.
+              Shown on content, NOT on focus: blur fires before the tap that
+              caused it lands, so hiding these on blur unmounted the row from
+              under the finger and dropped the tap. Picking one makes the query
+              an exact match, and `suggest` drops exact matches — so the list
+              closes itself. */}
+          {searchHints.length > 0 && (
+            <View style={styles.hints}>
+              {searchHints.map((h, i) => (
+                <TouchableOpacity
+                  key={h}
+                  style={[styles.hintRow, i === searchHints.length - 1 && styles.hintRowLast]}
+                  onPress={() => { haptic.selection(); setSearch(h); }}
+                  activeOpacity={0.7}
+                >
+                  <Ionicons name="search-outline" size={GLYPH.md} color={colors.textMuted} />
+                  <Text style={styles.hintText} numberOfLines={1}>{h}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
+
           <View style={styles.filterRow}>
+            {/* Status is the narrower of the two: its longest value is one
+                word, sort's is a word plus an arrow. */}
             <FilterPicker
               label={t('bet.filterStatus')}
               options={STATUS_OPTIONS(t)}
               value={statusFilter}
               onChange={setStatusFilter}
               active={statusFilter !== 'all'}
+              flex={0.85}
             />
             <FilterPicker
               label={t('bet.filterSort')}
@@ -450,6 +513,23 @@ export function BetsScreen({ filter, onClearFilter }: {
               onChange={setSort}
               active={sort !== 'date_desc'}
             />
+            <TouchableOpacity
+              style={[styles.advBtn, queryCount > 0 && styles.advBtnActive]}
+              onPress={() => { haptic.selection(); navigation.navigate('BetsFilter'); }}
+              activeOpacity={0.75}
+              accessibilityLabel="Фильтры"
+            >
+              <Ionicons
+                name="options-outline"
+                size={GLYPH.lg}
+                color={queryCount > 0 ? colors.purpleText : colors.textSecondary}
+              />
+              {queryCount > 0 && (
+                <View style={styles.advBadge}>
+                  <Text style={styles.advBadgeText}>{queryCount}</Text>
+                </View>
+              )}
+            </TouchableOpacity>
           </View>
 
           {inTilt && (
@@ -507,7 +587,7 @@ export function BetsScreen({ filter, onClearFilter }: {
               </Text>
             </View>
 
-            {statusFilter !== 'all' && (
+            {(statusFilter !== 'all' || queryCount > 0) && (
               <View style={styles.trayFilterDot} />
             )}
           </TouchableOpacity>
@@ -552,6 +632,34 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   filterRow: { flexDirection: 'row', gap: SPACE.sm, marginHorizontal: SPACE.lg, marginBottom: SPACE.sm },
+  advBtn: {
+    width: TOUCH, minHeight: TOUCH, alignItems: 'center', justifyContent: 'center',
+    borderRadius: RADIUS.sm, backgroundColor: colors.bgCard,
+    borderWidth: 1, borderColor: colors.border,
+  },
+  advBtnActive: { borderColor: colors.purple, backgroundColor: colors.purpleDim },
+  // Sits on the corner rather than beside the glyph: the button is a square by
+  // design and a count next to the icon would stretch it out of the row.
+  advBadge: {
+    position: 'absolute', top: -6, right: -6,
+    minWidth: 18, height: 18, paddingHorizontal: 3,
+    borderRadius: RADIUS.pill, backgroundColor: colors.purple,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: colors.bg,
+  },
+  advBadgeText: { ...numeric, fontSize: SIZE.micro, fontWeight: '700', color: '#fff' },
+  hints: {
+    marginHorizontal: SPACE.lg, marginBottom: SPACE.sm,
+    borderRadius: RADIUS.sm, backgroundColor: colors.bgElevated,
+    borderWidth: 1, borderColor: colors.border, overflow: 'hidden',
+  },
+  hintRow: {
+    minHeight: TOUCH, flexDirection: 'row', alignItems: 'center', gap: SPACE.sm,
+    paddingHorizontal: SPACE.md,
+    borderBottomWidth: 1, borderBottomColor: colors.border,
+  },
+  hintRowLast: { borderBottomWidth: 0 },
+  hintText: { flex: 1, fontSize: SIZE.body, color: colors.textPrimary },
   dateChip: {
     minHeight: TOUCH,
     flexDirection: 'row', alignItems: 'center', gap: SPACE.sm, alignSelf: 'flex-start',

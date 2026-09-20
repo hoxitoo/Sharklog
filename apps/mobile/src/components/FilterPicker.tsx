@@ -21,6 +21,9 @@ interface Props<T extends string> {
   onChange: (key: T) => void;
   /** Marks the button as "not the default", so a live filter is visible at a glance. */
   active?: boolean;
+  /** Share of the row. Status needs less of it than sort — its longest value
+   *  is one word, sort's is a word plus an arrow. */
+  flex?: number;
 }
 
 /**
@@ -32,7 +35,7 @@ interface Props<T extends string> {
  * choice in place and puts the rest one tap away, which also gives the bar back
  * enough height to be worth collapsing.
  */
-export function FilterPicker<T extends string>({ label, options, value, onChange, active }: Props<T>) {
+export function FilterPicker<T extends string>({ label, options, value, onChange, active, flex = 1 }: Props<T>) {
   const [open, setOpen] = useState(false);
   const current = options.find((o) => o.key === value);
 
@@ -72,7 +75,7 @@ export function FilterPicker<T extends string>({ label, options, value, onChange
   return (
     <>
       <TouchableOpacity
-        style={[picker.btn, active && picker.btnActive]}
+        style={[picker.btn, { flex }, active && picker.btnActive]}
         onPress={() => { haptic.selection(); open_(); }}
         activeOpacity={0.75}
       >

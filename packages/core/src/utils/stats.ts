@@ -335,11 +335,19 @@ function getPickedTeams(event: string, pick: string): string[] {
 /**
  * Did this bet back that team? Same rule calcByTeam counts by, so a list
  * filtered to a team holds exactly the bets its tile counted.
+ *
+ * `partial` loosens the comparison to a substring, for a field the user types
+ * into rather than a tile they tapped: "Ак" should find "Ак Барс". It stays
+ * opt-in because the exact form is what keeps a filtered list's length equal
+ * to the number printed on the insights tile that opened it.
  */
-export function betBacksTeam(bet: Bet, team: string): boolean {
+export function betBacksTeam(bet: Bet, team: string, opts?: { partial?: boolean }): boolean {
   const needle = team.trim().toLowerCase();
   if (!needle) return false;
-  return getPickedTeams(bet.event, bet.pick).some((t) => t.toLowerCase() === needle);
+  const picked = getPickedTeams(bet.event, bet.pick);
+  return opts?.partial
+    ? picked.some((t) => t.toLowerCase().includes(needle))
+    : picked.some((t) => t.toLowerCase() === needle);
 }
 
 export function calcByTeam(bets: Bet[], minBets = 10): TeamStats[] {
