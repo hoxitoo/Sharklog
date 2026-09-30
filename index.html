@@ -358,6 +358,12 @@
     </div>
 
     <div class="feature-card">
+      <div class="feature-icon">🔎</div>
+      <div class="feature-title">Поиск и фильтры</div>
+      <div class="feature-desc">Поиск по событию, исходу и турниру — с подсказками из твоих же ставок, чтобы не вспоминать точное название. Отдельный экран фильтров: турнир, команда, коэффициент и даты от и до. Складывается со статусом и сортировкой.</div>
+    </div>
+
+    <div class="feature-card">
       <div class="feature-icon">📊</div>
       <div class="feature-title">Дашборд</div>
       <div class="feature-desc">Интерактивный график по дням: бары выигрышей/проигрышей, линия P&amp;L, метки депозитов. Тап по дню — оборот, выигрыш, проигрыш, профит. «Развернуть» — ландшафтная таблица с фильтрами.</div>
@@ -366,7 +372,7 @@
     <div class="feature-card">
       <div class="feature-icon">🔬</div>
       <div class="feature-title">Аналитика <span class="feature-pro">PRO</span></div>
-      <div class="feature-desc">Состояние с первого взгляда: серии, рекорды, перевес над безубытком, макс. просадка, время ставок, CLV. Ниже — расширенные срезы: спорт, тип, букмекер, стратегия, кэф, день недели.</div>
+      <div class="feature-desc">Состояние с первого взгляда: P&amp;L столбцами по периодам — тап по столбцу показывает винрейт этого месяца и шаг к предыдущему. Ниже: разбивка по видам спорта, серии, рекорды, перевес над безубытком, макс. просадка, время ставок, CLV. В раскрывающемся блоке — тип ставки, букмекер, стратегия, кэф, день недели.</div>
     </div>
 
     <div class="feature-card">
@@ -378,7 +384,7 @@
     <div class="feature-card">
       <div class="feature-icon">💰</div>
       <div class="feature-title">Банкролл <span class="feature-pro">PRO</span></div>
-      <div class="feature-desc">Кривая капитала, история депозитов и выводов, юнит-стейкинг, калькулятор Келли — перестанешь ставить слишком много на «верняки».</div>
+      <div class="feature-desc">Кривая капитала с переключателем «P&amp;L / Банк» и протяжкой по графику — баланс, пополнение и вывод любого дня. История транзакций, юнит-стейкинг, калькулятор Келли — перестанешь ставить слишком много на «верняки».</div>
     </div>
 
     <div class="feature-card">
@@ -478,7 +484,7 @@
       <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 20px;">
         <div style="font-size: 22px; margin-bottom: 8px;">🔬</div>
         <div style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">Аналитика: состояние с первого взгляда</div>
-        <div style="font-size: 14px; color: var(--text-secondary); line-height: 1.6;">Сверху — главное: P&amp;L со спарклайном, серии, рекорды, перевес над безубытком, максимальная просадка, разбивка по видам спорта с барами ROI, время ставок и CLV. Остальные срезы убраны в раскрывающийся блок.</div>
+        <div style="font-size: 14px; color: var(--text-secondary); line-height: 1.6;">Сверху — главное: P&amp;L столбцами по месяцам с винрейтом и шагом к предыдущему по тапу, разбивка по видам спорта расходящимися барами от нуля, серии, рекорды, перевес над безубытком, максимальная просадка, время ставок и CLV. Остальные срезы убраны в раскрывающийся блок.</div>
       </div>
 
       <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 20px;">
@@ -499,6 +505,18 @@
         <div style="font-size: 14px; color: var(--text-secondary); line-height: 1.6;">Записывай кэф закрытия линии — приложение посчитает, насколько ты обыгрываешь рынок. Главная метрика профессионалов, а не просто плюс по итогу.</div>
       </div>
 
+
+      <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 20px;">
+        <div style="font-size: 22px; margin-bottom: 8px;">🔎</div>
+        <div style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">Поиск находит турниры, фильтры — на своём экране</div>
+        <div style="font-size: 14px; color: var(--text-secondary); line-height: 1.6;">Поиск идёт и по названию турнира, а под полем появляются подсказки из твоих же ставок — не нужно вспоминать, как именно ты записал лигу. Рядом со статусом и сортировкой встала кнопка расширенных фильтров: турнир, команда, коэффициент и даты от и до.</div>
+      </div>
+
+      <div style="background: var(--bg-card); border: 1px solid var(--border); border-radius: 14px; padding: 20px;">
+        <div style="font-size: 22px; margin-bottom: 8px;">💰</div>
+        <div style="font-size: 16px; font-weight: 700; color: var(--text-primary); margin-bottom: 8px;">Банкролл: P&amp;L или банк, на выбор</div>
+        <div style="font-size: 14px; color: var(--text-secondary); line-height: 1.6;">На счёте, который часто пополняют и выводят, линия банка — это пила из переводов, и результата самих ставок на ней не видно. Переключатель показывает чистый P&amp;L, где пополнения и выводы линию не двигают. Протяжка по графику — баланс, пополнение и вывод любого дня.</div>
+      </div>
     </div>
   </div>
 </section>
