@@ -152,20 +152,20 @@ test.describe('Add bet', () => {
   });
 
   test('can open and close modal via Escape', async ({ page }) => {
-    await page.click('button:has-text("+ Новая ставка")');
+    await page.click('button:has-text("+ Добавить ставку")');
     await expect(page.getByRole('heading', { name: 'Новая ставка' })).toBeVisible();
     await page.keyboard.press('Escape');
     await expect(page.getByRole('heading', { name: 'Новая ставка' })).not.toBeVisible();
   });
 
   test('shows validation errors on empty submit', async ({ page }) => {
-    await page.click('button:has-text("+ Новая ставка")');
+    await page.click('button:has-text("+ Добавить ставку")');
     await page.click('button[type="submit"]');
     await expect(page.getByText('Введи название команды / события')).toBeVisible();
   });
 
   test('can fill and submit a bet', async ({ page }) => {
-    await page.click('button:has-text("+ Новая ставка")');
+    await page.click('button:has-text("+ Добавить ставку")');
     await page.fill('input[placeholder="NaVi, Arsenal..."]', 'Arsenal');
     await page.fill('input[placeholder="Virtus.pro, Chelsea..."]', 'Chelsea');
     await page.fill('input[placeholder="1.85"]', '1.85');
@@ -188,7 +188,7 @@ test.describe('Add bet', () => {
   });
 
   test('shows potential win preview', async ({ page }) => {
-    await page.click('button:has-text("+ Новая ставка")');
+    await page.click('button:has-text("+ Добавить ставку")');
     await page.fill('input[placeholder="1.85"]', '2.0');
     await page.fill('input[placeholder="1000"]', '1000');
     await expect(page.getByText('Потенциальный выигрыш')).toBeVisible();
@@ -219,7 +219,7 @@ test.describe('Bets page', () => {
   });
 
   test('status filter shows won bets only', async ({ page }) => {
-    await page.click('button:has-text("Победы")');
+    await page.getByRole('button', { name: 'Победа', exact: true }).click();
     await expect(page.getByText('Manchester City vs Liverpool')).toBeVisible();
     await expect(page.getByText('Djokovic vs Nadal')).not.toBeVisible();
   });

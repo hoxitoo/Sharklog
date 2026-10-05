@@ -1,4 +1,10 @@
+import { existsSync } from 'node:fs';
 import { defineConfig, devices } from '@playwright/test';
+
+// The sandbox ships its own headless shell; a CI runner has none at this path
+// and uses the browser `playwright install` put in its cache. Hardcoding it
+// made every CI run fail at browser launch, before a single test ran.
+const SANDBOX_SHELL = '/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell';
 
 export default defineConfig({
   testDir: './e2e',
@@ -20,9 +26,7 @@ export default defineConfig({
       name: 'chromium',
       use: {
         ...devices['Desktop Chrome'],
-        launchOptions: {
-          executablePath: '/opt/pw-browsers/chromium_headless_shell-1194/chrome-linux/headless_shell',
-        },
+        ...(existsSync(SANDBOX_SHELL) ? { launchOptions: { executablePath: SANDBOX_SHELL } } : {}),
       },
     },
   ],
