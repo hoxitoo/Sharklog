@@ -5,6 +5,7 @@ import { AppText as Text } from './AppText';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors } from '../theme/colors';
 import { SIZE } from '../theme/typography';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   storageKey: string;
@@ -14,6 +15,7 @@ interface Props {
 }
 
 export function Coachmark({ storageKey, title, body, position = 'bottom' }: Props) {
+  const { t } = useTranslation();
   const [visible, setVisible] = React.useState(false);
   const opacity = useRef(new Animated.Value(0)).current;
 
@@ -49,7 +51,7 @@ export function Coachmark({ storageKey, title, body, position = 'bottom' }: Prop
         </View>
         <Text style={styles.body}>{body}</Text>
         <TouchableOpacity style={styles.btn} onPress={dismiss}>
-          <Text style={styles.btnText}>Понятно</Text>
+          <Text style={styles.btnText}>{t('common.gotIt')}</Text>
         </TouchableOpacity>
       </View>
     </Animated.View>

@@ -1,3 +1,4 @@
+import i18n from '../i18n';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import type { Bet } from '@sharklog/core';
@@ -16,7 +17,7 @@ export async function exportBetsCSV(bets: Bet[]): Promise<void> {
   if (canShare) {
     await Sharing.shareAsync(uri, {
       mimeType: 'text/csv',
-      dialogTitle: 'Экспорт ставок',
+      dialogTitle: i18n.t('settings.exportDialogTitle'),
       UTI: 'public.comma-separated-values-text',
     });
   }

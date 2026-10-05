@@ -4,6 +4,8 @@ import { View, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { AppText as Text } from './AppText';
 import { colors } from '../theme/colors';
 import { SIZE, GLYPH } from '../theme/typography';
+// A class component cannot use hooks, so it reads the i18n instance directly.
+import i18n from '../i18n';
 
 interface Props { children: React.ReactNode }
 interface State { error: Error | null }
@@ -30,10 +32,10 @@ export class ErrorBoundary extends React.Component<Props, State> {
       <View style={s.root}>
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.content} showsVerticalScrollIndicator={false}>
           <Text style={s.emoji}>🦈💥</Text>
-          <Text style={s.title}>Что-то пошло не так</Text>
+          <Text style={s.title}>{i18n.t('errors.generic')}</Text>
           <Text style={s.msg}>{error.message}</Text>
           <TouchableOpacity style={s.btn} onPress={() => this.setState({ error: null })}>
-            <Text style={s.btnText}>Попробовать снова</Text>
+            <Text style={s.btnText}>{i18n.t('errors.retry')}</Text>
           </TouchableOpacity>
         </ScrollView>
       </View>

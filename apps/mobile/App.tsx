@@ -167,14 +167,18 @@ export default function App() {
     return (
       <View style={{ flex: 1, backgroundColor: colors.bg }}>
         <StatusBar style="light" />
-        {/* Only once the fonts are registered. The splash names DM Sans, and
-            Android measures a Text with whatever font is available at the time:
-            mounting first meant the tagline was measured in the fallback and
-            then clipped when the wider face arrived — "Трекер ставок" rendered
-            as "Трекер". It also means the animation starts when it becomes
-            visible, instead of playing its first frames under the native
-            splash. */}
-        {!splashDone && fontsSettled && <AnimatedSplash onFinish={() => setSplashDone(true)} />}
+        {/* Only once the app is READY — fonts AND store — not fonts alone.
+            Fonts: the splash names DM Sans, and Android measures a Text with
+            whatever font is available at the time; mounting first meant the
+            tagline was measured in the fallback and clipped when the wider face
+            arrived ("Трекер ставок" rendered as "Трекер").
+            Store: the language is applied when the store has loaded, so a splash
+            started on fonts alone played its tagline in Russian and switched
+            mid-animation. And the native splash hides on appReady, so frames
+            played before it were played under it, unseen. appReady covers all
+            three: right font, right language, and the animation starts when it
+            becomes visible. */}
+        {!splashDone && appReady && <AnimatedSplash onFinish={() => setSplashDone(true)} />}
       </View>
     );
   }

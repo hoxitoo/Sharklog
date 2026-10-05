@@ -5,10 +5,12 @@ import { AppText as Text } from './AppText';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors } from '../theme/colors';
 import { SIZE, GLYPH } from '../theme/typography';
+import { useTranslation } from 'react-i18next';
 
 const STORAGE_KEY = '@sharklog/responsible_expanded';
 
 export function ResponsibleGamblingBanner() {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const [loaded, setLoaded] = useState(false);
   const animHeight = useRef(new Animated.Value(0)).current;
@@ -44,12 +46,12 @@ export function ResponsibleGamblingBanner() {
     <View style={styles.container}>
       <TouchableOpacity style={styles.header} onPress={toggle} activeOpacity={0.7}>
         <Text style={styles.icon}>⚠️</Text>
-        <Text style={styles.title}>Ответственная игра · 18+</Text>
+        <Text style={styles.title}>{t('responsible.title')}</Text>
         <Text style={styles.chevron}>{expanded ? '▲' : '▼'}</Text>
       </TouchableOpacity>
       <Animated.View style={[styles.body, { height: expandedHeight, overflow: 'hidden' }]}>
         <Text style={styles.text}>
-          Ставки должны быть развлечением, а не источником дохода.
+          {t('responsible.body')}
         </Text>
       </Animated.View>
     </View>

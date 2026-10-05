@@ -168,7 +168,68 @@
     "bestSport": "Best sport",
     "topTournaments": "Top tournaments",
     "noBets": "No bets in selected period",
-    "countSuffix": "bets"
+    "countSuffix": "bets",
+    "subtitle": "Where you stand — short and complete",
+    "proFeatureFull": "Full analytics: streaks, records, CLV, bet timing",
+    "period7d": "7 days",
+    "period30d": "30 days",
+    "periodAll": "All time",
+    "avgOdds": "Avg. odds",
+    "running": "in progress",
+    "byMonths": "By month",
+    "byDays": "By day",
+    "tapBar": "tap a bar",
+    "bucketWr": "WR {{pct}}% · settled: {{count}}",
+    "noSettled": "No settled bets",
+    "vsPrevDay": "vs prev. day",
+    "vsPrevWeek": "vs prev. week",
+    "vsPrevMonth": "vs prev. month",
+    "streaks": "Streaks",
+    "bestStreak": "Best winning streak",
+    "worstStreak": "Worst streak",
+    "currentStreak": "Current",
+    "winsInRow_one": "win in a row",
+    "winsInRow_other": "wins in a row",
+    "lossesInRow_one": "loss in a row",
+    "lossesInRow_other": "losses in a row",
+    "records": "Records",
+    "biggestWin": "Biggest win",
+    "biggestWinInfo": "Your best bet in the selected period: the largest net win on a single bet (payout minus stake).\n\nUnder the value — the event it came from.",
+    "biggestLoss": "Biggest loss",
+    "biggestLossInfo": "Your worst bet in the selected period: the largest net loss on a single bet.\n\nLost free bets are not counted — their P&L is 0; it was not your money.",
+    "edgeRisk": "Edge and risk",
+    "edge": "Edge over break-even",
+    "edgeSub": "WR {{wr}}% · b/e {{be}}%",
+    "edgeInfo": "Compares your win rate (WR) with the break-even rate at your average odds.\n\nBreak-even (b/e) = 100 / average odds. Example: average odds 2.20 → you need to win 45.5% of bets to break even. If your WR is higher, you have an edge and come out ahead over time.\n\nThis is an estimate; it becomes reliable from about 100 settled bets.",
+    "maxDrawdown": "Max. drawdown",
+    "drawdownSub": "−{{pct}}% from peak",
+    "noDrawdown": "no drawdown",
+    "drawdownInfo": "The deepest fall of cumulative P&L from a peak to a trough over your betting history.\n\nThis is the main measure of risk: it shows the worst drop in money you have lived through. \"−88% from peak\" means that at the worst moment you had lost 88% of the profit you had built up.\n\nThe smaller the drawdown at the same ROI, the steadier the strategy and the lower the risk of blowing the bank.",
+    "smallSampleEdge": "Small sample ({{n}}/{{min}}) — the edge and % are not stable yet",
+    "luckTitle": "Luck or decisions",
+    "luckNeutral": "The result is within normal variance — this sample cannot tell decisions apart from luck.",
+    "luckAbove": "The result is above what the odds alone would give. Part of that is luck, and luck does not repeat on demand.",
+    "luckBelow": "The result is below what the odds alone would give. A run like this is a normal part of the long game, not a reason to change everything.",
+    "sigma": "Deviation from zero",
+    "luckActual": "actual {{amount}}",
+    "sigmaInfo": "The baseline is break-even: odds of 2.50 mean a 40% chance, and if you hit at exactly that rate you end at zero.\n\nSo the question is not \"how much did I make\" but \"how far did the result move from zero compared with how far it COULD move by chance\". That ratio is σ (sigma).\n\nUp to 1σ is normal variance. Beyond 2σ the result is unlikely to be luck alone: you are most likely really finding value (or are systematically wrong).\n\nThe estimate is strict with you: the bookmaker's margin is built into the odds, so the real zero sits slightly below break-even. Being positive on this scale already means beating the margin.",
+    "spread": "Variance on this sample",
+    "spreadInfo": "How far the result could swing on its own, with no skill at all — just because bets either land or they do not.\n\nIt is calculated from your real stakes and odds: the bigger the stakes and the higher the odds, the wider the swing. If your profit or loss is smaller than this figure, it proves nothing.",
+    "winsActualVsOdds": "Wins: actual / by odds",
+    "smallSampleLuck": "Small sample ({{n}}/{{min}}) — over a short run almost any result fits within variance",
+    "timeTitle": "Bet timing",
+    "timeEmpty": "No data on bet times",
+    "clvTitle": "CLV — closing line value",
+    "clvEmpty": "Add the \"closing odds\" when you log a bet, and the key professional metric will appear here: how much better your odds are than the line before kick-off.",
+    "clvAvg": "Average CLV",
+    "clvOver_one": "over {{count}} bet",
+    "clvOver_other": "over {{count}} bets",
+    "clvAvgInfo": "Closing Line Value — how much better your odds are, on average, than the closing line.\n\nCLV = (your odds / closing odds − 1) × 100%. Example: you took 2.10, the line closed at 2.00 → CLV +5%.\n\nA consistently positive CLV is the main sign that you are beating the line rather than just getting lucky. Fill in the \"closing odds\" when you log a bet.",
+    "beatLine": "Line beaten",
+    "beatLineSub": "odds above closing",
+    "beatLineInfo": "The share of bets where your odds ended up higher than the closing odds.\n\nConsistently above 50% means you get a better price than the market: you find value before the line moves.",
+    "turnoverShare": "{{pct}}% of turnover",
+    "extended": "Advanced statistics"
   },
   "insights": {
     "title": "Insights",
@@ -176,10 +237,21 @@
     "tournamentsAndLeagues": "Tournaments & Leagues",
     "tournamentsEmpty": "Add bets with tournament — stats will appear here",
     "teams": "Favourite Teams",
-    "teamsProMsg": "Team analysis (10+ bets) is available in SharkLog Pro",
     "noTournaments": "Add bets with tournament — it will appear here",
-    "noTeams": "Need at least 10 bets on a team",
-    "period": "Period"
+    "period": "Period",
+    "subtitle": "Tournaments and teams",
+    "period7d": "7d",
+    "period30d": "30d",
+    "periodAll": "All",
+    "best": "Best",
+    "worst": "Worst",
+    "teamsFeature_one": "Favourite teams analysis ({{count}}+ bet)",
+    "teamsFeature_other": "Favourite teams analysis ({{count}}+ bets)",
+    "teamsMin_one": "At least {{count}} bet on one team is needed",
+    "teamsMin_other": "At least {{count}} bets on one team are needed",
+    "byYear": "By year",
+    "yearTotal": "{{year}} total",
+    "yearEmpty": "No bets for this year yet"
   },
   "bankroll": {
     "title": "Bankroll",
@@ -211,7 +283,8 @@
     "yourProb": "Your probability %",
     "fullKelly": "Full Kelly",
     "halfKelly": "½ Kelly (recommended)",
-    "bankPercent": "% bankroll"
+    "bankPercent": "% bankroll",
+    "chartEmpty": "Not enough data for a chart"
   },
   "discipline": {
     "title": "Discipline",
@@ -352,7 +425,8 @@
     "clearAllMsg": "Bets, bankroll, diary and teams will be deleted for good. Settings and subscription stay.",
     "clearProNote": "Your Pro subscription is safe: it's tied to your App Store / Google Play account. After clearing, tap “Restore purchases”.",
     "clearBackupNote": "You don't have a backup yet — better make one first.",
-    "clearAction": "Clear"
+    "clearAction": "Clear",
+    "exportDialogTitle": "Export bets"
   },
   "onboarding": {
     "welcome": "Welcome",
@@ -387,7 +461,14 @@
     "date": "Date",
     "type": "Type",
     "betsCount_one": "{{count}} bet",
-    "betsCount_other": "{{count}} bets"
+    "betsCount_other": "{{count}} bets",
+    "betsShort_one": "{{count}} bet",
+    "betsShort_other": "{{count}} bets",
+    "betsNoun_one": "bet",
+    "betsNoun_other": "bets",
+    "collapse": "Collapse",
+    "showMore": "{{count}} more",
+    "gotIt": "Got it"
   },
   "sports": {
     "football": "Football",
@@ -425,7 +506,8 @@
     "importFailed": "Failed to import data",
     "noFile": "File not found",
     "invalidFile": "Invalid file format",
-    "storeUnreachable": "Couldn't reach the store. Check your connection and try again."
+    "storeUnreachable": "Couldn't reach the store. Check your connection and try again.",
+    "retry": "Try again"
   },
   "filters": {
     "tournament": "Tournament / league",
@@ -550,5 +632,49 @@
     "perkTilt": "Custom tilt alert",
     "perkChecklist": "Pre-bet discipline checklist",
     "perkExport": "CSV export"
+  },
+  "monthsShort": {
+    "1": "Jan",
+    "2": "Feb",
+    "3": "Mar",
+    "4": "Apr",
+    "5": "May",
+    "6": "Jun",
+    "7": "Jul",
+    "8": "Aug",
+    "9": "Sep",
+    "10": "Oct",
+    "11": "Nov",
+    "12": "Dec"
+  },
+  "monthsLong": {
+    "1": "January",
+    "2": "February",
+    "3": "March",
+    "4": "April",
+    "5": "May",
+    "6": "June",
+    "7": "July",
+    "8": "August",
+    "9": "September",
+    "10": "October",
+    "11": "November",
+    "12": "December"
+  },
+  "weekdays": {
+    "0": "Sunday",
+    "1": "Monday",
+    "2": "Tuesday",
+    "3": "Wednesday",
+    "4": "Thursday",
+    "5": "Friday",
+    "6": "Saturday"
+  },
+  "responsible": {
+    "title": "Responsible gambling · 18+",
+    "body": "Betting should be entertainment, not a source of income."
+  },
+  "splash": {
+    "tagline": "Bet tracker"
   }
 }

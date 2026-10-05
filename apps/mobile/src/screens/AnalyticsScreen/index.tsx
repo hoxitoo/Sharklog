@@ -7,7 +7,7 @@ import {
   calcByField, calcByOddsRange, calcByDayOfWeek, calcDashboard,
   calcStreaks, calcExtremes, calcTimeStats, calcCLV,
   calcMaxDrawdown, calcEdge, calcPnlBuckets, calcLuck, RELIABLE_SAMPLE_MIN,
-  SPORTS, BET_TYPES, STRATEGIES, formatPercent, toYmd } from '@sharklog/core';
+  formatPercent, toYmd } from '@sharklog/core';
 import type { SliceStats, Bet, PnlBucket, Granularity } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { ProGate } from '../../components/ProGate';
@@ -17,6 +17,8 @@ import { uses12HourClock } from '../../utils/clockFormat';
 import { haptic } from '../../utils/haptics';
 import { colors, alpha, toneSurface } from '../../theme/colors';
 import { numeric, SIZE, GLYPH } from '../../theme/typography';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 
 /** The donut lives in a pink-toned Card, so its hole must match that surface. */
 const DONUT_SURFACE = toneSurface('pink').backgroundColor;
@@ -28,13 +30,13 @@ const { width } = Dimensions.get('window');
 // Distinct "time of day" ramp for the 6 four-hour donut segments.
 const BUCKET_COLORS = ['#3B4A8C', '#5B6AF0', '#22D3A0', '#F59E0B', '#A78BFA', '#546E9C'];
 
-const MONTHS_RU = ['Январь', 'Февраль', 'Март', 'Апрель', 'Май', 'Июнь', 'Июль', 'Август', 'Сентябрь', 'Октябрь', 'Ноябрь', 'Декабрь'];
-const MONTHS_SHORT_RU = ['Янв', 'Фев', 'Мар', 'Апр', 'Май', 'Июн', 'Июл', 'Авг', 'Сен', 'Окт', 'Ноя', 'Дек'];
 
 // ── Hero: headline P&L with per-period bars ──────────────────────────────────
 
 /** "к пред. месяцу" — the unit the trend arrow compares against. */
-const PREV_UNIT: Record<Granularity, string> = { day: 'дню', week: 'неделе', month: 'месяцу' };
+const PREV_KEY: Record<Granularity, string> = {
+  day: 'analytics.vsPrevDay', week: 'analytics.vsPrevWeek', month: 'analytics.vsPrevMonth',
+};
 
 /** Bucket size that keeps the bar count readable for the selected period. */
 const BUCKETS: Record<APeriodFilter, { granularity: Granularity; count: number }> = {
@@ -43,18 +45,21 @@ const BUCKETS: Record<APeriodFilter, { granularity: Granularity; count: number }
   'all': { granularity: 'month', count: 12 },
 };
 
-function bucketLabel(b: PnlBucket, granularity: Granularity): string {
+// Month names come from the locale files, not Intl: the bar labels are three
+// letters wide, and an engine without kk/be month data would fall back silently.
+function bucketLabel(t: TFunction, b: PnlBucket, granularity: Granularity): string {
   const [, m, d] = b.start.split('-');
-  return granularity === 'month' ? (MONTHS_SHORT_RU[Number(m) - 1] ?? '') : `${d}.${m}`;
+  return granularity === 'month' ? t(`monthsShort.${Number(m)}`) : `${d}.${m}`;
 }
 
-function bucketTitle(b: PnlBucket, granularity: Granularity): string {
+function bucketTitle(t: TFunction, b: PnlBucket, granularity: Granularity): string {
   const [, m, d] = b.start.split('-');
-  return granularity === 'month' ? (MONTHS_RU[Number(m) - 1] ?? '') : `${d}.${m}`;
+  return granularity === 'month' ? t(`monthsLong.${Number(m)}`) : `${d}.${m}`;
 }
 
 function HeroPnl({ bets, period }: { bets: Bet[]; period: APeriodFilter }) {
   const fmt = useFormatMoney();
+  const { t } = useTranslation();
   const stats = useMemo(() => calcDashboard(bets), [bets]);
   const positive = stats.pnl >= 0;
   const lineColor = positive ? colors.won : colors.lost;
@@ -80,7 +85,7 @@ function HeroPnl({ bets, period }: { bets: Bet[]; period: APeriodFilter }) {
 
   return (
     <View style={hero.box}>
-      <Text style={hero.label}>P&L · {stats.totalBets} ставок</Text>
+      <Text style={hero.label}>P&L · {t('common.betsCount', { count: stats.totalBets })}</Text>
       <Text style={[hero.value, { color: lineColor }]} numberOfLines={1} adjustsFontSizeToFit>
         {positive ? '+' : ''}{fmt(stats.pnl)}
       </Text>
@@ -97,7 +102,7 @@ function HeroPnl({ bets, period }: { bets: Bet[]; period: APeriodFilter }) {
         </View>
         <View style={hero.metaCell}>
           <Text style={hero.metaValue}>{stats.avgOdds.toFixed(2)}</Text>
-          <Text style={hero.metaLabel}>Ср. кэф</Text>
+          <Text style={hero.metaLabel}>{t('analytics.avgOdds')}</Text>
         </View>
       </View>
 
@@ -105,17 +110,17 @@ function HeroPnl({ bets, period }: { bets: Bet[]; period: APeriodFilter }) {
         <View style={hero.chart}>
           <View style={hero.chartHead}>
             <Text style={hero.chartTitle}>
-              {active ? `${bucketTitle(active, granularity)}${running ? ' · идёт' : ''}`
-                : granularity === 'month' ? 'По месяцам' : 'По дням'}
+              {active ? `${bucketTitle(t, active, granularity)}${running ? ` · ${t('analytics.running')}` : ''}`
+                : granularity === 'month' ? t('analytics.byMonths') : t('analytics.byDays')}
             </Text>
             {active ? (
               <Text style={[hero.chartValue, {
                 color: active.pnl > 0 ? colors.won : active.pnl < 0 ? colors.lost : colors.textMuted,
               }]}>
-                {active.pnl > 0 ? '+' : ''}{fmt(active.pnl)} · {active.bets} ст.
+                {active.pnl > 0 ? '+' : ''}{fmt(active.pnl)} · {t('common.betsShort', { count: active.bets })}
               </Text>
             ) : (
-              <Text style={hero.chartHint}>тап по столбцу</Text>
+              <Text style={hero.chartHint}>{t('analytics.tapBar')}</Text>
             )}
           </View>
           {/* Always rendered, never conditional: appearing only on selection
@@ -124,8 +129,8 @@ function HeroPnl({ bets, period }: { bets: Bet[]; period: APeriodFilter }) {
           <View style={hero.chartMeta}>
             <Text style={hero.chartMetaText} numberOfLines={1}>
               {!active ? '' : active.settled > 0
-                ? `WR ${((active.won / active.settled) * 100).toFixed(0)}% · ${active.settled} расч.`
-                : 'Нет рассчитанных ставок'}
+                ? t('analytics.bucketWr', { pct: ((active.won / active.settled) * 100).toFixed(0), count: active.settled })
+                : t('analytics.noSettled')}
             </Text>
             <Text
               numberOfLines={1}
@@ -133,7 +138,7 @@ function HeroPnl({ bets, period }: { bets: Bet[]; period: APeriodFilter }) {
                 color: delta === null || delta === 0 ? colors.textMuted : delta > 0 ? colors.won : colors.lost,
               }]}
             >
-              {delta === null ? '' : `${delta > 0 ? '▲' : delta < 0 ? '▼' : '='} ${fmt(Math.abs(delta))} к пред. ${PREV_UNIT[granularity]}`}
+              {delta === null ? '' : `${delta > 0 ? '▲' : delta < 0 ? '▼' : '='} ${fmt(Math.abs(delta))} ${t(PREV_KEY[granularity])}`}
             </Text>
           </View>
           <PnlBars
@@ -141,7 +146,7 @@ function HeroPnl({ bets, period }: { bets: Bet[]; period: APeriodFilter }) {
             width={width - 64}
             selected={selected}
             onSelect={(i) => { haptic.selection(); setSelected(i); }}
-            labelFor={(b, i) => (i % every === 0 || i === buckets.length - 1 ? bucketLabel(b, granularity) : '')}
+            labelFor={(b, i) => (i % every === 0 || i === buckets.length - 1 ? bucketLabel(t, b, granularity) : '')}
           />
         </View>
       )}
@@ -214,22 +219,25 @@ const tile = StyleSheet.create({
 });
 
 function StreaksCard({ bets }: { bets: Bet[] }) {
+  const { t } = useTranslation();
   const s = useMemo(() => calcStreaks(bets), [bets]);
   const cur = s.current;
   const curLabel = cur.type === 'none' ? '—' : `${cur.count}`;
   const curColor = cur.type === 'win' ? colors.won : cur.type === 'loss' ? colors.lost : colors.textMuted;
   return (
-    <Card title="Серии" tone="info">
+    <Card title={t('analytics.streaks')} tone="info">
       <View style={row.wrap}>
-        <MiniTile label="Лучшая серия побед" value={`${s.bestWin} W`} color={colors.won} />
+        <MiniTile label={t('analytics.bestStreak')} value={`${s.bestWin} W`} color={colors.won} />
         <View style={{ width: 10 }} />
-        <MiniTile label="Худшая серия" value={`${s.worstLoss} L`} color={colors.lost} />
+        <MiniTile label={t('analytics.worstStreak')} value={`${s.worstLoss} L`} color={colors.lost} />
         <View style={{ width: 10 }} />
         <MiniTile
-          label="Текущая"
+          label={t('analytics.currentStreak')}
           value={curLabel}
           color={curColor}
-          sub={cur.type === 'win' ? 'побед подряд' : cur.type === 'loss' ? 'поражений' : ''}
+          // Agrees with the number above it: "1 победа", "3 победы", "5 побед".
+          sub={cur.type === 'win' ? t('analytics.winsInRow', { count: cur.count })
+            : cur.type === 'loss' ? t('analytics.lossesInRow', { count: cur.count }) : ''}
         />
       </View>
     </Card>
@@ -238,30 +246,31 @@ function StreaksCard({ bets }: { bets: Bet[] }) {
 
 function ExtremesCard({ bets }: { bets: Bet[] }) {
   const fmt = useFormatMoney();
+  const { t } = useTranslation();
   const e = useMemo(() => calcExtremes(bets), [bets]);
   const cleanEvent = (ev: string) => ev.split(' / ')[0]?.split('|')[0]?.trim() ?? ev;
   return (
-    <Card title="Рекорды" tone="violet">
+    <Card title={t('analytics.records')} tone="violet">
       <View style={row.wrap}>
         <MiniTile
-          label="Самый большой выигрыш"
+          label={t('analytics.biggestWin')}
           value={e.biggestWin ? `+${fmt(e.biggestWin.pnl)}` : '—'}
           color={colors.won}
           {...(e.biggestWin ? { sub: cleanEvent(e.biggestWin.bet.event) } : {})}
           info={{
-            title: 'Самый большой выигрыш',
-            text: 'Лучшая ставка за выбранный период: максимальный чистый выигрыш по одной ставке (выплата минус сумма ставки).\n\nПод значением — событие, на котором он случился.',
+            title: t('analytics.biggestWin'),
+            text: t('analytics.biggestWinInfo'),
           }}
         />
         <View style={{ width: 10 }} />
         <MiniTile
-          label="Самый большой проигрыш"
+          label={t('analytics.biggestLoss')}
           value={e.biggestLoss ? fmt(e.biggestLoss.pnl) : '—'}
           color={colors.lost}
           {...(e.biggestLoss ? { sub: cleanEvent(e.biggestLoss.bet.event) } : {})}
           info={{
-            title: 'Самый большой проигрыш',
-            text: 'Худшая ставка за выбранный период: максимальная чистая потеря по одной ставке.\n\nПроигранные фрибеты не учитываются — их P&L равен 0, это были не твои деньги.',
+            title: t('analytics.biggestLoss'),
+            text: t('analytics.biggestLossInfo'),
           }}
         />
       </View>
@@ -277,39 +286,40 @@ const row = StyleSheet.create({
 
 function EdgeRiskCard({ bets }: { bets: Bet[] }) {
   const fmt = useFormatMoney();
+  const { t } = useTranslation();
   const e = useMemo(() => calcEdge(bets), [bets]);
   const dd = useMemo(() => calcMaxDrawdown(bets), [bets]);
   const hasEdge = e.edge >= 0;
   const lowSample = e.sampleSize > 0 && e.sampleSize < RELIABLE_SAMPLE_MIN;
 
   return (
-    <Card title="Перевес и риск" tone="profit">
+    <Card title={t('analytics.edgeRisk')} tone="profit">
       <View style={row.wrap}>
         <MiniTile
-          label="Перевес над безубытком"
+          label={t('analytics.edge')}
           value={e.sampleSize === 0 ? '—' : `${hasEdge ? '+' : ''}${e.edge.toFixed(1)}%`}
           color={e.sampleSize === 0 ? colors.textMuted : hasEdge ? colors.won : colors.lost}
-          sub={e.sampleSize === 0 ? '' : `WR ${e.winRate.toFixed(0)}% · б/у ${e.breakEvenRate.toFixed(0)}%`}
+          sub={e.sampleSize === 0 ? '' : t('analytics.edgeSub', { wr: e.winRate.toFixed(0), be: e.breakEvenRate.toFixed(0) })}
           info={{
-            title: 'Перевес над безубытком',
-            text: 'Сравнивает твой процент побед (WR) с безубыточным при твоём среднем кэфе.\n\nБезубыток (б/у) = 100 / средний кэф. Пример: средний кэф 2.20 → нужно выигрывать 45.5% ставок, чтобы выйти в ноль. Если WR выше — у тебя перевес, и на дистанции ты в плюсе.\n\nЭто приближённая оценка: она становится надёжной от ~100 закрытых ставок.',
+            title: t('analytics.edge'),
+            text: t('analytics.edgeInfo'),
           }}
         />
         <View style={{ width: 10 }} />
         <MiniTile
-          label="Макс. просадка"
+          label={t('analytics.maxDrawdown')}
           value={dd.maxDrawdown > 0 ? `−${fmt(dd.maxDrawdown)}` : fmt(0)}
           color={dd.maxDrawdown > 0 ? colors.lost : colors.textMuted}
-          sub={dd.maxDrawdownPct > 0 ? `−${dd.maxDrawdownPct.toFixed(0)}% от пика` : 'нет просадки'}
+          sub={dd.maxDrawdownPct > 0 ? t('analytics.drawdownSub', { pct: dd.maxDrawdownPct.toFixed(0) }) : t('analytics.noDrawdown')}
           info={{
-            title: 'Макс. просадка',
-            text: 'Самое глубокое падение накопленного P&L от пика до дна за историю ставок.\n\nЭто главная мера риска: она показывает худший «провал» в деньгах, который ты пережил. «−88% от пика» значит, что в худший момент ты растерял 88% накопленной прибыли.\n\nЧем меньше просадка при том же ROI — тем стабильнее стратегия и ниже риск слить банк.',
+            title: t('analytics.maxDrawdown'),
+            text: t('analytics.drawdownInfo'),
           }}
         />
       </View>
       {lowSample && (
         <Text style={edge.caption}>
-          Выборка мала ({e.sampleSize}/{RELIABLE_SAMPLE_MIN}) — перевес и % ещё нестабильны
+          {t('analytics.smallSampleEdge', { n: e.sampleSize, min: RELIABLE_SAMPLE_MIN })}
         </Text>
       )}
     </Card>
@@ -324,47 +334,48 @@ const edge = StyleSheet.create({
 
 function LuckCard({ bets }: { bets: Bet[] }) {
   const fmt = useFormatMoney();
+  const { t } = useTranslation();
   const l = useMemo(() => calcLuck(bets), [bets]);
   if (!l) return null;
 
   const swing = l.actualWins - l.expectedWins;
   const verdictText =
     l.verdict === 'normal'
-      ? 'Результат в пределах обычного разброса — по этой выборке нельзя сказать, что дело в решениях, а не в дисперсии.'
+      ? t('analytics.luckNeutral')
       : l.verdict === 'hot'
-      ? 'Результат выше того, что дают одни коэффициенты. Часть этого — везение, и оно не повторяется по заказу.'
-      : 'Результат ниже того, что дают одни коэффициенты. Такая полоса — обычная часть дистанции, а не повод менять всё.';
+      ? t('analytics.luckAbove')
+      : t('analytics.luckBelow');
 
   const zColor = l.verdict === 'normal' ? colors.textPrimary : l.z > 0 ? colors.won : colors.lost;
 
   return (
-    <Card title="Везение или решения" tone="violet">
+    <Card title={t('analytics.luckTitle')} tone="violet">
       <View style={row.wrap}>
         <MiniTile
-          label="Отклонение от нуля"
+          label={t('analytics.sigma')}
           value={`${l.z > 0 ? '+' : ''}${l.z.toFixed(2)}σ`}
           color={zColor}
-          sub={`факт ${l.actualPnl >= 0 ? '+' : ''}${fmt(l.actualPnl)}`}
+          sub={t('analytics.luckActual', { amount: `${l.actualPnl >= 0 ? '+' : ''}${fmt(l.actualPnl)}` })}
           info={{
-            title: 'Отклонение от нуля',
-            text: 'Точка отсчёта — безубыток: цена 2.50 означает шанс 40%, и если угадывать ровно с такой частотой, выходишь в ноль.\n\nПоэтому вопрос не «сколько я заработал», а «насколько результат отошёл от нуля по сравнению с тем, насколько он МОГ отойти случайно». Эта величина и есть σ (сигма).\n\nДо 1σ — обычный разброс. Больше 2σ — результат вряд ли объясняется одним везением: скорее всего, ты действительно ловишь цену (или систематически ошибаешься).\n\nОценка строгая к тебе: в кэфы зашита маржа букмекера, так что реальный ноль чуть ниже безубытка. Выйти в плюс по этой шкале — уже значит обыгрывать маржу.',
+            title: t('analytics.sigma'),
+            text: t('analytics.sigmaInfo'),
           }}
         />
         <View style={{ width: 10 }} />
         <MiniTile
-          label="Разброс на этой выборке"
+          label={t('analytics.spread')}
           value={`±${fmt(l.sigma)}`}
           color={colors.textSecondary}
-          sub={`${l.sample} ставок`}
+          sub={t('common.betsCount', { count: l.sample })}
           info={{
-            title: 'Разброс на этой выборке',
-            text: 'Насколько результат мог гулять сам по себе, без всякого умения — только из-за того, что ставки либо заходят, либо нет.\n\nСчитается из твоих реальных сумм и коэффициентов: чем крупнее ставки и выше кэфы, тем шире разброс. Если твой плюс или минус меньше этой цифры — он ничего не доказывает.',
+            title: t('analytics.spread'),
+            text: t('analytics.spreadInfo'),
           }}
         />
       </View>
 
       <View style={luck.winsRow}>
-        <Text style={luck.winsLabel}>Побед: факт / по кэфам</Text>
+        <Text style={luck.winsLabel}>{t('analytics.winsActualVsOdds')}</Text>
         <Text style={luck.winsValue}>
           {l.actualWins} / {l.expectedWins.toFixed(1)}
           <Text style={[luck.winsSwing, { color: swing >= 0 ? colors.won : colors.lost }]}>
@@ -376,7 +387,7 @@ function LuckCard({ bets }: { bets: Bet[] }) {
       <Text style={luck.verdict}>{verdictText}</Text>
       {l.sample < RELIABLE_SAMPLE_MIN && (
         <Text style={luck.caption}>
-          Выборка мала ({l.sample}/{RELIABLE_SAMPLE_MIN}) — на короткой дистанции почти любой результат укладывается в разброс
+          {t('analytics.smallSampleLuck', { n: l.sample, min: RELIABLE_SAMPLE_MIN })}
         </Text>
       )}
     </Card>
@@ -401,12 +412,14 @@ const luck = StyleSheet.create({
 
 function TimeCard({ bets }: { bets: Bet[] }) {
   const fmt = useFormatMoney();
+  // `tr`, not `t`: `t` is the time stats below.
+  const { t: tr } = useTranslation();
   const is12h = useMemo(() => uses12HourClock(), []);
   const t = useMemo(() => calcTimeStats(bets, is12h), [bets, is12h]);
   const total = t.buckets.reduce((s, b) => s + b.count, 0);
 
   if (total === 0) {
-    return <Card title="Время ставок" tone="pink"><Text style={time.empty}>Нет данных о времени ставок</Text></Card>;
+    return <Card title={tr('analytics.timeTitle')} tone="pink"><Text style={time.empty}>{tr('analytics.timeEmpty')}</Text></Card>;
   }
 
   const pie = t.buckets
@@ -414,7 +427,7 @@ function TimeCard({ bets }: { bets: Bet[] }) {
     .filter((s) => s.value > 0);
 
   return (
-    <Card title="Время ставок" tone="pink">
+    <Card title={tr('analytics.timeTitle')} tone="pink">
       {/* Top-4 exact hours with P&L */}
       <View style={time.topRow}>
         {t.topHours.map((h) => (
@@ -423,7 +436,7 @@ function TimeCard({ bets }: { bets: Bet[] }) {
             <Text style={[time.topPnl, { color: h.pnl >= 0 ? colors.won : colors.lost }]}>
               {h.pnl >= 0 ? '+' : ''}{fmt(h.pnl)}
             </Text>
-            <Text style={time.topCount}>{h.count} ст.</Text>
+            <Text style={time.topCount}>{tr('common.betsShort', { count: h.count })}</Text>
           </View>
         ))}
       </View>
@@ -440,7 +453,7 @@ function TimeCard({ bets }: { bets: Bet[] }) {
           centerLabelComponent={() => (
             <View style={{ alignItems: 'center' }}>
               <Text style={time.centerValue}>{total}</Text>
-              <Text style={time.centerLabel}>ставок</Text>
+              <Text style={time.centerLabel}>{tr('common.betsNoun', { count: total })}</Text>
             </View>
           )}
         />
@@ -481,42 +494,40 @@ const time = StyleSheet.create({
 // ── CLV ──────────────────────────────────────────────────────────────────────
 
 function ClvCard({ bets }: { bets: Bet[] }) {
+  const { t } = useTranslation();
   const c = useMemo(() => calcCLV(bets), [bets]);
 
   if (c.count === 0) {
     return (
-      <Card title="CLV — ценность закрытия" tone="info">
-        <Text style={clv.hint}>
-          Добавляй «кэф закрытия» при вводе ставки — и здесь появится главная метрика профессионалов:
-          насколько твой кэф лучше линии перед стартом.
-        </Text>
+      <Card title={t('analytics.clvTitle')} tone="info">
+        <Text style={clv.hint}>{t('analytics.clvEmpty')}</Text>
       </Card>
     );
   }
 
   const good = c.avgClvPercent >= 0;
   return (
-    <Card title="CLV — ценность закрытия" tone="info">
+    <Card title={t('analytics.clvTitle')} tone="info">
       <View style={row.wrap}>
         <MiniTile
-          label="Средний CLV"
+          label={t('analytics.clvAvg')}
           value={`${good ? '+' : ''}${c.avgClvPercent.toFixed(1)}%`}
           color={good ? colors.won : colors.lost}
-          sub={`по ${c.count} ставкам`}
+          sub={t('analytics.clvOver', { count: c.count })}
           info={{
-            title: 'Средний CLV',
-            text: 'Closing Line Value — насколько твой кэф в среднем лучше кэфа закрытия линии.\n\nCLV = (твой кэф / кэф закрытия − 1) × 100%. Пример: взял 2.10, линия закрылась на 2.00 → CLV +5%.\n\nСтабильно положительный CLV — главный признак того, что ты обыгрываешь линию, а не просто ловишь удачу. Заполняй «кэф закрытия» при вводе ставки.',
+            title: t('analytics.clvAvg'),
+            text: t('analytics.clvAvgInfo'),
           }}
         />
         <View style={{ width: 10 }} />
         <MiniTile
-          label="Обыграл линию"
+          label={t('analytics.beatLine')}
           value={`${c.beatCloseRate.toFixed(0)}%`}
           color={c.beatCloseRate >= 50 ? colors.won : colors.textPrimary}
-          sub="кэф выше закрытия"
+          sub={t('analytics.beatLineSub')}
           info={{
-            title: 'Обыграл линию',
-            text: 'Доля ставок, в которых твой кэф оказался выше кэфа закрытия.\n\nСтабильно выше 50% — ты берёшь цену лучше рынка: находишь value раньше, чем линия сдвигается.',
+            title: t('analytics.beatLine'),
+            text: t('analytics.beatLineInfo'),
           }}
         />
       </View>
@@ -532,13 +543,14 @@ const clv = StyleSheet.create({
 
 function SliceRow({ stat, maxPnl }: { stat: SliceStats; maxPnl: number }) {
   const fmt = useFormatMoney();
+  const { t } = useTranslation();
   const barWidth = maxPnl > 0 ? Math.abs(stat.pnl) / maxPnl : 0;
   const isPositive = stat.pnl >= 0;
   return (
     <View style={slice.row}>
       <View style={slice.labelCol}>
         <Text style={slice.label} numberOfLines={1}>{stat.label}</Text>
-        <Text style={slice.meta}>{stat.count} ст. · {stat.winRate.toFixed(0)}% WR</Text>
+        <Text style={slice.meta}>{t('common.betsShort', { count: stat.count })} · {stat.winRate.toFixed(0)}% WR</Text>
       </View>
       <View style={slice.barCol}>
         <View style={[slice.bar, { width: `${Math.max(barWidth * 100, 4)}%`, backgroundColor: isPositive ? colors.won : colors.lost }]} />
@@ -594,13 +606,14 @@ function ExtendedSection({ title, stats }: { title: string; stats: SliceStats[] 
  */
 function SportBreakdown({ stats }: { stats: SliceStats[] }) {
   const fmt = useFormatMoney();
+  const { t } = useTranslation();
   const rows = useMemo(() => stats.filter((s) => s.count > 0), [stats]);
   const peak = useMemo(() => Math.max(...rows.map((s) => Math.abs(s.pnl)), 1), [rows]);
   const turnover = useMemo(() => rows.reduce((n, s) => n + s.totalStaked, 0), [rows]);
   if (rows.length === 0) return null;
 
   return (
-    <Card title="По виду спорта" tone="warn">
+    <Card title={t('analytics.bySport')} tone="warn">
       {rows.map((s) => {
         const up = s.pnl >= 0;
         // A sport that came out exactly even (all refunds, say) is neither a
@@ -632,7 +645,7 @@ function SportBreakdown({ stats }: { stats: SliceStats[] }) {
             </View>
             <View style={sport.metaRow}>
               <Text style={sport.meta} numberOfLines={1}>
-                {s.count} ст · {s.winRate.toFixed(0)}% WR · {share}% оборота
+                {t('common.betsShort', { count: s.count })} · {s.winRate.toFixed(0)}% WR · {t('analytics.turnoverShare', { pct: share })}
               </Text>
               <Text style={[sport.roi, { color: tint }]}>ROI {formatPercent(s.roi)}</Text>
             </View>
@@ -664,13 +677,14 @@ const sport = StyleSheet.create({
 
 type APeriodFilter = '7d' | '30d' | 'all';
 const A_PERIOD_OPTIONS: Array<{ key: APeriodFilter; label: string }> = [
-  { key: '7d', label: '7 дней' },
-  { key: '30d', label: '30 дней' },
-  { key: 'all', label: 'Всё время' },
+  { key: '7d', label: 'analytics.period7d' },
+  { key: '30d', label: 'analytics.period30d' },
+  { key: 'all', label: 'analytics.periodAll' },
 ];
 
 function AnalyticsContent() {
   const bets = useBetsStore((s) => s.bets);
+  const { t } = useTranslation();
   const [period, setPeriod] = useState<APeriodFilter>('all');
   const [extendedOpen, setExtendedOpen] = useState(false);
 
@@ -684,13 +698,16 @@ function AnalyticsContent() {
   }, [bets, period]);
 
   const extended = useMemo(() => ({
-    sport: calcByField(filteredBets, 'sport', (v) => SPORTS[v] ?? String(v)),
-    betType: calcByField(filteredBets, 'betType', (v) => BET_TYPES[v] ?? String(v)),
+    // Labels in the interface language. A value with no translation (an old or
+    // hand-edited one) shows as stored rather than as a raw key.
+    sport: calcByField(filteredBets, 'sport', (v) => t(`sports.${v}`, { defaultValue: String(v) })),
+    betType: calcByField(filteredBets, 'betType', (v) => t(`betTypes.${v}`, { defaultValue: String(v) })),
     bookmaker: calcByField(filteredBets, 'bookmaker'),
-    strategy: calcByField(filteredBets, 'strategy', (v) => STRATEGIES[v] ?? String(v)),
+    strategy: calcByField(filteredBets, 'strategy', (v) => t(`strategies.${v}`, { defaultValue: String(v) })),
     odds: calcByOddsRange(filteredBets),
-    day: calcByDayOfWeek(filteredBets),
-  }), [filteredBets]);
+    // Core would name the days in Russian on its own.
+    day: calcByDayOfWeek(filteredBets, (d) => t(`weekdays.${d}`)),
+  }), [filteredBets, t]);
 
   return (
     <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: SPACE.xxl }}>
@@ -701,7 +718,7 @@ function AnalyticsContent() {
             style={[styles.periodBtn, period === p.key && styles.periodBtnActive]}
             onPress={() => { haptic.selection(); setPeriod(p.key); }}
           >
-            <Text style={[styles.periodText, period === p.key && styles.periodTextActive]}>{p.label}</Text>
+            <Text style={[styles.periodText, period === p.key && styles.periodTextActive]}>{t(p.label)}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -724,17 +741,17 @@ function AnalyticsContent() {
         onPress={() => { haptic.selection(); setExtendedOpen((v) => !v); }}
         activeOpacity={0.8}
       >
-        <Text style={styles.extToggleText}>Расширенная статистика</Text>
+        <Text style={styles.extToggleText}>{t('analytics.extended')}</Text>
         <Text style={styles.extChevron}>{extendedOpen ? '▲' : '▼'}</Text>
       </TouchableOpacity>
 
       {extendedOpen && (
         <>
-          <ExtendedSection title="По типу ставки" stats={extended.betType} />
-          <ExtendedSection title="По букмекеру" stats={extended.bookmaker} />
-          <ExtendedSection title="По стратегии" stats={extended.strategy} />
-          <ExtendedSection title="По коэффициенту" stats={extended.odds} />
-          <ExtendedSection title="По дню недели" stats={extended.day} />
+          <ExtendedSection title={t('analytics.byBetType')} stats={extended.betType} />
+          <ExtendedSection title={t('analytics.byBookmaker')} stats={extended.bookmaker} />
+          <ExtendedSection title={t('analytics.byStrategy')} stats={extended.strategy} />
+          <ExtendedSection title={t('analytics.byOdds')} stats={extended.odds} />
+          <ExtendedSection title={t('analytics.byDayOfWeek')} stats={extended.day} />
         </>
       )}
     </ScrollView>
@@ -742,10 +759,11 @@ function AnalyticsContent() {
 }
 
 export function AnalyticsScreen() {
+  const { t } = useTranslation();
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Аналитика" subtitle="Твоё состояние — коротко и полно" />
-      <ProGate feature="Полная аналитика: серии, рекорды, CLV, время ставок">
+      <ScreenHeader title={t('nav.analytics')} subtitle={t('analytics.subtitle')} />
+      <ProGate feature={t('analytics.proFeatureFull')}>
         <AnalyticsContent />
       </ProGate>
     </View>

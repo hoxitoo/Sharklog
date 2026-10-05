@@ -7,6 +7,7 @@ import { colors } from '../theme/colors';
 import { SERIES } from '../theme/chartColors';
 import { chartScale, formatChartYLabel, pickIndex, PLOT_INSET as R } from '../utils/chartScale';
 import { numeric, SIZE } from '../theme/typography';
+import { useTranslation } from 'react-i18next';
 import { SPACE, RADIUS } from '../theme/layout';
 import { useFormatMoney } from '../utils/useFormatMoney';
 import { haptic } from '../utils/haptics';
@@ -45,6 +46,7 @@ function dayLabel(date: string): string {
  * why those markers never showed before.
  */
 export function BalanceChart({ days, width, height, series = 'balance', color }: Props) {
+  const { t } = useTranslation();
   const line = color ?? (series === 'pnl' ? SERIES.pnl : SERIES.balance);
   const valueOf = series === 'pnl'
     ? (d: DayStats) => d.cumPnl
@@ -160,7 +162,7 @@ export function BalanceChart({ days, width, height, series = 'balance', color }:
   if (!geom) {
     return (
       <View style={[bc.empty, { width, height }]}>
-        <Text style={bc.emptyText}>Мало данных для графика</Text>
+        <Text style={bc.emptyText}>{t('bankroll.chartEmpty')}</Text>
       </View>
     );
   }
