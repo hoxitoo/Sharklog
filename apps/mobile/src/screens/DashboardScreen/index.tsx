@@ -20,17 +20,21 @@ import { useFormatMoney } from '../../utils/useFormatMoney';
 import { DailyChart, ChartLegend, SERIES } from './DailyChart';
 import { ExpandedDashboard } from './ExpandedDashboard';
 import { SIZE, GLYPH, numeric } from '../../theme/typography';
+import { useTranslation } from 'react-i18next';
+import { dateLocale } from '../../i18n';
+import { pickLabel } from '../../utils/labels';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 type PeriodFilter = '7d' | '30d' | 'all';
 const PERIOD_OPTIONS: Array<{ key: PeriodFilter; label: string }> = [
-  { key: '7d', label: '7 дней' },
-  { key: '30d', label: '30 дней' },
-  { key: 'all', label: 'Всё время' },
+  { key: '7d', label: 'analytics.period7d' },
+  { key: '30d', label: 'analytics.period30d' },
+  { key: 'all', label: 'analytics.periodAll' },
 ];
 
 function WLStrip({ bets }: { bets: Bet[] }) {
+  const { t } = useTranslation();
   // Sort by recency first — store order isn't guaranteed chronological, so a bare
   // slice(0,7) could show a stale, non-latest set of results.
   const last7 = bets
@@ -42,7 +46,7 @@ function WLStrip({ bets }: { bets: Bet[] }) {
 
   return (
     <View style={wl.container}>
-      <Text style={wl.title}>Последние {last7.length} результатов</Text>
+      <Text style={wl.title}>{t('dashboard.lastResults', { count: last7.length })}</Text>
       <View style={wl.row}>
         {last7.map((b, i) => (
           <View
@@ -92,6 +96,7 @@ const wl = StyleSheet.create({
 });
 
 function Heatmap({ bets }: { bets: Bet[] }) {
+  const { t } = useTranslation();
   const today = new Date();
   const weeks = 12;
   const totalDays = weeks * 7;
@@ -138,7 +143,7 @@ function Heatmap({ bets }: { bets: Bet[] }) {
 
   return (
     <View style={hm.container}>
-      <Text style={hm.title}>Активность за 12 недель</Text>
+      <Text style={hm.title}>{t('dashboard.heatmap')}</Text>
       <View style={hm.grid}>
         {columns.map((col, wi) => (
           <View key={wi} style={hm.col}>
@@ -184,28 +189,29 @@ function TurnoverCard({ turnover, bank, betCount, activeDays, pendingCount, peri
   pendingCount: number; periodLabel: string; onBankPress: () => void;
 }) {
   const fmt = useFormatMoney();
+  const { t } = useTranslation();
   return (
     <View style={tc.card}>
       <View style={tc.topRow}>
         <View style={tc.left}>
-          <Text style={tc.label}>Оборот · {periodLabel}</Text>
+          <Text style={tc.label}>{t('dashboard.turnover')} · {periodLabel}</Text>
           <Text style={tc.value} numberOfLines={1} adjustsFontSizeToFit>{fmt(turnover)}</Text>
         </View>
         <TouchableOpacity style={tc.bankBtn} onPress={onBankPress} activeOpacity={0.75}>
-          <Text style={tc.bankLabel}>Банкролл →</Text>
+          <Text style={tc.bankLabel}>{t('nav.bankroll')} →</Text>
           <Text style={[tc.bankValue, { color: bank >= 0 ? colors.textPrimary : colors.lost }]} numberOfLines={1} adjustsFontSizeToFit>
             {fmt(bank)}
           </Text>
         </TouchableOpacity>
       </View>
       <View style={tc.metaRow}>
-        <Text style={tc.meta}>{betCount} ставок</Text>
+        <Text style={tc.meta}>{t('common.betsCount', { count: betCount })}</Text>
         <Text style={tc.metaDot}>·</Text>
-        <Text style={tc.meta}>{activeDays} дней со ставками</Text>
+        <Text style={tc.meta}>{t('dashboard.activeDays', { count: activeDays })}</Text>
         {pendingCount > 0 && (
           <>
             <Text style={tc.metaDot}>·</Text>
-            <Text style={[tc.meta, { color: colors.pending }]}>{pendingCount} в ожидании</Text>
+            <Text style={[tc.meta, { color: colors.pending }]}>{t('dashboard.pendingCount', { count: pendingCount })}</Text>
           </>
         )}
       </View>
@@ -238,6 +244,7 @@ const tc = StyleSheet.create({
 
 function DailyDashboardCard({ days, onExpand }: { days: DayStats[]; onExpand: () => void }) {
   const fmt = useFormatMoney();
+  const { t } = useTranslation();
   const { goToBets } = useDrawer();
   const { width } = useWindowDimensions();
   const [selected, setSelected] = useState<number | null>(null);
@@ -249,11 +256,11 @@ function DailyDashboardCard({ days, onExpand }: { days: DayStats[]; onExpand: ()
     <View style={dd.card}>
       <View style={dd.header}>
         <View style={{ flex: 1 }}>
-          <Text style={dd.title}>Активность по дням</Text>
-          <Text style={dd.subtitle}>последние {days.length} дней</Text>
+          <Text style={dd.title}>{t('dashboard.dailyTitle')}</Text>
+          <Text style={dd.subtitle}>{t('dashboard.dailySub', { count: days.length })}</Text>
         </View>
         <TouchableOpacity style={dd.expandBtn} onPress={onExpand} activeOpacity={0.75}>
-          <Text style={dd.expandText}>⤢ Развернуть</Text>
+          <Text style={dd.expandText}>⤢ {t('dashboard.expand')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -274,23 +281,23 @@ function DailyDashboardCard({ days, onExpand }: { days: DayStats[]; onExpand: ()
         <View style={dd.detail}>
           <Text style={dd.detailDate}>
             {sel.date.split('-').reverse().slice(0, 2).join('.')}
-            {sel.betCount > 0 ? ` · ${sel.betCount} ст.` : ' · нет ставок'}
+            {` · ${sel.betCount > 0 ? t('common.betsShort', { count: sel.betCount }) : t('dashboard.noBetsShort')}`}
           </Text>
           <View style={dd.detailGrid}>
             <View style={dd.detailCell}>
-              <Text style={dd.detailLabel}>Оборот</Text>
+              <Text style={dd.detailLabel}>{t('dashboard.turnover')}</Text>
               <Text style={dd.detailValue} numberOfLines={1} adjustsFontSizeToFit>{fmt(sel.turnover)}</Text>
             </View>
             <View style={dd.detailCell}>
-              <Text style={dd.detailLabel}>Выигрыш</Text>
+              <Text style={dd.detailLabel}>{t('dashboard.won')}</Text>
               <Text style={[dd.detailValue, { color: SERIES.win }]} numberOfLines={1} adjustsFontSizeToFit>{fmt(sel.wonAmount)}</Text>
             </View>
             <View style={dd.detailCell}>
-              <Text style={dd.detailLabel}>Проигрыш</Text>
+              <Text style={dd.detailLabel}>{t('dashboard.lost')}</Text>
               <Text style={[dd.detailValue, { color: SERIES.loss }]} numberOfLines={1} adjustsFontSizeToFit>{fmt(sel.lostAmount)}</Text>
             </View>
             <View style={dd.detailCell}>
-              <Text style={dd.detailLabel}>Профит</Text>
+              <Text style={dd.detailLabel}>{t('dashboard.profit')}</Text>
               <Text style={[dd.detailValue, { color: sel.pnl >= 0 ? SERIES.win : SERIES.loss }]}
                 numberOfLines={1} adjustsFontSizeToFit>
                 {sel.pnl >= 0 ? '+' : ''}{fmt(sel.pnl)}
@@ -303,25 +310,25 @@ function DailyDashboardCard({ days, onExpand }: { days: DayStats[]; onExpand: ()
               onPress={() => { haptic.selection(); goToBets({ date: sel.date }); }}
               activeOpacity={0.75}
             >
-              <Text style={dd.detailLinkText}>Показать ставки за этот день →</Text>
+              <Text style={dd.detailLinkText}>{t('dashboard.showDayBets')}</Text>
             </TouchableOpacity>
           )}
           {(sel.deposits > 0 || sel.withdrawals > 0 || sel.adjustments !== 0) && (
             <Text style={dd.detailCash}>
               {[
-                sel.deposits > 0 ? `Депозит ${fmt(sel.deposits)}` : null,
-                sel.withdrawals > 0 ? `Вывод ${fmt(sel.withdrawals)}` : null,
+                sel.deposits > 0 ? `${t('dashboard.deposit')} ${fmt(sel.deposits)}` : null,
+                sel.withdrawals > 0 ? `${t('dashboard.withdrawal')} ${fmt(sel.withdrawals)}` : null,
                 // Without this the balance steps on a reconciliation day and the
                 // detail panel gives no reason why.
                 sel.adjustments !== 0
-                  ? `Сверка ${sel.adjustments > 0 ? '+' : '−'}${fmt(Math.abs(sel.adjustments))}`
+                  ? `${t('dashboard.adjustment')} ${sel.adjustments > 0 ? '+' : '−'}${fmt(Math.abs(sel.adjustments))}`
                   : null,
               ].filter(Boolean).join(' · ')}
             </Text>
           )}
         </View>
       ) : (
-        <Text style={dd.hint}>Нажми на день — покажу оборот, выигрыш, проигрыш и профит</Text>
+        <Text style={dd.hint}>{t('dashboard.tapDayHint')}</Text>
       )}
 
       <ChartLegend toggles={{ pnl: true, balance: false, cash: true }} />
@@ -329,13 +336,13 @@ function DailyDashboardCard({ days, onExpand }: { days: DayStats[]; onExpand: ()
       {/* Context strip for the visible window */}
       <View style={dd.summaryRow}>
         <View style={dd.sumCell}>
-          <Text style={dd.sumLabel}>Профит</Text>
+          <Text style={dd.sumLabel}>{t('dashboard.profit')}</Text>
           <Text style={[dd.sumValue, { color: summary.pnl >= 0 ? SERIES.win : SERIES.loss }]}>
             {summary.pnl >= 0 ? '+' : ''}{fmt(summary.pnl)}
           </Text>
         </View>
         <View style={dd.sumCell}>
-          <Text style={dd.sumLabel}>Лучший день</Text>
+          <Text style={dd.sumLabel}>{t('dashboard.bestDay')}</Text>
           <Text style={[dd.sumValue, {
             color: !summary.bestDay ? colors.textMuted
               : summary.bestDay.pnl >= 0 ? SERIES.win : SERIES.loss,
@@ -346,7 +353,7 @@ function DailyDashboardCard({ days, onExpand }: { days: DayStats[]; onExpand: ()
           </Text>
         </View>
         <View style={dd.sumCell}>
-          <Text style={dd.sumLabel}>Со ставками</Text>
+          <Text style={dd.sumLabel}>{t('dashboard.withBets')}</Text>
           <Text style={dd.sumValue}>{summary.activeDays}/{days.length}</Text>
         </View>
       </View>
@@ -399,6 +406,7 @@ export function DashboardScreen() {
   const settings = useBetsStore((s) => s.settings);
   const bankroll = useBetsStore((s) => s.bankroll);
   const fmt = useFormatMoney();
+  const { t } = useTranslation();
   const [period, setPeriod] = useState<PeriodFilter>('all');
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [expanded, setExpanded] = useState(false);
@@ -487,8 +495,8 @@ export function DashboardScreen() {
       {/* Pinned, like every other drawer screen: the hamburger is the only way
           into the menu, and it must not scroll off the top of the page. */}
       <ScreenHeader
-        title="Дашборд"
-        subtitle={new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })}
+        title={t('nav.dashboard')}
+        subtitle={new Date().toLocaleDateString(dateLocale(), { day: 'numeric', month: 'long' })}
       />
     <ScrollView keyboardShouldPersistTaps="handled" style={styles.container} showsVerticalScrollIndicator={false}>
 
@@ -500,9 +508,14 @@ export function DashboardScreen() {
         >
           <Text style={styles.strategyIcon}>🎯</Text>
           <View style={{ flex: 1 }}>
-            <Text style={styles.strategyName}>Стратегия: {settings.generatedStrategy.name}</Text>
+            <Text style={styles.strategyName}>{t('dashboard.strategyLine', { name: settings.generatedStrategy.name })}</Text>
             <Text style={styles.strategySub}>
-              {settings.generatedStrategy.betsPerDay} ст/день · {settings.generatedStrategy.stakePercent}% банка · коэф {settings.generatedStrategy.oddsMin.toFixed(2)}–{settings.generatedStrategy.oddsMax.toFixed(2)}
+              {t('dashboard.strategySub', {
+                perDay: settings.generatedStrategy.betsPerDay,
+                pct: settings.generatedStrategy.stakePercent,
+                min: settings.generatedStrategy.oddsMin.toFixed(2),
+                max: settings.generatedStrategy.oddsMax.toFixed(2),
+              })}
             </Text>
           </View>
           <Text style={styles.strategyArrow}>→</Text>
@@ -517,7 +530,7 @@ export function DashboardScreen() {
             onPress={() => { haptic.selection(); setPeriod(p.key); }}
           >
             <Text style={[styles.periodText, period === p.key && styles.periodTextActive]}>
-              {p.label}
+              {t(p.label)}
             </Text>
           </TouchableOpacity>
         ))}
@@ -527,9 +540,9 @@ export function DashboardScreen() {
         <View style={styles.tiltAlert}>
           <Text style={styles.tiltIcon}>🔥</Text>
           <View style={{ flex: 1 }}>
-            <Text style={styles.tiltTitle}>Стоп. Ты в тилте.</Text>
+            <Text style={styles.tiltTitle}>{t('bet.tiltTitle')}</Text>
             <Text style={styles.tiltSub}>
-              {allTimeStats.currentStreak.count} поражений подряд. Закрой приложение и отдохни.
+              {t('discipline.tiltStreak', { count: allTimeStats.currentStreak.count })}
             </Text>
           </View>
           <TouchableOpacity onPress={dismissTilt} hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}>
@@ -544,7 +557,7 @@ export function DashboardScreen() {
         betCount={periodSummary.betCount}
         activeDays={periodSummary.activeDays}
         pendingCount={stats.pendingCount}
-        periodLabel={PERIOD_OPTIONS.find((p) => p.key === period)?.label ?? ''}
+        periodLabel={t(PERIOD_OPTIONS.find((p) => p.key === period)?.label ?? '')}
         onBankPress={() => { haptic.selection(); navigation.navigate('Bankroll'); }}
       />
 
@@ -558,15 +571,15 @@ export function DashboardScreen() {
         onPress={() => setShowHeatmap((v) => !v)}
         activeOpacity={0.7}
       >
-        <Text style={styles.heatmapToggleText}>Активность за 12 недель</Text>
+        <Text style={styles.heatmapToggleText}>{t('dashboard.heatmap')}</Text>
         <Text style={styles.heatmapToggleChevron}>{showHeatmap ? '▲' : '▼'}</Text>
       </TouchableOpacity>
       {showHeatmap && <Heatmap bets={filteredBets} />}
 
       <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Последние ставки</Text>
+        <Text style={styles.sectionTitle}>{t('dashboard.recentBets')}</Text>
         {last5.length === 0 ? (
-          <Text style={styles.emptyText}>Ставок пока нет</Text>
+          <Text style={styles.emptyText}>{t('bet.noBetsYet')}</Text>
         ) : (
           last5.map((bet) => (
             <TouchableOpacity
@@ -576,7 +589,7 @@ export function DashboardScreen() {
             >
               <View style={{ flex: 1 }}>
                 <Text style={styles.recentEvent} numberOfLines={1}>{bet.event.split(' / ').map(p => p.split('|')[0] ?? p).join(' / ')}</Text>
-                <Text style={styles.recentPick}>{bet.pick} · ×{bet.odds}</Text>
+                <Text style={styles.recentPick}>{pickLabel(t, bet.pick)} · ×{bet.odds}</Text>
               </View>
               <View style={[
                 styles.recentStatus,
@@ -603,8 +616,8 @@ export function DashboardScreen() {
     <ExpandedDashboard visible={expanded} days={expandedDays} onClose={() => setExpanded(false)} />
     <Coachmark
       storageKey="@sharklog/tip_dashboard_seen"
-      title="Дашборд"
-      body="Оборот сверху меняется с периодом (7д / 30д / всё). Нажми на день в графике — увидишь оборот, выигрыш, проигрыш и профит. Кнопка «Развернуть» открывает полную таблицу по дням с фильтрами."
+      title={t('nav.dashboard')}
+      body={t('dashboard.tipBody')}
       position="bottom"
     />
     </View>

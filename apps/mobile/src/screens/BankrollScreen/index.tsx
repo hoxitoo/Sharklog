@@ -6,8 +6,11 @@ import {
 } from 'react-native';
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
 import { haptic } from '../../utils/haptics';
+import { useTranslation } from 'react-i18next';
+import { dateLocale } from '../../i18n';
+import { txNoteLabel } from '../../utils/labels';
 import type { ChartSeries } from '../../components/BalanceChart';
-import { calcDashboard, parseMoneyInput, kellyFraction, expectedValue, impliedProbability, calcDailyBreakdown, currentBank, pendingExposure } from '@sharklog/core';
+import { TX_NOTE, calcDashboard, parseMoneyInput, kellyFraction, expectedValue, impliedProbability, calcDailyBreakdown, currentBank, pendingExposure } from '@sharklog/core';
 
 /** How much of the history the screen shows before asking. */
 const TX_PREVIEW = 5;
@@ -16,19 +19,8 @@ const TX_PREVIEW = 5;
 const SERIES_BTN_H = 28;
 const SERIES_OPTIONS: Array<{ key: ChartSeries; label: string }> = [
   { key: 'pnl', label: 'P&L' },
-  { key: 'balance', label: 'Банк' },
+  { key: 'balance', label: 'bet.bank' },
 ];
-
-/** 1 транзакция / 2 транзакции / 5 транзакций. */
-function txWord(n: number): string {
-  const tens = n % 100;
-  if (tens >= 11 && tens <= 14) return 'транзакций';
-  switch (n % 10) {
-    case 1: return 'транзакция';
-    case 2: case 3: case 4: return 'транзакции';
-    default: return 'транзакций';
-  }
-}
 
 function uuid(): string {
   const c = (globalThis as any).crypto;
@@ -63,12 +55,15 @@ const STEP_SLOP = hitSlopFor(28);
 // ── Kelly Calculator ──────────────────────────────────────────────────────────
 
 function KellyCalculator({ bankroll }: { bankroll: number }) {
+  const { t } = useTranslation();
   const fmt = useFormatMoney();
   const [odds, setOdds] = useState('');
   const [prob, setProb] = useState('');
 
-  const oddsNum = parseFloat(odds);
-  const probNum = parseFloat(prob) / 100;
+  // A Russian keyboard types "2,10", and parseFloat stops at the comma: the
+  // calculator was silently working out Kelly for odds of 2.00.
+  const oddsNum = parseFloat(odds.replace(',', '.'));
+  const probNum = parseFloat(prob.replace(',', '.')) / 100;
   const kelly = !isNaN(oddsNum) && !isNaN(probNum) ? kellyFraction(oddsNum, probNum) : null;
   const ev = !isNaN(oddsNum) && !isNaN(probNum) ? expectedValue(oddsNum, probNum) : null;
   const implied = !isNaN(oddsNum) ? impliedProbability(oddsNum) * 100 : null;
@@ -77,11 +72,11 @@ function KellyCalculator({ bankroll }: { bankroll: number }) {
   return (
     <View style={kc.container}>
       <View style={kc.titleRow}>
-        <Text style={kc.title}>Калькулятор Келли</Text>
+        <Text style={kc.title}>{t('bankroll.kelly')}</Text>
         <TouchableOpacity
           onPress={() => Alert.alert(
-            'Критерий Келли',
-            'Формула для расчёта оптимального размера ставки на основе вашей оценки вероятности и коэффициента.\n\nПример: коэф 2.10, ваша оценка вероятности 55% → Half-Kelly ≈ 2.4% банка.\n\nМы рекомендуем Half-Kelly (50% от полного Келли) для снижения дисперсии.',
+            t('bankroll.kellyHelpTitle'),
+            t('bankroll.kellyHelp'),
           )}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           activeOpacity={0.7}
@@ -93,7 +88,7 @@ function KellyCalculator({ bankroll }: { bankroll: number }) {
       </View>
       <View style={kc.row}>
         <View style={{ flex: 1 }}>
-          <Text style={kc.label}>Коэффициент</Text>
+          <Text style={kc.label}>{t('bet.odds')}</Text>
           <TextInput
             style={kc.input} placeholder="2.10" placeholderTextColor={colors.textMuted}
             value={odds} onChangeText={setOdds} keyboardType="decimal-pad"
@@ -101,7 +96,7 @@ function KellyCalculator({ bankroll }: { bankroll: number }) {
           {implied !== null && <Text style={kc.hint}>Implied: {implied.toFixed(1)}%</Text>}
         </View>
         <View style={{ flex: 1 }}>
-          <Text style={kc.label}>Твоя вероятность %</Text>
+          <Text style={kc.label}>{t('bankroll.yourProb')}</Text>
           <TextInput
             style={kc.input} placeholder="55" placeholderTextColor={colors.textMuted}
             value={prob} onChangeText={setProb} keyboardType="decimal-pad"
@@ -118,10 +113,10 @@ function KellyCalculator({ bankroll }: { bankroll: number }) {
           </View>
           <View style={kc.resultRow}>
             <Text style={kc.resultLabel}>Full Kelly</Text>
-            <Text style={kc.resultValue}>{((kelly ?? 0) * 100).toFixed(1)}% банка</Text>
+            <Text style={kc.resultValue}>{t('bankroll.ofBank', { pct: ((kelly ?? 0) * 100).toFixed(1) })}</Text>
           </View>
           <View style={kc.resultRow}>
-            <Text style={kc.resultLabel}>Half Kelly (рекомендовано)</Text>
+            <Text style={kc.resultLabel}>{t('bankroll.halfKelly')}</Text>
             <Text style={[kc.resultValue, { color: colors.accent }]}>
               {halfKellyStake !== null ? fmt(halfKellyStake) : '—'}
             </Text>
@@ -172,6 +167,7 @@ function TxForm({
   onCancel: () => void;
 }) {
   const fmt = useFormatMoney();
+  const { t } = useTranslation();
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
   const isWithdrawal = type === 'withdrawal';
@@ -194,20 +190,20 @@ function TxForm({
 
   function handleSubmit() {
     if (isAdjust) {
-      if (!hasNumber) { Alert.alert('Ошибка', 'Введи баланс у букмекера'); return; }
-      if (delta === 0) { Alert.alert('Всё сходится', 'Баланс уже совпадает — корректировка не нужна'); return; }
+      if (!hasNumber) { Alert.alert(t('common.error'), t('bankroll.errEnterBalance')); return; }
+      if (delta === 0) { Alert.alert(t('bankroll.inSyncTitle'), t('bankroll.inSyncMsg')); return; }
       onSubmit(delta, note.trim());
       return;
     }
-    if (typed <= 0) { Alert.alert('Ошибка', 'Введи корректную сумму'); return; }
+    if (typed <= 0) { Alert.alert(t('common.error'), t('bankroll.errAmount')); return; }
     onSubmit(typed, note.trim());
   }
 
   return (
     <View style={tf.container}>
       <Text style={tf.label}>
-        {isAdjust ? 'Реальный баланс у букмекера (₽)'
-          : isWithdrawal ? 'Сумма вывода (₽)' : 'Сумма пополнения (₽)'}
+        {isAdjust ? t('bankroll.adjustLabel')
+          : isWithdrawal ? t('bankroll.withdrawLabel') : t('bankroll.depositLabel')}
       </Text>
       <TextInput
         style={[tf.input, { borderColor: accent }]}
@@ -220,12 +216,12 @@ function TxForm({
       {isAdjust && (
         <View style={tf.hintBox}>
           <View style={tf.hintRow}>
-            <Text style={tf.hintLabel}>Ожидаем у бука</Text>
+            <Text style={tf.hintLabel}>{t('bankroll.expectedAtBook')}</Text>
             <Text style={tf.hintValue}>{fmt(expected)}</Text>
           </View>
           {hasNumber && (
             <View style={tf.hintRow}>
-              <Text style={tf.hintLabel}>Разница</Text>
+              <Text style={tf.hintLabel}>{t('bankroll.difference')}</Text>
               <Text style={[tf.hintValue, {
                 color: delta > 0 ? colors.won : delta < 0 ? colors.lost : colors.textMuted,
               }]}>
@@ -235,8 +231,7 @@ function TxForm({
           )}
           {exposure > 0 && (
             <Text style={tf.hintNote}>
-              {fmt(exposure)} сейчас в незавершённых ставках — букмекер списал их
-              сразу, поэтому и вычтены. Вводи баланс так, как его показывает бук.
+              {t('bankroll.exposureNote', { amount: fmt(exposure) })}
             </Text>
           )}
         </View>
@@ -244,17 +239,17 @@ function TxForm({
 
       <TextInput
         style={tf.noteInput}
-        placeholder={isAdjust ? 'Причина (необязательно)' : 'Заметка (необязательно)'}
+        placeholder={isAdjust ? t('bankroll.reasonPh') : t('bankroll.notePh')}
         placeholderTextColor={colors.textMuted}
         value={note} onChangeText={setNote} returnKeyType="done" onSubmitEditing={handleSubmit}
       />
       <View style={tf.actions}>
         <TouchableOpacity style={tf.cancelBtn} onPress={onCancel}>
-          <Text style={tf.cancelText}>Отмена</Text>
+          <Text style={tf.cancelText}>{t('common.cancel')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[tf.confirmBtn, { backgroundColor: accent }]} onPress={handleSubmit}>
           <Text style={tf.confirmText}>
-            {isAdjust ? 'Выровнять' : isWithdrawal ? 'Вывести' : 'Пополнить'}
+            {isAdjust ? t('bankroll.align') : isWithdrawal ? t('bankroll.withdraw') : t('bankroll.fill')}
           </Text>
         </TouchableOpacity>
       </View>
@@ -297,7 +292,7 @@ const tf = StyleSheet.create({
 // ── Transaction row ───────────────────────────────────────────────────────────
 
 const TX_LABEL: Record<BankrollTxType, string> = {
-  deposit: 'Пополнение', withdrawal: 'Вывод', adjustment: 'Сверка',
+  deposit: 'bankroll.deposit', withdrawal: 'bankroll.withdrawal', adjustment: 'bankroll.adjustment',
 };
 const TX_ICON: Record<BankrollTxType, string> = {
   deposit: '↑', withdrawal: '↓', adjustment: '=',
@@ -305,16 +300,17 @@ const TX_ICON: Record<BankrollTxType, string> = {
 
 function TxRow({ tx, onDelete }: { tx: BankrollTransaction; onDelete: () => void }) {
   const fmt = useFormatMoney();
-  const date = new Date(tx.date).toLocaleDateString('ru-RU', { day: 'numeric', month: 'short' });
+  const { t } = useTranslation();
+  const date = new Date(tx.date).toLocaleDateString(dateLocale(), { day: 'numeric', month: 'short' });
   // A withdrawal's sign lives in its type; an adjustment carries it in the amount.
   const signed = tx.type === 'withdrawal' ? -tx.amount : tx.amount;
-  const label = TX_LABEL[tx.type];
+  const label = t(TX_LABEL[tx.type]);
 
   function confirmDelete() {
     const sign = signed >= 0 ? '+' : '−';
-    Alert.alert('Удалить транзакцию?', `${label} ${sign}${fmt(Math.abs(signed))}`, [
-      { text: 'Удалить', style: 'destructive', onPress: onDelete },
-      { text: 'Отмена', style: 'cancel' },
+    Alert.alert(t('bankroll.deleteConfirm'), `${label} ${sign}${fmt(Math.abs(signed))}`, [
+      { text: t('common.delete'), style: 'destructive', onPress: onDelete },
+      { text: t('common.cancel'), style: 'cancel' },
     ]);
   }
 
@@ -325,7 +321,7 @@ function TxRow({ tx, onDelete }: { tx: BankrollTransaction; onDelete: () => void
       </View>
       <View style={{ flex: 1 }}>
         <Text style={tx_.type}>{label}</Text>
-        {tx.note ? <Text style={tx_.note} numberOfLines={1}>{tx.note}</Text> : null}
+        {tx.note ? <Text style={tx_.note} numberOfLines={1}>{txNoteLabel(t, tx.note)}</Text> : null}
       </View>
       <View style={{ alignItems: 'flex-end' }}>
         <Text style={[tx_.amount, {
@@ -361,6 +357,7 @@ const tx_ = StyleSheet.create({
 
 function BankrollContent() {
   const fmt = useFormatMoney();
+  const { t } = useTranslation();
   const bets = useBetsStore((s) => s.bets);
   const bankroll = useBetsStore((s) => s.bankroll);
   const updateBankroll = useBetsStore((s) => s.updateBankroll);
@@ -372,8 +369,8 @@ function BankrollContent() {
   // question the screen is opened with is whether the betting is working.
   const [series, setSeries] = useState<ChartSeries>('pnl');
 
-  const deposited = bankroll.transactions.filter((t) => t.type === 'deposit').reduce((s, t) => s + t.amount, 0);
-  const withdrawn = bankroll.transactions.filter((t) => t.type === 'withdrawal').reduce((s, t) => s + t.amount, 0);
+  const deposited = bankroll.transactions.filter((tx) => tx.type === 'deposit').reduce((s, tx) => s + tx.amount, 0);
+  const withdrawn = bankroll.transactions.filter((tx) => tx.type === 'withdrawal').reduce((s, tx) => s + tx.amount, 0);
   const bank = currentBank(bankroll.transactions, bets);
   const exposure = pendingExposure(bets);
   const unitAmount = Math.round(bank * bankroll.unitPercent / 100);
@@ -407,7 +404,7 @@ function BankrollContent() {
                 onPress={() => { haptic.selection(); setSeries(o.key); }}
                 activeOpacity={0.8}
               >
-                <Text style={[bk.seriesText, series === o.key && bk.seriesTextActive]}>{o.label}</Text>
+                <Text style={[bk.seriesText, series === o.key && bk.seriesTextActive]}>{o.label === 'P&L' ? o.label : t(o.label)}</Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -418,22 +415,22 @@ function BankrollContent() {
         <BalanceChart days={dailySeries} width={width - 64} height={150} series={series} />
         <View style={bk.legendRow}>
           <Text style={bk.legendPeriod}>
-            {dailySeries.length} дней · с {dailySeries[0]!.date.split('-').reverse().slice(0, 2).join('.')}
+            {t('bankroll.periodSince', { count: dailySeries.length, date: dailySeries[0]!.date.split('-').reverse().slice(0, 2).join('.') })}
           </Text>
           {isPnl ? (
-            <Text style={bk.legendText}>пополнения и выводы линию не двигают</Text>
+            <Text style={bk.legendText}>{t('bankroll.pnlLegend')}</Text>
           ) : (
             <>
               {hasDeposit && (
                 <View style={bk.legendItem}>
                   <View style={[bk.legendDot, { backgroundColor: SERIES.deposit }]} />
-                  <Text style={bk.legendText}>депозит</Text>
+                  <Text style={bk.legendText}>{t('bankroll.legendDeposit')}</Text>
                 </View>
               )}
               {hasWithdrawal && (
                 <View style={bk.legendItem}>
                   <View style={[bk.legendDot, { backgroundColor: SERIES.withdrawal }]} />
-                  <Text style={bk.legendText}>вывод</Text>
+                  <Text style={bk.legendText}>{t('bankroll.legendWithdrawal')}</Text>
                 </View>
               )}
             </>
@@ -441,20 +438,22 @@ function BankrollContent() {
         </View>
       </View>
     );
-  }, [dailySeries, bank, width, series, stats.pnl, fmt]);
+  }, [dailySeries, bank, width, series, stats.pnl, fmt, t]);
 
   function handleTxSubmit(type: TxType, amount: number, note: string) {
     if (type === 'adjustment') {
       const tx: BankrollTransaction = {
         id: uuid(), type, amount, date: new Date().toISOString(),
-        note: note || 'Сверка с букмекером',
+        // Stored as the core token, shown translated (txNoteLabel) — the history
+        // must not freeze in whatever language the reconciliation was made in.
+        note: note || TX_NOTE.ADJUSTMENT,
       };
       updateBankroll({ transactions: [...bankroll.transactions, tx] });
       setActiveTxForm(null);
       return;
     }
     if (type === 'withdrawal' && amount > bank) {
-      Alert.alert('Недостаточно средств', `Максимум для вывода: ${fmt(bank)}`);
+      Alert.alert(t('bankroll.insufficientTitle'), t('bankroll.insufficientMsg', { amount: fmt(bank) }));
       return;
     }
     const newTx: BankrollTransaction = {
@@ -469,7 +468,7 @@ function BankrollContent() {
   }
 
   function handleDeleteTx(id: string) {
-    updateBankroll({ transactions: bankroll.transactions.filter((t) => t.id !== id) });
+    updateBankroll({ transactions: bankroll.transactions.filter((tx) => tx.id !== id) });
   }
 
   function handleUnitPercentChange(delta: number) {
@@ -489,18 +488,18 @@ function BankrollContent() {
 
       {/* Summary card */}
       <View style={bk.summaryCard}>
-        <Text style={bk.bankLabel}>Текущий банк</Text>
+        <Text style={bk.bankLabel}>{t('bankroll.currentBank')}</Text>
         <Text style={[bk.bankValue, { color: bank >= 0 ? colors.textPrimary : colors.lost }]}>
           {fmt(bank)}
         </Text>
 
         <View style={bk.metaRow}>
           <View style={bk.metaCell}>
-            <Text style={bk.metaLabel}>Внесено</Text>
+            <Text style={bk.metaLabel}>{t('bankroll.deposited')}</Text>
             <Text style={bk.metaValue} numberOfLines={1} adjustsFontSizeToFit>{fmt(deposited)}</Text>
           </View>
           <View style={bk.metaCell}>
-            <Text style={bk.metaLabel}>Выведено</Text>
+            <Text style={bk.metaLabel}>{t('bankroll.withdrawn')}</Text>
             <Text style={[bk.metaValue, { color: withdrawn > 0 ? colors.lost : colors.textPrimary }]}
               numberOfLines={1} adjustsFontSizeToFit>
               {withdrawn > 0 ? '−' : ''}{fmt(withdrawn)}
@@ -517,14 +516,14 @@ function BankrollContent() {
 
         {exposure > 0 && (
           <Text style={bk.exposureNote}>
-            В игре {fmt(exposure)} · у букмекера сейчас ≈ {fmt(bank - exposure)}
+            {t('bankroll.atBookLine', { exposure: fmt(exposure), atBook: fmt(bank - exposure) })}
           </Text>
         )}
 
         {/* Unit % config */}
         <View style={bk.unitRow}>
           <View>
-            <Text style={bk.metaLabel}>1 юнит</Text>
+            <Text style={bk.metaLabel}>{t('bankroll.unit')}</Text>
             <Text style={[bk.unitValue, { color: colors.accent }]}>{fmt(unitAmount)}</Text>
           </View>
           <View style={bk.unitStepper}>
@@ -560,13 +559,13 @@ function BankrollContent() {
         ) : (
           <View style={bk.txButtons}>
             <TouchableOpacity style={bk.depositBtn} onPress={() => setActiveTxForm('deposit')}>
-              <Text style={bk.depositBtnText}>+ Пополнить</Text>
+              <Text style={bk.depositBtnText}>+ {t('bankroll.fill')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={bk.withdrawBtn} onPress={() => setActiveTxForm('withdrawal')}>
-              <Text style={bk.withdrawBtnText}>− Вывести</Text>
+              <Text style={bk.withdrawBtnText}>− {t('bankroll.withdraw')}</Text>
             </TouchableOpacity>
             <TouchableOpacity style={bk.adjustBtn} onPress={() => setActiveTxForm('adjustment')}>
-              <Text style={bk.adjustBtnText}>= Сверить</Text>
+              <Text style={bk.adjustBtnText}>= {t('bankroll.reconcile')}</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -580,14 +579,14 @@ function BankrollContent() {
 
       {/* Transaction history */}
       <View style={bk.history}>
-        <Text style={bk.historyTitle}>История транзакций</Text>
-        <Text style={bk.historyHint}>Удержи для удаления</Text>
+        <Text style={bk.historyTitle}>{t('bankroll.history')}</Text>
+        <Text style={bk.historyHint}>{t('bankroll.holdToDelete')}</Text>
         {bankroll.transactions.length === 0 ? (
-          <Text style={bk.emptyText}>Транзакций нет</Text>
+          <Text style={bk.emptyText}>{t('bankroll.noTransactions')}</Text>
         ) : (
           <>
-            {shownTx.map((t) => (
-              <TxRow key={t.id} tx={t} onDelete={() => handleDeleteTx(t.id)} />
+            {shownTx.map((tx) => (
+              <TxRow key={tx.id} tx={tx} onDelete={() => handleDeleteTx(tx.id)} />
             ))}
             {hiddenTxCount > 0 && (
               <TouchableOpacity
@@ -595,7 +594,7 @@ function BankrollContent() {
                 onPress={() => { haptic.selection(); setAllTxShown(true); }}
                 activeOpacity={0.8}
               >
-                <Text style={bk.moreTxText}>Ещё {hiddenTxCount} {txWord(hiddenTxCount)}</Text>
+                <Text style={bk.moreTxText}>{t('bankroll.moreTx', { count: hiddenTxCount })}</Text>
               </TouchableOpacity>
             )}
           </>
@@ -691,9 +690,10 @@ const bk = StyleSheet.create({
 // ── Screen ────────────────────────────────────────────────────────────────────
 
 export function BankrollScreen() {
+  const { t } = useTranslation();
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <ProGate feature="Банкролл-трекер и калькулятор Келли">
+      <ProGate feature={t('bankroll.proFeatureFull')}>
         <BankrollContent />
       </ProGate>
     </View>

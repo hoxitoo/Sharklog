@@ -7,6 +7,7 @@ import type { DayStats } from '@sharklog/core';
 import { colors } from '../../theme/colors';
 import { SERIES } from '../../theme/chartColors';
 import { SIZE } from '../../theme/typography';
+import { useTranslation } from 'react-i18next';
 
 export { SERIES } from '../../theme/chartColors';
 
@@ -161,22 +162,24 @@ const ch = StyleSheet.create({
 
 /** Small colour-key row shared by the compact and expanded views. */
 export function ChartLegend({ toggles }: { toggles: ChartToggles }) {
-  const items: Array<{ c: string; t: string }> = [
-    { c: SERIES.win, t: 'Выигрыш' },
-    { c: SERIES.loss, t: 'Проигрыш' },
-    ...(toggles.pnl ? [{ c: SERIES.pnl, t: 'P&L' }] : []),
-    ...(toggles.balance ? [{ c: SERIES.balance, t: 'Баланс' }] : []),
+  const { t } = useTranslation();
+  // `label`, not `t`: the field used to be called `t`, which now names the translator.
+  const items: Array<{ c: string; label: string }> = [
+    { c: SERIES.win, label: t('dashboard.won') },
+    { c: SERIES.loss, label: t('dashboard.lost') },
+    ...(toggles.pnl ? [{ c: SERIES.pnl, label: 'P&L' }] : []),
+    ...(toggles.balance ? [{ c: SERIES.balance, label: t('dashboard.balance') }] : []),
     ...(toggles.cash ? [
-      { c: SERIES.deposit, t: 'Депозит' },
-      { c: SERIES.withdrawal, t: 'Вывод' },
+      { c: SERIES.deposit, label: t('dashboard.deposit') },
+      { c: SERIES.withdrawal, label: t('dashboard.withdrawal') },
     ] : []),
   ];
   return (
     <View style={lg.wrap}>
       {items.map((it) => (
-        <View key={it.t} style={lg.item}>
+        <View key={it.label} style={lg.item}>
           <View style={[lg.dot, { backgroundColor: it.c }]} />
-          <Text style={lg.text}>{it.t}</Text>
+          <Text style={lg.text}>{it.label}</Text>
         </View>
       ))}
     </View>

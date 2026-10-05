@@ -5,7 +5,8 @@ import {
 } from 'react-native';
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { DEFAULT_BOOKMAKERS, parseMoneyInput, formatMoney } from '@sharklog/core';
+import { DEFAULT_BOOKMAKERS, TX_NOTE, parseMoneyInput, formatMoney } from '@sharklog/core';
+import { useTranslation } from 'react-i18next';
 
 function uuid(): string {
   const c = (globalThis as any).crypto;
@@ -33,14 +34,15 @@ import { SIZE, GLYPH } from '../../theme/typography';
 const STEPS = 3;
 
 const FEATURES = [
-  { emoji: '📋', label: 'Учёт ставок', desc: 'История, фильтры, поиск' },
-  { emoji: '📊', label: 'Аналитика', desc: '7 срезов статистики' },
-  { emoji: '💰', label: 'Банкролл', desc: 'Kelly, юниты, P&L' },
-  { emoji: '🧘', label: 'Дисциплина', desc: 'Анти-тилт система' },
+  { emoji: '📋', label: 'onboarding.f1', desc: 'onboarding.f1Desc' },
+  { emoji: '📊', label: 'nav.analytics', desc: 'onboarding.f2Desc' },
+  { emoji: '💰', label: 'nav.bankroll', desc: 'onboarding.f3Desc' },
+  { emoji: '🧘', label: 'nav.discipline', desc: 'onboarding.f4Desc' },
 ];
 
 export function OnboardingScreen() {
   const insets = useSafeAreaInsets();
+  const { t } = useTranslation();
   const updateSettings = useBetsStore((s) => s.updateSettings);
   const updateBankroll = useBetsStore((s) => s.updateBankroll);
   const bankroll = useBetsStore((s) => s.bankroll);
@@ -77,7 +79,7 @@ export function OnboardingScreen() {
             type: 'deposit',
             amount,
             date: new Date().toISOString(),
-            note: 'Начальный депозит',
+            note: TX_NOTE.INITIAL_DEPOSIT,
           },
         ],
       });
@@ -102,22 +104,22 @@ export function OnboardingScreen() {
       {step === 0 && (
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.stepContent} showsVerticalScrollIndicator={false}>
           <Image source={require('../../../assets/adaptive-icon.png')} style={styles.logo} resizeMode="contain" />
-          <Text style={styles.tagline}>Профессиональный трекер ставок</Text>
+          <Text style={styles.tagline}>{t('onboarding.subtitle')}</Text>
 
           <View style={styles.features}>
             {FEATURES.map((f) => (
               <View key={f.label} style={styles.featureRow}>
                 <Text style={styles.featureEmoji}>{f.emoji}</Text>
                 <View>
-                  <Text style={styles.featureLabel}>{f.label}</Text>
-                  <Text style={styles.featureDesc}>{f.desc}</Text>
+                  <Text style={styles.featureLabel}>{t(f.label)}</Text>
+                  <Text style={styles.featureDesc}>{t(f.desc)}</Text>
                 </View>
               </View>
             ))}
           </View>
 
           <View style={styles.freeBadge}>
-            <Text style={styles.freeBadgeText}>🎁 7 дней PRO бесплатно при регистрации</Text>
+            <Text style={styles.freeBadgeText}>{t('onboarding.freeBadge')}</Text>
           </View>
         </ScrollView>
       )}
@@ -126,9 +128,9 @@ export function OnboardingScreen() {
       {step === 1 && (
         <View style={styles.stepContent}>
           <Text style={styles.stepEmoji}>💰</Text>
-          <Text style={styles.stepTitle}>Начальный банкролл</Text>
+          <Text style={styles.stepTitle}>{t('onboarding.bankTitle')}</Text>
           <Text style={styles.stepSubtitle}>
-            Сколько ты готов выделить для ставок? Это поможет отслеживать P&L с первого дня.
+            {t('onboarding.bankSub')}
           </Text>
 
           <TextInput
@@ -143,12 +145,12 @@ export function OnboardingScreen() {
 
           {parseMoneyInput(depositInput) > 0 && (
             <Text style={styles.bankPreview}>
-              Стартовый банк: {formatMoney(parseMoneyInput(depositInput))}
+              {t('onboarding.bankPreview', { amount: formatMoney(parseMoneyInput(depositInput)) })}
             </Text>
           )}
 
           <Text style={styles.skipHint}>
-            Можешь пропустить — банк настраивается в разделе «Банкролл»
+            {t('onboarding.skipHint')}
           </Text>
         </View>
       )}
@@ -157,9 +159,9 @@ export function OnboardingScreen() {
       {step === 2 && (
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.stepContent} showsVerticalScrollIndicator={false}>
           <Text style={styles.stepEmoji}>🎰</Text>
-          <Text style={styles.stepTitle}>Твои букмекеры</Text>
+          <Text style={styles.stepTitle}>{t('onboarding.bkTitle')}</Text>
           <Text style={styles.stepSubtitle}>
-            Выбери букмекеров, которыми пользуешься. Можно изменить позже.
+            {t('onboarding.bkSub')}
           </Text>
 
           <View style={styles.bkGrid}>
@@ -180,7 +182,7 @@ export function OnboardingScreen() {
           <View style={styles.addRow}>
             <TextInput
               style={styles.addInput}
-              placeholder="Другой букмекер..."
+              placeholder={t('onboarding.bkOther')}
               placeholderTextColor={colors.textMuted}
               value={customBk}
               onChangeText={setCustomBk}
@@ -213,11 +215,11 @@ export function OnboardingScreen() {
               onPress={() => setStep((s) => s + 1)}
               activeOpacity={0.85}
             >
-              <Text style={styles.nextBtnText}>Далее →</Text>
+              <Text style={styles.nextBtnText}>{t('onboarding.next')} →</Text>
             </TouchableOpacity>
             {step === 1 && (
               <TouchableOpacity onPress={() => setStep((s) => s + 1)}>
-                <Text style={styles.skipText}>Пропустить</Text>
+                <Text style={styles.skipText}>{t('onboarding.skip')}</Text>
               </TouchableOpacity>
             )}
           </>
@@ -227,13 +229,13 @@ export function OnboardingScreen() {
             onPress={handleFinish}
             activeOpacity={0.85}
           >
-            <Text style={styles.nextBtnText}>Начать работу 🦈</Text>
+            <Text style={styles.nextBtnText}>{t('onboarding.start')} 🦈</Text>
           </TouchableOpacity>
         )}
 
         {step > 0 && (
           <TouchableOpacity onPress={() => setStep((s) => s - 1)}>
-            <Text style={styles.backText}>← Назад</Text>
+            <Text style={styles.backText}>← {t('onboarding.back')}</Text>
           </TouchableOpacity>
         )}
       </View>

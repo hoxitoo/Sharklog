@@ -1,6 +1,6 @@
 import type { TFunction } from 'i18next';
 import type { Sport, BetType, Strategy, EsportsDiscipline } from '@sharklog/core';
-import { ESPORTS_DISCIPLINES, BET_TYPES, PICK } from '@sharklog/core';
+import { ESPORTS_DISCIPLINES, BET_TYPES, PICK, TX_NOTE } from '@sharklog/core';
 
 /*
  * Display names for the enums core keeps Russian labels for.
@@ -48,4 +48,15 @@ export function pickLabel(t: TFunction, pick: string): string {
     const type = (Object.keys(BET_TYPES) as BetType[]).find((k) => BET_TYPES[k] === part);
     return type ? betTypeLabel(t, type) : part;
   }).join(' / ');
+}
+
+/**
+ * A transaction note as the current language should show it. The two notes
+ * the app writes by itself (`TX_NOTE`) are translated; anything the user typed
+ * is shown exactly as typed.
+ */
+export function txNoteLabel(t: TFunction, note: string): string {
+  if (note === TX_NOTE.ADJUSTMENT) return t('bankroll.noteAdjustment');
+  if (note === TX_NOTE.INITIAL_DEPOSIT) return t('bankroll.noteInitialDeposit');
+  return note;
 }
