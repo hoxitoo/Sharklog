@@ -9,7 +9,10 @@
     "bankroll": "Bankroll",
     "strategyBuilder": "Strategy Builder",
     "partners": "Partners",
-    "partnersSub": "Registration bonuses"
+    "partnersSub": "Registration bonuses",
+    "pending": "Awaiting result",
+    "filters": "Filters",
+    "responsible": "18+ · Bet responsibly"
   },
   "status": {
     "pending": "Pending",
@@ -74,8 +77,6 @@
     "tiltTitle": "Stop. You're on tilt.",
     "tiltSub": "Take a break before your next bet.",
     "noBetsStart": "Tap + to add your first bet",
-    "limitReached": "🔒 Limit of {{count}} bets reached — upgrade to Pro",
-    "limitWarning": "⚠️ {{count}} free bets remaining",
     "duplicate": "Copy",
     "changeResult": "Result",
     "tipWheel": "Tap a bet for the action wheel · Swipe left to delete · + to add",
@@ -85,7 +86,29 @@
     "sortOddsDesc": "Odds ↓",
     "sortOddsAsc": "Odds ↑",
     "sortStakeDesc": "Stake ↓",
-    "sortStakeAsc": "Stake ↑"
+    "sortStakeAsc": "Stake ↑",
+    "filterOnly": "Only {{date}}",
+    "filterTournament": "Tournament: {{name}}",
+    "filterNoTournament": "No tournament",
+    "filterTeam": "Team: {{name}}",
+    "filterYear": "{{year}}",
+    "filterSince": "since {{date}}",
+    "todaySub_one": "{{count}} bet · {{amount}}",
+    "todaySub_other": "{{count}} bets · {{amount}}",
+    "inPlay": "In play",
+    "inPlaySub": "settle results",
+    "bank": "Bank",
+    "bankSub": "current balance",
+    "cashoutLine": "Cashout: {{amount}}",
+    "limitReached_one": "🔒 Limit of {{count}} bet reached — upgrade to Pro",
+    "limitReached_other": "🔒 Limit of {{count}} bets reached — upgrade to Pro",
+    "limitWarning_one": "⚠️ {{count}} free bet left",
+    "limitWarning_other": "⚠️ {{count}} free bets left",
+    "limitTitle": "Limit reached",
+    "limitMsg_one": "The free plan holds up to {{count}} bet. Upgrade to Pro for unlimited tracking.",
+    "limitMsg_other": "The free plan holds up to {{count}} bets. Upgrade to Pro for unlimited tracking.",
+    "dailyLimitTitle": "Daily limit",
+    "dailyLimitMsg": "Today's limit: {{count}}. You can add the next bet tomorrow — or change the limit in Settings."
   },
   "dashboard": {
     "title": "Dashboard",
@@ -359,11 +382,12 @@
     "noData": "No data",
     "pro": "PRO",
     "free": "Free",
-    "bets": "bets",
     "of": "of",
     "status": "Status",
     "date": "Date",
-    "type": "Type"
+    "type": "Type",
+    "betsCount_one": "{{count}} bet",
+    "betsCount_other": "{{count}} bets"
   },
   "sports": {
     "football": "Football",
@@ -402,5 +426,39 @@
     "noFile": "File not found",
     "invalidFile": "Invalid file format",
     "storeUnreachable": "Couldn't reach the store. Check your connection and try again."
+  },
+  "filters": {
+    "tournament": "Tournament / league",
+    "tournamentHint": "Part of the name — “StarLadder” finds “StarLadder StarSeries Fall 26”",
+    "anyM": "Any",
+    "team": "Team / athlete",
+    "teamHint": "Only bets ON this team, not every match it played",
+    "anyF": "Any",
+    "dateHint": "YYYY-MM-DD — same as in the bet form",
+    "from": "from",
+    "to": "to",
+    "note": "The filter adds to status and sort — they stay as you set them.",
+    "reset": "Reset"
+  },
+  "pending": {
+    "agoDays": "{{count}}d ago",
+    "agoHours": "{{count}}h ago",
+    "agoMinutes": "{{count}} min ago",
+    "ifWon": "If they land",
+    "ifWonSub": "total return",
+    "overdue": "Time to settle",
+    "overdueSub": "the match is long over",
+    "emptyTitle": "All settled",
+    "emptyText": "No open bets — your stats are up to date."
+  },
+  "notifications": {
+    "dailyBody": "Don't forget to log today's bets",
+    "tiltTitle": "⚠️ Stop — possible tilt",
+    "tiltBody_one": "{{count}} loss in a row. Take a break.",
+    "tiltBody_other": "{{count}} losses in a row. Take a break.",
+    "resultTitle": "Match over — what's the result?",
+    "actionWon": "Won",
+    "actionLost": "Lost",
+    "actionLater": "Later"
   }
 }

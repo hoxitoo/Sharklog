@@ -108,6 +108,16 @@ export const defaultSettings: AppSettings = {
   disableChecklist: false,
 };
 
+/**
+ * The hour the daily reminder actually fires at. Free is fixed to the default;
+ * only Pro picks. A lapsed Pro user keeps their old `reminderHour` in settings,
+ * and reading it raw made the Settings row say 20:00 while the reminder kept
+ * arriving at 09:00. Everything that SHOWS or SCHEDULES the hour goes through here.
+ */
+export function effectiveReminderHour(s: Pick<AppSettings, 'isPro' | 'reminderHour'>): number {
+  return s.isPro ? s.reminderHour : defaultSettings.reminderHour;
+}
+
 export const defaultBankroll: Bankroll = {
   id: 'default',
   name: 'Основной банк',

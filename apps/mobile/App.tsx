@@ -10,7 +10,7 @@ import { RootNavigator } from './src/navigation/RootNavigator';
 import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { AnimatedSplash } from './src/components/AnimatedSplash';
-import { useBetsStore } from './src/store/betsStore';
+import { useBetsStore, effectiveReminderHour } from './src/store/betsStore';
 import { colors } from './src/theme/colors';
 import * as Notifications from 'expo-notifications';
 import {
@@ -29,6 +29,9 @@ SplashScreen.preventAutoHideAsync().catch(() => {});
 export default function App() {
   const load = useBetsStore((s) => s.load);
   const isLoaded = useBetsStore((s) => s.isLoaded);
+  const language = useBetsStore((s) => s.settings.language);
+  // A number, so the selector is stable; changes with Pro status as well as the hour.
+  const reminderHour = useBetsStore((s) => effectiveReminderHour(s.settings));
   const onboardingComplete = useBetsStore((s) => s.settings.onboardingComplete);
   const updateSettings = useBetsStore((s) => s.updateSettings);
   const [splashDone, setSplashDone] = useState(false);
@@ -59,7 +62,6 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    registerBetResultCategory();
     // Foreground guard: never surface a reminder for a bet that is already settled.
     setBetPendingResolver((betId) => {
       const bet = useBetsStore.getState().bets.find((b) => b.id === betId);
@@ -87,6 +89,32 @@ export default function App() {
 
   useEffect(() => { flushQueuedAction(); }, [isLoaded, flushQueuedAction]);
 
+  // Language FIRST — this effect is declared before the reconcile below on
+  // purpose: React runs a commit's effects in declaration order, and every
+  // notification bakes its text in when it is scheduled. Applying the language
+  // after scheduling (as launch used to) sent English users Russian reminders
+  // and registered Russian action buttons for everyone.
+  useEffect(() => {
+    if (!isLoaded) return;
+    applyLanguage(language); // synchronous: i18next's resources are bundled
+    const { bets, settings } = useBetsStore.getState();
+    registerBetResultCategory();
+    // Re-issue what is already scheduled — on a switch, AND at launch: the OS
+    // keeps the text a notification was scheduled with, not the key, so the
+    // reminders an older build scheduled in Russian stay Russian until they
+    // fire. Ids are deterministic and the cap is 50, so this is cheap.
+    syncBetResultReminders(bets, settings.betResultReminders !== false, { rearm: true });
+  }, [isLoaded, language]);
+
+  // Its own effect, declared AFTER the language one so its text is already in
+  // the right language — and keyed on the effective hour, which moves when Pro
+  // status does: the entitlement check at launch can end a subscription, and the
+  // reminder must drop back to the Free hour right then, not at the next launch.
+  useEffect(() => {
+    if (!isLoaded) return;
+    scheduleDailyReminder(reminderHour);
+  }, [isLoaded, language, reminderHour]);
+
   // Cancelling on settle is fire-and-forget and can be lost (app killed mid-write,
   // CSV import, edits). Re-reconcile reminders on launch and on every foreground.
   useEffect(() => {
@@ -107,9 +135,6 @@ export default function App() {
     initRevenueCat();
     Analytics.appOpen();
     load().then(async () => {
-      const { settings } = useBetsStore.getState();
-      scheduleDailyReminder(settings.reminderHour);
-      applyLanguage(settings.language);
       const isPro = await syncEntitlement();
       if (isPro !== null) updateSettings({ isPro });
     });

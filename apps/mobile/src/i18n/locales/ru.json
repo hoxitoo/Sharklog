@@ -9,7 +9,10 @@
     "bankroll": "Банкролл",
     "strategyBuilder": "Билдер стратегий",
     "partners": "Партнёры",
-    "partnersSub": "Бонусы при регистрации"
+    "partnersSub": "Бонусы при регистрации",
+    "pending": "Ждут результата",
+    "filters": "Фильтры",
+    "responsible": "18+ · Играй ответственно"
   },
   "status": {
     "pending": "Ожидание",
@@ -74,8 +77,6 @@
     "tiltTitle": "Стоп. Ты в тилте.",
     "tiltSub": "Сделай паузу перед следующей ставкой.",
     "noBetsStart": "Нажми + чтобы начать",
-    "limitReached": "🔒 Лимит {{count}} ставок достигнут — перейди на Pro",
-    "limitWarning": "⚠️ Осталось {{count}} бесплатных ставок",
     "duplicate": "Копия",
     "changeResult": "Результат",
     "tipWheel": "Тап по ставке — колесо действий · Свайп влево — удалить · + — новая ставка",
@@ -85,7 +86,37 @@
     "sortOddsDesc": "Кэф ↓",
     "sortOddsAsc": "Кэф ↑",
     "sortStakeDesc": "Сумма ↓",
-    "sortStakeAsc": "Сумма ↑"
+    "sortStakeAsc": "Сумма ↑",
+    "filterOnly": "Только {{date}}",
+    "filterTournament": "Турнир: {{name}}",
+    "filterNoTournament": "Без турнира",
+    "filterTeam": "Команда: {{name}}",
+    "filterYear": "{{year}} год",
+    "filterSince": "с {{date}}",
+    "todaySub_one": "{{count}} ст. · {{amount}}",
+    "todaySub_few": "{{count}} ст. · {{amount}}",
+    "todaySub_many": "{{count}} ст. · {{amount}}",
+    "todaySub_other": "{{count}} ст. · {{amount}}",
+    "inPlay": "В игре",
+    "inPlaySub": "закрыть результаты",
+    "bank": "Банк",
+    "bankSub": "текущий баланс",
+    "cashoutLine": "Выкуп: {{amount}}",
+    "limitReached_one": "🔒 Лимит {{count}} ставки достигнут — перейди на Pro",
+    "limitReached_few": "🔒 Лимит {{count}} ставок достигнут — перейди на Pro",
+    "limitReached_many": "🔒 Лимит {{count}} ставок достигнут — перейди на Pro",
+    "limitReached_other": "🔒 Лимит {{count}} ставки достигнут — перейди на Pro",
+    "limitWarning_one": "⚠️ Осталась {{count}} бесплатная ставка",
+    "limitWarning_few": "⚠️ Осталось {{count}} бесплатные ставки",
+    "limitWarning_many": "⚠️ Осталось {{count}} бесплатных ставок",
+    "limitWarning_other": "⚠️ Осталось {{count}} бесплатные ставки",
+    "limitTitle": "Лимит достигнут",
+    "limitMsg_one": "Бесплатный план — до {{count}} ставки. Перейди на Pro для безлимитного трекинга.",
+    "limitMsg_few": "Бесплатный план — до {{count}} ставок. Перейди на Pro для безлимитного трекинга.",
+    "limitMsg_many": "Бесплатный план — до {{count}} ставок. Перейди на Pro для безлимитного трекинга.",
+    "limitMsg_other": "Бесплатный план — до {{count}} ставки. Перейди на Pro для безлимитного трекинга.",
+    "dailyLimitTitle": "Дневной лимит",
+    "dailyLimitMsg": "Лимит на сегодня: {{count}}. Следующую ставку можно будет добавить завтра — или поменять лимит в настройках."
   },
   "dashboard": {
     "title": "Дашборд",
@@ -367,11 +398,14 @@
     "noData": "Нет данных",
     "pro": "PRO",
     "free": "Free",
-    "bets": "ставок",
     "of": "из",
     "status": "Статус",
     "date": "Дата",
-    "type": "Тип"
+    "type": "Тип",
+    "betsCount_one": "{{count}} ставка",
+    "betsCount_few": "{{count}} ставки",
+    "betsCount_many": "{{count}} ставок",
+    "betsCount_other": "{{count}} ставки"
   },
   "sports": {
     "football": "Футбол",
@@ -410,5 +444,41 @@
     "noFile": "Файл не найден",
     "invalidFile": "Неверный формат файла",
     "storeUnreachable": "Не удалось связаться с магазином. Проверь интернет и попробуй ещё раз."
+  },
+  "filters": {
+    "tournament": "Турнир / лига",
+    "tournamentHint": "Часть названия — «StarLadder» найдёт «StarLadder StarSeries Fall 26»",
+    "anyM": "Любой",
+    "team": "Команда / спортсмен",
+    "teamHint": "Только ставки НА эту команду, а не все матчи с ней",
+    "anyF": "Любая",
+    "dateHint": "ГГГГ-ММ-ДД — как в форме ставки",
+    "from": "от",
+    "to": "до",
+    "note": "Фильтр складывается со статусом и сортировкой — они остаются как выбраны.",
+    "reset": "Сбросить"
+  },
+  "pending": {
+    "agoDays": "{{count}} д назад",
+    "agoHours": "{{count}} ч назад",
+    "agoMinutes": "{{count}} мин назад",
+    "ifWon": "Если зайдут",
+    "ifWonSub": "полный возврат",
+    "overdue": "Пора закрыть",
+    "overdueSub": "матч давно прошёл",
+    "emptyTitle": "Всё закрыто",
+    "emptyText": "Незакрытых ставок нет — статистика актуальна."
+  },
+  "notifications": {
+    "dailyBody": "Не забудь записать сегодняшние ставки",
+    "tiltTitle": "⚠️ Стоп — возможный тилт",
+    "tiltBody_one": "{{count}} поражение подряд. Сделай паузу и отдохни.",
+    "tiltBody_few": "{{count}} поражения подряд. Сделай паузу и отдохни.",
+    "tiltBody_many": "{{count}} поражений подряд. Сделай паузу и отдохни.",
+    "tiltBody_other": "{{count}} поражения подряд. Сделай паузу и отдохни.",
+    "resultTitle": "Матч завершён — какой результат?",
+    "actionWon": "Выиграла",
+    "actionLost": "Проиграла",
+    "actionLater": "Позже"
   }
 }

@@ -9,7 +9,10 @@
     "bankroll": "Банкрол",
     "strategyBuilder": "Будаўнік стратэгій",
     "partners": "Партнёры",
-    "partnersSub": "Бонусы пры рэгістрацыі"
+    "partnersSub": "Бонусы пры рэгістрацыі",
+    "pending": "Чакаюць выніку",
+    "filters": "Фільтры",
+    "responsible": "18+ · Гуляйце адказна"
   },
   "status": {
     "pending": "Чаканне",
@@ -74,8 +77,6 @@
     "tiltTitle": "Стоп. Ты ў тылце.",
     "tiltSub": "Зрабі паўзу перад наступнай стаўкай.",
     "noBetsStart": "Націсні + каб пачаць",
-    "limitReached": "🔒 Ліміт {{count}} стаўак дасягнуты — перайдзіце на Pro",
-    "limitWarning": "⚠️ Засталося {{count}} бясплатных стаўак",
     "duplicate": "Копія",
     "changeResult": "Вынік",
     "tipWheel": "Тап па стаўцы — кола дзеянняў · Свайп улева — выдаліць · + — новая стаўка",
@@ -85,7 +86,37 @@
     "sortOddsDesc": "Каэф ↓",
     "sortOddsAsc": "Каэф ↑",
     "sortStakeDesc": "Сума ↓",
-    "sortStakeAsc": "Сума ↑"
+    "sortStakeAsc": "Сума ↑",
+    "filterOnly": "Толькі {{date}}",
+    "filterTournament": "Турнір: {{name}}",
+    "filterNoTournament": "Без турніру",
+    "filterTeam": "Каманда: {{name}}",
+    "filterYear": "{{year}} год",
+    "filterSince": "з {{date}}",
+    "todaySub_one": "{{count}} ст. · {{amount}}",
+    "todaySub_few": "{{count}} ст. · {{amount}}",
+    "todaySub_many": "{{count}} ст. · {{amount}}",
+    "todaySub_other": "{{count}} ст. · {{amount}}",
+    "inPlay": "У гульні",
+    "inPlaySub": "закрыць вынікі",
+    "bank": "Банк",
+    "bankSub": "бягучы баланс",
+    "cashoutLine": "Выкуп: {{amount}}",
+    "limitReached_one": "🔒 Ліміт {{count}} стаўкі дасягнуты — перайдзіце на Pro",
+    "limitReached_few": "🔒 Ліміт {{count}} ставак дасягнуты — перайдзіце на Pro",
+    "limitReached_many": "🔒 Ліміт {{count}} ставак дасягнуты — перайдзіце на Pro",
+    "limitReached_other": "🔒 Ліміт {{count}} стаўкі дасягнуты — перайдзіце на Pro",
+    "limitWarning_one": "⚠️ Засталася {{count}} бясплатная стаўка",
+    "limitWarning_few": "⚠️ Засталося {{count}} бясплатныя стаўкі",
+    "limitWarning_many": "⚠️ Засталося {{count}} бясплатных ставак",
+    "limitWarning_other": "⚠️ Засталося {{count}} бясплатныя стаўкі",
+    "limitTitle": "Ліміт дасягнуты",
+    "limitMsg_one": "Бясплатны план — да {{count}} стаўкі. Перайдзіце на Pro для безлімітнага ўліку.",
+    "limitMsg_few": "Бясплатны план — да {{count}} ставак. Перайдзіце на Pro для безлімітнага ўліку.",
+    "limitMsg_many": "Бясплатны план — да {{count}} ставак. Перайдзіце на Pro для безлімітнага ўліку.",
+    "limitMsg_other": "Бясплатны план — да {{count}} стаўкі. Перайдзіце на Pro для безлімітнага ўліку.",
+    "dailyLimitTitle": "Дзённы ліміт",
+    "dailyLimitMsg": "Ліміт на сёння: {{count}}. Наступную стаўку можна будзе дадаць заўтра — або змяніць ліміт у наладах."
   },
   "dashboard": {
     "title": "Дашборд",
@@ -367,11 +398,14 @@
     "noData": "Няма дадзеных",
     "pro": "PRO",
     "free": "Free",
-    "bets": "стаўак",
     "of": "з",
     "status": "Статус",
     "date": "Дата",
-    "type": "Тып"
+    "type": "Тып",
+    "betsCount_one": "{{count}} стаўка",
+    "betsCount_few": "{{count}} стаўкі",
+    "betsCount_many": "{{count}} ставак",
+    "betsCount_other": "{{count}} стаўкі"
   },
   "sports": {
     "football": "Футбол",
@@ -410,5 +444,41 @@
     "noFile": "Файл не знойдзены",
     "invalidFile": "Няправільны фармат файла",
     "storeUnreachable": "Не ўдалося звязацца з крамай. Праверце інтэрнэт і паспрабуйце яшчэ раз."
+  },
+  "filters": {
+    "tournament": "Турнір / ліга",
+    "tournamentHint": "Частка назвы — «StarLadder» знойдзе «StarLadder StarSeries Fall 26»",
+    "anyM": "Любы",
+    "team": "Каманда / спартсмен",
+    "teamHint": "Толькі стаўкі НА гэтую каманду, а не ўсе матчы з ёй",
+    "anyF": "Любая",
+    "dateHint": "ГГГГ-ММ-ДД — як у форме стаўкі",
+    "from": "ад",
+    "to": "да",
+    "note": "Фільтр складаецца са статусам і сартаваннем — яны застаюцца як выбраныя.",
+    "reset": "Скінуць"
+  },
+  "pending": {
+    "agoDays": "{{count}} дн таму",
+    "agoHours": "{{count}} гадз таму",
+    "agoMinutes": "{{count}} хв таму",
+    "ifWon": "Калі зойдуць",
+    "ifWonSub": "поўнае вяртанне",
+    "overdue": "Пара закрыць",
+    "overdueSub": "матч даўно прайшоў",
+    "emptyTitle": "Усё закрыта",
+    "emptyText": "Незакрытых ставак няма — статыстыка актуальная."
+  },
+  "notifications": {
+    "dailyBody": "Не забудзьцеся запісаць сённяшнія стаўкі",
+    "tiltTitle": "⚠️ Стоп — магчымы тылт",
+    "tiltBody_one": "{{count}} паражэнне запар. Зрабіце паўзу і адпачніце.",
+    "tiltBody_few": "{{count}} паражэнні запар. Зрабіце паўзу і адпачніце.",
+    "tiltBody_many": "{{count}} паражэнняў запар. Зрабіце паўзу і адпачніце.",
+    "tiltBody_other": "{{count}} паражэння запар. Зрабіце паўзу і адпачніце.",
+    "resultTitle": "Матч скончаны — які вынік?",
+    "actionWon": "Выйграла",
+    "actionLost": "Прайграла",
+    "actionLater": "Пазней"
   }
 }

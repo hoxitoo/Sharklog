@@ -7,6 +7,7 @@ import { AppText as Text } from '../../components/AppText';
 import { colors } from '../../theme/colors';
 import { haptic } from '../../utils/haptics';
 import { SIZE, GLYPH } from '../../theme/typography';
+import { useTranslation } from 'react-i18next';
 
 const DELETE_W = 76;
 
@@ -16,6 +17,7 @@ interface Props {
 }
 
 export const SwipeableRow = React.memo(function SwipeableRow({ children, onDelete }: Props) {
+  const { t } = useTranslation();
   const translateX = useRef(new Animated.Value(0)).current;
   const isOpenRef = useRef(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -74,7 +76,7 @@ export const SwipeableRow = React.memo(function SwipeableRow({ children, onDelet
       >
         <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete} activeOpacity={0.75}>
           <Text style={styles.deleteIcon}>🗑</Text>
-          <Text style={styles.deleteText}>Удалить</Text>
+          <Text style={styles.deleteText}>{t('common.delete')}</Text>
         </TouchableOpacity>
       </View>
 
