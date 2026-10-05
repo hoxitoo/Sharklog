@@ -11,9 +11,12 @@ import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { Sport, BetType, Strategy, BetStatus, EsportsDiscipline, Team, Bet } from '@sharklog/core';
 import {
-  SPORTS, BET_TYPES, STRATEGIES, ESPORTS_DISCIPLINES, parseMoneyInput, formatMoney,
+  SPORTS, BET_TYPES, STRATEGIES, ESPORTS_DISCIPLINES, PICK, parseMoneyInput,
   impliedProbability, halfKelly, expectedValue, recommendedStake, combineExpressOdds, CURRENT_SCHEMA_VERSION, FREE_LIMITS, calcDashboard, currentBank, toYmd,
 } from '@sharklog/core';
+import { useTranslation } from 'react-i18next';
+import { useFormatMoney } from '../../utils/useFormatMoney';
+import { sportLabel, betTypeLabel, strategyLabel, disciplineLabel } from '../../utils/labels';
 import { colors } from '../../theme/colors';
 import { useBetsStore } from '../../store/betsStore';
 import { haptic } from '../../utils/haptics';
@@ -28,7 +31,8 @@ type Route = RouteProp<RootStackParamList, 'AddBet'>;
 
 type BetMode = 'single' | 'express';
 
-type Pick1x2 = 'п1' | 'x' | 'п2';
+/** Form state only — the stored pick is built from PICK at save time. */
+type Pick1x2 = 'home' | 'draw' | 'away';
 
 interface FormData {
   betMode: BetMode;
@@ -182,6 +186,7 @@ function SingleTeamInput({
   discipline: EsportsDiscipline;
 }) {
   const teams = useBetsStore((s) => s.teams);
+  const { t } = useTranslation();
   const [focused, setFocused] = useState(false);
 
   const suggestions = useMemo<Team[]>(() => {
@@ -205,7 +210,7 @@ function SingleTeamInput({
       <TextInput
         {...(textInputRef ? { ref: textInputRef } : {})}
         style={inputStyle}
-        placeholder={placeholder ?? 'Команда...'}
+        placeholder={placeholder ?? t('addBet.teamPh')}
         placeholderTextColor={colors.textMuted}
         value={value}
         onChangeText={onChange}
@@ -232,11 +237,11 @@ function SingleTeamInput({
               <View style={ac.right}>
                 {team.sport === 'esports' && team.discipline ? (
                   <View style={ac.badge}>
-                    <Text style={ac.badgeText}>{ESPORTS_DISCIPLINES[team.discipline]}</Text>
+                    <Text style={ac.badgeText}>{disciplineLabel(t, team.discipline)}</Text>
                   </View>
                 ) : team.sport !== sport ? (
                   <View style={ac.badge}>
-                    <Text style={ac.badgeText}>{SPORTS[team.sport]}</Text>
+                    <Text style={ac.badgeText}>{sportLabel(t, team.sport)}</Text>
                   </View>
                 ) : null}
                 <Text style={ac.count}>{team.usageCount}×</Text>
@@ -296,6 +301,8 @@ function TournamentInput({ value, onChange, scrollRef }: {
   scrollRef?: React.RefObject<ScrollView>;
 }) {
   const bets = useBetsStore((s) => s.bets);
+  // `tr`, not `t`: `t` is the tournament name in the loops below.
+  const { t: tr } = useTranslation();
   const [focused, setFocused] = useState(false);
 
   const suggestions = useMemo<string[]>(() => {
@@ -317,7 +324,7 @@ function TournamentInput({ value, onChange, scrollRef }: {
     <View style={ac.wrapper}>
       <TextInput
         style={inputStyle}
-        placeholder="Лига Чемпионов, РПЛ, CS2 Major..."
+        placeholder={tr('addBet.tournamentPh')}
         placeholderTextColor={colors.textMuted}
         value={value}
         onChangeText={onChange}
@@ -349,14 +356,19 @@ function TournamentInput({ value, onChange, scrollRef }: {
 // ── Restore pick1x2 value from an existing 1X2 bet ────────────────────────────
 
 function initPick1x2(editBet: { betType: BetType; pick?: string } | undefined, team1: string, team2: string): Pick1x2 {
-  if (!editBet || editBet.betType !== '1X2') return 'п1';
+  if (!editBet || editBet.betType !== '1X2') return 'home';
   const pick = editBet.pick ?? '';
-  if (pick === 'Ничья' || pick === 'X') return 'x';
-  if ((team2.trim() && pick === team2.trim()) || pick === 'П2') return 'п2';
-  return 'п1';
+  if (pick === PICK.DRAW || pick === 'X') return 'draw';
+  if ((team2.trim() && pick === team2.trim()) || pick === PICK.AWAY) return 'away';
+  return 'home';
 }
 
 // ── Parse existing pick back into form fields ──────────────────────────────────
+
+/** A stored pick without its leading token: "ТБ 2.5" → "2.5". */
+function afterToken(pick: string, token: string): string {
+  return (pick.startsWith(token) ? pick.slice(token.length) : pick).trim();
+}
 
 function parseEditPick(betType: BetType, pick: string): {
   handicapSide: 'home' | 'away';
@@ -364,21 +376,21 @@ function parseEditPick(betType: BetType, pick: string): {
   bothScoreYes: boolean;
 } {
   if (betType === 'handicap') {
-    const side: 'home' | 'away' = pick.startsWith('Ф2') ? 'away' : 'home';
+    const side: 'home' | 'away' = pick.startsWith(PICK.HANDICAP_AWAY) ? 'away' : 'home';
     const m = pick.match(/[+\-−]?\d+(?:[.,]\d+)?/);
     return { handicapSide: side, pickValue: m ? m[0]! : '', bothScoreYes: true };
   }
   if (betType === 'total_over') {
-    return { handicapSide: 'home', pickValue: pick.replace(/^ТБ\s*/u, '').trim(), bothScoreYes: true };
+    return { handicapSide: 'home', pickValue: afterToken(pick, PICK.OVER), bothScoreYes: true };
   }
   if (betType === 'total_under') {
-    return { handicapSide: 'home', pickValue: pick.replace(/^ТМ\s*/u, '').trim(), bothScoreYes: true };
+    return { handicapSide: 'home', pickValue: afterToken(pick, PICK.UNDER), bothScoreYes: true };
   }
   if (betType === 'exact_score') {
     return { handicapSide: 'home', pickValue: pick, bothScoreYes: true };
   }
   if (betType === 'both_score') {
-    return { handicapSide: 'home', pickValue: '', bothScoreYes: pick !== 'Нет' };
+    return { handicapSide: 'home', pickValue: '', bothScoreYes: pick !== PICK.NO };
   }
   return { handicapSide: 'home', pickValue: '', bothScoreYes: true };
 }
@@ -390,6 +402,8 @@ function KellyHelper({ odds, bankKopecks, onApply }: {
   bankKopecks: number;
   onApply: (roubles: string) => void;
 }) {
+  const { t } = useTranslation();
+  const fmt = useFormatMoney();
   const [prob, setProb] = useState(0.5);
   const implied = impliedProbability(odds);
   const ev = expectedValue(odds, prob);
@@ -404,12 +418,12 @@ function KellyHelper({ odds, bankKopecks, onApply }: {
   return (
     <View style={kl.container}>
       <View style={kl.impliedRow}>
-        <Text style={kl.impliedLabel}>Имплицитная вероятность букмекера</Text>
+        <Text style={kl.impliedLabel}>{t('addBet.impliedProb')}</Text>
         <Text style={kl.impliedValue}>{(implied * 100).toFixed(1)}%</Text>
       </View>
 
       <View style={kl.stepRow}>
-        <Text style={kl.stepLabel}>Моя оценка</Text>
+        <Text style={kl.stepLabel}>{t('addBet.myEstimate')}</Text>
         <View style={kl.stepper}>
           <TouchableOpacity style={kl.stepBtn} hitSlop={STEP_SLOP} onPress={() => step(-1)} activeOpacity={0.7}>
             <Text style={kl.stepBtnText}>−</Text>
@@ -434,15 +448,15 @@ function KellyHelper({ odds, bankKopecks, onApply }: {
         </View>
         <View style={kl.resultCell}>
           <Text style={[kl.resultValue, { color: stake > 0 ? colors.accent : colors.textMuted }]}>
-            {stake > 0 ? formatMoney(stake) : '—'}
+            {stake > 0 ? fmt(stake) : '—'}
           </Text>
-          <Text style={kl.resultLabel}>Рек. ставка</Text>
+          <Text style={kl.resultLabel}>{t('addBet.recStake')}</Text>
         </View>
       </View>
 
       {stake > 0 && (
         <TouchableOpacity style={kl.applyBtn} onPress={() => onApply(String(stake / 100))} activeOpacity={0.8}>
-          <Text style={kl.applyText}>Применить {formatMoney(stake)}</Text>
+          <Text style={kl.applyText}>{t('addBet.apply', { amount: fmt(stake) })}</Text>
         </TouchableOpacity>
       )}
     </View>
@@ -499,6 +513,8 @@ export function AddBetScreen() {
   const settings = useBetsStore((s) => s.settings);
   const bankroll = useBetsStore((s) => s.bankroll);
   const canAddBet = useBetsStore((s) => s.canAddBet);
+  const { t } = useTranslation();
+  const fmt = useFormatMoney();
   const [kellyOpen, setKellyOpen] = useState(false);
   const team2Ref = useRef<TextInputRef>(null);
   const scrollRef = useRef<ScrollView>(null);
@@ -537,7 +553,7 @@ export function AddBetScreen() {
     if (source?.betType === 'express') {
       const eventParts = source.event.split(' / ');
       // pick field stores per-leg picks as "П1 / ТБ 2.5", OR legacy "Экспресс"
-      const pickParts = (source.pick && source.pick !== 'Экспресс')
+      const pickParts = (source.pick && source.pick !== PICK.EXPRESS)
         ? source.pick.split(' / ')
         : [];
       if (eventParts.length >= 2) {
@@ -629,12 +645,12 @@ export function AddBetScreen() {
 
   const activeOdds = isSingle ? singleOdds : expressOdds;
   const potentialProfit = activeOdds > 1 && stakeKopecks > 0
-    ? formatMoney(Math.round(stakeKopecks * activeOdds) - stakeKopecks)
+    ? fmt(Math.round(stakeKopecks * activeOdds) - stakeKopecks)
     : null;
 
   useEffect(() => {
-    navigation.setOptions({ title: editBet ? 'Редактировать ставку' : 'Новая ставка' });
-  }, [editBet]);
+    navigation.setOptions({ title: editBet ? t('addBet.titleEdit') : t('bet.newBet') });
+  }, [editBet, t]);
 
   // Clear field errors when switching bet mode
   useEffect(() => {
@@ -648,17 +664,17 @@ export function AddBetScreen() {
   function onSubmit(data: FormData) { try {
     const stakeVal = parseMoneyInput(data.stake);
     if (stakeVal <= 0) {
-      Alert.alert('Ошибка', 'Укажи сумму ставки');
+      Alert.alert(t('common.error'), t('addBet.errStake'));
       return;
     }
 
     if (!editBet && !canAddBet()) {
-      Alert.alert(
-        settings.isPro ? 'Дневной лимит' : 'Лимит Free',
-        settings.isPro
-          ? `Дневной лимит (${settings.dailyBetLimit} ставок) достигнут. Измени лимит в Настройках.`
-          : `Бесплатная версия позволяет не более ${FREE_LIMITS.MAX_BETS} ставок.\nПерейди на Pro для неограниченного учёта.`,
-      );
+      // Same two walls, same words as the "+" button in the drawer.
+      if (settings.isPro) {
+        Alert.alert(t('bet.dailyLimitTitle'), t('bet.dailyLimitMsg', { count: settings.dailyBetLimit }));
+      } else {
+        Alert.alert(t('bet.limitTitle'), t('bet.limitMsg', { count: FREE_LIMITS.MAX_BETS }));
+      }
       return;
     }
 
@@ -692,30 +708,32 @@ export function AddBetScreen() {
     if (isSingle) {
       const oddsVal = parseFloat(nd(data.odds));
       if (isNaN(oddsVal) || oddsVal <= 1) {
-        Alert.alert('Ошибка', 'Коэффициент должен быть больше 1');
+        Alert.alert(t('common.error'), t('addBet.errOdds'));
         return;
       }
       const event = [data.team1.trim(), data.team2.trim()].filter(Boolean).join(' vs ');
       if (!event) {
-        Alert.alert('Ошибка', 'Введи название команды или события');
+        Alert.alert(t('common.error'), t('addBet.errEvent'));
         return;
       }
       const pv = data.pickValue.trim();
       const pick = (() => {
         if (data.betType === '1X2') {
-          return data.pick1x2 === 'п1' ? (data.team1.trim() || 'П1')
-               : data.pick1x2 === 'п2' ? (data.team2.trim() || 'П2')
-               : 'Ничья';
+          return data.pick1x2 === 'home' ? (data.team1.trim() || PICK.HOME)
+               : data.pick1x2 === 'away' ? (data.team2.trim() || PICK.AWAY)
+               : PICK.DRAW;
         }
         if (data.betType === 'handicap') {
-          const side = data.handicapSide === 'home' ? 'Ф1' : 'Ф2';
+          const side = data.handicapSide === 'home' ? PICK.HANDICAP_HOME : PICK.HANDICAP_AWAY;
           return pv ? `${side} (${pv})` : side;
         }
-        if (data.betType === 'total_over') return pv ? `ТБ ${pv}` : 'ТБ';
-        if (data.betType === 'total_under') return pv ? `ТМ ${pv}` : 'ТМ';
-        if (data.betType === 'both_score') return data.bothScoreYes ? 'Да' : 'Нет';
+        if (data.betType === 'total_over') return pv ? `${PICK.OVER} ${pv}` : PICK.OVER;
+        if (data.betType === 'total_under') return pv ? `${PICK.UNDER} ${pv}` : PICK.UNDER;
+        if (data.betType === 'both_score') return data.bothScoreYes ? PICK.YES : PICK.NO;
         if (data.betType === 'exact_score') return pv || '—';
         if (data.betType === 'other' && data.customBetType.trim()) return data.customBetType.trim();
+        // Stored: a type with no finer pick saves its core (Russian) name, which
+        // pickLabel() translates for display. Never the translated name here.
         return BET_TYPES[data.betType] ?? '—';
       })();
 
@@ -744,7 +762,7 @@ export function AddBetScreen() {
         return l.team1.trim() && o > 1;
       });
       if (validLegs.length < 2) {
-        Alert.alert('Ошибка', 'Экспресс: минимум 2 события с кэфом > 1');
+        Alert.alert(t('common.error'), t('addBet.errExpress'));
         return;
       }
       const combinedOdds = combineExpressOdds(validLegs.map((l) => parseFloat(nd(l.odds))));
@@ -757,7 +775,7 @@ export function AddBetScreen() {
         .join(' / ');
       // Store per-leg picks in pick field: "П1 / ТБ 2.5"
       const legPicks = validLegs.map(l => l.pick.trim() || '—');
-      const pickStr = legPicks.every(p => p === '—') ? 'Экспресс' : legPicks.join(' / ');
+      const pickStr = legPicks.every(p => p === '—') ? PICK.EXPRESS : legPicks.join(' / ');
 
       // Use sport of first valid leg for the bet record
       const expressSport = validLegs[0]?.sport ?? data.sport;
@@ -790,15 +808,17 @@ export function AddBetScreen() {
     haptic.success();
     navigation.goBack();
   } catch (e) {
-    Alert.alert('Ошибка', e instanceof Error ? e.message : String(e));
+    Alert.alert(t('common.error'), e instanceof Error ? e.message : String(e));
   } }
 
-  const sportOptions = Object.entries(SPORTS).map(([k, v]) => ({ key: k as Sport, label: v }));
-  const betTypeOptions = Object.entries(BET_TYPES)
-    .filter(([k]) => k !== 'express')
-    .map(([k, v]) => ({ key: k as BetType, label: v }));
-  const strategyOptions = Object.entries(STRATEGIES).map(([k, v]) => ({ key: k as Strategy, label: v }));
-  const disciplineOptions = Object.entries(ESPORTS_DISCIPLINES).map(([k, v]) => ({ key: k as EsportsDiscipline, label: v }));
+  // Core's maps give the KEYS (and their order); the label comes from the locale.
+  const sportOptions = (Object.keys(SPORTS) as Sport[]).map((k) => ({ key: k, label: sportLabel(t, k) }));
+  const betTypeOptions = (Object.keys(BET_TYPES) as BetType[])
+    .filter((k) => k !== 'express')
+    .map((k) => ({ key: k, label: betTypeLabel(t, k) }));
+  const strategyOptions = (Object.keys(STRATEGIES) as Strategy[]).map((k) => ({ key: k, label: strategyLabel(t, k) }));
+  const disciplineOptions = (Object.keys(ESPORTS_DISCIPLINES) as EsportsDiscipline[])
+    .map((k) => ({ key: k, label: disciplineLabel(t, k) }));
 
   return (
     <KeyboardAvoidingView
@@ -824,7 +844,7 @@ export function AddBetScreen() {
                 activeOpacity={0.8}
               >
                 <Text style={[styles.betModeTxt, value === 'single' && styles.betModeTxtActive]}>
-                  Ординар
+                  {t('addBet.modeSingle')}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
@@ -833,7 +853,7 @@ export function AddBetScreen() {
                 activeOpacity={0.8}
               >
                 <Text style={[styles.betModeTxt, value === 'express' && styles.betModeTxtActive]}>
-                  Экспресс
+                  {t('addBet.modeExpress')}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -843,11 +863,11 @@ export function AddBetScreen() {
         {/* ── Single mode ─── */}
         {isSingle && (
           <>
-            <Field label="Команда 1 *" {...(errors.team1?.message ? { error: errors.team1.message } : {})}>
+            <Field label={t('addBet.team1Req')} {...(errors.team1?.message ? { error: errors.team1.message } : {})}>
               <Controller
                 control={control}
                 name="team1"
-                rules={{ validate: (v) => !!v.trim() || 'Введи команду или событие' }}
+                rules={{ validate: (v) => !!v.trim() || t('addBet.errTeam') }}
                 render={({ field: { onChange, value } }) => (
                   <SingleTeamInput
                     value={value}
@@ -861,7 +881,7 @@ export function AddBetScreen() {
               />
             </Field>
 
-            <Field label="Команда 2">
+            <Field label={t('bet.team2')}>
               <Controller
                 control={control}
                 name="team2"
@@ -879,7 +899,7 @@ export function AddBetScreen() {
             </Field>
 
             <View style={styles.row2}>
-              <Field label="Коэффициент *" {...(errors.odds?.message ? { error: errors.odds.message } : {})}>
+              <Field label={t('addBet.oddsReq')} {...(errors.odds?.message ? { error: errors.odds.message } : {})}>
                 <Controller
                   control={control}
                   name="odds"
@@ -896,7 +916,7 @@ export function AddBetScreen() {
                 />
               </Field>
 
-              <Field label="Сумма (₽) *" {...(errors.stake?.message ? { error: errors.stake.message } : {})}>
+              <Field label={t('addBet.stakeReq')} {...(errors.stake?.message ? { error: errors.stake.message } : {})}>
                 <Controller
                   control={control}
                   name="stake"
@@ -922,7 +942,7 @@ export function AddBetScreen() {
             {legs.map((leg, i) => (
               <View key={i} style={styles.legCard}>
                 <View style={styles.legHeader}>
-                  <Text style={styles.legTitle}>Матч {i + 1}</Text>
+                  <Text style={styles.legTitle}>{t('addBet.match', { n: i + 1 })}</Text>
                   {legs.length > 2 && (
                     <TouchableOpacity
                       onPress={() => setLegs((prev) => prev.filter((_, j) => j !== i))}
@@ -973,7 +993,7 @@ export function AddBetScreen() {
                   <SingleTeamInput
                     value={leg.team1}
                     onChange={(v) => updateLeg(i, 'team1', v)}
-                    placeholder="Команда 1"
+                    placeholder={t('bet.team1')}
                     sport={leg.sport}
                     discipline={leg.discipline}
                   />
@@ -982,7 +1002,7 @@ export function AddBetScreen() {
                   <SingleTeamInput
                     value={leg.team2}
                     onChange={(v) => updateLeg(i, 'team2', v)}
-                    placeholder="Команда 2"
+                    placeholder={t('bet.team2')}
                     sport={leg.sport}
                     discipline={leg.discipline}
                   />
@@ -990,7 +1010,7 @@ export function AddBetScreen() {
                 <View style={styles.legOddsRow}>
                   <TextInput
                     style={[inputStyle, { flex: 1 }]}
-                    placeholder="Кэф"
+                    placeholder={t('bet.pickOdds')}
                     placeholderTextColor={colors.textMuted}
                     value={leg.odds}
                     onChangeText={(v) => updateLeg(i, 'odds', v)}
@@ -998,7 +1018,7 @@ export function AddBetScreen() {
                   />
                   <TextInput
                     style={[inputStyle, { flex: 2 }]}
-                    placeholder="Исход (П1, Фора, ТБ...)"
+                    placeholder={t('addBet.legPickPh')}
                     placeholderTextColor={colors.textMuted}
                     value={leg.pick}
                     onChangeText={(v) => updateLeg(i, 'pick', v)}
@@ -1013,17 +1033,17 @@ export function AddBetScreen() {
               onPress={() => setLegs((prev) => [...prev, { team1: '', team2: '', odds: '', pick: '', sport: watchedSport, discipline: watchedDiscipline }])}
               activeOpacity={0.8}
             >
-              <Text style={styles.addLegText}>+ Добавить матч</Text>
+              <Text style={styles.addLegText}>{t('bet.addMatch')}</Text>
             </TouchableOpacity>
 
             {expressOdds > 1 && (
               <View style={styles.expressOddsRow}>
-                <Text style={styles.expressOddsLabel}>Общий кэф</Text>
+                <Text style={styles.expressOddsLabel}>{t('addBet.totalOdds')}</Text>
                 <Text style={styles.expressOddsValue}>{expressOdds.toFixed(2)}</Text>
               </View>
             )}
 
-            <Field label="Сумма (₽) *">
+            <Field label={t('addBet.stakeReq')}>
               <Controller
                 control={control}
                 name="stake"
@@ -1045,7 +1065,7 @@ export function AddBetScreen() {
         {/* ── Profit preview ─── */}
         {potentialProfit && (
           <View style={styles.winPreview}>
-            <Text style={styles.winLabel}>Прибыль при победе</Text>
+            <Text style={styles.winLabel}>{t('addBet.profitIfWin')}</Text>
             <Text style={styles.winAmount}>{potentialProfit}</Text>
           </View>
         )}
@@ -1053,8 +1073,8 @@ export function AddBetScreen() {
         {bankShare != null && (
           <View style={[styles.bankShare, overLimit && styles.bankShareWarn]}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.bankShareLabel}>Доля банка</Text>
-              <Text style={styles.bankShareBank}>банк {formatMoney(bankTotal)}</Text>
+              <Text style={styles.bankShareLabel}>{t('addBet.bankShare')}</Text>
+              <Text style={styles.bankShareBank}>{t('addBet.bankLine', { amount: fmt(bankTotal) })}</Text>
             </View>
             <View style={{ alignItems: 'flex-end' }}>
               <Text style={[styles.bankShareValue, { color: overLimit ? colors.lost : colors.accent }]}>
@@ -1062,7 +1082,7 @@ export function AddBetScreen() {
               </Text>
               {strategyLimit != null && (
                 <Text style={[styles.bankShareHint, overLimit && { color: colors.lost }]}>
-                  {overLimit ? `выше лимита ${strategyLimit}%` : `лимит ${strategyLimit}%`}
+                  {overLimit ? t('addBet.overLimit', { pct: strategyLimit }) : t('addBet.limitPct', { pct: strategyLimit })}
                 </Text>
               )}
             </View>
@@ -1077,7 +1097,7 @@ export function AddBetScreen() {
             activeOpacity={0.8}
           >
             <Text style={[styles.kellyToggleText, kellyOpen && styles.kellyToggleTextActive]}>
-              📊 Калькулятор Келли {kellyOpen ? '▲' : '▼'}
+              📊 {t('bet.kelly')} {kellyOpen ? '▲' : '▼'}
             </Text>
           </TouchableOpacity>
         )}
@@ -1097,19 +1117,19 @@ export function AddBetScreen() {
               control={control}
               name="sport"
               render={({ field: { onChange, value } }) => (
-                <SegmentedControl label="Вид спорта" options={sportOptions} value={value} onChange={onChange} />
+                <SegmentedControl label={t('bet.sport')} options={sportOptions} value={value} onChange={onChange} />
               )}
             />
 
             {watchedSport === 'other' && (
-              <Field label="Уточни вид спорта">
+              <Field label={t('addBet.customSport')}>
                 <Controller
                   control={control}
                   name="customSport"
                   render={({ field: { onChange, value } }) => (
                     <TextInput
                       style={inputStyle}
-                      placeholder="МMA, Бокс, Формула-1..."
+                      placeholder={t('addBet.customSportPh')}
                       placeholderTextColor={colors.textMuted}
                       value={value}
                       onChangeText={onChange}
@@ -1124,7 +1144,7 @@ export function AddBetScreen() {
                 control={control}
                 name="discipline"
                 render={({ field: { onChange, value } }) => (
-                  <SegmentedControl label="Дисциплина" options={disciplineOptions} value={value} onChange={onChange} />
+                  <SegmentedControl label={t('addBet.discipline')} options={disciplineOptions} value={value} onChange={onChange} />
                 )}
               />
             )}
@@ -1137,25 +1157,27 @@ export function AddBetScreen() {
             control={control}
             name="betType"
             render={({ field: { onChange, value } }) => (
-              <SegmentedControl label="Тип ставки" options={betTypeOptions} value={value} onChange={onChange} />
+              <SegmentedControl label={t('bet.betType')} options={betTypeOptions} value={value} onChange={onChange} />
             )}
           />
         )}
 
         {/* ── П1/Ничья/П2 outcome picker (only for 1X2 single) ─── */}
         {isSingle && watchedBetType === '1X2' && (
-          <Field label="Исход">
+          <Field label={t('bet.pick')}>
             <Controller
               control={control}
               name="pick1x2"
               render={({ field: { onChange, value } }) => (
                 <View style={styles.outcomePicker}>
-                  {(['п1', 'x', 'п2'] as const).map((choice) => {
-                    const label = choice === 'п1'
-                      ? (watchedTeam1.trim() || 'П1')
-                      : choice === 'п2'
-                      ? (watchedTeam2.trim() || 'П2')
-                      : 'Ничья';
+                  {(['home', 'draw', 'away'] as const).map((choice) => {
+                    // The button LABEL follows the language; the stored pick is
+                    // built from PICK on save, whatever this says.
+                    const label = choice === 'home'
+                      ? (watchedTeam1.trim() || t('picks.home'))
+                      : choice === 'away'
+                      ? (watchedTeam2.trim() || t('picks.away'))
+                      : t('picks.draw');
                     return (
                       <TouchableOpacity
                         key={choice}
@@ -1177,14 +1199,14 @@ export function AddBetScreen() {
 
         {/* ── Custom bet type label (when betType === 'other') ─── */}
         {isSingle && watchedBetType === 'other' && (
-          <Field label="Уточни тип ставки">
+          <Field label={t('addBet.customBetType')}>
             <Controller
               control={control}
               name="customBetType"
               render={({ field: { onChange, value } }) => (
                 <TextInput
                   style={inputStyle}
-                  placeholder="Победитель турнира, Карточки..."
+                  placeholder={t('addBet.customBetTypePh')}
                   placeholderTextColor={colors.textMuted}
                   value={value}
                   onChangeText={onChange}
@@ -1197,7 +1219,7 @@ export function AddBetScreen() {
         {/* ── Handicap: side + value ─── */}
         {isSingle && watchedBetType === 'handicap' && (
           <>
-            <Field label="Фора">
+            <Field label={t('betTypes.handicap')}>
               <Controller
                 control={control}
                 name="handicapSide"
@@ -1205,8 +1227,8 @@ export function AddBetScreen() {
                   <View style={styles.outcomePicker}>
                     {(['home', 'away'] as const).map((side) => {
                       const label = side === 'home'
-                        ? `Ф1${watchedTeam1.trim() ? ` (${watchedTeam1.trim()})` : ''}`
-                        : `Ф2${watchedTeam2.trim() ? ` (${watchedTeam2.trim()})` : ''}`;
+                        ? `${t('picks.handicapHome')}${watchedTeam1.trim() ? ` (${watchedTeam1.trim()})` : ''}`
+                        : `${t('picks.handicapAway')}${watchedTeam2.trim() ? ` (${watchedTeam2.trim()})` : ''}`;
                       return (
                         <TouchableOpacity
                           key={side}
@@ -1224,7 +1246,7 @@ export function AddBetScreen() {
                 )}
               />
             </Field>
-            <Field label="Значение форы (напр. −1.5, +2.5)">
+            <Field label={t('addBet.handicapValue')}>
               <Controller
                 control={control}
                 name="pickValue"
@@ -1245,7 +1267,7 @@ export function AddBetScreen() {
 
         {/* ── Total: threshold ─── */}
         {isSingle && (watchedBetType === 'total_over' || watchedBetType === 'total_under') && (
-          <Field label={watchedBetType === 'total_over' ? 'Порог ТБ (напр. 2.5)' : 'Порог ТМ (напр. 2.5)'}>
+          <Field label={watchedBetType === 'total_over' ? t('addBet.totalOverValue') : t('addBet.totalUnderValue')}>
             <Controller
               control={control}
               name="pickValue"
@@ -1265,7 +1287,7 @@ export function AddBetScreen() {
 
         {/* ── Both score: yes / no ─── */}
         {isSingle && watchedBetType === 'both_score' && (
-          <Field label="Обе забьют?">
+          <Field label={t('addBet.bothScore')}>
             <Controller
               control={control}
               name="bothScoreYes"
@@ -1279,7 +1301,7 @@ export function AddBetScreen() {
                       activeOpacity={0.8}
                     >
                       <Text style={[styles.outcomeTxt, value === yes && styles.outcomeTxtActive]}>
-                        {yes ? 'Да' : 'Нет'}
+                        {yes ? t('picks.yes') : t('picks.no')}
                       </Text>
                     </TouchableOpacity>
                   ))}
@@ -1291,7 +1313,7 @@ export function AddBetScreen() {
 
         {/* ── Exact score: free text ─── */}
         {isSingle && watchedBetType === 'exact_score' && (
-          <Field label="Точный счёт (напр. 2:1)">
+          <Field label={t('addBet.exactScore')}>
             <Controller
               control={control}
               name="pickValue"
@@ -1316,7 +1338,7 @@ export function AddBetScreen() {
           activeOpacity={0.8}
         >
           <Text style={styles.extraToggleText}>
-            {showExtra ? '▲  Скрыть детали' : '▼  Стратегия, букмекер, турнир, заметки...'}
+            {showExtra ? `▲  ${t('addBet.extraHide')}` : `▼  ${t('addBet.extraShow')}`}
           </Text>
         </TouchableOpacity>
 
@@ -1326,19 +1348,19 @@ export function AddBetScreen() {
               control={control}
               name="strategy"
               render={({ field: { onChange, value } }) => (
-                <SegmentedControl label="Стратегия" options={strategyOptions} value={value} onChange={onChange} />
+                <SegmentedControl label={t('bet.strategy')} options={strategyOptions} value={value} onChange={onChange} />
               )}
             />
 
             {watchedStrategy === 'other' && (
-              <Field label="Уточни стратегию">
+              <Field label={t('addBet.customStrategy')}>
                 <Controller
                   control={control}
                   name="customStrategy"
                   render={({ field: { onChange, value } }) => (
                     <TextInput
                       style={inputStyle}
-                      placeholder="Матч-ставка, Арбитраж..."
+                      placeholder={t('addBet.customStrategyPh')}
                       placeholderTextColor={colors.textMuted}
                       value={value}
                       onChangeText={onChange}
@@ -1349,7 +1371,7 @@ export function AddBetScreen() {
             )}
 
             {/* ── Bookmaker ─── */}
-            <Field label="Букмекер">
+            <Field label={t('bet.bookmaker')}>
               <Controller
                 control={control}
                 name="bookmaker"
@@ -1371,14 +1393,14 @@ export function AddBetScreen() {
 
             {/* ── Date + Time ─── */}
             <View style={styles.row2}>
-              <Field label="Дата">
+              <Field label={t('bet.date')}>
                 <Controller
                   control={control}
                   name="date"
                   render={({ field: { onChange, value } }) => (
                     <TextInput
                       style={[inputStyle, styles.halfInput]}
-                      placeholder="ГГГГ-ММ-ДД"
+                      placeholder={t('addBet.datePh')}
                       placeholderTextColor={colors.textMuted}
                       value={value}
                       onChangeText={onChange}
@@ -1387,14 +1409,14 @@ export function AddBetScreen() {
                   )}
                 />
               </Field>
-              <Field label="Время">
+              <Field label={t('bet.time')}>
                 <Controller
                   control={control}
                   name="time"
                   render={({ field: { onChange, value } }) => (
                     <TextInput
                       style={[inputStyle, styles.halfInput]}
-                      placeholder="ЧЧ:ММ"
+                      placeholder={t('addBet.timePh')}
                       placeholderTextColor={colors.textMuted}
                       value={value}
                       onChangeText={onChange}
@@ -1406,7 +1428,7 @@ export function AddBetScreen() {
             </View>
 
             {/* ── Tournament + Notes ─── */}
-            <Field label="Турнир / Лига">
+            <Field label={t('bet.tournament')}>
               <Controller
                 control={control}
                 name="tournament"
@@ -1416,14 +1438,14 @@ export function AddBetScreen() {
               />
             </Field>
 
-            <Field label="Кэф закрытия (CLV) — необязательно">
+            <Field label={t('addBet.closingOdds')}>
               <Controller
                 control={control}
                 name="closingOdds"
                 render={({ field: { onChange, value } }) => (
                   <TextInput
                     style={inputStyle}
-                    placeholder="Напр. 1.95 — коэф перед стартом матча"
+                    placeholder={t('addBet.closingOddsPh')}
                     placeholderTextColor={colors.textMuted}
                     value={value}
                     onChangeText={onChange}
@@ -1433,14 +1455,14 @@ export function AddBetScreen() {
               />
             </Field>
 
-            <Field label="Заметки">
+            <Field label={t('bet.notes')}>
               <Controller
                 control={control}
                 name="notes"
                 render={({ field: { onChange, value } }) => (
                   <TextInput
                     style={[inputStyle, styles.notes]}
-                    placeholder="Анализ, причины выбора..."
+                    placeholder={t('addBet.notesPh')}
                     placeholderTextColor={colors.textMuted}
                     value={value}
                     onChangeText={onChange}
@@ -1459,7 +1481,7 @@ export function AddBetScreen() {
               activeOpacity={0.8}
             >
               <Text style={[styles.freebetToggleText, isFreebet && styles.freebetToggleTextActive]}>
-                🎁 Фрибет{isFreebet ? ' ✓ (потеря = 0 ₽)' : ' — не свои деньги'}
+                🎁 {isFreebet ? t('addBet.freebetOn') : t('addBet.freebetOff')}
               </Text>
             </TouchableOpacity>
           </>
@@ -1472,14 +1494,11 @@ export function AddBetScreen() {
             name="status"
             render={({ field: { onChange, value } }) => (
               <SegmentedControl
-                label="Статус"
-                options={[
-                  { key: 'pending' as BetStatus, label: 'Ожидание' },
-                  { key: 'won' as BetStatus, label: 'Победа' },
-                  { key: 'lost' as BetStatus, label: 'Проигрыш' },
-                  { key: 'refund' as BetStatus, label: 'Возврат' },
-                  { key: 'cashout' as BetStatus, label: 'Выкуп' },
-                ]}
+                label={t('common.status')}
+                // The same words as the status badge on the card ("Поражение",
+                // not this form's own "Проигрыш").
+                options={(['pending', 'won', 'lost', 'refund', 'cashout'] as BetStatus[])
+                  .map((k) => ({ key: k, label: t(`status.${k}`) }))}
                 value={value}
                 onChange={onChange}
               />
@@ -1489,7 +1508,7 @@ export function AddBetScreen() {
 
         {editBet && watchedStatus === 'cashout' && (
           <>
-            <Field label="Сумма выкупа (₽)">
+            <Field label={t('addBet.cashoutAmount')}>
               <Controller
                 control={control}
                 name="cashoutAmount"
@@ -1507,9 +1526,9 @@ export function AddBetScreen() {
             </Field>
             {cashoutPnl !== null && (
               <View style={styles.winPreview}>
-                <Text style={styles.winLabel}>Результат выкупа</Text>
+                <Text style={styles.winLabel}>{t('addBet.cashoutResult')}</Text>
                 <Text style={[styles.winAmount, { color: cashoutPnl >= 0 ? colors.won : colors.lost }]}>
-                  {cashoutPnl >= 0 ? '+' : ''}{formatMoney(cashoutPnl)}
+                  {cashoutPnl >= 0 ? '+' : ''}{fmt(cashoutPnl)}
                 </Text>
               </View>
             )}
@@ -1518,7 +1537,7 @@ export function AddBetScreen() {
 
         <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit(onSubmit)} activeOpacity={0.85}>
           <Text style={styles.submitText}>
-            {editBet ? 'Сохранить изменения' : 'Добавить ставку'}
+            {editBet ? t('addBet.submitEdit') : t('bet.add')}
           </Text>
         </TouchableOpacity>
       </ScrollView>

@@ -46,11 +46,11 @@ export function ProGate({ children, feature }: Props) {
       const pro = await purchasePackage(pkg);
       if (pro) updateSettings({ isPro: true });
     } catch {
-      Alert.alert('Ошибка', 'Не удалось завершить покупку. Попробуйте ещё раз.');
+      Alert.alert(t('common.error'), t('proGate.purchaseError'));
     } finally {
       setPurchasing(false);
     }
-  }, [offerings, updateSettings]);
+  }, [offerings, updateSettings, t]);
 
   const handleRestore = useCallback(async () => {
     setPurchasing(true);
@@ -78,15 +78,17 @@ export function ProGate({ children, feature }: Props) {
     <View style={styles.overlay}>
       <Text style={styles.icon}>👑</Text>
       <Text style={styles.title}>SharkLog Pro</Text>
-      <Text style={styles.subtitle}>{feature} доступно в подписке</Text>
+      {/* "<feature> — in Pro": a dash, not a verb, so nothing has to agree
+          with the feature's gender ("аналитика доступно" was the old result). */}
+      <Text style={styles.subtitle}>{feature} — {t('proGate.inPro')}</Text>
 
       <View style={styles.perks}>
         {PERKS.map((p) => (
-          <Text key={p} style={styles.perk}>• {p}</Text>
+          <Text key={p} style={styles.perk}>• {t(p)}</Text>
         ))}
       </View>
 
-      <Text style={styles.trialBadge}>7 дней бесплатно для новых пользователей</Text>
+      <Text style={styles.trialBadge}>{t('proGate.trial')}</Text>
 
       {loading ? (
         <ActivityIndicator color={colors.purple} style={{ marginTop: SPACE.xl }} />
@@ -98,8 +100,8 @@ export function ProGate({ children, feature }: Props) {
             disabled={purchasing}
             onPress={() => handlePurchase('annual')}
           >
-            <Text style={styles.buttonText}>Годовая — {annualPrice}/год</Text>
-            <Text style={styles.buttonSub}>Выгоднее на 58%</Text>
+            <Text style={styles.buttonText}>{t('proGate.annual', { price: annualPrice })}</Text>
+            <Text style={styles.buttonSub}>{t('proGate.annualSave')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -108,7 +110,7 @@ export function ProGate({ children, feature }: Props) {
             disabled={purchasing}
             onPress={() => handlePurchase('monthly')}
           >
-            <Text style={styles.buttonTextSecondary}>Месячная — {monthlyPrice}/мес</Text>
+            <Text style={styles.buttonTextSecondary}>{t('proGate.monthly', { price: monthlyPrice })}</Text>
           </TouchableOpacity>
         </>
       )}
@@ -116,19 +118,19 @@ export function ProGate({ children, feature }: Props) {
       {purchasing && <ActivityIndicator color={colors.purple} style={{ marginTop: SPACE.md }} />}
 
       <TouchableOpacity onPress={handleRestore} disabled={purchasing} style={styles.restore}>
-        <Text style={styles.restoreText}>Восстановить покупку</Text>
+        <Text style={styles.restoreText}>{t('settings.restorePurchases')}</Text>
       </TouchableOpacity>
     </View>
   );
 }
 
 const PERKS = [
-  'Безлимитные ставки',
-  'Расширенная аналитика',
-  'Настраиваемый тилт-алерт',
-  'Чеклист дисциплины перед ставкой',
-  'Экспорт CSV',
-];
+  'proGate.perkUnlimited',
+  'proGate.perkAnalytics',
+  'proGate.perkTilt',
+  'proGate.perkChecklist',
+  'proGate.perkExport',
+] as const;
 
 const styles = StyleSheet.create({
   overlay: {

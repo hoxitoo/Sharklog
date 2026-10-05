@@ -4,7 +4,8 @@ import { SPACE, RADIUS, hitSlopFor } from '../../theme/layout';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
 import type { Bet } from '@sharklog/core';
-import { SPORTS, BET_TYPES, formatOdds, parseMoneyInput } from '@sharklog/core';
+import { formatOdds, parseMoneyInput } from '@sharklog/core';
+import { sportLabel, betTypeLabel, pickLabel } from '../../utils/labels';
 import { useFormatMoney } from '../../utils/useFormatMoney';
 import { colors } from '../../theme/colors';
 import { numeric, SIZE } from '../../theme/typography';
@@ -101,10 +102,10 @@ export const BetCard = React.memo(function BetCard({
       <View style={styles.row}>
         <View style={styles.left}>
           <Text style={styles.sport}>
-            {bet.customSport || SPORTS[bet.sport]} · {bet.customBetType || BET_TYPES[bet.betType]}
+            {bet.customSport || sportLabel(t, bet.sport)} · {bet.customBetType || betTypeLabel(t, bet.betType)}
           </Text>
           <Text style={styles.event} numberOfLines={1}>{displayEvent(bet.event)}</Text>
-          <Text style={styles.pick}>{bet.pick}</Text>
+          <Text style={styles.pick}>{pickLabel(t, bet.pick)}</Text>
         </View>
         <View style={styles.right}>
           <Text style={styles.odds}>× {formatOdds(bet.odds)}</Text>

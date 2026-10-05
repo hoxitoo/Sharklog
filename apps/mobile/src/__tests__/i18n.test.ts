@@ -216,7 +216,6 @@ describe('locale files', () => {
  * the line. Raising one means writing Russian into a screen instead of a key.
  */
 const UNTRANSLATED: Record<string, number> = {
-  'screens/AddBetScreen/index.tsx': 99,
   'screens/AnalyticsScreen/index.tsx': 78,
   'screens/BankrollScreen/index.tsx': 47,
   'screens/DashboardScreen/index.tsx': 36,
@@ -226,9 +225,7 @@ const UNTRANSLATED: Record<string, number> = {
   'screens/StrategyBuilderScreen/index.tsx': 21,
   'screens/OnboardingScreen/index.tsx': 18,
   'screens/InsightsScreen/index.tsx': 15,
-  'components/ProGate.tsx': 12,
   'screens/InsightsScreen/YearBreakdown.tsx': 9,
-  'components/ChecklistModal.tsx': 9,
   'screens/DashboardScreen/DailyChart.tsx': 5,
   'components/ResponsibleGamblingBanner.tsx': 2,
   'components/ErrorBoundary.tsx': 2,
@@ -293,5 +290,92 @@ describe('hardcoded Russian', () => {
       .filter(([f, max]) => (actual[f] ?? 0) < max)
       .map(([f, max]) => `${f}: now ${actual[f] ?? 0}, map says ${max} — lower it${actual[f] ? '' : ' (or delete the line)'}`);
     expect(stale).toEqual([]);
+  });
+});
+
+describe('pickLabel', () => {
+  // Stored picks stay Russian (they are parsed: team stats, the edit form,
+  // CSV). Only their DISPLAY may change with the language.
+  let pickLabel: typeof import('../utils/labels').pickLabel;
+  let i18n: typeof import('../i18n').default;
+  let applyLanguage: typeof import('../i18n').applyLanguage;
+  beforeAll(async () => {
+    ({ pickLabel } = await import('../utils/labels'));
+    ({ default: i18n, applyLanguage } = await import('../i18n'));
+  });
+  afterAll(() => applyLanguage('ru'));
+
+  it('leaves Russian as stored', () => {
+    applyLanguage('ru');
+    expect(pickLabel(i18n.t, 'Ф2 (-6.5)')).toBe('Ф2 (-6.5)');
+    expect(pickLabel(i18n.t, 'П1 / Ничья')).toBe('П1 / Ничья');
+  });
+
+  it('swaps whole tokens only, keeping numbers and team names', () => {
+    applyLanguage('en');
+    expect(pickLabel(i18n.t, 'Ф2 (-6.5)')).toBe('H2 (-6.5)');
+    expect(pickLabel(i18n.t, 'ТБ 2.5')).toBe('Over 2.5');
+    expect(pickLabel(i18n.t, 'Ничья')).toBe('Draw');
+    expect(pickLabel(i18n.t, 'Ак Барс')).toBe('Ак Барс');
+    // Starts with a token's letter, is not the token.
+    expect(pickLabel(i18n.t, 'Пари НН')).toBe('Пари НН');
+    expect(pickLabel(i18n.t, 'Нетфликс')).toBe('Нетфликс');
+  });
+
+  it('maps every leg of an express on its own', () => {
+    applyLanguage('en');
+    expect(pickLabel(i18n.t, 'П1 / ТМ 3.5 / NaVi')).toBe('Home / Under 3.5 / NaVi');
+  });
+
+  it("shows a stored bet-type name under the type's translated name", () => {
+    applyLanguage('en');
+    expect(pickLabel(i18n.t, 'Угловые')).toBe('Corners');
+    expect(pickLabel(i18n.t, 'Экспресс')).toBe('Accumulator');
+  });
+});
+
+/**
+ * The second blind spot: Russian that lives in CORE and is printed by a screen.
+ *
+ * `SPORTS`, `BET_TYPES`, `STRATEGIES` and `ESPORTS_DISCIPLINES` map keys to
+ * Russian labels. A screen that indexes them shows Russian in every language,
+ * and the ratchet above cannot see it — there is no Cyrillic in the screen.
+ * The bet card shipped as "translated" with "Киберспорт · Фора" on it this way.
+ * Reading KEYS (`Object.keys`) is fine; reading LABELS goes through utils/labels.
+ */
+const CORE_LABEL_READ =
+  /\b(?:SPORTS|BET_TYPES|STRATEGIES|ESPORTS_DISCIPLINES)\[|Object\.(?:entries|values)\(\s*(?:SPORTS|BET_TYPES|STRATEGIES|ESPORTS_DISCIPLINES)\b/;
+
+const CORE_LABELS_ALLOWED: Record<string, string> = {
+  'utils/labels.ts': 'the display mapper itself',
+  'screens/AddBetScreen/index.tsx':
+    'STORES BET_TYPES[type] as the pick of a type with no finer pick — a data format, like П1',
+};
+
+/** Still to be moved onto utils/labels. May only shrink. */
+const CORE_LABELS_PENDING = new Set([
+  'screens/AnalyticsScreen/index.tsx',
+  'screens/InsightsScreen/index.tsx',
+  'screens/StrategyBuilderScreen/index.tsx',
+]);
+
+describe('Russian labels from core', () => {
+  const readers = sources(SRC)
+    .map((f) => f.slice(SRC.length + 1))
+    .filter((rel) => {
+      const code = readFileSync(join(SRC, rel), 'utf8')
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/(^|[^:])\/\/.*$/gm, '$1');
+      return CORE_LABEL_READ.test(code);
+    });
+
+  it('are only shown through utils/labels', () => {
+    const offenders = readers.filter((f) => !(f in CORE_LABELS_ALLOWED) && !CORE_LABELS_PENDING.has(f));
+    expect(offenders).toEqual([]);
+  });
+
+  it('pending list shrinks as screens are moved over', () => {
+    const done = [...CORE_LABELS_PENDING].filter((f) => !readers.includes(f));
+    expect(done).toEqual([]);
   });
 });

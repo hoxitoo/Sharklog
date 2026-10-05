@@ -7,13 +7,15 @@ import { AppText as Text } from './AppText';
 import { colors } from '../theme/colors';
 import { SIZE, GLYPH } from '../theme/typography';
 
+import { useTranslation } from 'react-i18next';
+
 const CHECKLIST = [
-  { emoji: '🧠', text: 'Я не в состоянии тилта' },
-  { emoji: '📋', text: 'Ставка соответствует моей стратегии' },
-  { emoji: '🔍', text: 'Я проанализировал событие' },
-  { emoji: '📊', text: 'Я укладываюсь в дневной лимит' },
-  { emoji: '💸', text: 'Я готов потерять эту сумму' },
-];
+  { emoji: '🧠', key: 'checklist.tilt' },
+  { emoji: '📋', key: 'checklist.strategy' },
+  { emoji: '🔍', key: 'checklist.analyzed' },
+  { emoji: '📊', key: 'checklist.limit' },
+  { emoji: '💸', key: 'checklist.canLose' },
+] as const;
 
 interface Props {
   visible: boolean;
@@ -22,6 +24,7 @@ interface Props {
 }
 
 export function ChecklistModal({ visible, onConfirm, onCancel }: Props) {
+  const { t } = useTranslation();
   const [checked, setChecked] = useState<boolean[]>(Array(CHECKLIST.length).fill(false));
 
   const allChecked = checked.every(Boolean);
@@ -52,9 +55,9 @@ export function ChecklistModal({ visible, onConfirm, onCancel }: Props) {
         <View style={styles.sheet}>
           <View style={styles.handle} />
 
-          <Text style={styles.title}>Готов к ставке? 🦈</Text>
+          <Text style={styles.title}>{t('checklist.title')}</Text>
           <Text style={styles.subtitle}>
-            Отметь все пункты — это занимает 10 секунд и сохраняет дисциплину
+            {t('checklist.subtitle')}
           </Text>
 
           <ScrollView keyboardShouldPersistTaps="handled" style={{ marginBottom: SPACE.lg }} showsVerticalScrollIndicator={false}>
@@ -70,7 +73,7 @@ export function ChecklistModal({ visible, onConfirm, onCancel }: Props) {
                 </View>
                 <Text style={styles.emoji}>{item.emoji}</Text>
                 <Text style={[styles.itemText, checked[i] && styles.itemTextChecked]}>
-                  {item.text}
+                  {t(item.key)}
                 </Text>
               </TouchableOpacity>
             ))}
@@ -83,12 +86,12 @@ export function ChecklistModal({ visible, onConfirm, onCancel }: Props) {
             activeOpacity={0.85}
           >
             <Text style={[styles.confirmText, !allChecked && styles.confirmTextDisabled]}>
-              {allChecked ? 'Ставить 💪' : `Отметь все (${checked.filter(Boolean).length}/${CHECKLIST.length})`}
+              {allChecked ? t('checklist.confirm') : t('checklist.progress', { done: checked.filter(Boolean).length, total: CHECKLIST.length })}
             </Text>
           </TouchableOpacity>
 
           <TouchableOpacity style={styles.cancelBtn} onPress={handleCancel}>
-            <Text style={styles.cancelText}>Отмена</Text>
+            <Text style={styles.cancelText}>{t('common.cancel')}</Text>
           </TouchableOpacity>
         </View>
       </View>
