@@ -131,7 +131,8 @@ _Обновлено: 2026-06-06 (UX/UI v2)_
 - 7-дневный trial: `proExpiresAt` → автоотзыв при `load()`, "Отключить" скрыт в production
 - `syncEntitlement` возвращает `null` при нет-сети (сохранить состояние) vs `false` (отписался)
 - Tauri capability: добавлен `sql:allow-execute` (иначе `saveData()` падал в production)
-- Easter egg `handleDevTap()` защищён `if (!__DEV__) return`
+- ~~Easter egg `handleDevTap()` защищён `if (!__DEV__) return`~~ — НЕ было сделано: проверки в коде не было,
+  в релизе 7 тапов по строке подписки включали Pro. Исправлено при пересборке настроек (2026-10).
 - E2E тесты: все 22 Playwright-теста зелёные
 - `test-results/`, `playwright-report/` добавлены в `.gitignore`
 
@@ -243,7 +244,7 @@ _Обновлено: 2026-06-06 (UX/UI v2)_
 | LemonSqueezy (desktop) | 🔴 high | Не начато |
 | Sentry DSN | 🟡 medium | Не начато |
 | Cloud sync (Supabase?) | 🔴 high | Phase 4 |
-| i18n-рефакторинг (500+ строк) | 🟡 medium | Phase 4 |
+| i18n-рефакторинг (541 строка в 31 файле на старте) | 🟡 medium | В работе: фундамент (коды языков, мн. число, тесты-стражи) и экран настроек готовы; остаток — карта `UNTRANSLATED` в `i18n.test.ts` |
 | E2E Detox (mobile) | 🟢 low | Phase 4 |
 
 ## Дизайн-долг
