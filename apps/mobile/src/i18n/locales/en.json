@@ -524,8 +524,7 @@
     "skipHint": "You can skip this — the bank can be set up later in Bankroll",
     "bkTitle": "Your bookmakers",
     "bkSub": "Pick the bookmakers you use. You can change this later.",
-    "bkOther": "Another bookmaker...",
-    "back": "Back"
+    "bkOther": "Another bookmaker..."
   },
   "common": {
     "ok": "OK",
@@ -554,7 +553,8 @@
     "betsNoun_other": "bets",
     "collapse": "Collapse",
     "showMore": "{{count}} more",
-    "gotIt": "Got it"
+    "gotIt": "Got it",
+    "back": "Back"
   },
   "sports": {
     "football": "Football",
@@ -762,5 +762,210 @@
   },
   "splash": {
     "tagline": "Bet tracker"
+  },
+  "strategy": {
+    "q": {
+      "goal": {
+        "text": "What is your main goal in betting?",
+        "hobby": "Hobby",
+        "hobbyDesc": "For fun, no strict profit targets",
+        "income": "Extra income",
+        "incomeDesc": "I want steady earnings on top of my main income",
+        "professional": "Professional betting",
+        "professionalDesc": "Betting as my main source of income"
+      },
+      "bankroll": {
+        "text": "What is your starting bankroll?",
+        "small": "Under 5 000 ₽",
+        "smallDesc": "A small starting bank",
+        "medium": "5 000 – 30 000 ₽",
+        "mediumDesc": "A medium bank",
+        "large": "30 000 – 100 000 ₽",
+        "largeDesc": "A large bank",
+        "xlarge": "Over 100 000 ₽",
+        "xlargeDesc": "A very large bank"
+      },
+      "risk": {
+        "text": "What level of risk are you comfortable with?",
+        "conservative": "Conservative",
+        "conservativeDesc": "Losing up to 10% of the bank a month is my limit",
+        "moderate": "Moderate",
+        "moderateDesc": "Ready for drawdowns up to 20% for more growth",
+        "aggressive": "Aggressive",
+        "aggressiveDesc": "I accept high risk for high returns"
+      },
+      "sport": {
+        "text": "Which sport will you focus on?",
+        "football": "Football",
+        "hockey": "Hockey",
+        "tennis": "Tennis",
+        "esports": "Esports",
+        "mixed": "Several sports",
+        "mixedDesc": "Spread across sports"
+      },
+      "betTypes": {
+        "text": "Which type of bets do you prefer?",
+        "singles": "Singles",
+        "singlesDesc": "Singles only — lower risk, steadier results",
+        "express": "Accumulators",
+        "expressDesc": "Several events in one bet — bigger wins, bigger risk",
+        "both": "Both",
+        "bothDesc": "Mix singles and accumulators"
+      },
+      "oddsRange": {
+        "text": "Which odds range do you work in?",
+        "low": "1.30 – 1.70",
+        "lowDesc": "Favourites — high probability, low return",
+        "mid": "1.70 – 2.50",
+        "midDesc": "Mid odds — a balance of risk and return",
+        "high": "2.50 and up",
+        "highDesc": "Underdogs — low probability, high potential"
+      },
+      "timePerDay": {
+        "text": "How much time a day can you spend on analysis?",
+        "minimal": "Under 30 minutes",
+        "minimalDesc": "Quick decisions without deep analysis",
+        "moderate": "30–60 minutes",
+        "moderateDesc": "Regular but not intensive analysis",
+        "substantial": "1–2 hours",
+        "substantialDesc": "A serious approach with detailed match breakdowns",
+        "intensive": "Over 2 hours",
+        "intensiveDesc": "Professional-level involvement"
+      },
+      "experience": {
+        "text": "How experienced are you at betting?",
+        "beginner": "Beginner",
+        "beginnerDesc": "Under a year, just getting started",
+        "experienced": "Experienced",
+        "experiencedDesc": "1–3 years, I understand how it works",
+        "professional": "Professional",
+        "professionalDesc": "Over 3 years, steady profit"
+      },
+      "tiltReaction": {
+        "text": "What do you do after 3 losses in a row?",
+        "stop": "Stop for the day",
+        "stopDesc": "A disciplined approach — emotions aside",
+        "reduce": "Reduce my stake",
+        "reduceDesc": "Lower risk until confidence returns",
+        "continue": "Carry on unchanged",
+        "continueDesc": "Don't let emotions affect the strategy"
+      },
+      "priority": {
+        "text": "What matters more to you?",
+        "quality": "Quality of analysis",
+        "qualityDesc": "Few bets, each one carefully checked",
+        "quantity": "Number of bets",
+        "quantityDesc": "Bet more often, using the volume of events"
+      }
+    },
+    "name": {
+      "starter": "Starter",
+      "professional": "Professional",
+      "conservative": "Conservative",
+      "aggressive": "Aggressive",
+      "value": "Value Betting",
+      "balanced": "Balanced"
+    },
+    "desc": {
+      "starter": "Low risk and small stakes to build experience. Focus on discipline and tracking your stats.",
+      "professional": "Deep involvement, detailed analysis and strict bankroll management. Bet only on well-researched events.",
+      "conservative": "Capital protection first. Bet on heavy favourites with high probability at small stake sizes.",
+      "aggressive": "High odds and fast bankroll growth potential. Requires nerves of steel and strict discipline.",
+      "value": "Find bets where the real probability exceeds the bookmaker's estimate. Moderate risk, long-term profit.",
+      "balanced": "Optimal balance of risk and return. Diverse bets with solid bankroll management."
+    },
+    "goal": {
+      "hobby": "as a hobby",
+      "income": "for extra income",
+      "professional": "as a primary income source"
+    },
+    "profile": {
+      "beginner": "beginner",
+      "experienced": "experienced bettor",
+      "professional": "professional bettor"
+    },
+    "intro": "You approach betting {{goal}}. Profile: {{profile}}.",
+    "rationale": {
+      "risk": {
+        "conservative": "A conservative approach protects the bankroll from large drawdowns — preserving capital is the priority.",
+        "aggressive": "High risk tolerance opens the door to higher odds and faster bankroll growth — but demands iron discipline.",
+        "moderate": "Moderate risk is the optimal balance: the bankroll grows without the threat of critical drawdowns."
+      },
+      "exp": {
+        "beginner": "At the start, the most important thing is to collect 100+ bets for reliable stats — profit comes with experience.",
+        "professional": "Professional-level experience lets you work with line movement, live betting and value hunting.",
+        "experienced": "Accumulated experience lets you separate value bets from noise and build strategy on data, not intuition."
+      },
+      "time": {
+        "minimal": "With limited time, bet only on well-covered matches — don't guess on poorly-researched events.",
+        "intensive": "High involvement gives a competitive edge: tracking line movement and live betting opportunities."
+      }
+    },
+    "principle": {
+      "risk": {
+        "conservative": "Bet only when 75%+ confident — skipping an event is not a loss, it's discipline",
+        "moderate": "Don't adjust stake size based on \"confidence\" — discipline beats intuition",
+        "aggressive": "Hard stop-loss: a 25% drawdown in one week means a minimum 3-day break"
+      },
+      "exp": {
+        "beginner": "First 3 months: data collection only. Don't expect profit — the goal is stats for analysis",
+        "professional": "Track line movement: a sharp odds shift 1–2 hours before a match signals insider information",
+        "experienced": "Keep detailed stats per bet type — cut non-performing markets once a month"
+      },
+      "sport": {
+        "football": "Study last 5 matches and H2H — home/away form is especially important in football",
+        "esports": "Watch active rosters: player substitutions 24h before a match sharply change the odds",
+        "tennis": "Factor in court surface and physical load from recent tournaments — tennis is physically demanding",
+        "hockey": "The goaltender decides up to 40% of hockey outcomes — always check who's in net before betting",
+        "mixed": "Specialise in at most 2–3 sports — spreading across 5+ halves your ROI"
+      },
+      "focus": {
+        "topMatches": "With limited time, bet only on top matches: more media coverage = fewer mispriced events",
+        "liveLines": "Use live line monitoring — a sharp odds shift 1–2 hours pre-match often contains value",
+        "roiTarget": "Target ROI: a steady 5–8% per month yields 60–100% bankroll growth per year",
+        "lossLimit": "Set a personal monthly loss limit and never break it under any circumstances"
+      }
+    },
+    "odds": {
+      "low": "Favourites at 1.30–1.70 win 65–80% of the time. The key is stake sizing and discipline, not chasing high odds.",
+      "high": "High odds (2.50+) imply a win probability of 40% or less. Profit requires a large sample (200+ bets) and strict selection.",
+      "mid": "The 1.70–2.50 range is optimal: sufficient win probability (40–60%) with acceptable returns. Most value sits here."
+    },
+    "betTypeRationale": {
+      "football": "Totals (over/under) and handicaps in football carry more value than 1X2 — bookmakers price winners well but misjudge scores.",
+      "hockey": "Hockey totals ±0.5 and handicaps -1.5/+1.5 are often mispriced — fertile ground for value.",
+      "tennis": "Game handicaps offer the best edge in tennis. Set totals suit those tracking physical condition.",
+      "esports": "Map and round handicaps are the main value market in esports. Outright results are too popular with casual bettors.",
+      "mixed": "When covering multiple sports, focus on outrights and totals — they are easiest to analyse consistently.",
+      "default": "Choose markets where you have a competitive edge over the bookmaker."
+    },
+    "advice": {
+      "singles": "Singles only",
+      "express": "Accumulators 2–3 events",
+      "both": "Singles (80%) + occasional 2-event accas"
+    },
+    "proFeature": "Personal strategy builder",
+    "progress": "Question {{n}} of {{total}}",
+    "ready": "🎯 Strategy ready",
+    "whyTitle": "Why this strategy fits you",
+    "betsPerDay": "Bets per day",
+    "stakeSize": "Stake size",
+    "stakeValue": "{{pct}}% of bankroll",
+    "oddsLabel": "Odds",
+    "betType": "Bet type",
+    "sport": "Sport",
+    "tiltStop": "Tilt stop",
+    "kelly": "Kelly method",
+    "marketsTitle": "Recommended markets",
+    "approachesTitle": "Analysis approaches",
+    "oddsTitle": "About the odds range",
+    "principlesTitle": "Key principles",
+    "disclaimer": "This strategy is a recommendation and does not guarantee profit. Betting carries the risk of losing money. Bet responsibly.",
+    "apply": "Apply strategy",
+    "rebuild": "Start over",
+    "savedTitle": "Done",
+    "savedMsg": "The strategy is applied and shown on the dashboard",
+    "tiltValue_one": "{{count}} loss in a row",
+    "tiltValue_other": "{{count}} losses in a row"
   }
 }

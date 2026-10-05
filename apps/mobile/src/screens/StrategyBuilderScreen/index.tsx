@@ -4,50 +4,53 @@ import {
   View, StyleSheet, TouchableOpacity, ScrollView, Alert,
 } from 'react-native';
 import { AppText as Text } from '../../components/AppText';
-import { STRATEGY_QUESTIONS, buildStrategy, STRATEGIES, BET_TYPES } from '@sharklog/core';
+import { buildStrategy } from '@sharklog/core';
 import i18n from '../../i18n';
 import type { StrategyAnswers, GeneratedStrategy } from '@sharklog/core';
+import { useTranslation } from 'react-i18next';
+import { strategyQuestions, strategyTexts } from '../../utils/strategyText';
+import { betTypeLabel, strategyLabel } from '../../utils/labels';
 import { useBetsStore } from '../../store/betsStore';
 import { colors } from '../../theme/colors';
 import { ProGate } from '../../components/ProGate';
 import { haptic } from '../../utils/haptics';
 import { SIZE, GLYPH } from '../../theme/typography';
 
-const DISCLAIMER =
-  'Данная стратегия носит рекомендательный характер и не гарантирует прибыли. ' +
-  'Ставки сопряжены с риском потери денег. Играйте ответственно.';
-
 function ResultScreen({ strategy, onReset }: { strategy: GeneratedStrategy; onReset: () => void }) {
   const updateSettings = useBetsStore((s) => s.updateSettings);
+  const { t } = useTranslation();
+  // Words come from the answers in the CURRENT language — the strings stored
+  // on the strategy are in the language it was built in.
+  const text = strategyTexts(t, strategy);
 
   const items = [
-    { icon: '📅', label: 'Ставок в день',          value: `≤ ${strategy.betsPerDay}` },
-    { icon: '💰', label: 'Размер ставки',           value: `${strategy.stakePercent}% от банкролла` },
-    { icon: '📈', label: 'Коэффициенты',            value: `${strategy.oddsMin.toFixed(2)} – ${strategy.oddsMax.toFixed(2)}` },
-    { icon: '🎯', label: 'Тип ставок',              value: strategy.betTypeAdvice },
-    { icon: '⚽', label: 'Спорт',                   value: strategy.sportAdvice },
-    { icon: '⚡', label: 'Тилт-стоп',              value: `${strategy.tiltThreshold} пораж. подряд` },
-    { icon: '📊', label: 'Метод Kelly',             value: `× ${strategy.kellyMultiplier}` },
+    { icon: '📅', label: t('strategy.betsPerDay'), value: `≤ ${strategy.betsPerDay}` },
+    { icon: '💰', label: t('strategy.stakeSize'),  value: t('strategy.stakeValue', { pct: strategy.stakePercent }) },
+    { icon: '📈', label: t('strategy.oddsLabel'),  value: `${strategy.oddsMin.toFixed(2)} – ${strategy.oddsMax.toFixed(2)}` },
+    { icon: '🎯', label: t('strategy.betType'),    value: text.betTypeAdvice },
+    { icon: '⚽', label: t('strategy.sport'),      value: text.sportAdvice },
+    { icon: '⚡', label: t('strategy.tiltStop'),   value: t('strategy.tiltValue', { count: strategy.tiltThreshold }) },
+    { icon: '📊', label: t('strategy.kelly'),      value: `× ${strategy.kellyMultiplier}` },
   ];
 
   function handleSave() {
     haptic.success();
     updateSettings({ generatedStrategy: strategy });
-    Alert.alert('Готово', 'Стратегия применена и отображается на дашборде');
+    Alert.alert(t('strategy.savedTitle'), t('strategy.savedMsg'));
   }
 
   return (
     <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.scroll}>
       <View style={s.badge}>
-        <Text style={s.badgeText}>🎯 Стратегия готова</Text>
+        <Text style={s.badgeText}>{t('strategy.ready')}</Text>
       </View>
-      <Text style={s.resultName}>{strategy.name}</Text>
-      <Text style={s.resultDesc}>{strategy.description}</Text>
+      <Text style={s.resultName}>{text.name}</Text>
+      <Text style={s.resultDesc}>{text.description}</Text>
 
-      {strategy.rationale ? (
+      {text.rationale ? (
         <View style={s.rationaleBox}>
-          <Text style={s.sectionTitle}>Почему эта стратегия подходит тебе</Text>
-          <Text style={s.rationaleText}>{strategy.rationale}</Text>
+          <Text style={s.sectionTitle}>{t('strategy.whyTitle')}</Text>
+          <Text style={s.rationaleText}>{text.rationale}</Text>
         </View>
       ) : null}
 
@@ -63,44 +66,44 @@ function ResultScreen({ strategy, onReset }: { strategy: GeneratedStrategy; onRe
 
       {strategy.recommendedBetTypes && strategy.recommendedBetTypes.length > 0 ? (
         <View style={s.sectionBox}>
-          <Text style={s.sectionTitle}>Рекомендуемые рынки</Text>
+          <Text style={s.sectionTitle}>{t('strategy.marketsTitle')}</Text>
           <View style={s.chipRow}>
             {strategy.recommendedBetTypes.map((bt) => (
               <View key={bt} style={[s.chip, s.chipGreen]}>
-                <Text style={s.chipTextGreen}>{BET_TYPES[bt]}</Text>
+                <Text style={s.chipTextGreen}>{betTypeLabel(t, bt)}</Text>
               </View>
             ))}
           </View>
-          {strategy.betTypeRationale ? (
-            <Text style={s.subNote}>{strategy.betTypeRationale}</Text>
+          {text.betTypeRationale ? (
+            <Text style={s.subNote}>{text.betTypeRationale}</Text>
           ) : null}
         </View>
       ) : null}
 
       {strategy.recommendedApproaches && strategy.recommendedApproaches.length > 0 ? (
         <View style={s.sectionBox}>
-          <Text style={s.sectionTitle}>Подходы к анализу</Text>
+          <Text style={s.sectionTitle}>{t('strategy.approachesTitle')}</Text>
           <View style={s.chipRow}>
             {strategy.recommendedApproaches.map((app) => (
               <View key={app} style={s.chip}>
-                <Text style={s.chipText}>{STRATEGIES[app]}</Text>
+                <Text style={s.chipText}>{strategyLabel(t, app)}</Text>
               </View>
             ))}
           </View>
         </View>
       ) : null}
 
-      {strategy.oddsRationale ? (
+      {text.oddsRationale ? (
         <View style={s.sectionBox}>
-          <Text style={s.sectionTitle}>О диапазоне коэффициентов</Text>
-          <Text style={s.rationaleText}>{strategy.oddsRationale}</Text>
+          <Text style={s.sectionTitle}>{t('strategy.oddsTitle')}</Text>
+          <Text style={s.rationaleText}>{text.oddsRationale}</Text>
         </View>
       ) : null}
 
-      {strategy.keyPrinciples && strategy.keyPrinciples.length > 0 ? (
+      {text.principles.length > 0 ? (
         <View style={s.sectionBox}>
-          <Text style={s.sectionTitle}>Ключевые принципы</Text>
-          {strategy.keyPrinciples.map((rule, i) => (
+          <Text style={s.sectionTitle}>{t('strategy.principlesTitle')}</Text>
+          {text.principles.map((rule, i) => (
             <View key={i} style={s.principleRow}>
               <Text style={s.principleNum}>{i + 1}</Text>
               <Text style={s.principleText}>{rule}</Text>
@@ -110,25 +113,27 @@ function ResultScreen({ strategy, onReset }: { strategy: GeneratedStrategy; onRe
       ) : null}
 
       <View style={s.disclaimerBox}>
-        <Text style={s.disclaimerText}>{DISCLAIMER}</Text>
+        <Text style={s.disclaimerText}>{t('strategy.disclaimer')}</Text>
       </View>
 
       <TouchableOpacity style={s.btnPrimary} onPress={handleSave} activeOpacity={0.8}>
-        <Text style={s.btnPrimaryText}>Применить стратегию</Text>
+        <Text style={s.btnPrimaryText}>{t('strategy.apply')}</Text>
       </TouchableOpacity>
       <TouchableOpacity style={s.btnSecondary} onPress={onReset} activeOpacity={0.8}>
-        <Text style={s.btnSecondaryText}>Пересоздать</Text>
+        <Text style={s.btnSecondaryText}>{t('strategy.rebuild')}</Text>
       </TouchableOpacity>
     </ScrollView>
   );
 }
 
 function WizardScreen({ onDone }: { onDone: (strategy: GeneratedStrategy) => void }) {
-  const total = STRATEGY_QUESTIONS.length;
+  const { t } = useTranslation();
+  const questions = strategyQuestions(t);
+  const total = questions.length;
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Partial<StrategyAnswers>>({});
 
-  const q = STRATEGY_QUESTIONS[step];
+  const q = questions[step];
   if (!q) return null;
 
   function handleAnswer(value: string) {
@@ -150,7 +155,7 @@ function WizardScreen({ onDone }: { onDone: (strategy: GeneratedStrategy) => voi
       <View style={s.progressWrap}>
         <View style={[s.progressFill, { width: `${Math.round(progress * 100)}%` as any }]} />
       </View>
-      <Text style={s.progressLabel}>Вопрос {step + 1} из {total}</Text>
+      <Text style={s.progressLabel}>{t('strategy.progress', { n: step + 1, total })}</Text>
 
       {/* Question */}
       <View style={s.qCard}>
@@ -170,7 +175,7 @@ function WizardScreen({ onDone }: { onDone: (strategy: GeneratedStrategy) => voi
 
       {step > 0 && (
         <TouchableOpacity style={s.backBtn} onPress={() => { haptic.selection(); setStep(step - 1); }}>
-          <Text style={s.backText}>← Назад</Text>
+          <Text style={s.backText}>← {t('common.back')}</Text>
         </TouchableOpacity>
       )}
     </ScrollView>
@@ -182,6 +187,7 @@ export function StrategyBuilderScreen() {
   const updateSettings = useBetsStore((s) => s.updateSettings);
   const [result, setResult] = useState<GeneratedStrategy | null>(settings.generatedStrategy ?? null);
   const [building, setBuilding] = useState(!settings.generatedStrategy);
+  const { t } = useTranslation();
 
   function handleReset() {
     setResult(null);
@@ -196,7 +202,7 @@ export function StrategyBuilderScreen() {
 
   return (
     <View style={s.root}>
-      <ProGate feature="Персональный билдер стратегий">
+      <ProGate feature={t('strategy.proFeature')}>
         {!building && result
           ? <ResultScreen strategy={result} onReset={handleReset} />
           : <WizardScreen onDone={handleDone} />

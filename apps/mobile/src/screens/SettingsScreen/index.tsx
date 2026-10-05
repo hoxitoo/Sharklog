@@ -13,6 +13,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { FREE_LIMITS, CURRENT_SCHEMA_VERSION } from '@sharklog/core';
 import { useBetsStore, effectiveReminderHour } from '../../store/betsStore';
 import { colors, alpha, mix } from '../../theme/colors';
+import { strategyName } from '../../utils/strategyText';
 import { useTranslation } from 'react-i18next';
 import { LANGUAGES, applyLanguage, type LangCode } from '../../i18n/index';
 import { exportBetsCSV } from '../../utils/exportCSV';
@@ -686,7 +687,7 @@ export function SettingsScreen() {
           <Row
             label={t('settings.strategyBuilder')}
             hint={settings.generatedStrategy
-              ? t('settings.strategyActive', { name: settings.generatedStrategy.name })
+              ? t('settings.strategyActive', { name: strategyName(t, settings.generatedStrategy) })
               : t('settings.strategyNone')}
             onPress={isPro ? () => navigation.navigate('StrategyBuilder') : openPaywall}
             right={isPro ? null : <ProBadge />}

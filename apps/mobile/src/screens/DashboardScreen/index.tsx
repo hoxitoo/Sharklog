@@ -23,6 +23,7 @@ import { SIZE, GLYPH, numeric } from '../../theme/typography';
 import { useTranslation } from 'react-i18next';
 import { dateLocale } from '../../i18n';
 import { pickLabel } from '../../utils/labels';
+import { strategyName } from '../../utils/strategyText';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -508,7 +509,7 @@ export function DashboardScreen() {
         >
           <Text style={styles.strategyIcon}>🎯</Text>
           <View style={{ flex: 1 }}>
-            <Text style={styles.strategyName}>{t('dashboard.strategyLine', { name: settings.generatedStrategy.name })}</Text>
+            <Text style={styles.strategyName}>{t('dashboard.strategyLine', { name: strategyName(t, settings.generatedStrategy) })}</Text>
             <Text style={styles.strategySub}>
               {t('dashboard.strategySub', {
                 perDay: settings.generatedStrategy.betsPerDay,
