@@ -235,7 +235,7 @@ export function OnboardingScreen() {
 
         {step > 0 && (
           <TouchableOpacity onPress={() => setStep((s) => s - 1)}>
-            <Text style={styles.backText}>← {t('onboarding.back')}</Text>
+            <Text style={styles.backText}>← {t('common.back')}</Text>
           </TouchableOpacity>
         )}
       </View>

@@ -193,6 +193,7 @@ new Date(str).toLocaleDateString(locale, { day: 'numeric', month: 'short' });
 - **Заметки, которые приложение пишет САМО, — тоже формат данных: `TX_NOTE` в core** (`ADJUSTMENT` «Сверка с букмекером», `INITIAL_DEPOSIT` «Начальный депозит»). Они лежат в сохранённых транзакциях и уезжают в бэкап, поэтому пишутся по-русски всегда, а показываются через `txNoteLabel(t, note)` — он переводит только эти две, введённую руками заметку отдаёт как есть. Пустая причина сверки сохраняется как `TX_NOTE.ADJUSTMENT`, а не как переведённая строка: иначе заметка навсегда застынет на языке, на котором её создали. Имя банка по умолчанию (`DEFAULT_BANKROLL_NAME`) хранится и нигде не показывается. Заморожено тем же `pickTokens.test.ts`.
 - **Дробное число из поля ввода — `parseFloat(x.replace(',', '.'))`.** Русская, казахская и белорусская `decimal-pad` клавиатура даёт ЗАПЯТУЮ, а `parseFloat('1,85')` молча возвращает `1`: калькулятор Келли при кэфе «1,85» считал по кэфу 1 и предлагал не ставить. Ошибки нет, NaN нет — просто неверный ответ.
 - **Подписи из core — только через `utils/labels`** (`sportLabel`, `betTypeLabel`, `strategyLabel`, `disciplineLabel`). `SPORTS`/`BET_TYPES`/`STRATEGIES`/`ESPORTS_DISCIPLINES` хранят РУССКИЕ подписи, и экран, который их индексирует, показывает русский на любом языке — а храповик этого не видит, кириллица-то в core. Так «переведённая» карточка ставки показывала «Киберспорт · Фора». Брать из этих карт КЛЮЧИ (`Object.keys` — для порядка вариантов) можно; читать ПОДПИСИ — нельзя, это ловит второй страж в `i18n.test.ts` (с короткой разрешённой картой и списком ещё не переведённых экранов, который может только сокращаться).
+- **Тексты билдера стратегий — из ОТВЕТОВ, а не из сохранённой стратегии.** `buildStrategy` запекает имя, описание, обоснование и принципы в `GeneratedStrategy` на языке момента создания: стратегия, собранная по-русски, оставалась русской после переключения на английский — на экране результата, на плашке дашборда, в строке настроек. Какое предложение достаётся профилю, решает core (`strategyTextIds(answers)`), слова — ключи `strategy.*` на мобилке через `utils/strategyText` (`strategyTexts`, `strategyName`, `strategyQuestions`). Сохранённые строки — только запасной вариант для записи без `answers`; десктоп по-прежнему показывает запечённые ru/en, и вывод `buildStrategy` после рефакторинга побайтно тот же (сверено на всех 116 640 профилях). Читать `STRATEGY_QUESTIONS` или `strategy.name/rationale/...` мимо `utils/strategyText` запрещает страж в `i18n.test.ts`; `strategyText.test.ts` обходит ВСЕ профили и требует каждый ключ во всех четырёх языках — он же поймал, что подпись «Коэффициенты» под ключом `strategy.odds` затирала группу обоснований диапазона.
 - **Core, который сам формирует подписи, принимает подписчика.** `calcByDayOfWeek(bets, dayName?)` по умолчанию называет дни по-русски (десктоп не меняется), экран передаёт `(d) => t(\`weekdays.${d}\`)`. Это третий путь русского мимо храповика — наравне с картами подписей: экран чист, а «Понедельник» печатает ядро. Новая функция core, отдающая текст для экрана, делает так же.
 - **Месяцы — из ключей `monthsShort.N` / `monthsLong.N`, не из `Intl`**: подписи столбцов шириной в три буквы, а у движка без данных `kk`/`be` формат молча откатится.
 - **Не затеняй `t`.** Где имя `t` уже занято (проп `t: TournamentStats`, `const t = calcTimeStats(...)`, `const t = split(...)`), переводчик называется `tr` (`const { t: tr } = useTranslation()`) с комментарием почему. Типы такое не ловят: внутри затенения `t('…')` — вызов не той функции.
@@ -203,9 +204,9 @@ new Date(str).toLocaleDateString(locale, { day: 'numeric', month: 'short' });
 
 ```bash
 # Тесты
-cd packages/core && npx vitest run        # 220 unit-тестов core
+cd packages/core && npx vitest run        # 223 unit-тестов core
 cd apps/desktop  && npm test              # 40 smoke-тестов desktop (Vitest)
-cd apps/mobile   && npm test              # 112 тестов mobile (Jest), включая стражей дизайна и переводов
+cd apps/mobile   && npm test              # 120 тестов mobile (Jest), включая стражей дизайна и переводов
 
 # Type-check
 cd apps/mobile  && npx tsc --noEmit
@@ -508,7 +509,9 @@ screens/
                              (`detectDeviceLanguage`, настройка ещё не выбрана), так что это
                              первый экран, который видит нерусскоязычный пользователь.
                              Начальный депозит пишется с `TX_NOTE.INITIAL_DEPOSIT`
-  StrategyBuilderScreen/   — PRO: WizardScreen + ResultScreen
+  StrategyBuilderScreen/   — PRO: WizardScreen + ResultScreen. ПЕРЕВЕДЕН: вопросы — `strategyQuestions(t)`,
+                             результат — `strategyTexts(t, strategy)` из сохранённых ответов
+                             (не из запечённых строк), рынки и подходы — `betTypeLabel`/`strategyLabel`
 components/
   ActionWheel.tsx          — радиальное меню (SVG-секторы, тап по сектору, центр = закрыть/назад)
   useBetActions.tsx        — ЕДИНЫЙ набор действий над ставкой для BetsScreen и PendingScreen:
@@ -591,6 +594,9 @@ utils/
   kelly.ts            — kellyFraction, halfKelly, expectedValue, impliedProbability
   formatters.ts       — formatMoney(kopecks, currency='₽', maxDecimals=2), parseMoneyInput, formatOdds, formatPercent (adds + prefix)
   strategyBuilder.ts  — STRATEGY_QUESTIONS (10 вопросов), buildStrategy(answers)
+                        strategyTextIds(answers) — КАКИЕ тексты положены профилю (id имени, предложений
+                        обоснования, 4 принципов, диапазона, совета по типу ставок); ru/en-таблицы
+                        для запекания — RU/EN там же
   migrations.ts       — migrate(raw); v3 округляет кэфы экспрессов до 2 знаков.
                         JSON-восстановление тоже гонится через migrate(), иначе старый бэкап
                         возвращает уже исправленные баги

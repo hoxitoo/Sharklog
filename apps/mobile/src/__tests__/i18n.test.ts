@@ -217,7 +217,6 @@ describe('locale files', () => {
  */
 const UNTRANSLATED: Record<string, number> = {
   'screens/PartnersScreen/index.tsx': 22,
-  'screens/StrategyBuilderScreen/index.tsx': 21,
 };
 
 /** Never translated by design: a language is named in its own language. */
@@ -337,9 +336,7 @@ const CORE_LABELS_ALLOWED: Record<string, string> = {
 };
 
 /** Still to be moved onto utils/labels. May only shrink. */
-const CORE_LABELS_PENDING = new Set([
-  'screens/StrategyBuilderScreen/index.tsx',
-]);
+const CORE_LABELS_PENDING = new Set<string>([]);
 
 describe('Russian labels from core', () => {
   const readers = sources(SRC)
@@ -359,5 +356,27 @@ describe('Russian labels from core', () => {
   it('pending list shrinks as screens are moved over', () => {
     const done = [...CORE_LABELS_PENDING].filter((f) => !readers.includes(f));
     expect(done).toEqual([]);
+  });
+});
+
+/*
+ * The strategy builder's words. `STRATEGY_QUESTIONS` is Russian, in core; the
+ * texts stored on a generated strategy are in whatever language it was built
+ * in. Either one read by a screen is Russian (or frozen) text the ratchet
+ * cannot see. Both go through utils/strategyText, which derives the words from
+ * the stored answers in the current language.
+ */
+const STRATEGY_TEXT_READ =
+  /\bSTRATEGY_QUESTIONS\b|\b(?:generatedStrategy|strategy)\??\.(?:name|description|rationale|keyPrinciples|betTypeAdvice|sportAdvice|betTypeRationale|oddsRationale)\b/;
+
+describe('strategy builder text', () => {
+  it('is only read through utils/strategyText', () => {
+    const offenders = sources(SRC)
+      .map((f) => f.slice(SRC.length + 1))
+      .filter((rel) => rel !== 'utils/strategyText.ts' && !rel.startsWith('__tests__/'))
+      .filter((rel) => STRATEGY_TEXT_READ.test(readFileSync(join(SRC, rel), 'utf8')
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/(^|[^:])\/\/.*$/gm, '$1')));
+    expect(offenders).toEqual([]);
   });
 });

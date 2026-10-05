@@ -108,180 +108,221 @@ export const STRATEGY_QUESTIONS: StrategyQuestion[] = [
   },
 ];
 
-// ── Name & description ──────────────────────────────────────────────────────
+// ── Text ids ────────────────────────────────────────────────────────────────
+//
+// WHICH sentence a profile gets is decided once, here; WHAT the sentence says
+// is a table per language. The mobile app translates these ids into four
+// languages from its locale files, and re-derives them from the stored
+// `answers` on every render — so a strategy built in Russian reads in English
+// after a language switch, instead of staying frozen in the language it was
+// built in. The ru/en tables below are what `buildStrategy` bakes in for the
+// desktop, unchanged.
 
-type LangKey = 'ru' | 'en';
-function lang2(lang: string, ru: string, en: string): string {
-  return lang === 'ru' ? ru : en;
+export type StrategyNameId = 'starter' | 'professional' | 'conservative' | 'aggressive' | 'value' | 'balanced';
+
+/** Sentences of the "why this fits you" paragraph, in order. `intro` takes the goal and experience. */
+export type StrategyRationaleId =
+  | 'intro'
+  | 'risk.conservative' | 'risk.moderate' | 'risk.aggressive'
+  | 'exp.beginner' | 'exp.experienced' | 'exp.professional'
+  | 'time.minimal' | 'time.intensive';
+
+export type StrategyPrincipleId =
+  | 'risk.conservative' | 'risk.moderate' | 'risk.aggressive'
+  | 'exp.beginner' | 'exp.experienced' | 'exp.professional'
+  | 'sport.football' | 'sport.hockey' | 'sport.tennis' | 'sport.esports' | 'sport.mixed'
+  | 'focus.topMatches' | 'focus.liveLines' | 'focus.roiTarget' | 'focus.lossLimit';
+
+export interface StrategyTextIds {
+  name: StrategyNameId;
+  rationale: StrategyRationaleId[];
+  principles: StrategyPrincipleId[];
+  odds: 'low' | 'mid' | 'high';
+  /** A sport id, or 'default' for one the table does not know. */
+  betTypeRationale: string;
+  betTypeAdvice: 'singles' | 'express' | 'both';
 }
 
-function strategyName(goal: StrategyGoal, risk: StrategyRisk, experience: StrategyExperience, lang: string): string {
-  if (experience === 'beginner') return lang2(lang, 'Стартовая', 'Starter');
-  if (goal === 'professional' && experience === 'professional') return lang2(lang, 'Профессиональная', 'Professional');
-  if (risk === 'conservative') return lang2(lang, 'Консервативная', 'Conservative');
-  if (risk === 'aggressive') return lang2(lang, 'Агрессивная', 'Aggressive');
-  if (goal === 'income' && risk === 'moderate') return lang2(lang, 'Ценностная', 'Value Betting');
-  return lang2(lang, 'Сбалансированная', 'Balanced');
+function nameId(a: StrategyAnswers): StrategyNameId {
+  if (a.experience === 'beginner') return 'starter';
+  if (a.goal === 'professional' && a.experience === 'professional') return 'professional';
+  if (a.risk === 'conservative') return 'conservative';
+  if (a.risk === 'aggressive') return 'aggressive';
+  if (a.goal === 'income' && a.risk === 'moderate') return 'value';
+  return 'balanced';
 }
 
-function strategyDescription(name: string, lang: string): string {
-  const mapRu: Record<string, string> = {
-    'Стартовая':        'Минимальный риск и небольшие ставки для накопления опыта. Фокус на дисциплине и ведении статистики.',
-    'Профессиональная': 'Высокая вовлечённость, детальный анализ и строгий контроль банкролла. Ставки только на хорошо изученные события.',
-    'Консервативная':   'Защита капитала в приоритете. Ставки на фаворитов с высокой вероятностью, небольшой размер ставки.',
-    'Агрессивная':      'Высокие коэффициенты и возможность быстрого роста банкролла. Требует стальных нервов и чёткой дисциплины.',
-    'Ценностная':       'Поиск ставок, где реальная вероятность выше оценки букмекера. Умеренный риск, долгосрочная прибыль.',
-    'Сбалансированная': 'Оптимальный баланс между риском и доходностью. Разнообразие ставок с контролем банкролла.',
+function rationaleIds(a: StrategyAnswers): StrategyRationaleId[] {
+  const ids: StrategyRationaleId[] = ['intro'];
+  ids.push(a.risk === 'conservative' ? 'risk.conservative' : a.risk === 'aggressive' ? 'risk.aggressive' : 'risk.moderate');
+  ids.push(a.experience === 'beginner' ? 'exp.beginner' : a.experience === 'professional' ? 'exp.professional' : 'exp.experienced');
+  if (a.timePerDay === 'minimal') ids.push('time.minimal');
+  else if (a.timePerDay === 'intensive') ids.push('time.intensive');
+  return ids;
+}
+
+const PRINCIPLE_SPORTS = new Set(['football', 'hockey', 'tennis', 'esports']);
+
+function principleIds(a: StrategyAnswers): StrategyPrincipleId[] {
+  const ids: StrategyPrincipleId[] = [];
+  ids.push(a.risk === 'conservative' ? 'risk.conservative' : a.risk === 'moderate' ? 'risk.moderate' : 'risk.aggressive');
+  ids.push(a.experience === 'beginner' ? 'exp.beginner' : a.experience === 'professional' ? 'exp.professional' : 'exp.experienced');
+  ids.push(PRINCIPLE_SPORTS.has(a.sport) ? (`sport.${a.sport}` as StrategyPrincipleId) : 'sport.mixed');
+  if (a.timePerDay === 'minimal') ids.push('focus.topMatches');
+  else if (a.timePerDay === 'intensive' && a.experience !== 'beginner') ids.push('focus.liveLines');
+  else if (a.goal === 'income' || a.goal === 'professional') ids.push('focus.roiTarget');
+  else ids.push('focus.lossLimit');
+  return ids.slice(0, 4);
+}
+
+const BET_TYPE_RATIONALE_SPORTS = new Set(['football', 'hockey', 'tennis', 'esports', 'mixed']);
+
+export function strategyTextIds(a: StrategyAnswers): StrategyTextIds {
+  return {
+    name: nameId(a),
+    rationale: rationaleIds(a),
+    principles: principleIds(a),
+    odds: a.oddsRange === 'low' ? 'low' : a.oddsRange === 'high' ? 'high' : 'mid',
+    betTypeRationale: BET_TYPE_RATIONALE_SPORTS.has(a.sport) ? a.sport : 'default',
+    betTypeAdvice: a.betTypes === 'singles' ? 'singles' : a.betTypes === 'express' ? 'express' : 'both',
   };
-  const mapEn: Record<string, string> = {
-    'Starter':       'Low risk and small stakes to build experience. Focus on discipline and tracking your stats.',
-    'Professional':  'Deep involvement, detailed analysis and strict bankroll management. Bet only on well-researched events.',
-    'Conservative':  'Capital protection first. Bet on heavy favourites with high probability at small stake sizes.',
-    'Aggressive':    'High odds and fast bankroll growth potential. Requires nerves of steel and strict discipline.',
-    'Value Betting': 'Find bets where the real probability exceeds the bookmaker\'s estimate. Moderate risk, long-term profit.',
-    'Balanced':      'Optimal balance of risk and return. Diverse bets with solid bankroll management.',
-  };
-  return (lang === 'ru' ? mapRu[name] : mapEn[name]) ?? '';
 }
 
-// ── Rationale paragraph ─────────────────────────────────────────────────────
+// ── ru / en text (desktop bakes these in) ───────────────────────────────────
 
-function buildRationale(a: StrategyAnswers, lang: string): string {
-  const isEn = lang !== 'ru';
-  const expLabel = isEn
-    ? ({ beginner: 'beginner', experienced: 'experienced bettor', professional: 'professional bettor' } as Record<string, string>)[a.experience] ?? a.experience
-    : ({ beginner: 'начинающего беттора', experienced: 'опытного беттора', professional: 'профессионального беттора' } as Record<string, string>)[a.experience] ?? a.experience;
-
-  const goalLabel = isEn
-    ? ({ hobby: 'as a hobby', income: 'for extra income', professional: 'as a primary income source' } as Record<string, string>)[a.goal] ?? a.goal
-    : ({ hobby: 'как хобби', income: 'для дополнительного дохода', professional: 'как основной заработок' } as Record<string, string>)[a.goal] ?? a.goal;
-
-  const parts: string[] = [];
-  parts.push(isEn
-    ? `You approach betting ${goalLabel}. Profile: ${expLabel}.`
-    : `Ты подходишь к ставкам ${goalLabel}. Профиль ${expLabel}.`);
-
-  if (a.risk === 'conservative') {
-    parts.push(isEn
-      ? 'A conservative approach protects the bankroll from large drawdowns — preserving capital is the priority.'
-      : 'Консервативный подход защищает банкролл от крупных просадок — в приоритете сохранение капитала.');
-  } else if (a.risk === 'aggressive') {
-    parts.push(isEn
-      ? 'High risk tolerance opens the door to higher odds and faster bankroll growth — but demands iron discipline.'
-      : 'Высокая толерантность к риску открывает возможности с более высокими кэфами и ускоренным ростом банкролла — но требует железной дисциплины.');
-  } else {
-    parts.push(isEn
-      ? 'Moderate risk is the optimal balance: the bankroll grows without the threat of critical drawdowns.'
-      : 'Умеренный риск — оптимальный баланс: капитал растёт без угрозы критических просадок.');
-  }
-
-  if (a.experience === 'beginner') {
-    parts.push(isEn
-      ? 'At the start, the most important thing is to collect 100+ bets for reliable stats — profit comes with experience.'
-      : 'На старте важнее всего собрать 100+ ставок для достоверной статистики — прибыль придёт с опытом.');
-  } else if (a.experience === 'professional') {
-    parts.push(isEn
-      ? 'Professional-level experience lets you work with line movement, live betting and value hunting.'
-      : 'Профессиональный уровень позволяет работать с движением линий, live-ставками и поиском value.');
-  } else {
-    parts.push(isEn
-      ? 'Accumulated experience lets you separate value bets from noise and build strategy on data, not intuition.'
-      : 'Накопленный опыт позволяет отделять ценные ставки от шума и строить стратегию на данных, а не на интуиции.');
-  }
-
-  if (a.timePerDay === 'minimal') {
-    parts.push(isEn
-      ? 'With limited time, bet only on well-covered matches — don\'t guess on poorly-researched events.'
-      : 'С ограниченным временем ставь только на матчи с обилием информации — не угадывай по малоизученным событиям.');
-  } else if (a.timePerDay === 'intensive') {
-    parts.push(isEn
-      ? 'High involvement gives a competitive edge: tracking line movement and live betting opportunities.'
-      : 'Высокая вовлечённость даёт конкурентное преимущество: отслеживание движения линий и live-ставки.');
-  }
-
-  return parts.join(' ');
+interface TextTable {
+  name: Record<StrategyNameId, string>;
+  description: Record<StrategyNameId, string>;
+  goal: Record<string, string>;
+  profile: Record<string, string>;
+  intro: (goal: string, profile: string) => string;
+  rationale: Record<Exclude<StrategyRationaleId, 'intro'>, string>;
+  principles: Record<StrategyPrincipleId, string>;
+  odds: Record<StrategyTextIds['odds'], string>;
+  betTypeRationale: Record<string, string>;
+  betTypeAdvice: Record<StrategyTextIds['betTypeAdvice'], string>;
+  sport: Record<string, string>;
 }
 
-// ── Key principles ──────────────────────────────────────────────────────────
+const RU: TextTable = {
+  name: {
+    starter: 'Стартовая', professional: 'Профессиональная', conservative: 'Консервативная',
+    aggressive: 'Агрессивная', value: 'Ценностная', balanced: 'Сбалансированная',
+  },
+  description: {
+    starter:      'Минимальный риск и небольшие ставки для накопления опыта. Фокус на дисциплине и ведении статистики.',
+    professional: 'Высокая вовлечённость, детальный анализ и строгий контроль банкролла. Ставки только на хорошо изученные события.',
+    conservative: 'Защита капитала в приоритете. Ставки на фаворитов с высокой вероятностью, небольшой размер ставки.',
+    aggressive:   'Высокие коэффициенты и возможность быстрого роста банкролла. Требует стальных нервов и чёткой дисциплины.',
+    value:        'Поиск ставок, где реальная вероятность выше оценки букмекера. Умеренный риск, долгосрочная прибыль.',
+    balanced:     'Оптимальный баланс между риском и доходностью. Разнообразие ставок с контролем банкролла.',
+  },
+  goal: { hobby: 'как хобби', income: 'для дополнительного дохода', professional: 'как основной заработок' },
+  profile: { beginner: 'начинающего беттора', experienced: 'опытного беттора', professional: 'профессионального беттора' },
+  intro: (goal, profile) => `Ты подходишь к ставкам ${goal}. Профиль ${profile}.`,
+  rationale: {
+    'risk.conservative': 'Консервативный подход защищает банкролл от крупных просадок — в приоритете сохранение капитала.',
+    'risk.aggressive':   'Высокая толерантность к риску открывает возможности с более высокими кэфами и ускоренным ростом банкролла — но требует железной дисциплины.',
+    'risk.moderate':     'Умеренный риск — оптимальный баланс: капитал растёт без угрозы критических просадок.',
+    'exp.beginner':      'На старте важнее всего собрать 100+ ставок для достоверной статистики — прибыль придёт с опытом.',
+    'exp.professional':  'Профессиональный уровень позволяет работать с движением линий, live-ставками и поиском value.',
+    'exp.experienced':   'Накопленный опыт позволяет отделять ценные ставки от шума и строить стратегию на данных, а не на интуиции.',
+    'time.minimal':      'С ограниченным временем ставь только на матчи с обилием информации — не угадывай по малоизученным событиям.',
+    'time.intensive':    'Высокая вовлечённость даёт конкурентное преимущество: отслеживание движения линий и live-ставки.',
+  },
+  principles: {
+    'risk.conservative': 'Ставь только если уверен на 75%+ — пропустить событие не потеря, это дисциплина',
+    'risk.moderate':     'Не меняй размер ставки в зависимости от «уверенности» — дисциплина важнее интуиции',
+    'risk.aggressive':   'Жёсткий стоп-лосс: просадка 25% банкролла за неделю = пауза минимум 3 дня',
+    'exp.beginner':      'Первые 3 месяца — только сбор статистики. Не жди прибыли, цель — данные для анализа',
+    'exp.professional':  'Отслеживай движение линий: резкий сдвиг кэфа за 1–2 часа до матча сигнализирует о закрытой информации',
+    'exp.experienced':   'Веди детальную статистику по каждому типу ставок — отсеивай неработающие рынки раз в месяц',
+    'sport.football':    'Изучай форму команд за последние 5 матчей и H2H — особенно важно на своём/чужом поле',
+    'sport.esports':     'Следи за актуальными составами: замены игроков за 24 часа до матча резко меняют шансы',
+    'sport.tennis':      'Учитывай покрытие корта и физическую нагрузку предыдущих турниров — теннис физически затратен',
+    'sport.hockey':      'До 40% успеха в хоккее определяет вратарь — всегда проверяй кто защищает перед ставкой',
+    'sport.mixed':       'Специализируйся максимум на 2–3 видах спорта — распыление по 5+ снижает ROI вдвое',
+    'focus.topMatches':  'С ограниченным временем ставь только топ-матчи: больше медиаосвещения = меньше ошибок в оценке',
+    'focus.liveLines':   'Используй live-мониторинг линий — резкий сдвиг кэфа за 1–2 часа до матча часто содержит value',
+    'focus.roiTarget':   'Целевой ROI: стабильные 5–8% в месяц дают 60–100% роста банкролла за год',
+    'focus.lossLimit':   'Установи личный лимит потерь в месяц и не нарушай его ни при каких обстоятельствах',
+  },
+  odds: {
+    low:  'Фавориты с кэфом 1.30–1.70 дают 65–80% вероятность прохода. Ключ — размер ставки и дисциплина, а не погоня за высоким кэфом.',
+    high: 'Высокий кэф (2.50+) означает вероятность прохода 40% и ниже. Для прибыли нужна большая выборка (200+ ставок) и строгий отбор.',
+    mid:  'Диапазон 1.70–2.50 — оптимальный: достаточная вероятность прохода (40–60%) при приемлемом доходе. Большинство value находится именно здесь.',
+  },
+  betTypeRationale: {
+    football: 'Тоталы (ТБ/ТМ) и форы в футболе содержат больше value, чем 1X2 — букмекеры точнее ценят победителей, но ошибаются в счёте.',
+    hockey:   'В хоккее тоталы ±0.5 шайбы и форы -1.5/+1.5 часто переоценены — хорошая почва для value.',
+    tennis:   'Форы по геймам дают лучшую маржу в теннисе. Исходы сетов — для тех, кто отслеживает физическое состояние.',
+    esports:  'Форы по картам и раундам — основной рынок для value в киберспорте. Исходы слишком популярны у казуальной аудитории.',
+    mixed:    'При работе с несколькими видами спорта сосредоточься на исходах и тоталах — они проще всего поддаются анализу.',
+    default:  'Выбирай рынки, где у тебя есть конкурентное преимущество над букмекером.',
+  },
+  betTypeAdvice: { singles: 'Только ординары', express: 'Экспрессы 2–3 события', both: 'Ординары (80%) + редкие экспрессы на 2 события' },
+  sport: { football: 'Футбол', hockey: 'Хоккей', tennis: 'Теннис', esports: 'Киберспорт', mixed: 'Несколько видов' },
+};
 
-function buildKeyPrinciples(a: StrategyAnswers, lang: string): string[] {
-  const isEn = lang !== 'ru';
-  const rules: string[] = [];
-
-  // Risk-based
-  if (a.risk === 'conservative') {
-    rules.push(isEn
-      ? 'Bet only when 75%+ confident — skipping an event is not a loss, it\'s discipline'
-      : 'Ставь только если уверен на 75%+ — пропустить событие не потеря, это дисциплина');
-  } else if (a.risk === 'moderate') {
-    rules.push(isEn
-      ? 'Don\'t adjust stake size based on "confidence" — discipline beats intuition'
-      : 'Не меняй размер ставки в зависимости от «уверенности» — дисциплина важнее интуиции');
-  } else {
-    rules.push(isEn
-      ? 'Hard stop-loss: a 25% drawdown in one week means a minimum 3-day break'
-      : 'Жёсткий стоп-лосс: просадка 25% банкролла за неделю = пауза минимум 3 дня');
-  }
-
-  // Experience-based
-  if (a.experience === 'beginner') {
-    rules.push(isEn
-      ? 'First 3 months: data collection only. Don\'t expect profit — the goal is stats for analysis'
-      : 'Первые 3 месяца — только сбор статистики. Не жди прибыли, цель — данные для анализа');
-  } else if (a.experience === 'professional') {
-    rules.push(isEn
-      ? 'Track line movement: a sharp odds shift 1–2 hours before a match signals insider information'
-      : 'Отслеживай движение линий: резкий сдвиг кэфа за 1–2 часа до матча сигнализирует о закрытой информации');
-  } else {
-    rules.push(isEn
-      ? 'Keep detailed stats per bet type — cut non-performing markets once a month'
-      : 'Веди детальную статистику по каждому типу ставок — отсеивай неработающие рынки раз в месяц');
-  }
-
-  // Sport-based
-  if (a.sport === 'football') {
-    rules.push(isEn
-      ? 'Study last 5 matches and H2H — home/away form is especially important in football'
-      : 'Изучай форму команд за последние 5 матчей и H2H — особенно важно на своём/чужом поле');
-  } else if (a.sport === 'esports') {
-    rules.push(isEn
-      ? 'Watch active rosters: player substitutions 24h before a match sharply change the odds'
-      : 'Следи за актуальными составами: замены игроков за 24 часа до матча резко меняют шансы');
-  } else if (a.sport === 'tennis') {
-    rules.push(isEn
-      ? 'Factor in court surface and physical load from recent tournaments — tennis is physically demanding'
-      : 'Учитывай покрытие корта и физическую нагрузку предыдущих турниров — теннис физически затратен');
-  } else if (a.sport === 'hockey') {
-    rules.push(isEn
-      ? 'The goaltender decides up to 40% of hockey outcomes — always check who\'s in net before betting'
-      : 'До 40% успеха в хоккее определяет вратарь — всегда проверяй кто защищает перед ставкой');
-  } else {
-    rules.push(isEn
-      ? 'Specialise in at most 2–3 sports — spreading across 5+ halves your ROI'
-      : 'Специализируйся максимум на 2–3 видах спорта — распыление по 5+ снижает ROI вдвое');
-  }
-
-  // Time/goal-based
-  if (a.timePerDay === 'minimal') {
-    rules.push(isEn
-      ? 'With limited time, bet only on top matches: more media coverage = fewer mispriced events'
-      : 'С ограниченным временем ставь только топ-матчи: больше медиаосвещения = меньше ошибок в оценке');
-  } else if (a.timePerDay === 'intensive' && a.experience !== 'beginner') {
-    rules.push(isEn
-      ? 'Use live line monitoring — a sharp odds shift 1–2 hours pre-match often contains value'
-      : 'Используй live-мониторинг линий — резкий сдвиг кэфа за 1–2 часа до матча часто содержит value');
-  } else if (a.goal === 'income' || a.goal === 'professional') {
-    rules.push(isEn
-      ? 'Target ROI: a steady 5–8% per month yields 60–100% bankroll growth per year'
-      : 'Целевой ROI: стабильные 5–8% в месяц дают 60–100% роста банкролла за год');
-  } else {
-    rules.push(isEn
-      ? 'Set a personal monthly loss limit and never break it under any circumstances'
-      : 'Установи личный лимит потерь в месяц и не нарушай его ни при каких обстоятельствах');
-  }
-
-  return rules.slice(0, 4);
-}
+const EN: TextTable = {
+  name: {
+    starter: 'Starter', professional: 'Professional', conservative: 'Conservative',
+    aggressive: 'Aggressive', value: 'Value Betting', balanced: 'Balanced',
+  },
+  description: {
+    starter:      'Low risk and small stakes to build experience. Focus on discipline and tracking your stats.',
+    professional: 'Deep involvement, detailed analysis and strict bankroll management. Bet only on well-researched events.',
+    conservative: 'Capital protection first. Bet on heavy favourites with high probability at small stake sizes.',
+    aggressive:   'High odds and fast bankroll growth potential. Requires nerves of steel and strict discipline.',
+    value:        'Find bets where the real probability exceeds the bookmaker\'s estimate. Moderate risk, long-term profit.',
+    balanced:     'Optimal balance of risk and return. Diverse bets with solid bankroll management.',
+  },
+  goal: { hobby: 'as a hobby', income: 'for extra income', professional: 'as a primary income source' },
+  profile: { beginner: 'beginner', experienced: 'experienced bettor', professional: 'professional bettor' },
+  intro: (goal, profile) => `You approach betting ${goal}. Profile: ${profile}.`,
+  rationale: {
+    'risk.conservative': 'A conservative approach protects the bankroll from large drawdowns — preserving capital is the priority.',
+    'risk.aggressive':   'High risk tolerance opens the door to higher odds and faster bankroll growth — but demands iron discipline.',
+    'risk.moderate':     'Moderate risk is the optimal balance: the bankroll grows without the threat of critical drawdowns.',
+    'exp.beginner':      'At the start, the most important thing is to collect 100+ bets for reliable stats — profit comes with experience.',
+    'exp.professional':  'Professional-level experience lets you work with line movement, live betting and value hunting.',
+    'exp.experienced':   'Accumulated experience lets you separate value bets from noise and build strategy on data, not intuition.',
+    'time.minimal':      'With limited time, bet only on well-covered matches — don\'t guess on poorly-researched events.',
+    'time.intensive':    'High involvement gives a competitive edge: tracking line movement and live betting opportunities.',
+  },
+  principles: {
+    'risk.conservative': 'Bet only when 75%+ confident — skipping an event is not a loss, it\'s discipline',
+    'risk.moderate':     'Don\'t adjust stake size based on "confidence" — discipline beats intuition',
+    'risk.aggressive':   'Hard stop-loss: a 25% drawdown in one week means a minimum 3-day break',
+    'exp.beginner':      'First 3 months: data collection only. Don\'t expect profit — the goal is stats for analysis',
+    'exp.professional':  'Track line movement: a sharp odds shift 1–2 hours before a match signals insider information',
+    'exp.experienced':   'Keep detailed stats per bet type — cut non-performing markets once a month',
+    'sport.football':    'Study last 5 matches and H2H — home/away form is especially important in football',
+    'sport.esports':     'Watch active rosters: player substitutions 24h before a match sharply change the odds',
+    'sport.tennis':      'Factor in court surface and physical load from recent tournaments — tennis is physically demanding',
+    'sport.hockey':      'The goaltender decides up to 40% of hockey outcomes — always check who\'s in net before betting',
+    'sport.mixed':       'Specialise in at most 2–3 sports — spreading across 5+ halves your ROI',
+    'focus.topMatches':  'With limited time, bet only on top matches: more media coverage = fewer mispriced events',
+    'focus.liveLines':   'Use live line monitoring — a sharp odds shift 1–2 hours pre-match often contains value',
+    'focus.roiTarget':   'Target ROI: a steady 5–8% per month yields 60–100% bankroll growth per year',
+    'focus.lossLimit':   'Set a personal monthly loss limit and never break it under any circumstances',
+  },
+  odds: {
+    low:  'Favourites at 1.30–1.70 win 65–80% of the time. The key is stake sizing and discipline, not chasing high odds.',
+    high: 'High odds (2.50+) imply a win probability of 40% or less. Profit requires a large sample (200+ bets) and strict selection.',
+    mid:  'The 1.70–2.50 range is optimal: sufficient win probability (40–60%) with acceptable returns. Most value sits here.',
+  },
+  betTypeRationale: {
+    football: 'Totals (over/under) and handicaps in football carry more value than 1X2 — bookmakers price winners well but misjudge scores.',
+    hockey:   'Hockey totals ±0.5 and handicaps -1.5/+1.5 are often mispriced — fertile ground for value.',
+    tennis:   'Game handicaps offer the best edge in tennis. Set totals suit those tracking physical condition.',
+    esports:  'Map and round handicaps are the main value market in esports. Outright results are too popular with casual bettors.',
+    mixed:    'When covering multiple sports, focus on outrights and totals — they are easiest to analyse consistently.',
+    default:  'Choose markets where you have a competitive edge over the bookmaker.',
+  },
+  betTypeAdvice: { singles: 'Singles only', express: 'Accumulators 2–3 events', both: 'Singles (80%) + occasional 2-event accas' },
+  sport: { football: 'Football', hockey: 'Hockey', tennis: 'Tennis', esports: 'Esports', mixed: 'Multiple sports' },
+};
 
 // ── Recommended approaches (Strategy tags) ─────────────────────────────────
 
@@ -334,54 +375,12 @@ function buildRecommendedBetTypes(a: StrategyAnswers): BetType[] {
   return ['1X2', 'total_over', 'handicap'];
 }
 
-// ── Odds rationale ──────────────────────────────────────────────────────────
-
-function buildOddsRationale(a: StrategyAnswers, lang: string): string {
-  const isEn = lang !== 'ru';
-  if (a.oddsRange === 'low') {
-    return isEn
-      ? 'Favourites at 1.30–1.70 win 65–80% of the time. The key is stake sizing and discipline, not chasing high odds.'
-      : 'Фавориты с кэфом 1.30–1.70 дают 65–80% вероятность прохода. Ключ — размер ставки и дисциплина, а не погоня за высоким кэфом.';
-  }
-  if (a.oddsRange === 'high') {
-    return isEn
-      ? 'High odds (2.50+) imply a win probability of 40% or less. Profit requires a large sample (200+ bets) and strict selection.'
-      : 'Высокий кэф (2.50+) означает вероятность прохода 40% и ниже. Для прибыли нужна большая выборка (200+ ставок) и строгий отбор.';
-  }
-  return isEn
-    ? 'The 1.70–2.50 range is optimal: sufficient win probability (40–60%) with acceptable returns. Most value sits here.'
-    : 'Диапазон 1.70–2.50 — оптимальный: достаточная вероятность прохода (40–60%) при приемлемом доходе. Большинство value находится именно здесь.';
-}
-
-// ── Bet type rationale ──────────────────────────────────────────────────────
-
-function buildBetTypeRationale(a: StrategyAnswers, lang: string): string {
-  const isEn = lang !== 'ru';
-  const rationalesRu: Record<string, string> = {
-    football: 'Тоталы (ТБ/ТМ) и форы в футболе содержат больше value, чем 1X2 — букмекеры точнее ценят победителей, но ошибаются в счёте.',
-    hockey:   'В хоккее тоталы ±0.5 шайбы и форы -1.5/+1.5 часто переоценены — хорошая почва для value.',
-    tennis:   'Форы по геймам дают лучшую маржу в теннисе. Исходы сетов — для тех, кто отслеживает физическое состояние.',
-    esports:  'Форы по картам и раундам — основной рынок для value в киберспорте. Исходы слишком популярны у казуальной аудитории.',
-    mixed:    'При работе с несколькими видами спорта сосредоточься на исходах и тоталах — они проще всего поддаются анализу.',
-  };
-  const rationalesEn: Record<string, string> = {
-    football: 'Totals (over/under) and handicaps in football carry more value than 1X2 — bookmakers price winners well but misjudge scores.',
-    hockey:   'Hockey totals ±0.5 and handicaps -1.5/+1.5 are often mispriced — fertile ground for value.',
-    tennis:   'Game handicaps offer the best edge in tennis. Set totals suit those tracking physical condition.',
-    esports:  'Map and round handicaps are the main value market in esports. Outright results are too popular with casual bettors.',
-    mixed:    'When covering multiple sports, focus on outrights and totals — they are easiest to analyse consistently.',
-  };
-  const rationales = isEn ? rationalesEn : rationalesRu;
-  return rationales[a.sport] ?? (isEn
-    ? 'Choose markets where you have a competitive edge over the bookmaker.'
-    : 'Выбирай рынки, где у тебя есть конкурентное преимущество над букмекером.');
-}
-
 // ── Main builder ────────────────────────────────────────────────────────────
 
 export function buildStrategy(answers: StrategyAnswers, lang = 'ru'): GeneratedStrategy {
-  const { goal, risk, experience, oddsRange, timePerDay, betTypes, sport, tiltReaction, priority, bankroll } = answers;
-  const isEn = lang !== 'ru';
+  const { goal, risk, experience, oddsRange, timePerDay, sport, tiltReaction, priority, bankroll } = answers;
+  const T = lang === 'ru' ? RU : EN;
+  const ids = strategyTextIds(answers);
 
   // ── Stake % per bet ──────────────────────────────────────────────
   let stakeBase = risk === 'conservative' ? 1 : risk === 'moderate' ? 2 : 3.5;
@@ -419,36 +418,25 @@ export function buildStrategy(answers: StrategyAnswers, lang = 'ru'): GeneratedS
   const tiltMap: Record<string, number> = { stop: 2, reduce: 3, continue: 4 };
   const tiltThreshold = tiltMap[tiltReaction] ?? 3;
 
-  // ── Bet type advice ──────────────────────────────────────────────
-  const betTypeAdvice = isEn
-    ? (betTypes === 'singles' ? 'Singles only' : betTypes === 'express' ? 'Accumulators 2–3 events' : 'Singles (80%) + occasional 2-event accas')
-    : (betTypes === 'singles' ? 'Только ординары' : betTypes === 'express' ? 'Экспрессы 2–3 события' : 'Ординары (80%) + редкие экспрессы на 2 события');
-
-  // ── Sport advice ─────────────────────────────────────────────────
-  const sportLabels: Record<string, string> = isEn
-    ? { football: 'Football', hockey: 'Hockey', tennis: 'Tennis', esports: 'Esports', mixed: 'Multiple sports' }
-    : { football: 'Футбол', hockey: 'Хоккей', tennis: 'Теннис', esports: 'Киберспорт', mixed: 'Несколько видов' };
-  const sportAdvice = sportLabels[sport] ?? sport;
-
-  const name = strategyName(goal, risk, experience, lang);
-
   return {
-    name,
-    description: strategyDescription(name, lang),
+    name: T.name[ids.name],
+    description: T.description[ids.name],
     betsPerDay,
     stakePercent,
     oddsMin: oddsMin!,
     oddsMax: oddsMax!,
     kellyMultiplier,
     tiltThreshold,
-    betTypeAdvice,
-    sportAdvice,
-    rationale: buildRationale(answers, lang),
-    keyPrinciples: buildKeyPrinciples(answers, lang),
+    betTypeAdvice: T.betTypeAdvice[ids.betTypeAdvice],
+    sportAdvice: T.sport[sport] ?? sport,
+    rationale: ids.rationale.map((id) => id === 'intro'
+      ? T.intro(T.goal[goal] ?? goal, T.profile[experience] ?? experience)
+      : T.rationale[id]).join(' '),
+    keyPrinciples: ids.principles.map((id) => T.principles[id]),
     recommendedApproaches: buildRecommendedApproaches(answers),
     recommendedBetTypes: buildRecommendedBetTypes(answers),
-    betTypeRationale: buildBetTypeRationale(answers, lang),
-    oddsRationale: buildOddsRationale(answers, lang),
+    betTypeRationale: T.betTypeRationale[ids.betTypeRationale]!,
+    oddsRationale: T.odds[ids.odds],
     createdAt: new Date().toISOString(),
     answers,
   };
