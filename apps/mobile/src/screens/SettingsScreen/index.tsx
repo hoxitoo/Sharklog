@@ -3,107 +3,215 @@ import { SPACE, RADIUS, TOUCH, hitSlopFor } from '../../theme/layout';
 import {
   View, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal, ActivityIndicator, Pressable,
 } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
 import { ScreenHeader } from '../../components/ScreenHeader';
+import { cardSurface } from '../../components/Card';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { FREE_LIMITS, CURRENT_SCHEMA_VERSION } from '@sharklog/core';
-import { useBetsStore } from '../../store/betsStore';
+import { useBetsStore, defaultSettings } from '../../store/betsStore';
 import { colors, alpha, mix } from '../../theme/colors';
 import { useTranslation } from 'react-i18next';
-import { LANGUAGES, type LangCode } from '../../i18n/index';
-import i18n from '../../i18n/index';
+import { LANGUAGES, applyLanguage, type LangCode } from '../../i18n/index';
 import { exportBetsCSV } from '../../utils/exportCSV';
 import { importFromCSV, importFromJSON } from '../../utils/importBets';
 import {
   requestNotificationPermission, scheduleDailyReminder,
   syncBetResultReminders, cancelAllBetResultReminders,
 } from '../../utils/notifications';
-
-/** Re-arm / clear bet reminders from the store's current state. */
-function resyncReminders(): void {
-  const { bets, settings } = useBetsStore.getState();
-  syncBetResultReminders(bets, settings.betResultReminders !== false);
-}
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
 import { ProGate } from '../../components/ProGate';
 import { restorePurchases } from '../../services/revenueCat';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
-import { SIZE, GLYPH } from '../../theme/typography';
+import { SIZE, GLYPH, numeric } from '../../theme/typography';
 
-const STEPPER_SLOP = hitSlopFor(30);
-const ADD_SLOP = hitSlopFor(38);
-const CLOSE_SLOP = hitSlopFor(32);
+/** Re-arm / clear bet reminders from the store's current state. */
+function resyncReminders(): void {
+  const { bets, settings } = useBetsStore.getState();
+  syncBetResultReminders(bets, settings.betResultReminders !== false);
+}
 
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
+const APP_VERSION = '1.0.0';
+const DAY_MS = 86_400_000;
+
+/** Stepper buttons are 30pt by design; the slop makes the touch area 44. */
+const STEP_BTN = 30;
+const STEP_SLOP = hitSlopFor(STEP_BTN, { maxHorizontal: SPACE.xs });
+const TOGGLE = { width: 44, height: 26 };
+const TOGGLE_SLOP = hitSlopFor(TOGGLE);
+/** Language segments sit edge to edge, so neither may claim the other's space. */
+const SEG = { width: 44, height: 32 };
+const SEG_SLOP = hitSlopFor(SEG, { maxHorizontal: 0 });
+const CHIP_X_SLOP = hitSlopFor(20);
+
+// ── Building blocks ───────────────────────────────────────────────────────────
+
+/**
+ * A titled card of rows with hairlines BETWEEN them, never above the first or
+ * below the last. Rows are often conditional (PRO-only), and a divider baked
+ * into each row left a double line or a dangling one whenever one dropped out.
+ */
+function Section({ title, children }: { title?: string; children: React.ReactNode }) {
+  const rows = React.Children.toArray(children).filter(Boolean);
+  if (rows.length === 0) return null;
   return (
-    <View style={row.container}>
-      <Text style={row.label}>{label}</Text>
-      <View style={row.right}>{children}</View>
+    <View style={sec.wrap}>
+      {title ? <Text style={sec.title}>{title}</Text> : null}
+      <View style={sec.card}>
+        {rows.map((r, i) => (
+          <React.Fragment key={i}>
+            {i > 0 && <View style={sec.divider} />}
+            {r}
+          </React.Fragment>
+        ))}
+      </View>
     </View>
   );
 }
-const row = StyleSheet.create({
-  container: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingVertical: SPACE.md, borderBottomWidth: 1, borderBottomColor: colors.border,
-  },
-  label: { fontSize: SIZE.lead, color: colors.textPrimary, flex: 1 },
-  right: { alignItems: 'flex-end' },
-});
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <View style={sec.container}>
-      <Text style={sec.title}>{title}</Text>
-      <View style={sec.card}>{children}</View>
-    </View>
-  );
-}
 const sec = StyleSheet.create({
-  container: { marginHorizontal: SPACE.lg, marginBottom: SPACE.lg },
-  title: { fontSize: SIZE.caption, color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: SPACE.sm },
-  card: { backgroundColor: colors.bgCard, borderRadius: RADIUS.md, paddingHorizontal: SPACE.lg, borderWidth: 1, borderColor: colors.border },
+  wrap: { marginHorizontal: SPACE.lg, marginBottom: SPACE.lg },
+  title: {
+    fontSize: SIZE.caption, color: colors.textMuted, textTransform: 'uppercase',
+    letterSpacing: 0.5, marginBottom: SPACE.sm, marginLeft: SPACE.xs,
+  },
+  card: { ...cardSurface, paddingHorizontal: SPACE.lg },
+  divider: { height: 1, backgroundColor: colors.border },
 });
 
-function Stepper({ value, min, max, step = 1, onChangeValue }: {
-  value: number; min: number; max: number; step?: number; onChangeValue: (v: number) => void;
+/**
+ * One setting: what it is on the left, its control on the right, and — under
+ * the label — what the current value MEANS ("после 3 поражений подряд"), so a
+ * bare number in a stepper never has to explain itself.
+ */
+function Row({ label, hint, right, onPress, chevron, tone, busy }: {
+  label: string;
+  hint?: string | null;
+  right?: React.ReactNode;
+  onPress?: () => void;
+  chevron?: boolean;
+  tone?: 'danger' | 'gold';
+  busy?: boolean;
+}) {
+  const body = (
+    <View style={row.wrap}>
+      <View style={row.text}>
+        <Text
+          style={[row.label, tone === 'danger' && row.danger, tone === 'gold' && row.gold]}
+          numberOfLines={2}
+        >
+          {label}
+        </Text>
+        {hint ? <Text style={row.hint} numberOfLines={2}>{hint}</Text> : null}
+      </View>
+      {busy ? <ActivityIndicator size="small" color={colors.purple} /> : right}
+      {chevron && !busy ? <Ionicons name="chevron-forward" size={GLYPH.md} color={colors.textMuted} /> : null}
+    </View>
+  );
+  if (!onPress) return body;
+  return (
+    <TouchableOpacity onPress={onPress} disabled={busy} activeOpacity={0.7}>
+      {body}
+    </TouchableOpacity>
+  );
+}
+
+const row = StyleSheet.create({
+  wrap: {
+    minHeight: TOUCH + SPACE.sm,
+    flexDirection: 'row', alignItems: 'center', gap: SPACE.md,
+    paddingVertical: SPACE.sm,
+  },
+  text: { flex: 1 },
+  label: { fontSize: SIZE.body, fontWeight: '500', color: colors.textPrimary },
+  hint: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: 2 },
+  danger: { color: colors.lost, fontWeight: '600' },
+  gold: { color: colors.gold, fontWeight: '700' },
+});
+
+function Toggle({ value, onChange, label }: { value: boolean; onChange: (v: boolean) => void; label: string }) {
+  return (
+    <TouchableOpacity
+      onPress={() => onChange(!value)}
+      activeOpacity={0.7}
+      hitSlop={TOGGLE_SLOP}
+      accessibilityRole="switch"
+      accessibilityState={{ checked: value }}
+      accessibilityLabel={label}
+      style={[ctl.toggle, value && ctl.toggleOn]}
+    >
+      <View style={[ctl.thumb, value && ctl.thumbOn]} />
+    </TouchableOpacity>
+  );
+}
+
+function Stepper({ value, min, max, onChange }: {
+  value: number; min: number; max: number; onChange: (v: number) => void;
 }) {
   return (
-    <View style={step_.row}>
+    <View style={ctl.stepRow}>
       <TouchableOpacity
-        style={[step_.btn, value <= min && step_.btnDisabled]}
-        hitSlop={STEPPER_SLOP}
-        onPress={() => onChangeValue(Math.max(min, value - step))}
+        style={[ctl.stepBtn, value <= min && ctl.stepBtnOff]}
+        hitSlop={STEP_SLOP}
+        onPress={() => onChange(Math.max(min, value - 1))}
         disabled={value <= min}
+        accessibilityLabel="−"
       >
-        <Text style={step_.btnText}>−</Text>
+        <Text style={ctl.stepBtnText}>−</Text>
       </TouchableOpacity>
-      <Text style={step_.val}>{value}</Text>
+      <Text style={ctl.stepVal}>{value === 0 && min === 0 ? '∞' : value}</Text>
       <TouchableOpacity
-        style={[step_.btn, value >= max && step_.btnDisabled]}
-        hitSlop={STEPPER_SLOP}
-        onPress={() => onChangeValue(Math.min(max, value + step))}
+        style={[ctl.stepBtn, value >= max && ctl.stepBtnOff]}
+        hitSlop={STEP_SLOP}
+        onPress={() => onChange(Math.min(max, value + 1))}
         disabled={value >= max}
+        accessibilityLabel="+"
       >
-        <Text style={step_.btnText}>+</Text>
+        <Text style={ctl.stepBtnText}>+</Text>
       </TouchableOpacity>
     </View>
   );
 }
-const step_ = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
-  btn: {
-    width: 30, height: 30, borderRadius: RADIUS.sm,
+
+/** Marks a setting a Free user can see but not change; the row opens the paywall. */
+function ProBadge() {
+  return (
+    <View style={ctl.pro}>
+      <Ionicons name="lock-closed" size={GLYPH.sm} color={colors.gold} />
+      <Text style={ctl.proText}>PRO</Text>
+    </View>
+  );
+}
+
+const ctl = StyleSheet.create({
+  toggle: {
+    ...TOGGLE, borderRadius: RADIUS.pill, backgroundColor: colors.borderStrong,
+    justifyContent: 'center', paddingHorizontal: 3,
+  },
+  toggleOn: { backgroundColor: colors.accent },
+  thumb: { width: 20, height: 20, borderRadius: RADIUS.pill, backgroundColor: '#fff' },
+  thumbOn: { alignSelf: 'flex-end' },
+  stepRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
+  stepBtn: {
+    width: STEP_BTN, height: STEP_BTN, borderRadius: RADIUS.sm,
     backgroundColor: colors.purple, alignItems: 'center', justifyContent: 'center',
   },
-  btnDisabled: { backgroundColor: colors.bgElevated },
-  btnText: { fontSize: GLYPH.md, color: '#fff', fontWeight: '700', lineHeight: 20 },
-  val: { fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary, minWidth: 28, textAlign: 'center' },
+  stepBtnOff: { backgroundColor: colors.bgElevated },
+  stepBtnText: { fontSize: GLYPH.md, color: '#fff', fontWeight: '700', lineHeight: 20 },
+  stepVal: { ...numeric, fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary, minWidth: 24, textAlign: 'center' },
+  pro: {
+    flexDirection: 'row', alignItems: 'center', gap: SPACE.xs,
+    paddingHorizontal: SPACE.sm, paddingVertical: 2, borderRadius: RADIUS.xs,
+    backgroundColor: alpha(colors.gold, 0.12), borderWidth: 1, borderColor: alpha(colors.gold, 0.4),
+  },
+  proText: { fontSize: SIZE.micro, fontWeight: '700', color: colors.gold, letterSpacing: 0.5 },
 });
+
+// ── Screen ────────────────────────────────────────────────────────────────────
 
 export function SettingsScreen() {
   const insets = useSafeAreaInsets();
@@ -115,7 +223,7 @@ export function SettingsScreen() {
   const { t } = useTranslation();
   const [newBookmaker, setNewBookmaker] = useState('');
   const [exporting, setExporting] = useState(false);
-  const [importing, setImporting] = useState(false);
+  const [importing, setImporting] = useState<'csv' | 'json' | null>(null);
   const [showPaywall, setShowPaywall] = useState(false);
   const [devTapCount, setDevTapCount] = useState(0);
   const devTapTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -123,175 +231,113 @@ export function SettingsScreen() {
   const [latestVersion, setLatestVersion] = useState('');
   const [restoring, setRestoring] = useState(false);
 
-  const APP_VERSION = '1.0.0';
+  const isPro = settings.isPro;
+  const openPaywall = () => setShowPaywall(true);
+  // Free gets the default hour. One value for what the row SAYS and what is
+  // actually SCHEDULED: a Pro user who set 09:00 and then lapsed used to see
+  // "20:00" on the row while the reminder kept arriving at 09:00.
+  const reminderHour = isPro ? settings.reminderHour : defaultSettings.reminderHour;
 
   // Days since last backup (null = never)
   const daysSinceBackup = settings.lastBackupAt
-    ? Math.floor((Date.now() - new Date(settings.lastBackupAt).getTime()) / 86_400_000)
+    ? Math.floor((Date.now() - new Date(settings.lastBackupAt).getTime()) / DAY_MS)
     : null;
   const showBackupBanner = bets.length > 0 && (daysSinceBackup === null || daysSinceBackup > 30);
 
-  async function handleCheckUpdate() {
-    setUpdateStatus('checking');
+  useEffect(() => {
+    if (isPro) setShowPaywall(false);
+  }, [isPro]);
+
+  useEffect(() => () => {
+    if (devTapTimer.current) clearTimeout(devTapTimer.current);
+  }, []);
+
+  // ── Subscription ────────────────────────────────────────────────────────────
+
+  async function handleRestorePurchases() {
+    setRestoring(true);
     try {
-      const res = await fetch('https://api.github.com/repos/hoxitoo/Sharklog/releases/latest');
-      if (res.status === 404) {
-        setUpdateStatus('latest');
-        Alert.alert('Обновления', 'Релизов пока нет. Установлена актуальная версия.');
-        return;
+      const restored = await restorePurchases();
+      if (restored === null) {
+        // Not "nothing found": the store was never asked.
+        Alert.alert(t('common.error'), t('errors.storeUnreachable'));
+      } else if (restored) {
+        updateSettings({ isPro: true });
+        Alert.alert(t('common.success'), t('settings.restoreDone'));
+      } else {
+        Alert.alert(t('settings.restoreNoneTitle'), t('settings.restoreNoneMsg'));
       }
-      if (!res.ok) throw new Error('network');
-      const data = await res.json() as { tag_name?: unknown };
-      const tag = typeof data?.tag_name === 'string' ? data.tag_name : '';
-      if (!tag) throw new Error('invalid_response');
-      const remote = tag.replace(/^v/, '');
-      setLatestVersion(remote);
-      setUpdateStatus(remote !== APP_VERSION ? 'available' : 'latest');
-    } catch {
-      Alert.alert('Ошибка', 'Не удалось проверить обновления. Проверь подключение к интернету.');
-      setUpdateStatus('idle');
+    } finally {
+      setRestoring(false);
     }
   }
 
+  /**
+   * Seven taps on the version turn Pro on — in development builds ONLY.
+   *
+   * The roadmap recorded this as guarded by `__DEV__` long ago, but the guard
+   * was never in the code: in a release build seven taps on the subscription
+   * row handed out Pro for free. It lives on the version row now, the place
+   * Android itself uses for the same trick, so it no longer competes with the
+   * row that opens the paywall.
+   */
   function handleDevTap() {
-    if (settings.isPro) return;
+    if (!__DEV__ || isPro) return;
     if (devTapTimer.current) clearTimeout(devTapTimer.current);
     const next = devTapCount + 1;
     setDevTapCount(next);
     if (next >= 7) {
       setDevTapCount(0);
       updateSettings({ isPro: true });
-      Alert.alert('👑 Developer Pro', 'Pro активирован');
+      Alert.alert('Developer Pro', 'Pro enabled (dev build only)');
     } else {
       devTapTimer.current = setTimeout(() => setDevTapCount(0), 2000);
     }
   }
 
-  useEffect(() => {
-    if (settings.isPro) setShowPaywall(false);
-  }, [settings.isPro]);
-
-  async function handleExport() {
-    if (bets.length === 0) {
-      Alert.alert('Нет ставок', 'Добавь хотя бы одну ставку для экспорта');
-      return;
-    }
-    setExporting(true);
-    try {
-      await exportBetsCSV(bets);
-    } catch {
-      Alert.alert('Ошибка', 'Не удалось экспортировать данные');
-    } finally {
-      setExporting(false);
-    }
-  }
-
-  async function handleImportCSV() {
-    setImporting(true);
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: ['text/csv', 'text/plain', 'text/comma-separated-values', '*/*'],
-        copyToCacheDirectory: true,
-      });
-      if (result.canceled) return;
-      const asset = result.assets[0];
-      if (!asset) return;
-      const content = await FileSystem.readAsStringAsync(asset.uri, { encoding: FileSystem.EncodingType.UTF8 });
-      const { bets: imported, total, skipped } = importFromCSV(content);
-      if (imported.length === 0) {
-        Alert.alert('Не удалось импортировать', 'Файл не содержит распознанных ставок. Убедись, что это CSV, экспортированный из SharkLog.');
-        return;
-      }
-      Alert.alert(
-        'Импорт CSV',
-        `Найдено ${imported.length} ставок${skipped > 0 ? `, пропущено ${skipped} строк` : ''}.\nДобавить к текущим ставкам?`,
-        [
-          { text: 'Отмена', style: 'cancel' },
-          {
-            text: 'Импортировать',
-            onPress: () => {
-              const store = useBetsStore.getState();
-              useBetsStore.setState({ bets: [...imported, ...store.bets] });
-              store.persist();
-              resyncReminders(); // imported bets bypass addBet, so arm them here
-              Alert.alert('Готово', `Импортировано ${imported.length} ставок`);
-            },
-          },
-        ],
-      );
-    } catch {
-      Alert.alert('Ошибка', 'Не удалось прочитать файл');
-    } finally {
-      setImporting(false);
-    }
-  }
-
-  async function handleImportJSON() {
-    setImporting(true);
-    try {
-      const result = await DocumentPicker.getDocumentAsync({
-        type: ['application/json', 'text/plain', '*/*'],
-        copyToCacheDirectory: true,
-      });
-      if (result.canceled) return;
-      const asset = result.assets[0];
-      if (!asset) return;
-      const content = await FileSystem.readAsStringAsync(asset.uri, { encoding: FileSystem.EncodingType.UTF8 });
-      const backup = importFromJSON(content);
-      if (!backup) {
-        Alert.alert('Ошибка', 'Файл не является корректным JSON-бэкапом SharkLog');
-        return;
-      }
-      Alert.alert(
-        'Восстановить из бэкапа?',
-        `В файле ${backup.bets.length} ставок.\n\nВыбери действие:`,
-        [
-          { text: 'Отмена', style: 'cancel' },
-          {
-            text: 'Добавить к текущим',
-            onPress: () => {
-              const store = useBetsStore.getState();
-              useBetsStore.setState({ bets: [...backup.bets, ...store.bets] });
-              store.persist();
-              resyncReminders();
-              Alert.alert('Готово', `Добавлено ${backup.bets.length} ставок`);
-            },
-          },
-          {
-            text: 'Заменить всё',
-            style: 'destructive',
-            onPress: () => {
-              const store = useBetsStore.getState();
-              useBetsStore.setState({
-                bets: backup.bets,
-                ...(backup.bankroll ? { bankroll: { ...store.bankroll, ...backup.bankroll } as typeof store.bankroll } : {}),
-                ...(backup.diary ? { diary: backup.diary as typeof store.diary } : {}),
-                ...(backup.teams ? { teams: backup.teams as typeof store.teams } : {}),
-              });
-              store.persist();
-              resyncReminders(); // replaced bets: drop orphan reminders, arm the new ones
-              Alert.alert('Готово', `Восстановлено ${backup.bets.length} ставок`);
-            },
-          },
-        ],
-      );
-    } catch {
-      Alert.alert('Ошибка', 'Не удалось прочитать файл');
-    } finally {
-      setImporting(false);
-    }
-  }
+  // ── Notifications ───────────────────────────────────────────────────────────
 
   async function handleEnableNotifications() {
     const granted = await requestNotificationPermission();
     if (granted) {
-      await scheduleDailyReminder(settings.reminderHour);
+      await scheduleDailyReminder(reminderHour);
       resyncReminders(); // bets logged before permission was granted had no reminder
-      Alert.alert('Готово', `Ежедневное напоминание в ${String(settings.reminderHour).padStart(2, '0')}:00 включено`);
+      Alert.alert(t('common.success'), t('settings.notifEnabled', { time: hh(reminderHour) }));
     } else {
-      Alert.alert('Нет разрешения', 'Разреши уведомления в настройках телефона');
+      Alert.alert(t('settings.notifDeniedTitle'), t('settings.notifDeniedMsg'));
     }
   }
+
+  function toggleBetReminders(on: boolean) {
+    updateSettings({ betResultReminders: on });
+    if (on) resyncReminders();
+    else cancelAllBetResultReminders(); // clear the already-armed ones
+  }
+
+  // ── Bookmakers ──────────────────────────────────────────────────────────────
+
+  function handleAddBookmaker() {
+    const trimmed = newBookmaker.trim();
+    if (!trimmed) return;
+    // Case-insensitive: "fonbet" next to "Fonbet" is the same bookmaker twice,
+    // and the per-bookmaker analytics would split it into two rows.
+    if (settings.bookmakers.some((b) => b.toLowerCase() === trimmed.toLowerCase())) {
+      Alert.alert(t('settings.bookmakerExists', { name: trimmed }));
+      return;
+    }
+    updateSettings({ bookmakers: [...settings.bookmakers, trimmed] });
+    setNewBookmaker('');
+  }
+
+  function handleRemoveBookmaker(bk: string) {
+    if (settings.bookmakers.length <= 1) {
+      Alert.alert(t('settings.bookmakerLastTitle'), t('settings.bookmakerLastMsg'));
+      return;
+    }
+    updateSettings({ bookmakers: settings.bookmakers.filter((b) => b !== bk) });
+  }
+
+  // ── Data ────────────────────────────────────────────────────────────────────
 
   async function handleBackupJSON() {
     const { bets: allBets, bankroll, diary, teams } = useBetsStore.getState();
@@ -308,78 +354,202 @@ export function SettingsScreen() {
     const path = (FileSystem.cacheDirectory ?? FileSystem.documentDirectory ?? '') + 'sharklog_backup.json';
     try {
       await FileSystem.writeAsStringAsync(path, backup, { encoding: FileSystem.EncodingType.UTF8 });
-      await Sharing.shareAsync(path, { mimeType: 'application/json', dialogTitle: 'Резервная копия SharkLog' });
+      await Sharing.shareAsync(path, { mimeType: 'application/json', dialogTitle: t('settings.backupDialogTitle') });
       await FileSystem.deleteAsync(path, { idempotent: true });
       updateSettings({ lastBackupAt: new Date().toISOString() });
     } catch {
-      Alert.alert('Ошибка', 'Не удалось создать резервную копию');
+      Alert.alert(t('common.error'), t('settings.backupError'));
     }
   }
 
-  async function handleRestorePurchases() {
-    setRestoring(true);
+  async function pickFile(types: string[]): Promise<string | null> {
+    const result = await DocumentPicker.getDocumentAsync({ type: types, copyToCacheDirectory: true });
+    if (result.canceled) return null;
+    const asset = result.assets[0];
+    if (!asset) return null;
+    return FileSystem.readAsStringAsync(asset.uri, { encoding: FileSystem.EncodingType.UTF8 });
+  }
+
+  async function handleImportJSON() {
+    // One picker at a time: the system document picker rejects a second
+    // call while the first is open, and the row spinner only covers its own row.
+    if (importing) return;
+    setImporting('json');
     try {
-      const isPro = await restorePurchases();
-      if (isPro) {
-        updateSettings({ isPro: true });
-        Alert.alert('Готово ✅', 'Подписка Pro восстановлена');
-      } else {
-        Alert.alert('Ничего не найдено', 'Активная подписка Pro не обнаружена.\n\nЕсли ты уверен что подписывался — убедись что зашёл в тот же Apple ID / Google аккаунт.');
+      const content = await pickFile(['application/json', 'text/plain', '*/*']);
+      if (content == null) return;
+      const backup = importFromJSON(content);
+      if (!backup) {
+        Alert.alert(t('common.error'), t('settings.backupInvalid'));
+        return;
       }
+      const n = backup.bets.length;
+      Alert.alert(t('settings.restoreTitle'), t('settings.restoreMsg', { count: n }), [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('settings.restoreAppend'),
+          onPress: () => {
+            const store = useBetsStore.getState();
+            useBetsStore.setState({ bets: [...backup.bets, ...store.bets] });
+            store.persist();
+            resyncReminders();
+            Alert.alert(t('common.success'), t('settings.betsAdded', { count: n }));
+          },
+        },
+        {
+          text: t('settings.restoreReplace'),
+          style: 'destructive',
+          onPress: () => {
+            const store = useBetsStore.getState();
+            useBetsStore.setState({
+              bets: backup.bets,
+              ...(backup.bankroll ? { bankroll: { ...store.bankroll, ...backup.bankroll } as typeof store.bankroll } : {}),
+              ...(backup.diary ? { diary: backup.diary as typeof store.diary } : {}),
+              ...(backup.teams ? { teams: backup.teams as typeof store.teams } : {}),
+            });
+            store.persist();
+            resyncReminders(); // replaced bets: drop orphan reminders, arm the new ones
+            Alert.alert(t('common.success'), t('settings.betsRestored', { count: n }));
+          },
+        },
+      ]);
     } catch {
-      Alert.alert('Ошибка', 'Не удалось связаться с сервером. Проверь интернет-соединение.');
+      Alert.alert(t('common.error'), t('settings.readError'));
     } finally {
-      setRestoring(false);
+      setImporting(null);
+    }
+  }
+
+  async function handleExport() {
+    if (bets.length === 0) {
+      Alert.alert(t('settings.noBetsTitle'), t('settings.noBetsMsg'));
+      return;
+    }
+    setExporting(true);
+    try {
+      await exportBetsCSV(bets);
+    } catch {
+      Alert.alert(t('common.error'), t('errors.exportFailed'));
+    } finally {
+      setExporting(false);
+    }
+  }
+
+  async function handleImportCSV() {
+    // One picker at a time: the system document picker rejects a second
+    // call while the first is open, and the row spinner only covers its own row.
+    if (importing) return;
+    setImporting('csv');
+    try {
+      const content = await pickFile(['text/csv', 'text/plain', 'text/comma-separated-values', '*/*']);
+      if (content == null) return;
+      const { bets: imported, skipped } = importFromCSV(content);
+      if (imported.length === 0) {
+        Alert.alert(t('settings.importNothingTitle'), t('settings.importNothingMsg'));
+        return;
+      }
+      const lines = [
+        t('settings.importFound', { count: imported.length }),
+        skipped > 0 ? t('settings.importSkipped', { count: skipped }) : null,
+        t('settings.importAsk'),
+      ].filter(Boolean).join('\n');
+      Alert.alert(t('settings.importCSV'), lines, [
+        { text: t('common.cancel'), style: 'cancel' },
+        {
+          text: t('settings.importAction'),
+          onPress: () => {
+            const store = useBetsStore.getState();
+            useBetsStore.setState({ bets: [...imported, ...store.bets] });
+            store.persist();
+            resyncReminders(); // imported bets bypass addBet, so arm them here
+            Alert.alert(t('common.success'), t('settings.betsAdded', { count: imported.length }));
+          },
+        },
+      ]);
+    } catch {
+      Alert.alert(t('common.error'), t('settings.readError'));
+    } finally {
+      setImporting(null);
     }
   }
 
   function handleClearData() {
-    const proNote = settings.isPro
-      ? '\n\n✅ Подписка Pro НЕ затрагивается — она привязана к твоему App Store / Google Play аккаунту. После очистки нажми «Восстановить покупки».'
-      : '';
-    const backupNote = daysSinceBackup === null
-      ? '\n\n⚠️ Ты ещё ни разу не делал резервную копию. Рекомендуем сначала нажать «Резервная копия (JSON)».'
-      : '';
-    Alert.alert(
-      'Очистить все данные?',
-      `Все ставки, банкролл, дневник и команды будут удалены НАВСЕГДА — без возможности восстановления.${proNote}${backupNote}`,
-      [
-        { text: 'Отмена', style: 'cancel' },
-        { text: 'Очистить', style: 'destructive', onPress: () => clearAll() },
-      ],
-    );
+    const notes = [
+      t('settings.clearAllMsg'),
+      isPro ? t('settings.clearProNote') : null,
+      daysSinceBackup === null ? t('settings.clearBackupNote') : null,
+    ].filter(Boolean).join('\n\n');
+    Alert.alert(t('settings.clearAllConfirm'), notes, [
+      { text: t('common.cancel'), style: 'cancel' },
+      { text: t('settings.clearAction'), style: 'destructive', onPress: () => clearAll() },
+    ]);
   }
 
-  function handleAddBookmaker() {
-    const trimmed = newBookmaker.trim();
-    if (!trimmed) return;
-    if (settings.bookmakers.includes(trimmed)) {
-      Alert.alert('Уже есть', `${trimmed} уже в списке`);
-      return;
+  // ── Updates ─────────────────────────────────────────────────────────────────
+
+  async function handleCheckUpdate() {
+    setUpdateStatus('checking');
+    try {
+      const res = await fetch('https://api.github.com/repos/hoxitoo/Sharklog/releases/latest');
+      if (res.status === 404) {
+        setUpdateStatus('latest');
+        Alert.alert(t('settings.updatesTitle'), t('settings.updateNoReleases'));
+        return;
+      }
+      if (!res.ok) throw new Error('network');
+      const data = await res.json() as { tag_name?: unknown };
+      const tag = typeof data?.tag_name === 'string' ? data.tag_name : '';
+      if (!tag) throw new Error('invalid_response');
+      const remote = tag.replace(/^v/, '');
+      setLatestVersion(remote);
+      setUpdateStatus(remote !== APP_VERSION ? 'available' : 'latest');
+    } catch {
+      Alert.alert(t('common.error'), t('settings.updateError'));
+      setUpdateStatus('idle');
     }
-    updateSettings({ bookmakers: [...settings.bookmakers, trimmed] });
-    setNewBookmaker('');
   }
 
-  function handleRemoveBookmaker(bk: string) {
-    if (settings.bookmakers.length <= 1) {
-      Alert.alert('Нельзя', 'Должен остаться хотя бы один букмекер');
-      return;
-    }
-    updateSettings({ bookmakers: settings.bookmakers.filter((b) => b !== bk) });
-  }
+  // ── Derived labels ──────────────────────────────────────────────────────────
+
+  const backupHint = daysSinceBackup === null
+    ? t('settings.backupNeverShort')
+    : daysSinceBackup === 0
+      ? t('settings.backupLastToday')
+      : t('settings.backupLast', { count: daysSinceBackup });
+
+  const tiltValue = isPro ? settings.tiltThreshold : FREE_LIMITS.TILT_ALERT_THRESHOLD;
+  const limitHint = !isPro || settings.dailyBetLimit === 0
+    ? t('settings.dailyLimitOff')
+    : t('settings.dailyLimitOn', { count: settings.dailyBetLimit });
+  const currentLang = (settings.language ?? 'ru') as LangCode;
+
+  const versionRight = updateStatus === 'checking'
+    ? <ActivityIndicator size="small" color={colors.purple} />
+    : updateStatus === 'latest'
+      ? <Text style={styles.statusOk}>{t('settings.updateLatest')}</Text>
+      : updateStatus === 'available'
+        ? <Text style={styles.statusNew}>{t('settings.updateAvailable', { version: latestVersion })}</Text>
+        : (
+          <TouchableOpacity style={styles.smallBtn} onPress={handleCheckUpdate} activeOpacity={0.75}>
+            <Text style={styles.smallBtnText}>{t('settings.check')}</Text>
+          </TouchableOpacity>
+        );
 
   return (
     <>
-      {/* Paywall modal */}
       <Modal visible={showPaywall} animationType="slide" transparent onRequestClose={() => setShowPaywall(false)}>
         {/* Tap outside the sheet to dismiss (standard bottom-sheet behavior) */}
         <Pressable style={styles.paywallBg} onPress={() => setShowPaywall(false)}>
           <Pressable style={styles.paywallSheet} onPress={(e) => e.stopPropagation()}>
-            <TouchableOpacity style={styles.paywallClose} hitSlop={CLOSE_SLOP} onPress={() => setShowPaywall(false)}>
-              <Text style={styles.paywallCloseText}>✕</Text>
+            <TouchableOpacity
+              style={styles.paywallClose}
+              hitSlop={hitSlopFor(32)}
+              onPress={() => setShowPaywall(false)}
+              accessibilityLabel={t('common.close')}
+            >
+              <Ionicons name="close" size={GLYPH.md} color={colors.textSecondary} />
             </TouchableOpacity>
-            <ProGate feature="Настройки Pro">
+            <ProGate feature={t('settings.proFeature')}>
               <View />
             </ProGate>
           </Pressable>
@@ -390,402 +560,337 @@ export function SettingsScreen() {
           takes the only route into the menu with it. */}
       <ScreenHeader title={t('settings.title')} />
 
-      <ScrollView keyboardShouldPersistTaps="handled"
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
         style={styles.container}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+        contentContainerStyle={{ paddingTop: SPACE.sm, paddingBottom: insets.bottom + SPACE.xl }}
         showsVerticalScrollIndicator={false}
       >
-        {/* Backup reminder banner */}
         {showBackupBanner && (
           <TouchableOpacity style={styles.backupBanner} onPress={handleBackupJSON} activeOpacity={0.8}>
-            <Text style={styles.backupBannerIcon}>💾</Text>
+            <Ionicons name="cloud-upload-outline" size={GLYPH.lg} color={colors.gold} />
             <View style={{ flex: 1 }}>
               <Text style={styles.backupBannerTitle}>
-                {daysSinceBackup === null ? 'Резервная копия не создана' : `Последняя копия: ${daysSinceBackup} дн. назад`}
+                {daysSinceBackup === null
+                  ? t('settings.backupNever')
+                  : t('settings.backupStale', { count: daysSinceBackup })}
               </Text>
-              <Text style={styles.backupBannerSub}>
-                При удалении приложения ставки исчезнут. Нажми чтобы сохранить.
-              </Text>
+              <Text style={styles.backupBannerSub}>{t('settings.backupBannerSub')}</Text>
             </View>
-            <Text style={styles.backupBannerArrow}>→</Text>
+            <Ionicons name="chevron-forward" size={GLYPH.md} color={colors.textMuted} />
           </TouchableOpacity>
         )}
 
-        {/* Pro subscription info */}
-        <View style={styles.subscriptionCard}>
-          <View style={styles.subscriptionRow}>
-            <Text style={styles.subscriptionIcon}>{settings.isPro ? '👑' : '🆓'}</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.subscriptionTitle}>
-                {settings.isPro ? 'SharkLog Pro' : 'Бесплатная версия'}
-              </Text>
-              <Text style={styles.subscriptionSub}>
-                {settings.isPro
-                  ? 'Подписка активна. Привязана к App Store / Google Play аккаунту — сохраняется при переустановке.'
-                  : 'До 50 ставок. Купи Pro для неограниченного учёта.'}
-              </Text>
-            </View>
-          </View>
-          {!settings.isPro && (
-            <TouchableOpacity style={styles.proUpgradeBtn} onPress={() => setShowPaywall(true)} activeOpacity={0.8}>
-              <Text style={styles.proUpgradeBtnText}>👑 Попробовать Pro</Text>
-            </TouchableOpacity>
-          )}
-          <TouchableOpacity style={styles.restoreBtn} onPress={handleRestorePurchases} disabled={restoring} activeOpacity={0.8}>
-            {restoring
-              ? <ActivityIndicator size="small" color={colors.purple} />
-              : <Text style={styles.restoreBtnText}>🔄 Восстановить покупки</Text>
-            }
-          </TouchableOpacity>
-          <Text style={styles.subscriptionHint}>
-            Уже подписан на другом устройстве или после переустановки? Нажми «Восстановить покупки».
-          </Text>
-        </View>
-
-        {settings.isPro && (
-          <TouchableOpacity
-            style={styles.strategyBtn}
-            onPress={() => navigation.navigate('StrategyBuilder')}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.strategyBtnIcon}>🎯</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.strategyBtnText}>Билдер стратегий</Text>
-              <Text style={styles.strategyBtnSub}>
-                {settings.generatedStrategy
-                  ? `Активна: ${settings.generatedStrategy.name}`
-                  : 'Создай персональную стратегию'}
-              </Text>
-            </View>
-            <Text style={styles.strategyBtnArrow}>→</Text>
-          </TouchableOpacity>
-        )}
-
-        <Section title={t('settings.tiltControl')}>
-          <Row label={t('settings.tiltAlertThreshold')}>
-            {settings.isPro ? (
-              <Stepper
-                value={settings.tiltThreshold}
-                min={2}
-                max={10}
-                onChangeValue={(v) => updateSettings({ tiltThreshold: v })}
-              />
-            ) : (
-              <Text style={styles.value}>{FREE_LIMITS.TILT_ALERT_THRESHOLD} поражений (Free)</Text>
-            )}
-          </Row>
-          <Row label={t('settings.dailyLimit')}>
-            {settings.isPro ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACE.sm }}>
-                <Stepper
-                  value={settings.dailyBetLimit}
-                  min={0}
-                  max={20}
-                  onChangeValue={(v) => updateSettings({ dailyBetLimit: v })}
-                />
-                {settings.dailyBetLimit === 0 && (
-                  <Text style={styles.hint}>∞</Text>
-                )}
-              </View>
-            ) : (
-              <Text style={styles.value}>Без лимита (Free)</Text>
-            )}
-          </Row>
-          {settings.isPro && (
-            <Row label={t('settings.checklistEnabled')}>
-              <View style={{ alignItems: 'flex-end', gap: 2 }}>
-                <TouchableOpacity
-                  onPress={() => updateSettings({ disableChecklist: !settings.disableChecklist })}
-                  activeOpacity={0.7}
-                  style={[styles.toggle, !settings.disableChecklist && styles.toggleOn]}
-                >
-                  <View style={[styles.toggleThumb, !settings.disableChecklist && styles.toggleThumbOn]} />
-                </TouchableOpacity>
-                <Text style={[styles.value, { fontSize: SIZE.micro }]}>
-                  {settings.disableChecklist ? 'Отключён' : '5 вопросов (PRO)'}
-                </Text>
-              </View>
-            </Row>
-          )}
-        </Section>
-
-        <Section title={t('settings.bookmakers')}>
-          {settings.bookmakers.map((bk) => (
-            <Row key={bk} label={bk}>
-              <TouchableOpacity onPress={() => handleRemoveBookmaker(bk)}>
-                <Text style={styles.removeText}>{t('settings.removeBookmaker')}</Text>
-              </TouchableOpacity>
-            </Row>
-          ))}
-          <View style={styles.addBkRow}>
-            <TextInput
-              style={styles.addBkInput}
-              placeholder={t('settings.addBookmakerPlaceholder')}
-              placeholderTextColor={colors.textMuted}
-              value={newBookmaker}
-              onChangeText={setNewBookmaker}
-              onSubmitEditing={handleAddBookmaker}
-              returnKeyType="done"
+        {/* 1. What you have: one line for the plan, one to get it back. */}
+        <Section title={t('settings.sectionSubscription')}>
+          {isPro ? (
+            <Row
+              label={t('settings.proTitle')}
+              hint={t('settings.proSub')}
+              tone="gold"
+              right={<Ionicons name="checkmark-circle" size={GLYPH.lg} color={colors.gold} />}
             />
-            <TouchableOpacity style={styles.addBkBtn} hitSlop={ADD_SLOP} onPress={handleAddBookmaker}>
-              <Text style={styles.addBkBtnText}>+</Text>
-            </TouchableOpacity>
-          </View>
-        </Section>
-
-        <Section title={t('settings.data')}>
-          <Row label={t('settings.totalBets')}>
-            <Text style={styles.value}>{bets.length}</Text>
-          </Row>
-          <Row label={t('settings.subscription')}>
-            <TouchableOpacity onPress={handleDevTap} activeOpacity={0.7}>
-              <Text style={[styles.value, { color: settings.isPro ? colors.gold : colors.textSecondary }]}>
-                {settings.isPro ? 'Pro' : `Free · ${Math.max(0, 50 - bets.length)} ставок осталось`}
-              </Text>
-            </TouchableOpacity>
-          </Row>
-          <Row label={t('settings.roundAmounts')}>
-            <TouchableOpacity
-              onPress={() => updateSettings({ roundAmounts: !settings.roundAmounts })}
-              activeOpacity={0.7}
-              style={[styles.toggle, settings.roundAmounts && styles.toggleOn]}
-            >
-              <View style={[styles.toggleThumb, settings.roundAmounts && styles.toggleThumbOn]} />
-            </TouchableOpacity>
-          </Row>
-          <Row label={t('settings.betResultReminders')}>
-            <TouchableOpacity
-              onPress={() => {
-                const turningOn = settings.betResultReminders === false;
-                updateSettings({ betResultReminders: turningOn });
-                if (turningOn) resyncReminders();
-                else cancelAllBetResultReminders(); // clear the already-armed ones
-              }}
-              activeOpacity={0.7}
-              style={[styles.toggle, settings.betResultReminders !== false && styles.toggleOn]}
-            >
-              <View style={[styles.toggleThumb, settings.betResultReminders !== false && styles.toggleThumbOn]} />
-            </TouchableOpacity>
-          </Row>
-        </Section>
-
-        <Section title={t('settings.language')}>
-          <View style={styles.langRow}>
-            {LANGUAGES.map((lang) => {
-              const active = (settings.language ?? 'ru') === lang.code;
-              return (
-                <TouchableOpacity
-                  key={lang.code}
-                  style={[styles.langChip, active && styles.langChipActive]}
-                  onPress={() => {
-                    updateSettings({ language: lang.code as LangCode });
-                    i18n.changeLanguage(lang.code);
-                  }}
-                  activeOpacity={0.75}
-                >
-                  <Text style={styles.langFlag}>{lang.flag}</Text>
-                  <Text style={[styles.langLabel, active && styles.langLabelActive]}>{lang.label}</Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
-        </Section>
-
-        <Section title={t('settings.updates')}>
-          <Row label={`${t('settings.version')} ${APP_VERSION}`}>
-            {updateStatus === 'available' ? (
-              <Text style={[styles.value, { color: colors.accent }]}>🆕 {latestVersion}</Text>
-            ) : updateStatus === 'latest' ? (
-              <Text style={[styles.value, { color: colors.textSecondary }]}>Актуальная</Text>
-            ) : null}
-          </Row>
-          <TouchableOpacity
-            style={styles.actionBtn}
-            onPress={handleCheckUpdate}
-            disabled={updateStatus === 'checking'}
-          >
-            <Text style={styles.actionBtnText}>
-              {updateStatus === 'checking' ? `⏳ ${t('settings.updateChecking')}` : `🔄 ${t('settings.checkUpdates')}`}
-            </Text>
-          </TouchableOpacity>
-          {updateStatus === 'available' && (
-            <TouchableOpacity
-              style={[styles.actionBtn, { borderColor: colors.accent + '44', backgroundColor: colors.accent + '11' }]}
-              onPress={() => Alert.alert('Обновление', `Версия ${latestVersion} доступна.\nСкачай APK на GitHub или обнови через магазин.`)}
-            >
-              <Text style={[styles.actionBtnText, { color: colors.accent }]}>
-                ⬇️ Скачать {latestVersion}
-              </Text>
-            </TouchableOpacity>
+          ) : (
+            <Row
+              label={t('settings.freeTitle')}
+              hint={t('settings.freeUsage', { used: bets.length, limit: FREE_LIMITS.MAX_BETS })}
+              onPress={openPaywall}
+              right={(
+                <View style={styles.upgradeBtn}>
+                  <Text style={styles.upgradeBtnText}>{t('settings.upgrade')}</Text>
+                </View>
+              )}
+            />
           )}
+          <Row
+            label={t('settings.restorePurchases')}
+            hint={t('settings.restoreHint')}
+            onPress={handleRestorePurchases}
+            busy={restoring}
+            chevron
+          />
         </Section>
 
-        <Section title={t('settings.notifications')}>
-          <Row label={t('settings.reminderTime')}>
-            {settings.isPro ? (
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: SPACE.sm }}>
+        {/* 2. How the app looks and reads. */}
+        <Section title={t('settings.sectionInterface')}>
+          <Row
+            label={t('settings.language')}
+            hint={LANGUAGES.find((l) => l.code === currentLang)?.label ?? null}
+            right={(
+              <View style={styles.segment}>
+                {LANGUAGES.map((lang) => {
+                  const active = currentLang === lang.code;
+                  return (
+                    <TouchableOpacity
+                      key={lang.code}
+                      style={[styles.segBtn, active && styles.segBtnActive]}
+                      hitSlop={SEG_SLOP}
+                      onPress={() => {
+                        updateSettings({ language: lang.code });
+                        applyLanguage(lang.code);
+                      }}
+                      activeOpacity={0.75}
+                      accessibilityLabel={lang.label}
+                      accessibilityState={{ selected: active }}
+                    >
+                      <Text style={[styles.segText, active && styles.segTextActive]}>{lang.short}</Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+          />
+          <Row
+            label={t('settings.roundAmounts')}
+            hint={t('settings.roundAmountsHint')}
+            right={(
+              <Toggle
+                label={t('settings.roundAmounts')}
+                value={settings.roundAmounts}
+                onChange={(v) => updateSettings({ roundAmounts: v })}
+              />
+            )}
+          />
+        </Section>
+
+        {/* 3. Guard rails. The same four rows for everyone: a Free user sees
+            what Pro would change, and the row is the way to it. */}
+        <Section title={t('settings.sectionDiscipline')}>
+          <Row
+            label={t('settings.tiltAlert')}
+            hint={t('settings.tiltAfter', { count: tiltValue })}
+            {...(isPro ? {} : { onPress: openPaywall })}
+            right={isPro
+              ? <Stepper value={settings.tiltThreshold} min={2} max={10} onChange={(v) => updateSettings({ tiltThreshold: v })} />
+              : <ProBadge />}
+          />
+          <Row
+            label={t('settings.dailyLimit')}
+            hint={limitHint}
+            {...(isPro ? {} : { onPress: openPaywall })}
+            right={isPro
+              ? <Stepper value={settings.dailyBetLimit} min={0} max={20} onChange={(v) => updateSettings({ dailyBetLimit: v })} />
+              : <ProBadge />}
+          />
+          <Row
+            label={t('settings.checklist')}
+            hint={t('settings.checklistHint')}
+            {...(isPro ? {} : { onPress: openPaywall })}
+            right={isPro
+              ? (
+                <Toggle
+                  label={t('settings.checklist')}
+                  value={!settings.disableChecklist}
+                  onChange={(on) => updateSettings({ disableChecklist: !on })}
+                />
+              )
+              : <ProBadge />}
+          />
+          <Row
+            label={t('settings.strategyBuilder')}
+            hint={settings.generatedStrategy
+              ? t('settings.strategyActive', { name: settings.generatedStrategy.name })
+              : t('settings.strategyNone')}
+            onPress={isPro ? () => navigation.navigate('StrategyBuilder') : openPaywall}
+            right={isPro ? null : <ProBadge />}
+            chevron={isPro}
+          />
+        </Section>
+
+        {/* 4. Everything that can ping you, in one place. */}
+        <Section title={t('settings.sectionNotifications')}>
+          <Row
+            label={t('settings.betResultReminders')}
+            hint={t('settings.betResultRemindersHint')}
+            right={(
+              <Toggle
+                label={t('settings.betResultReminders')}
+                value={settings.betResultReminders !== false}
+                onChange={toggleBetReminders}
+              />
+            )}
+          />
+          <Row
+            label={t('settings.dailyReminder')}
+            hint={t('settings.dailyReminderAt', { time: hh(reminderHour) })}
+            {...(isPro ? {} : { onPress: openPaywall })}
+            right={isPro
+              ? (
                 <Stepper
                   value={settings.reminderHour}
                   min={6}
                   max={23}
-                  onChangeValue={async (v) => {
+                  onChange={async (v) => {
                     updateSettings({ reminderHour: v });
                     await scheduleDailyReminder(v);
                   }}
                 />
-                <Text style={styles.hint}>{String(settings.reminderHour).padStart(2, '0')}:00</Text>
-              </View>
-            ) : (
-              <Text style={styles.value}>20:00 (Free)</Text>
-            )}
-          </Row>
-          <TouchableOpacity style={styles.actionBtn} onPress={handleEnableNotifications}>
-            <Text style={styles.actionBtnText}>🔔  Включить / обновить напоминание</Text>
-          </TouchableOpacity>
+              )
+              : <ProBadge />}
+          />
+          <Row
+            label={t('settings.enableNotifications')}
+            hint={t('settings.enableNotificationsHint')}
+            onPress={handleEnableNotifications}
+            chevron
+          />
         </Section>
 
-        <Section title={t('settings.exportImport')}>
-          <TouchableOpacity style={styles.actionBtn} onPress={handleExport} disabled={exporting}>
-            <Text style={styles.actionBtnText}>
-              {exporting ? 'Экспортируется...' : '📤  Экспорт ставок в CSV'}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionBtn} onPress={handleBackupJSON}>
-            <Text style={styles.actionBtnText}>💾  Резервная копия (JSON)</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.actionBtn} onPress={handleImportCSV} disabled={importing}>
-            <Text style={styles.actionBtnText}>
-              {importing ? 'Загружается...' : '📥  Импорт из CSV'}
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={[styles.actionBtn, styles.lastActionBtn]} onPress={handleImportJSON} disabled={importing}>
-            <Text style={styles.actionBtnText}>
-              {importing ? 'Загружается...' : '📂  Восстановить из JSON'}
-            </Text>
-          </TouchableOpacity>
+        {/* 5. Chips, not a row per bookmaker: the list was the longest thing on
+            the screen and every row in it said the same word, "Удалить". */}
+        <Section title={t('settings.sectionBookmakers')}>
+          <View style={styles.bkBody}>
+            <View style={styles.chips}>
+              {settings.bookmakers.map((bk) => (
+                <View key={bk} style={styles.chip}>
+                  <Text style={styles.chipText} numberOfLines={1}>{bk}</Text>
+                  <TouchableOpacity
+                    hitSlop={CHIP_X_SLOP}
+                    onPress={() => handleRemoveBookmaker(bk)}
+                    accessibilityLabel={t('settings.removeBookmaker', { name: bk })}
+                  >
+                    <Ionicons name="close" size={GLYPH.sm} color={colors.textMuted} />
+                  </TouchableOpacity>
+                </View>
+              ))}
+            </View>
+            <View style={styles.addRow}>
+              <TextInput
+                style={styles.addInput}
+                placeholder={t('settings.addBookmakerPlaceholder')}
+                placeholderTextColor={colors.textMuted}
+                value={newBookmaker}
+                onChangeText={setNewBookmaker}
+                onSubmitEditing={handleAddBookmaker}
+                returnKeyType="done"
+              />
+              <TouchableOpacity
+                style={[styles.addBtn, !newBookmaker.trim() && styles.addBtnOff]}
+                onPress={handleAddBookmaker}
+                disabled={!newBookmaker.trim()}
+                accessibilityLabel={t('common.add')}
+              >
+                <Ionicons name="add" size={GLYPH.lg} color="#fff" />
+              </TouchableOpacity>
+            </View>
+          </View>
         </Section>
 
-        <Section title={t('settings.dangerZone')}>
-          <TouchableOpacity style={styles.dangerBtn} onPress={handleClearData}>
-            <Text style={styles.dangerBtnText}>{t('settings.clearAll')}</Text>
-          </TouchableOpacity>
+        {/* 6. Your data. The backup is first because it is the one that
+            matters: there is no server, and deleting the app deletes the bets. */}
+        <Section title={t('settings.sectionData')}>
+          <Row label={t('settings.backup')} hint={backupHint} onPress={handleBackupJSON} chevron />
+          <Row
+            label={t('settings.restoreBackup')}
+            hint={t('settings.restoreBackupHint')}
+            onPress={handleImportJSON}
+            busy={importing === 'json'}
+            chevron
+          />
+          <Row label={t('settings.exportCSV')} hint={t('settings.exportCSVHint')} onPress={handleExport} busy={exporting} chevron />
+          <Row
+            label={t('settings.importCSV')}
+            hint={t('settings.importCSVHint')}
+            onPress={handleImportCSV}
+            busy={importing === 'csv'}
+            chevron
+          />
+        </Section>
+
+        {/* 7. One line: which build this is, and whether there is a newer one. */}
+        <Section title={t('settings.sectionAbout')}>
+          <Row
+            label={t('settings.version', { version: APP_VERSION })}
+            {...(__DEV__ ? { onPress: handleDevTap } : {})}
+            right={versionRight}
+          />
+          {updateStatus === 'available' && (
+            <Row
+              label={t('settings.updateHowToTitle', { version: latestVersion })}
+              hint={t('settings.updateHowTo')}
+            />
+          )}
+        </Section>
+
+        <Section>
+          <Row label={t('settings.clearAll')} tone="danger" onPress={handleClearData} />
         </Section>
       </ScrollView>
     </>
   );
 }
 
+/** 9 → "09:00". */
+function hh(hour: number): string {
+  return `${String(hour).padStart(2, '0')}:00`;
+}
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg },
-  strategyBtn: {
-    minHeight: TOUCH,
-    flexDirection: 'row', alignItems: 'center', gap: SPACE.md,
-    marginHorizontal: SPACE.lg, marginBottom: SPACE.lg, padding: SPACE.md,
-    backgroundColor: colors.purple + '14', borderRadius: RADIUS.md,
-    borderWidth: 1, borderColor: colors.purple + '44',
-  },
-  strategyBtnIcon: { fontSize: GLYPH.lg },
-  strategyBtnText: { fontSize: SIZE.body, fontWeight: '700', color: colors.textPrimary },
-  strategyBtnSub: { fontSize: SIZE.caption, color: colors.textSecondary, marginTop: 2 },
-  strategyBtnArrow: { fontSize: GLYPH.md, color: colors.textMuted },
-  partnersBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: SPACE.md,
-    marginHorizontal: SPACE.lg, marginBottom: SPACE.lg, padding: SPACE.md,
-    backgroundColor: colors.accent + '14', borderRadius: RADIUS.md,
-    borderWidth: 1, borderColor: colors.accent + '44',
-  },
-  proBtn: { backgroundColor: colors.gold, paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm, borderRadius: RADIUS.lg },
-  proBtnText: { fontSize: SIZE.body, fontWeight: '700', color: '#000' },
-  proBadge: {
-    backgroundColor: colors.gold + '22', paddingHorizontal: SPACE.md, paddingVertical: SPACE.xs,
-    borderRadius: RADIUS.lg, borderWidth: 1, borderColor: colors.gold + '66',
-  },
-  proBadgeText: { fontSize: SIZE.body, fontWeight: '700', color: colors.gold },
-  value: { fontSize: SIZE.body, color: colors.textSecondary },
-  hint: { fontSize: SIZE.lead, color: colors.textMuted },
-  removeText: { fontSize: SIZE.body, color: colors.lost },
-  addBkRow: { flexDirection: 'row', gap: SPACE.sm, paddingVertical: SPACE.md },
-  addBkInput: {
-    flex: 1, backgroundColor: colors.bgElevated, borderRadius: RADIUS.sm,
-    paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm, color: colors.textPrimary,
-    fontSize: SIZE.body, borderWidth: 1, borderColor: colors.border,
-  },
-  addBkBtn: {
-    backgroundColor: colors.purple, width: 38, height: 38,
-    borderRadius: RADIUS.sm, alignItems: 'center', justifyContent: 'center',
-  },
-  addBkBtnText: { fontSize: SIZE.title, color: '#fff', fontWeight: '700', lineHeight: 24 },
-  actionBtn: { minHeight: TOUCH, justifyContent: 'center', paddingVertical: SPACE.md, borderBottomWidth: 1, borderBottomColor: colors.border },
-  lastActionBtn: { borderBottomWidth: 0 },
-  actionBtnText: { fontSize: SIZE.lead, color: colors.purpleText, fontWeight: '600' },
-  toggle: {
-    width: 44, height: 26, borderRadius: RADIUS.md, backgroundColor: colors.border,
-    justifyContent: 'center', paddingHorizontal: 3,
-  },
-  toggleOn: { backgroundColor: colors.accent },
-  toggleThumb: { width: 20, height: 20, borderRadius: RADIUS.pill, backgroundColor: '#fff' },
-  toggleThumbOn: { alignSelf: 'flex-end' },
-  dangerBtn: { minHeight: TOUCH, justifyContent: 'center', paddingVertical: SPACE.md, alignItems: 'center' },
-  dangerBtnText: { fontSize: SIZE.lead, color: colors.lost, fontWeight: '600' },
-  paywallBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
-  paywallSheet: {
-    backgroundColor: colors.bg, borderTopLeftRadius: RADIUS.lg, borderTopRightRadius: RADIUS.lg,
-    minHeight: '75%', overflow: 'hidden',
-  },
-  paywallClose: {
-    position: 'absolute', top: 12, right: 16, zIndex: 10,
-    width: 32, height: 32, borderRadius: RADIUS.pill,
-    backgroundColor: colors.bgElevated, alignItems: 'center', justifyContent: 'center',
-  },
-  paywallCloseText: { fontSize: SIZE.body, color: colors.textSecondary, fontWeight: '700' },
 
-  // Backup banner
   backupBanner: {
     minHeight: TOUCH,
-    flexDirection: 'row', alignItems: 'center', gap: SPACE.sm,
-    marginHorizontal: SPACE.lg, marginBottom: SPACE.md, padding: SPACE.md,
+    flexDirection: 'row', alignItems: 'center', gap: SPACE.md,
+    marginHorizontal: SPACE.lg, marginBottom: SPACE.lg, padding: SPACE.md,
     backgroundColor: mix(colors.gold, colors.bgCard, 0.09), borderRadius: RADIUS.md,
     borderWidth: 1, borderColor: alpha(colors.gold, 0.27),
   },
-  backupBannerIcon: { fontSize: GLYPH.lg },
   backupBannerTitle: { fontSize: SIZE.body, fontWeight: '700', color: colors.gold },
   backupBannerSub: { fontSize: SIZE.caption, color: colors.textSecondary, marginTop: 2 },
-  backupBannerArrow: { fontSize: GLYPH.md, color: colors.textMuted },
 
-  // Subscription card
-  subscriptionCard: {
-    marginHorizontal: SPACE.lg, marginBottom: SPACE.lg,
-    backgroundColor: colors.bgCard, borderRadius: RADIUS.md,
-    padding: SPACE.lg, borderWidth: 1, borderColor: colors.border, gap: SPACE.sm,
+  upgradeBtn: {
+    paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm,
+    borderRadius: RADIUS.sm, backgroundColor: colors.gold,
   },
-  subscriptionRow: { flexDirection: 'row', alignItems: 'flex-start', gap: SPACE.md },
-  subscriptionIcon: { fontSize: GLYPH.xl, marginTop: 2 },
-  subscriptionTitle: { fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary, marginBottom: SPACE.xs },
-  subscriptionSub: { fontSize: SIZE.caption, color: colors.textSecondary, lineHeight: 17 },
-  proUpgradeBtn: {
-    minHeight: TOUCH, justifyContent: 'center',
-    backgroundColor: colors.gold, borderRadius: RADIUS.sm,
-    paddingVertical: SPACE.sm, alignItems: 'center',
+  upgradeBtnText: { fontSize: SIZE.caption, fontWeight: '700', color: '#000' },
+
+  segment: {
+    flexDirection: 'row', padding: 2, borderRadius: RADIUS.sm,
+    backgroundColor: colors.bgSunken, borderWidth: 1, borderColor: colors.border,
   },
-  proUpgradeBtnText: { fontSize: SIZE.body, fontWeight: '700', color: '#000' },
-  restoreBtn: {
-    minHeight: TOUCH, justifyContent: 'center',
-    backgroundColor: colors.bgElevated, borderRadius: RADIUS.sm,
-    paddingVertical: SPACE.sm, alignItems: 'center',
+  segBtn: { ...SEG, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.xs },
+  segBtnActive: { backgroundColor: colors.purple },
+  segText: { fontSize: SIZE.caption, fontWeight: '700', color: colors.textMuted },
+  segTextActive: { color: '#fff' },
+
+  bkBody: { paddingVertical: SPACE.md, gap: SPACE.md },
+  chips: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm },
+  chip: {
+    maxWidth: '100%',
+    flexDirection: 'row', alignItems: 'center', gap: SPACE.sm,
+    paddingLeft: SPACE.md, paddingRight: SPACE.sm, paddingVertical: SPACE.sm,
+    borderRadius: RADIUS.pill, backgroundColor: colors.bgElevated,
     borderWidth: 1, borderColor: colors.border,
   },
-  restoreBtnText: { fontSize: SIZE.body, fontWeight: '600', color: colors.textSecondary },
-  subscriptionHint: { fontSize: SIZE.caption, color: colors.textMuted, textAlign: 'center', lineHeight: 17 },
-
-  langRow: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm, paddingVertical: SPACE.md },
-  langChip: {
-    minHeight: TOUCH,
-    flexDirection: 'row', alignItems: 'center', gap: SPACE.xs,
-    paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm, borderRadius: RADIUS.pill,
-    backgroundColor: colors.bgElevated, borderWidth: 1, borderColor: colors.border,
+  chipText: { flexShrink: 1, fontSize: SIZE.body, color: colors.textPrimary },
+  addRow: { flexDirection: 'row', gap: SPACE.sm },
+  addInput: {
+    flex: 1, minHeight: TOUCH, backgroundColor: colors.bgSunken, borderRadius: RADIUS.sm,
+    paddingHorizontal: SPACE.md, color: colors.textPrimary,
+    fontSize: SIZE.body, borderWidth: 1, borderColor: colors.border,
   },
-  langChipActive: { backgroundColor: colors.purple + '22', borderColor: colors.purple },
-  langFlag: { fontSize: GLYPH.lg },
-  langLabel: { fontSize: SIZE.body, color: colors.textSecondary, fontWeight: '500' },
-  langLabelActive: { color: colors.purpleText, fontWeight: '700' },
+  addBtn: {
+    width: TOUCH, height: TOUCH, borderRadius: RADIUS.sm,
+    backgroundColor: colors.purple, alignItems: 'center', justifyContent: 'center',
+  },
+  addBtnOff: { backgroundColor: colors.bgElevated },
+
+  smallBtn: {
+    paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm, borderRadius: RADIUS.sm,
+    borderWidth: 1, borderColor: alpha(colors.purple, 0.5), backgroundColor: alpha(colors.purple, 0.12),
+  },
+  smallBtnText: { fontSize: SIZE.caption, fontWeight: '700', color: colors.purpleText },
+  statusOk: { fontSize: SIZE.caption, color: colors.textSecondary },
+  statusNew: { fontSize: SIZE.caption, fontWeight: '700', color: colors.accent },
+
+  paywallBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
+  paywallSheet: {
+    backgroundColor: colors.bg, borderTopLeftRadius: RADIUS.sheet, borderTopRightRadius: RADIUS.sheet,
+    minHeight: '75%', overflow: 'hidden',
+  },
+  paywallClose: {
+    position: 'absolute', top: SPACE.md, right: SPACE.lg, zIndex: 10,
+    width: 32, height: 32, borderRadius: RADIUS.pill,
+    backgroundColor: colors.bgElevated, alignItems: 'center', justifyContent: 'center',
+  },
 });

@@ -70,12 +70,19 @@ export async function purchasePackage(pkg: PurchasesPackage): Promise<boolean> {
   }
 }
 
-export async function restorePurchases(): Promise<boolean> {
+/**
+ * true/false when the store answered, null when it could not be reached.
+ *
+ * It used to answer `false` for both, and the caller then told an offline user
+ * who HAD paid that no subscription was found — on the one screen where that
+ * reads as "your money is gone". Same contract as `syncEntitlement` below.
+ */
+export async function restorePurchases(): Promise<boolean | null> {
   try {
     const customerInfo = await Purchases.restorePurchases();
     return isProFromInfo(customerInfo);
   } catch {
-    return false;
+    return null;
   }
 }
 
