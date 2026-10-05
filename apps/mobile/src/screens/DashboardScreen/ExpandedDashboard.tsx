@@ -12,6 +12,7 @@ import { haptic } from '../../utils/haptics';
 import { colors } from '../../theme/colors';
 import { DailyChart, ChartLegend, SERIES, type ChartToggles } from './DailyChart';
 import { SIZE } from '../../theme/typography';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   visible: boolean;
@@ -43,6 +44,7 @@ export function ExpandedDashboard({ visible, days, onClose }: Props) {
   const { width: W, height: H } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const fmt = useFormatMoney();
+  const { t } = useTranslation();
 
   const [hideEmpty, setHideEmpty] = useState(false);
   const [hideNoResult, setHideNoResult] = useState(false);
@@ -98,36 +100,36 @@ export function ExpandedDashboard({ visible, days, onClose }: Props) {
         >
           {/* Header */}
           <View style={ex.header}>
-            <Text style={ex.title}>Статистика по дням</Text>
+            <Text style={ex.title}>{t('dashboard.expTitle')}</Text>
             <View style={ex.headerStats}>
               <Text style={ex.headerStat}>
-                Оборот <Text style={ex.headerStatVal}>{fmt(summary.turnover)}</Text>
+                {t('dashboard.turnover')} <Text style={ex.headerStatVal}>{fmt(summary.turnover)}</Text>
               </Text>
               <Text style={ex.headerStat}>
-                Профит <Text style={[ex.headerStatVal, { color: summary.pnl >= 0 ? SERIES.win : SERIES.loss }]}>
+                {t('dashboard.profit')} <Text style={[ex.headerStatVal, { color: summary.pnl >= 0 ? SERIES.win : SERIES.loss }]}>
                   {summary.pnl >= 0 ? '+' : ''}{fmt(summary.pnl)}
                 </Text>
               </Text>
               <Text style={ex.headerStat}>
-                Дней <Text style={ex.headerStatVal}>{summary.activeDays}</Text>
+                {t('dashboard.days')} <Text style={ex.headerStatVal}>{summary.activeDays}</Text>
                 <Text style={ex.headerStatDim}>/{shown.length}</Text>
               </Text>
             </View>
             <TouchableOpacity onPress={onClose} style={ex.closeBtn} activeOpacity={0.75}>
-              <Text style={ex.closeText}>✕ Свернуть</Text>
+              <Text style={ex.closeText}>✕ {t('common.collapse')}</Text>
             </TouchableOpacity>
           </View>
 
           {/* Filters + chart toggles */}
           <View style={ex.controls}>
-            <Text style={ex.controlLabel}>Дни:</Text>
-            <Chip active={hideEmpty} label="Скрыть без ставок" onPress={() => { setSelected(null); setHideEmpty((v) => !v); }} />
-            <Chip active={hideNoResult} label="Скрыть без результата" onPress={() => { setSelected(null); setHideNoResult((v) => !v); }} />
+            <Text style={ex.controlLabel}>{t('dashboard.filterDays')}</Text>
+            <Chip active={hideEmpty} label={t('dashboard.hideEmpty')} onPress={() => { setSelected(null); setHideEmpty((v) => !v); }} />
+            <Chip active={hideNoResult} label={t('dashboard.hideNoResult')} onPress={() => { setSelected(null); setHideNoResult((v) => !v); }} />
             <View style={ex.controlDivider} />
-            <Text style={ex.controlLabel}>График:</Text>
-            <Chip active={toggles.pnl} color={SERIES.pnl} label="P&L" onPress={() => setToggles((t) => ({ ...t, pnl: !t.pnl }))} />
-            <Chip active={toggles.balance} color={SERIES.balance} label="Баланс" onPress={() => setToggles((t) => ({ ...t, balance: !t.balance }))} />
-            <Chip active={toggles.cash} color={SERIES.deposit} label="Деп/выводы" onPress={() => setToggles((t) => ({ ...t, cash: !t.cash }))} />
+            <Text style={ex.controlLabel}>{t('dashboard.chartLabel')}</Text>
+            <Chip active={toggles.pnl} color={SERIES.pnl} label="P&L" onPress={() => setToggles((prev) => ({ ...prev, pnl: !prev.pnl }))} />
+            <Chip active={toggles.balance} color={SERIES.balance} label={t('dashboard.balance')} onPress={() => setToggles((prev) => ({ ...prev, balance: !prev.balance }))} />
+            <Chip active={toggles.cash} color={SERIES.deposit} label={t('dashboard.cashFlows')} onPress={() => setToggles((prev) => ({ ...prev, cash: !prev.cash }))} />
           </View>
 
           {/* Chart */}
@@ -143,19 +145,19 @@ export function ExpandedDashboard({ visible, days, onClose }: Props) {
               />
             </View>
           ) : (
-            <Text style={ex.empty}>Нет дней под выбранные фильтры</Text>
+            <Text style={ex.empty}>{t('dashboard.noDays')}</Text>
           )}
 
           {sel && (
             <View style={ex.selRow}>
               <Text style={ex.selDate}>{fmtDate(sel.date)}</Text>
-              <Text style={ex.selItem}>Оборот <Text style={ex.selVal}>{fmt(sel.turnover)}</Text></Text>
-              <Text style={ex.selItem}>Выигрыш <Text style={[ex.selVal, { color: SERIES.win }]}>{fmt(sel.wonAmount)}</Text></Text>
-              <Text style={ex.selItem}>Проигрыш <Text style={[ex.selVal, { color: SERIES.loss }]}>{fmt(sel.lostAmount)}</Text></Text>
-              <Text style={ex.selItem}>Профит <Text style={[ex.selVal, { color: sel.pnl >= 0 ? SERIES.win : SERIES.loss }]}>
+              <Text style={ex.selItem}>{t('dashboard.turnover')} <Text style={ex.selVal}>{fmt(sel.turnover)}</Text></Text>
+              <Text style={ex.selItem}>{t('dashboard.won')} <Text style={[ex.selVal, { color: SERIES.win }]}>{fmt(sel.wonAmount)}</Text></Text>
+              <Text style={ex.selItem}>{t('dashboard.lost')} <Text style={[ex.selVal, { color: SERIES.loss }]}>{fmt(sel.lostAmount)}</Text></Text>
+              <Text style={ex.selItem}>{t('dashboard.profit')} <Text style={[ex.selVal, { color: sel.pnl >= 0 ? SERIES.win : SERIES.loss }]}>
                 {sel.pnl >= 0 ? '+' : ''}{fmt(sel.pnl)}
               </Text></Text>
-              <Text style={ex.selItem}>Баланс <Text style={ex.selVal}>{fmt(sel.balance)}</Text></Text>
+              <Text style={ex.selItem}>{t('dashboard.balance')} <Text style={ex.selVal}>{fmt(sel.balance)}</Text></Text>
             </View>
           )}
 
@@ -163,13 +165,13 @@ export function ExpandedDashboard({ visible, days, onClose }: Props) {
 
           {/* Day table */}
           <View style={ex.tableHead}>
-            <Text style={[ex.th, ex.cDate]}>Дата</Text>
-            <Text style={[ex.th, ex.cNum]}>Ставок</Text>
-            <Text style={[ex.th, ex.cMoney]}>Оборот</Text>
-            <Text style={[ex.th, ex.cMoney]}>Выигрыш</Text>
-            <Text style={[ex.th, ex.cMoney]}>Проигрыш</Text>
-            <Text style={[ex.th, ex.cMoney]}>Профит</Text>
-            <Text style={[ex.th, ex.cMoney]}>Баланс</Text>
+            <Text style={[ex.th, ex.cDate]}>{t('bet.date')}</Text>
+            <Text style={[ex.th, ex.cNum]}>{t('dashboard.betsCol')}</Text>
+            <Text style={[ex.th, ex.cMoney]}>{t('dashboard.turnover')}</Text>
+            <Text style={[ex.th, ex.cMoney]}>{t('dashboard.won')}</Text>
+            <Text style={[ex.th, ex.cMoney]}>{t('dashboard.lost')}</Text>
+            <Text style={[ex.th, ex.cMoney]}>{t('dashboard.profit')}</Text>
+            <Text style={[ex.th, ex.cMoney]}>{t('dashboard.balance')}</Text>
           </View>
           <FlatList keyboardShouldPersistTaps="handled"
             data={shown}

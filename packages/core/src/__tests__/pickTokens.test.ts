@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { Bet } from '../types/bet';
-import { PICK } from '../constants/index';
+import { PICK, TX_NOTE } from '../constants/index';
 import { betBacksTeam, calcByTeam } from '../utils/stats';
 
 /**
@@ -41,5 +41,13 @@ describe('PICK — the stored pick format', () => {
     const asTranslated = calcByTeam([bet('Home'), bet('Home')], 1).map((t) => t.name);
     expect(asStored).toContain('Spartak');
     expect(asTranslated).not.toContain('Spartak');
+  });
+});
+
+describe('TX_NOTE — notes the app writes onto transactions', () => {
+  it('is frozen to the strings already stored on devices', () => {
+    // Shown in the history and translated at display time; existing
+    // transactions carry exactly these, so they must not change.
+    expect(TX_NOTE).toEqual({ ADJUSTMENT: 'Сверка с букмекером', INITIAL_DEPOSIT: 'Начальный депозит' });
   });
 });

@@ -11,25 +11,19 @@ import { colors } from '../../theme/colors';
 import { haptic } from '../../utils/haptics';
 import type { DiaryEntry } from '@sharklog/core';
 import { SIZE, GLYPH } from '../../theme/typography';
+import { useTranslation } from 'react-i18next';
+import { dateLocale } from '../../i18n';
 
-const MOODS: Array<{ value: 1 | 2 | 3 | 4 | 5; emoji: string; label: string }> = [
-  { value: 1, emoji: '😫', label: 'Тилт' },
-  { value: 2, emoji: '😟', label: 'Плохо' },
-  { value: 3, emoji: '😐', label: 'Норм' },
-  { value: 4, emoji: '😊', label: 'Хорошо' },
-  { value: 5, emoji: '😄', label: 'Отлично' },
+// Labels are `discipline.mood<value>`.
+const MOODS: Array<{ value: 1 | 2 | 3 | 4 | 5; emoji: string }> = [
+  { value: 1, emoji: '😫' },
+  { value: 2, emoji: '😟' },
+  { value: 3, emoji: '😐' },
+  { value: 4, emoji: '😊' },
+  { value: 5, emoji: '😄' },
 ];
 
-const RULES = [
-  'Никогда не ставь в состоянии тилта',
-  'Следуй стратегии — не импровизируй',
-  'Ставь только то, что готов потерять',
-  'Веди дневник каждой ставки',
-  'Анализируй ошибки, а не только победы',
-  'Не гонись за убытками',
-  'Устанавливай дневные лимиты',
-  'Дисциплина важнее интуиции',
-];
+const RULE_KEYS = [1, 2, 3, 4, 5, 6, 7, 8].map((n) => `discipline.rule${n}`);
 
 function uuid(): string {
   const c = (globalThis as any).crypto;
@@ -62,6 +56,7 @@ function MoodPicker({
   selected: 1 | 2 | 3 | 4 | 5 | null;
   onSelect: (v: 1 | 2 | 3 | 4 | 5) => void;
 }) {
+  const { t } = useTranslation();
   return (
     <View style={mp.row}>
       {MOODS.map((m) => (
@@ -72,7 +67,7 @@ function MoodPicker({
           activeOpacity={0.7}
         >
           <Text style={mp.emoji}>{m.emoji}</Text>
-          <Text style={[mp.label, selected === m.value && mp.labelActive]}>{m.label}</Text>
+          <Text style={[mp.label, selected === m.value && mp.labelActive]}>{t(`discipline.mood${m.value}`)}</Text>
         </TouchableOpacity>
       ))}
     </View>
@@ -127,6 +122,7 @@ export function DisciplineScreen() {
   const diary = useBetsStore((s) => s.diary);
   const settings = useBetsStore((s) => s.settings);
   const addDiaryEntry = useBetsStore((s) => s.addDiaryEntry);
+  const { t } = useTranslation();
   const stats = useMemo(() => calcDashboard(bets), [bets]);
   const inTilt = isInTilt(bets, settings.tiltThreshold);
 
@@ -139,7 +135,7 @@ export function DisciplineScreen() {
 
   function handleSave() {
     if (!mood) {
-      Alert.alert('Выбери настроение', 'Отметь, как себя чувствуешь сегодня');
+      Alert.alert(t('discipline.moodRequiredTitle'), t('discipline.moodRequiredMsg'));
       return;
     }
     const entryBase = { id: todayEntry?.id ?? uuid(), date: today, mood };
@@ -157,52 +153,52 @@ export function DisciplineScreen() {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Дисциплина" subtitle="Психология и контроль" />
+      <ScreenHeader title={t('discipline.title')} subtitle={t('discipline.subtitle')} />
       <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: SPACE.xxl }}>
 
         {inTilt && (
           <View style={styles.tiltBanner}>
             <Text style={styles.tiltEmoji}>🔥</Text>
             <View style={{ flex: 1 }}>
-              <Text style={styles.tiltTitle}>Стоп. Ты в тилте.</Text>
+              <Text style={styles.tiltTitle}>{t('bet.tiltTitle')}</Text>
               <Text style={styles.tiltSub}>
-                {stats.currentStreak.count} поражений подряд. Закрой приложение и отдохни.
+                {t('discipline.tiltStreak', { count: stats.currentStreak.count })}
               </Text>
             </View>
           </View>
         )}
 
-        <Card title="Мой день">
+        <Card title={t('discipline.myDay')}>
           <MoodPicker
             selected={saved ? (todayEntry?.mood ?? mood) : mood}
             onSelect={(v) => { setMood(v); setSaved(false); }}
           />
           <TextInput
             style={styles.noteInput}
-            placeholder="Заметка на день (мысли, причины ставок)..."
+            placeholder={t('discipline.notesPlaceholder')}
             placeholderTextColor={colors.textMuted}
             value={note}
-            onChangeText={(t) => { setNote(t); setSaved(false); }}
+            onChangeText={(text) => { setNote(text); setSaved(false); }}
             multiline
             numberOfLines={3}
             textAlignVertical="top"
           />
           {saved ? (
             <View style={styles.savedRow}>
-              <Text style={styles.savedText}>✓ Сохранено</Text>
+              <Text style={styles.savedText}>{t('discipline.saved')}</Text>
             </View>
           ) : (
             <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-              <Text style={styles.saveBtnText}>Сохранить запись</Text>
+              <Text style={styles.saveBtnText}>{t('discipline.saveEntry')}</Text>
             </TouchableOpacity>
           )}
         </Card>
 
-        <Card title="Статистика тилта">
+        <Card title={t('discipline.tiltStats')}>
           <View style={styles.tiltGrid}>
             <View style={styles.tiltStat}>
               <Text style={styles.tiltStatValue}>{stats.currentStreak.type === 'loss' ? stats.currentStreak.count : 0}</Text>
-              <Text style={styles.tiltStatLabel}>Серия поражений</Text>
+              <Text style={styles.tiltStatLabel}>{t('discipline.lostStreak')}</Text>
             </View>
             <View style={styles.tiltStat}>
               <Text style={[
@@ -215,37 +211,39 @@ export function DisciplineScreen() {
               ]}>
                 {todayBets.length}{settings.isPro && settings.dailyBetLimit > 0 ? `/${settings.dailyBetLimit}` : ''}
               </Text>
-              <Text style={styles.tiltStatLabel}>Ставок сегодня</Text>
+              <Text style={styles.tiltStatLabel}>{t('discipline.betsToday')}</Text>
             </View>
             <View style={styles.tiltStat}>
               <Text style={[styles.tiltStatValue, { color: weekLosses > 5 ? colors.lost : colors.textPrimary }]}>
                 {weekLosses}
               </Text>
-              <Text style={styles.tiltStatLabel}>Поражений за неделю</Text>
+              <Text style={styles.tiltStatLabel}>{t('discipline.weekLosses')}</Text>
             </View>
           </View>
         </Card>
 
-        <Card title="8 правил профи">
-          {RULES.map((rule, i) => (
-            <View key={i} style={styles.ruleRow}>
+        <Card title={t('discipline.rules')}>
+          {RULE_KEYS.map((key, i) => (
+            <View key={key} style={styles.ruleRow}>
               <View style={styles.ruleNum}>
                 <Text style={styles.ruleNumText}>{i + 1}</Text>
               </View>
-              <Text style={styles.ruleText}>{rule}</Text>
+              <Text style={styles.ruleText}>{t(key)}</Text>
             </View>
           ))}
         </Card>
 
         {diary.length > 0 && (
-          <Card title="Дневник">
+          <Card title={t('discipline.diary')}>
             {diary.slice(0, 10).map((entry) => {
               const moodObj = MOODS.find((m) => m.value === entry.mood);
               return (
                 <View key={entry.id} style={styles.diaryRow}>
                   <Text style={styles.diaryEmoji}>{moodObj?.emoji ?? '😐'}</Text>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.diaryDate}>{entry.date}</Text>
+                    <Text style={styles.diaryDate}>
+                      {new Date(`${entry.date}T00:00:00`).toLocaleDateString(dateLocale(), { weekday: 'short', day: 'numeric', month: 'long' })}
+                    </Text>
                     {entry.text ? (
                       <Text style={styles.diaryText} numberOfLines={2}>{entry.text}</Text>
                     ) : null}

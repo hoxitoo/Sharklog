@@ -216,14 +216,8 @@ describe('locale files', () => {
  * the line. Raising one means writing Russian into a screen instead of a key.
  */
 const UNTRANSLATED: Record<string, number> = {
-  'screens/BankrollScreen/index.tsx': 47,
-  'screens/DashboardScreen/index.tsx': 36,
-  'screens/DisciplineScreen/index.tsx': 27,
-  'screens/DashboardScreen/ExpandedDashboard.tsx': 24,
   'screens/PartnersScreen/index.tsx': 22,
   'screens/StrategyBuilderScreen/index.tsx': 21,
-  'screens/OnboardingScreen/index.tsx': 18,
-  'screens/DashboardScreen/DailyChart.tsx': 5,
 };
 
 /** Never translated by design: a language is named in its own language. */

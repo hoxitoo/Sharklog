@@ -31,6 +31,19 @@ export const PICK = {
  */
 export const DEFAULT_BANKROLL_NAME = 'Основной банк';
 
+/**
+ * Notes the app writes onto a transaction by itself — STORED, like PICK.
+ *
+ * They are kept on existing transactions and shown in the history, so the
+ * strings are a data format: a screen may display them translated
+ * (`txNoteLabel`), but the app keeps writing exactly these. A note the user
+ * typed is theirs and is shown as typed.
+ */
+export const TX_NOTE = {
+  ADJUSTMENT: 'Сверка с букмекером',
+  INITIAL_DEPOSIT: 'Начальный депозит',
+} as const;
+
 export const SPORTS: Record<Sport, string> = {
   football: 'Футбол',
   hockey: 'Хоккей',
