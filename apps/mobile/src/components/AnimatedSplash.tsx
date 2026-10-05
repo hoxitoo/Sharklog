@@ -3,6 +3,7 @@ import { SPACE, RADIUS } from '../theme/layout';
 import { View, StyleSheet, Animated, Easing } from 'react-native';
 import { AppText as Text } from './AppText';
 import { FONTS, SIZE } from '../theme/typography';
+import { useTranslation } from 'react-i18next';
 import { colors } from '../theme/colors';
 
 interface Props {
@@ -35,6 +36,7 @@ const COL_X_EVEN = [8, 28, 56, 78];
 const COL_X_ODD = [14, 36, 62, 84];
 
 export function AnimatedSplash({ onFinish }: Props) {
+  const { t } = useTranslation();
   const line1Scale    = useRef(new Animated.Value(0)).current;
   const line2Scale    = useRef(new Animated.Value(0)).current;
   const line3Scale    = useRef(new Animated.Value(0)).current;
@@ -120,7 +122,7 @@ export function AnimatedSplash({ onFinish }: Props) {
         <Text style={s.name}>SharkLog</Text>
       </Animated.View>
       <Animated.Text style={[s.tagline, { opacity: taglineOpacity }]}>
-        Трекер ставок
+        {t('splash.tagline')}
       </Animated.Text>
     </Animated.View>
   );

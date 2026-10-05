@@ -109,3 +109,20 @@ describe('betBacksTeam', () => {
     expect(betBacksTeam(b, '   ', { partial: true })).toBe(false);
   });
 });
+
+describe('calcByDayOfWeek labels', () => {
+  it('keeps the Russian default, so callers that pass nothing are unchanged', async () => {
+    const { calcByDayOfWeek } = await import('../utils/stats');
+    // 2026-08-03 is a Monday.
+    const rows = calcByDayOfWeek([bet({ date: '2026-08-03' })]);
+    expect(rows.map((r) => r.label)).toEqual(['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота']);
+    expect(rows[1]!.count).toBe(1);
+  });
+
+  it('names days with what the caller passes, by getDay() index', async () => {
+    const { calcByDayOfWeek } = await import('../utils/stats');
+    const en = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const rows = calcByDayOfWeek([bet({ date: '2026-08-03' })], (d) => en[d]!);
+    expect(rows[1]).toMatchObject({ label: 'Mon', count: 1 });
+  });
+});

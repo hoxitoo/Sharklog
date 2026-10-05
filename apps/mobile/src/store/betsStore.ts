@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Bet, AppSettings, Bankroll, DiaryEntry, Team, Sport, EsportsDiscipline } from '@sharklog/core';
-import { migrate, CURRENT_SCHEMA_VERSION, FREE_LIMITS, isInTilt, calcDashboard, parseEventTeams, toYmd } from '@sharklog/core';
+import { migrate, CURRENT_SCHEMA_VERSION, FREE_LIMITS, DEFAULT_BANKROLL_NAME, isInTilt, calcDashboard, parseEventTeams, toYmd } from '@sharklog/core';
 import {
   sendTiltNotification, scheduleBetResultReminder,
   cancelBetResultReminder, cancelAllBetResultReminders,
@@ -120,7 +120,7 @@ export function effectiveReminderHour(s: Pick<AppSettings, 'isPro' | 'reminderHo
 
 export const defaultBankroll: Bankroll = {
   id: 'default',
-  name: 'Основной банк',
+  name: DEFAULT_BANKROLL_NAME,
   currency: 'RUB',
   unitPercent: 2,
   transactions: [],

@@ -24,6 +24,13 @@ export const PICK = {
   EXPRESS: 'Экспресс',
 } as const;
 
+/**
+ * The name a new bankroll is created with. STORED, never shown — no screen
+ * reads `bankroll.name` — so it stays as it always was rather than following
+ * the interface language; kept here so that is a decision, not an oversight.
+ */
+export const DEFAULT_BANKROLL_NAME = 'Основной банк';
+
 export const SPORTS: Record<Sport, string> = {
   football: 'Футбол',
   hockey: 'Хоккей',

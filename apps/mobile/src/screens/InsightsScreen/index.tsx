@@ -6,9 +6,12 @@ import {
 } from 'react-native';
 import { AppText as Text } from '../../components/AppText';
 import {
-  calcByTournament, calcByTeam, formatPercent,
-  SPORTS, ESPORTS_DISCIPLINES, toYmd,
+  calcByTournament, calcByTeam, formatPercent, toYmd,
 } from '@sharklog/core';
+import type { EsportsDiscipline } from '@sharklog/core';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
+import { disciplineLabel } from '../../utils/labels';
 import type { TournamentStats, TeamStats } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { useDrawer } from '../../components/DrawerContext';
@@ -26,10 +29,13 @@ if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental
 
 type Period = '7d' | '30d' | 'all';
 const PERIOD_OPTIONS: Array<{ key: Period; label: string }> = [
-  { key: '7d', label: '7 дн' },
-  { key: '30d', label: '30 дн' },
-  { key: 'all', label: 'Всё' },
+  { key: '7d', label: 'insights.period7d' },
+  { key: '30d', label: 'insights.period30d' },
+  { key: 'all', label: 'insights.periodAll' },
 ];
+
+/** Bets a team needs before it is analysed — shown to the user, so one source. */
+const TEAM_MIN_BETS = 5;
 
 const SPORT_ICONS: Record<string, string> = {
   football: '⚽', hockey: '🏒', basketball: '🏀', tennis: '🎾',
@@ -43,14 +49,13 @@ const TOP_N = 3;
  * "Киберспорт" is not an answer — CS2 and Dota are different games with
  * different edges, so the discipline replaces the sport whenever it is known.
  */
-function sportLine(sport: string, discipline?: string): string {
+function sportLine(tr: TFunction, sport: string, discipline?: string): string {
   const icon = SPORT_ICONS[sport] ?? '🏅';
-  // "Другая дисциплина" names nothing and is Russian in every locale, so the
-  // sport is the better answer there.
+  // "Other game" names nothing, so the sport is the better answer there.
   const named = discipline && discipline !== 'other_esports'
-    ? ESPORTS_DISCIPLINES[discipline as keyof typeof ESPORTS_DISCIPLINES]
+    ? disciplineLabel(tr, discipline as EsportsDiscipline)
     : undefined;
-  const name = named ?? SPORTS[sport as keyof typeof SPORTS] ?? sport;
+  const name = named ?? tr(`sports.${sport}`, { defaultValue: sport });
   return `${icon} ${name}`;
 }
 
@@ -66,12 +71,13 @@ function HeroPair({ best, worst, onOpen }: {
   onOpen: (name: string) => void;
 }) {
   const fmt = useFormatMoney();
+  const { t } = useTranslation();
   // The label states the rank, the colour states the money. When every
   // tournament is profitable the "worst" one is still a profit, and painting
   // that number red would be a lie about the only thing that matters here.
   const cards = [
-    { label: 'Лучший', item: best, accent: pnlColor(best.pnl) },
-    ...(worst ? [{ label: 'Худший', item: worst, accent: pnlColor(worst.pnl) }] : []),
+    { label: t('insights.best'), item: best, accent: pnlColor(best.pnl) },
+    ...(worst ? [{ label: t('insights.worst'), item: worst, accent: pnlColor(worst.pnl) }] : []),
   ];
   return (
     <View style={s.heroRow}>
@@ -88,7 +94,7 @@ function HeroPair({ best, worst, onOpen }: {
           <Text style={[s.heroLabel, { color: accent }]}>{label}</Text>
           <Text style={s.heroName} numberOfLines={2}>{item.name}</Text>
           <Text style={s.heroSub} numberOfLines={1}>
-            {sportLine(item.sport, item.discipline)} · {item.count} ст.
+            {sportLine(t, item.sport, item.discipline)} · {t('common.betsShort', { count: item.count })}
           </Text>
           <Text style={[s.heroPnl, { color: accent }]} numberOfLines={1} adjustsFontSizeToFit>
             {item.pnl >= 0 ? '+' : ''}{fmt(item.pnl)}
@@ -107,13 +113,15 @@ const TournamentRow = React.memo(function TournamentRow({ t, onPress }: {
   onPress: () => void;
 }) {
   const fmt = useFormatMoney();
+  // `tr`: the tournament row's own prop is already called `t`.
+  const { t: tr } = useTranslation();
   const color = pnlColor(t.pnl);
   return (
     <TouchableOpacity style={s.row} onPress={onPress} activeOpacity={0.7}>
       <View style={{ flex: 1, marginRight: SPACE.sm }}>
         <Text style={s.rowName} numberOfLines={1}>{t.tournament}</Text>
         <Text style={s.rowSub} numberOfLines={1}>
-          {sportLine(t.sport, t.discipline)} · {t.count} ставок · {t.winRate.toFixed(0)}% WR
+          {sportLine(tr, t.sport, t.discipline)} · {tr('common.betsCount', { count: t.count })} · {t.winRate.toFixed(0)}% WR
         </Text>
       </View>
       <View style={{ alignItems: 'flex-end' }}>
@@ -130,13 +138,14 @@ const TeamRow = React.memo(function TeamRow({ team, onPress }: {
   onPress: () => void;
 }) {
   const fmt = useFormatMoney();
+  const { t } = useTranslation();
   const color = pnlColor(team.pnl);
   return (
     <TouchableOpacity style={s.row} onPress={onPress} activeOpacity={0.7}>
       <View style={{ flex: 1, marginRight: SPACE.sm }}>
         <Text style={s.rowName} numberOfLines={1}>{team.name}</Text>
         <Text style={s.rowSub} numberOfLines={1}>
-          {sportLine(team.sport, team.discipline)} · {team.count} ставок · {team.winRate.toFixed(0)}% WR
+          {sportLine(t, team.sport, team.discipline)} · {t('common.betsCount', { count: team.count })} · {team.winRate.toFixed(0)}% WR
         </Text>
       </View>
       <View style={{ alignItems: 'flex-end' }}>
@@ -152,11 +161,12 @@ const TeamRow = React.memo(function TeamRow({ team, onPress }: {
 function MoreToggle({ count, open, onToggle }: {
   count: number; open: boolean; onToggle: () => void;
 }) {
+  const { t } = useTranslation();
   if (count === 0) return null;
   return (
     <TouchableOpacity style={s.moreBtn} onPress={onToggle} activeOpacity={0.8}>
       <Text style={s.moreText}>
-        {open ? 'Свернуть' : `Ещё ${count}`}
+        {open ? t('common.collapse') : t('common.showMore', { count })}
       </Text>
       <Text style={s.moreChevron}>{open ? '▲' : '▼'}</Text>
     </TouchableOpacity>
@@ -206,7 +216,7 @@ export function InsightsScreen() {
   // repeating the best tournament directly under its own card reads as a bug.
   const tourn = useMemo(() => calcByTournament(filteredBets), [filteredBets]);
   const teams = useMemo(
-    () => [...calcByTeam(filteredBets, 5)].sort((a, b) => b.pnl - a.pnl),
+    () => [...calcByTeam(filteredBets, TEAM_MIN_BETS)].sort((a, b) => b.pnl - a.pnl),
     [filteredBets],
   );
 
@@ -220,10 +230,12 @@ export function InsightsScreen() {
 
   const t = split(tourn);
   const tm = split(teams);
+  // `tr`: `t` above is the tournament split.
+  const { t: tr } = useTranslation();
 
   return (
     <View style={s.root}>
-      <ScreenHeader title="Инсайты" subtitle="Турниры и команды" />
+      <ScreenHeader title={tr('nav.insights')} subtitle={tr('insights.subtitle')} />
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
         <View style={s.periodRow}>
           {PERIOD_OPTIONS.map((p) => (
@@ -232,16 +244,16 @@ export function InsightsScreen() {
               style={[s.periodBtn, period === p.key && s.periodBtnActive]}
               onPress={() => { haptic.selection(); setPeriod(p.key); }}
             >
-              <Text style={[s.periodLabel, period === p.key && s.periodLabelActive]}>{p.label}</Text>
+              <Text style={[s.periodLabel, period === p.key && s.periodLabelActive]}>{tr(p.label)}</Text>
             </TouchableOpacity>
           ))}
         </View>
 
         {/* ── Tournaments ── */}
-        <Text style={s.sectionTitle}>Турниры и лиги</Text>
+        <Text style={s.sectionTitle}>{tr('insights.tournamentsAndLeagues')}</Text>
         {!t.best ? (
           <View style={s.card}>
-            <Text style={s.empty}>Добавляй турнир при записи ставки — здесь появится статистика</Text>
+            <Text style={s.empty}>{tr('insights.tournamentsEmpty')}</Text>
           </View>
         ) : (
           <>
@@ -265,11 +277,11 @@ export function InsightsScreen() {
         )}
 
         {/* ── Teams — PRO ── */}
-        <Text style={s.sectionTitle}>Любимые команды</Text>
-        <ProGate feature="Анализ любимых команд (5+ ставок)">
+        <Text style={s.sectionTitle}>{tr('insights.teams')}</Text>
+        <ProGate feature={tr('insights.teamsFeature', { count: TEAM_MIN_BETS })}>
           {!tm.best ? (
             <View style={s.card}>
-              <Text style={s.empty}>Нужно минимум 5 ставок на одну команду</Text>
+              <Text style={s.empty}>{tr('insights.teamsMin', { count: TEAM_MIN_BETS })}</Text>
             </View>
           ) : (
             <>

@@ -216,7 +216,6 @@ describe('locale files', () => {
  * the line. Raising one means writing Russian into a screen instead of a key.
  */
 const UNTRANSLATED: Record<string, number> = {
-  'screens/AnalyticsScreen/index.tsx': 78,
   'screens/BankrollScreen/index.tsx': 47,
   'screens/DashboardScreen/index.tsx': 36,
   'screens/DisciplineScreen/index.tsx': 27,
@@ -224,16 +223,7 @@ const UNTRANSLATED: Record<string, number> = {
   'screens/PartnersScreen/index.tsx': 22,
   'screens/StrategyBuilderScreen/index.tsx': 21,
   'screens/OnboardingScreen/index.tsx': 18,
-  'screens/InsightsScreen/index.tsx': 15,
-  'screens/InsightsScreen/YearBreakdown.tsx': 9,
   'screens/DashboardScreen/DailyChart.tsx': 5,
-  'components/ResponsibleGamblingBanner.tsx': 2,
-  'components/ErrorBoundary.tsx': 2,
-  'utils/exportCSV.ts': 1,
-  'store/betsStore.ts': 1,
-  'components/Coachmark.tsx': 1,
-  'components/BalanceChart.tsx': 1,
-  'components/AnimatedSplash.tsx': 1,
 };
 
 /** Never translated by design: a language is named in its own language. */
@@ -354,8 +344,6 @@ const CORE_LABELS_ALLOWED: Record<string, string> = {
 
 /** Still to be moved onto utils/labels. May only shrink. */
 const CORE_LABELS_PENDING = new Set([
-  'screens/AnalyticsScreen/index.tsx',
-  'screens/InsightsScreen/index.tsx',
   'screens/StrategyBuilderScreen/index.tsx',
 ]);
 

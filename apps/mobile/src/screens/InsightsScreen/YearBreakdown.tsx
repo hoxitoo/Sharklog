@@ -9,22 +9,12 @@ import { colors, alpha } from '../../theme/colors';
 import { numeric, SIZE } from '../../theme/typography';
 import { useFormatMoney } from '../../utils/useFormatMoney';
 import { haptic } from '../../utils/haptics';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   bets: Bet[];
   /** Opens the bets behind one bar. `tournament` is empty for the untagged group. */
   onOpen: (year: number, tournament: string) => void;
-}
-
-/** Russian counts agree with the number: 1 ставка, 2 ставки, 5 ставок. */
-function betsWord(n: number): string {
-  const mod100 = n % 100;
-  if (mod100 >= 11 && mod100 <= 14) return 'ставок';
-  switch (n % 10) {
-    case 1: return 'ставка';
-    case 2: case 3: case 4: return 'ставки';
-    default: return 'ставок';
-  }
 }
 
 /** Bars past this many are folded away — a long season has a long tail. */
@@ -42,6 +32,7 @@ const VISIBLE = 8;
  */
 export function YearBreakdown({ bets, onOpen }: Props) {
   const fmt = useFormatMoney();
+  const { t } = useTranslation();
   const years = useMemo(() => calcBetYears(bets), [bets]);
   // The switch always offers the current year, but starting on it in January
   // would show an empty chart with the whole history one chip away.
@@ -68,7 +59,7 @@ export function YearBreakdown({ bets, onOpen }: Props) {
 
   return (
     <View>
-      <Text style={y.sectionTitle}>По годам</Text>
+      <Text style={y.sectionTitle}>{t('insights.byYear')}</Text>
 
       <ScrollView keyboardShouldPersistTaps="handled"
         horizontal
@@ -89,13 +80,14 @@ export function YearBreakdown({ bets, onOpen }: Props) {
 
       <View style={y.card}>
         <View style={y.head}>
-          <Text style={y.headLabel}>Итог {active}</Text>
+          <Text style={y.headLabel}>{t('insights.yearTotal', { year: active })}</Text>
           <Text style={[y.headValue, { color: total > 0 ? colors.won : total < 0 ? colors.lost : colors.textMuted }]}>
             {total > 0 ? '+' : ''}{fmt(total)}
           </Text>
         </View>
         <Text style={y.headSub}>
-          {count === 0 ? 'Ставок за этот год ещё нет' : `${count} ${betsWord(count)}`}
+          {/* The hand-rolled Russian pluralizer this replaced knew one language. */}
+          {count === 0 ? t('insights.yearEmpty') : t('common.betsCount', { count })}
         </Text>
 
         {rows.length > 0 && (
@@ -119,7 +111,7 @@ export function YearBreakdown({ bets, onOpen }: Props) {
             activeOpacity={0.8}
           >
             <Text style={y.moreText}>
-              {expanded ? 'Свернуть' : `Ещё ${rows.length - VISIBLE}`} {expanded ? '▲' : '▼'}
+              {expanded ? t('common.collapse') : t('common.showMore', { count: rows.length - VISIBLE })} {expanded ? '▲' : '▼'}
             </Text>
           </TouchableOpacity>
         )}
@@ -131,11 +123,12 @@ export function YearBreakdown({ bets, onOpen }: Props) {
 function Bar({ row, peak, fmt, onPress }: {
   row: TournamentStats; peak: number; fmt: (k: number) => string; onPress: () => void;
 }) {
+  const { t } = useTranslation();
   const positive = row.pnl >= 0;
   const accent = row.pnl > 0 ? colors.won : row.pnl < 0 ? colors.lost : colors.textMuted;
   // Half the track per side, so the centre line is the zero.
   const share = (Math.abs(row.pnl) / peak) * 50;
-  const name = row.tournament || 'Без турнира';
+  const name = row.tournament || t('bet.filterNoTournament');
 
   return (
     <TouchableOpacity style={y.barRow} onPress={onPress} activeOpacity={0.7}>

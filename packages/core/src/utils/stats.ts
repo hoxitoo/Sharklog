@@ -165,8 +165,15 @@ export function calcByOddsRange(bets: Bet[]): SliceStats[] {
   });
 }
 
-export function calcByDayOfWeek(bets: Bet[]): SliceStats[] {
-  const days = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
+const DAY_NAMES_RU = ['Воскресенье', 'Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота'];
+
+/**
+ * `dayName(dow)` names a weekday (0 = Sunday, as `Date.getDay`). The default
+ * is Russian so the desktop is unchanged; a translated screen passes its own —
+ * otherwise "По дню недели" printed Russian days in every language, and no
+ * check on the screen could see it, since the Russian was produced here.
+ */
+export function calcByDayOfWeek(bets: Bet[], dayName: (dow: number) => string = (d) => DAY_NAMES_RU[d] ?? ''): SliceStats[] {
   const groups: Bet[][] = Array.from({ length: 7 }, () => []);
 
   for (const bet of bets) {
@@ -176,7 +183,7 @@ export function calcByDayOfWeek(bets: Bet[]): SliceStats[] {
     if (dow >= 0 && dow <= 6) groups[dow]?.push(bet);
   }
 
-  return groups.map((group, i) => calcSlice(group, days[i] ?? ''));
+  return groups.map((group, i) => calcSlice(group, dayName(i)));
 }
 
 export function calcByHour(bets: Bet[]): SliceStats[] {
