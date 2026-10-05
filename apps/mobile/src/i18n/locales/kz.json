@@ -9,7 +9,10 @@
     "bankroll": "Банкролл",
     "strategyBuilder": "Стратегия құрушы",
     "partners": "Серіктестер",
-    "partnersSub": "Тіркелу бонустары"
+    "partnersSub": "Тіркелу бонустары",
+    "pending": "Нәтижені күтуде",
+    "filters": "Сүзгілер",
+    "responsible": "18+ · Жауапты ойнаңыз"
   },
   "status": {
     "pending": "Күтуде",
@@ -74,8 +77,6 @@
     "tiltTitle": "Стоп. Тилтте.",
     "tiltSub": "Келесі ставкадан бұрын үзіліс жасаңыз.",
     "noBetsStart": "+ басыңыз",
-    "limitReached": "🔒 {{count}} ставка шегіне жетті — Pro-ға өтіңіз",
-    "limitWarning": "⚠️ {{count}} тегін ставка қалды",
     "duplicate": "Көшірме",
     "changeResult": "Нәтиже",
     "tipWheel": "Ставкаға түртіңіз — әрекеттер дөңгелегі · Солға сырғытыңыз — жою · + — жаңа ставка",
@@ -85,7 +86,29 @@
     "sortOddsDesc": "Коэф. ↓",
     "sortOddsAsc": "Коэф. ↑",
     "sortStakeDesc": "Сома ↓",
-    "sortStakeAsc": "Сома ↑"
+    "sortStakeAsc": "Сома ↑",
+    "filterOnly": "Тек {{date}}",
+    "filterTournament": "Турнир: {{name}}",
+    "filterNoTournament": "Турнирсіз",
+    "filterTeam": "Команда: {{name}}",
+    "filterYear": "{{year}} жыл",
+    "filterSince": "{{date}} бастап",
+    "todaySub_one": "{{count}} ст. · {{amount}}",
+    "todaySub_other": "{{count}} ст. · {{amount}}",
+    "inPlay": "Ойында",
+    "inPlaySub": "нәтижелерді жабу",
+    "bank": "Банк",
+    "bankSub": "ағымдағы баланс",
+    "cashoutLine": "Сатып алу: {{amount}}",
+    "limitReached_one": "🔒 {{count}} ставка шегіне жетті — Pro-ға өтіңіз",
+    "limitReached_other": "🔒 {{count}} ставка шегіне жетті — Pro-ға өтіңіз",
+    "limitWarning_one": "⚠️ {{count}} тегін ставка қалды",
+    "limitWarning_other": "⚠️ {{count}} тегін ставка қалды",
+    "limitTitle": "Шекке жетті",
+    "limitMsg_one": "Тегін жоспар — {{count}} ставкаға дейін. Шексіз есеп үшін Pro-ға өтіңіз.",
+    "limitMsg_other": "Тегін жоспар — {{count}} ставкаға дейін. Шексіз есеп үшін Pro-ға өтіңіз.",
+    "dailyLimitTitle": "Күндік шек",
+    "dailyLimitMsg": "Бүгінгі шек: {{count}}. Келесі ставканы ертең қоса аласыз — немесе шекті баптауларда өзгертіңіз."
   },
   "dashboard": {
     "title": "Дашборд",
@@ -359,11 +382,12 @@
     "noData": "Деректер жоқ",
     "pro": "PRO",
     "free": "Тегін",
-    "bets": "ставка",
     "of": "/",
     "status": "Күй",
     "date": "Күні",
-    "type": "Түрі"
+    "type": "Түрі",
+    "betsCount_one": "{{count}} ставка",
+    "betsCount_other": "{{count}} ставка"
   },
   "sports": {
     "football": "Футбол",
@@ -402,5 +426,39 @@
     "noFile": "Файл табылмады",
     "invalidFile": "Файл форматы қате",
     "storeUnreachable": "Дүкенмен байланысу мүмкін болмады. Интернетті тексеріп, қайталап көріңіз."
+  },
+  "filters": {
+    "tournament": "Турнир / лига",
+    "tournamentHint": "Атаудың бір бөлігі — «StarLadder» «StarLadder StarSeries Fall 26» табады",
+    "anyM": "Кез келген",
+    "team": "Команда / спортшы",
+    "teamHint": "Тек осы командаға жасалған ставкалар, онымен өткен барлық матчтар емес",
+    "anyF": "Кез келген",
+    "dateHint": "ЖЖЖЖ-АА-КК — ставка формасындағыдай",
+    "from": "бастап",
+    "to": "дейін",
+    "note": "Сүзгі мәртебе мен сұрыптауға қосылады — олар таңдалғандай қалады.",
+    "reset": "Тазалау"
+  },
+  "pending": {
+    "agoDays": "{{count}} күн бұрын",
+    "agoHours": "{{count}} сағ бұрын",
+    "agoMinutes": "{{count}} мин бұрын",
+    "ifWon": "Егер өтсе",
+    "ifWonSub": "толық қайтарым",
+    "overdue": "Жабу уақыты",
+    "overdueSub": "матч әлдеқашан өтті",
+    "emptyTitle": "Барлығы жабылды",
+    "emptyText": "Жабылмаған ставкалар жоқ — статистика өзекті."
+  },
+  "notifications": {
+    "dailyBody": "Бүгінгі ставкаларды жазуды ұмытпаңыз",
+    "tiltTitle": "⚠️ Тоқтаңыз — мүмкін тилт",
+    "tiltBody_one": "Қатарынан {{count}} жеңіліс. Үзіліс жасап, демалыңыз.",
+    "tiltBody_other": "Қатарынан {{count}} жеңіліс. Үзіліс жасап, демалыңыз.",
+    "resultTitle": "Матч аяқталды — нәтиже қандай?",
+    "actionWon": "Жеңді",
+    "actionLost": "Жеңілді",
+    "actionLater": "Кейінірек"
   }
 }

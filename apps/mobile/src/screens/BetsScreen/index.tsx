@@ -12,7 +12,7 @@ import { useFormatMoney } from '../../utils/useFormatMoney';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { Bet, BetStatus } from '@sharklog/core';
-import { isInTilt, calcDailyBreakdown, currentBank, betBacksTeam, toYmd } from '@sharklog/core';
+import { isInTilt, calcDailyBreakdown, currentBank, betBacksTeam, toYmd, FREE_LIMITS } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { colors, mix, toneSurface } from '../../theme/colors';
 import type { BetsFilter } from '../../components/DrawerContext';
@@ -27,7 +27,7 @@ import { Coachmark } from '../../components/Coachmark';
 import { haptic } from '../../utils/haptics';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { useTranslation } from 'react-i18next';
-import i18n from '../../i18n/index';
+import { dateLocale } from '../../i18n/index';
 import { SIZE, GLYPH, numeric } from '../../theme/typography';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
@@ -41,8 +41,7 @@ function formatDateTitle(dateStr: string, todayLabel: string, yesterdayLabel: st
   if (dateStr === yesterdayStr) return yesterdayLabel;
   const parts = dateStr.split('-').map(Number);
   const d = new Date(parts[0] ?? 0, (parts[1] ?? 1) - 1, parts[2] ?? 1);
-  const locale = i18n.language === 'en' ? 'en-US' : 'ru-RU';
-  return d.toLocaleDateString(locale, { day: 'numeric', month: 'long' });
+  return d.toLocaleDateString(dateLocale(), { day: 'numeric', month: 'long' });
 }
 
 const STATUS_FILTER_KEYS: Array<BetStatus | 'all'> = ['all', 'pending', 'won', 'lost', 'refund', 'cashout'];
@@ -224,15 +223,15 @@ export function BetsScreen({ filter, onClearFilter }: {
     const dm = (ymd: string) => ymd.split('-').reverse().slice(0, 2).join('.');
     // The period suffix matters: without it the count here would not match the
     // Insights tile the user tapped, and a mismatched number reads as a bug.
-    const since = filter?.from ? ` · с ${dm(filter.from)}` : '';
+    const since = filter?.from ? ` · ${t('bet.filterSince', { date: dm(filter.from) })}` : '';
     const year = filter?.year ? ` · ${filter.year}` : '';
-    if (filter?.date) return `Только ${dm(filter.date)}`;
-    if (filter?.tournament) return `Турнир: ${filter.tournament}${year}${since}`;
-    if (filter?.noTournament) return `Без турнира${year}${since}`;
-    if (filter?.team) return `Команда: ${filter.team}${year}${since}`;
-    if (filter?.year) return `${filter.year} год`;
+    if (filter?.date) return t('bet.filterOnly', { date: dm(filter.date) });
+    if (filter?.tournament) return `${t('bet.filterTournament', { name: filter.tournament })}${year}${since}`;
+    if (filter?.noTournament) return `${t('bet.filterNoTournament')}${year}${since}`;
+    if (filter?.team) return `${t('bet.filterTeam', { name: filter.team })}${year}${since}`;
+    if (filter?.year) return t('bet.filterYear', { year: filter.year });
     return null;
-  }, [filter]);
+  }, [filter, t]);
 
   const queryLabel = useMemo(() => describeBetsQuery(query), [query]);
 
@@ -311,15 +310,18 @@ export function BetsScreen({ filter, onClearFilter }: {
     });
   }, [bets, statusFilter, search, sort, filter, query, todayLabel, yesterdayLabel, t]);
 
-  const freeLeft = Math.max(0, 50 - bets.length);
-
   const betActions = useBetActions();
 
   return (
     <View style={styles.container}>
       <ScreenHeader
         title={t('nav.bets')}
-        subtitle={settings.isPro ? `${bets.length} ${t('common.bets')}` : `${freeLeft} ${t('common.of')} 50`}
+        // A real plural: number + a fixed "ставок" printed "261 ставок". And on
+        // Free, the count USED, as in Settings — the same "N из 50" used to mean
+        // "used" there and "left" here.
+        subtitle={settings.isPro
+          ? t('common.betsCount', { count: bets.length })
+          : `${bets.length} ${t('common.of')} ${FREE_LIMITS.MAX_BETS}`}
       />
 
       <View style={styles.body}>
@@ -426,7 +428,7 @@ export function BetsScreen({ filter, onClearFilter }: {
 
           <View style={styles.todayStrip}>
             <View style={styles.todayCell}>
-              <Text style={styles.todayLabel}>Сегодня</Text>
+              <Text style={styles.todayLabel}>{t('dashboard.today')}</Text>
               <Text style={[
                 styles.todayValue,
                 { color: !today || today.settledCount === 0 ? colors.textMuted
@@ -436,7 +438,9 @@ export function BetsScreen({ filter, onClearFilter }: {
                   ? `${today.pnl >= 0 ? '+' : ''}${fmt(today.pnl)}`
                   : '—'}
               </Text>
-              <Text style={styles.todaySub}>{today?.betCount ?? 0} ст. · {fmt(today?.turnover ?? 0)}</Text>
+              <Text style={styles.todaySub}>
+                {t('bet.todaySub', { count: today?.betCount ?? 0, amount: fmt(today?.turnover ?? 0) })}
+              </Text>
             </View>
             <View style={styles.todayDivider} />
             <TouchableOpacity
@@ -444,19 +448,19 @@ export function BetsScreen({ filter, onClearFilter }: {
               onPress={() => { haptic.selection(); navigation.navigate('Pending'); }}
               activeOpacity={0.75}
             >
-              <Text style={styles.todayLabel}>В игре →</Text>
+              <Text style={styles.todayLabel}>{t('bet.inPlay')} →</Text>
               <Text style={[styles.todayValue, { color: exposure > 0 ? colors.pending : colors.textMuted }]} numberOfLines={1} adjustsFontSizeToFit>
                 {exposure > 0 ? fmt(exposure) : '—'}
               </Text>
-              <Text style={styles.todaySub}>закрыть результаты</Text>
+              <Text style={styles.todaySub}>{t('bet.inPlaySub')}</Text>
             </TouchableOpacity>
             <View style={styles.todayDivider} />
             <TouchableOpacity style={styles.todayCell} onPress={() => { haptic.selection(); navigation.navigate('Bankroll'); }} activeOpacity={0.75}>
-              <Text style={styles.todayLabel}>Банк →</Text>
+              <Text style={styles.todayLabel}>{t('bet.bank')} →</Text>
               <Text style={[styles.todayValue, { color: bank >= 0 ? colors.textPrimary : colors.lost }]} numberOfLines={1} adjustsFontSizeToFit>
                 {fmt(bank)}
               </Text>
-              <Text style={styles.todaySub}>текущий баланс</Text>
+              <Text style={styles.todaySub}>{t('bet.bankSub')}</Text>
             </TouchableOpacity>
           </View>
 
@@ -517,7 +521,7 @@ export function BetsScreen({ filter, onClearFilter }: {
               style={[styles.advBtn, queryCount > 0 && styles.advBtnActive]}
               onPress={() => { haptic.selection(); navigation.navigate('BetsFilter'); }}
               activeOpacity={0.75}
-              accessibilityLabel="Фильтры"
+              accessibilityLabel={t('nav.filters')}
             >
               <Ionicons
                 name="options-outline"
@@ -570,7 +574,7 @@ export function BetsScreen({ filter, onClearFilter }: {
             <View style={styles.trayCell}>
               {/* Same words as the expanded panel, so the tray reads as the
                   same thing shrunk rather than a different one. */}
-              <Text style={styles.trayLabel}>Банк</Text>
+              <Text style={styles.trayLabel}>{t('bet.bank')}</Text>
               <Text style={[styles.trayValue, { color: bank >= 0 ? colors.textPrimary : colors.lost }]}
                 numberOfLines={1} adjustsFontSizeToFit>
                 {fmt(bank)}
@@ -580,7 +584,7 @@ export function BetsScreen({ filter, onClearFilter }: {
             <View style={styles.trayDivider} />
 
             <View style={styles.trayCell}>
-              <Text style={styles.trayLabel}>В игре</Text>
+              <Text style={styles.trayLabel}>{t('bet.inPlay')}</Text>
               <Text style={[styles.trayValue, { color: exposure > 0 ? colors.pending : colors.textMuted }]}
                 numberOfLines={1} adjustsFontSizeToFit>
                 {exposure > 0 ? fmt(exposure) : '—'}
@@ -598,9 +602,9 @@ export function BetsScreen({ filter, onClearFilter }: {
       {!settings.isPro && bets.length >= 40 && (
         <View style={styles.limitBanner}>
           <Text style={styles.limitText}>
-            {50 - bets.length <= 0
-              ? t('bet.limitReached', { count: 50 })
-              : t('bet.limitWarning', { count: 50 - bets.length })}
+            {FREE_LIMITS.MAX_BETS - bets.length <= 0
+              ? t('bet.limitReached', { count: FREE_LIMITS.MAX_BETS })
+              : t('bet.limitWarning', { count: FREE_LIMITS.MAX_BETS - bets.length })}
           </Text>
         </View>
       )}

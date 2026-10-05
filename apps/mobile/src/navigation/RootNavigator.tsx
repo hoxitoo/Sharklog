@@ -62,12 +62,12 @@ export function RootNavigator() {
       <Stack.Screen
         name="Pending"
         component={PendingScreen}
-        options={{ headerShown: true, ...headerOpts, title: 'Ждут результата' }}
+        options={{ headerShown: true, ...headerOpts, title: t('nav.pending') }}
       />
       <Stack.Screen
         name="BetsFilter"
         component={BetsFilterScreen}
-        options={{ headerShown: true, ...headerOpts, title: 'Фильтры' }}
+        options={{ headerShown: true, ...headerOpts, title: t('nav.filters') }}
       />
       <Stack.Screen
         name="Partners"

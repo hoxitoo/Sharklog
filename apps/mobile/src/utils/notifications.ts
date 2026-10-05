@@ -1,4 +1,13 @@
 import * as Notifications from 'expo-notifications';
+import i18n from '../i18n';
+
+/*
+ * Every string here is resolved at the moment a notification is SCHEDULED, and
+ * the action buttons at the moment the category is REGISTERED — the OS keeps
+ * the text, not the key. So a language switch changes none of it by itself:
+ * App.tsx applies the language before any of this runs, and re-issues it all
+ * when the language changes (see `syncBetResultReminders(..., { rearm })`).
+ */
 
 /** Set by App.tsx — avoids importing the store here (the store imports this file). */
 let isBetStillPending: (betId: string) => boolean = () => true;
@@ -54,7 +63,7 @@ export async function scheduleDailyReminder(hour = 20): Promise<void> {
     await Notifications.scheduleNotificationAsync({
       content: {
         title: 'SharkLog 🦈',
-        body: 'Не забудь записать сегодняшние ставки',
+        body: i18n.t('notifications.dailyBody'),
         data: { type: 'daily_reminder' },
       },
       trigger: { type: 'daily', hour, minute: 0, repeats: true } as Notifications.DailyTriggerInput,
@@ -71,8 +80,8 @@ export async function sendTiltNotification(streakCount: number): Promise<void> {
 
     await Notifications.scheduleNotificationAsync({
       content: {
-        title: '⚠️ Стоп — возможный тилт',
-        body: `${streakCount} поражений подряд. Сделай паузу и отдохни.`,
+        title: i18n.t('notifications.tiltTitle'),
+        body: i18n.t('notifications.tiltBody', { count: streakCount }),
         data: { type: 'tilt_alert' },
       },
       trigger: null,
@@ -83,8 +92,8 @@ export async function sendTiltNotification(streakCount: number): Promise<void> {
 }
 
 // ── Bet result reminders ─────────────────────────────────────────────────────
-// A local notification fired when the match should be over, carrying "Выиграла" /
-// "Проиграла" buttons so the bet can be settled straight from the shade.
+// A local notification fired when the match should be over, carrying Won / Lost
+// buttons so the bet can be settled straight from the shade.
 
 import type { Bet } from '@sharklog/core';
 
@@ -120,9 +129,9 @@ const END_OFFSET_MIN: Record<string, number> = {
 export async function registerBetResultCategory(): Promise<void> {
   try {
     await Notifications.setNotificationCategoryAsync(BET_RESULT_CATEGORY, [
-      { identifier: 'won', buttonTitle: 'Выиграла', options: { opensAppToForeground: true } },
-      { identifier: 'lost', buttonTitle: 'Проиграла', options: { opensAppToForeground: true } },
-      { identifier: 'later', buttonTitle: 'Позже', options: { opensAppToForeground: false } },
+      { identifier: 'won', buttonTitle: i18n.t('notifications.actionWon'), options: { opensAppToForeground: true } },
+      { identifier: 'lost', buttonTitle: i18n.t('notifications.actionLost'), options: { opensAppToForeground: true } },
+      { identifier: 'later', buttonTitle: i18n.t('notifications.actionLater'), options: { opensAppToForeground: false } },
     ]);
   } catch {
     // category API unavailable — notifications still work, just without buttons
@@ -191,7 +200,7 @@ export async function scheduleBetResultReminder(bet: Bet): Promise<void> {
       await Notifications.scheduleNotificationAsync({
         identifier: reminderId(bet.id), // replaces any existing reminder for this bet
         content: {
-          title: 'Матч завершён — какой результат?',
+          title: i18n.t('notifications.resultTitle'),
           body: `${displayEvent(bet.event)} · ${bet.pick} × ${bet.odds}`,
           categoryIdentifier: BET_RESULT_CATEGORY,
           data: { type: 'bet_result', betId: bet.id },
@@ -224,7 +233,17 @@ export async function dismissBetResultNotification(betId: string): Promise<void>
  * so it can be lost if the app dies mid-write; imports and edits can also drift. Run this
  * on launch and whenever the app returns to the foreground.
  */
-export async function syncBetResultReminders(bets: Bet[], enabled: boolean): Promise<void> {
+/**
+ * `rearm` re-issues EVERY pending reminder instead of only the missing ones —
+ * needed after a language switch, because an already-scheduled notification
+ * keeps the text it was scheduled with. The ids are deterministic, so this
+ * replaces rather than duplicates.
+ */
+export async function syncBetResultReminders(
+  bets: Bet[],
+  enabled: boolean,
+  opts?: { rearm?: boolean },
+): Promise<void> {
   try {
     const pendingIds = new Set(bets.filter((b) => b.status === 'pending').map((b) => b.id));
 
@@ -235,7 +254,7 @@ export async function syncBetResultReminders(bets: Bet[], enabled: boolean): Pro
       const d = n.content.data as Record<string, unknown> | undefined;
       if (d?.['type'] !== 'bet_result') continue;
       const betId = typeof d['betId'] === 'string' ? d['betId'] : '';
-      if (!enabled || !betId || !pendingIds.has(betId)) {
+      if (!enabled || !betId || !pendingIds.has(betId) || opts?.rearm) {
         await Notifications.cancelScheduledNotificationAsync(n.identifier);
       } else {
         scheduledIds.add(betId);

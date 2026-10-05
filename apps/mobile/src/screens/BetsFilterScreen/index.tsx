@@ -10,6 +10,7 @@ import { SPACE, RADIUS, TOUCH } from '../../theme/layout';
 import { SIZE, numeric } from '../../theme/typography';
 import { haptic } from '../../utils/haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 
 const inputStyle = {
   backgroundColor: colors.bgCard,
@@ -66,6 +67,7 @@ export function BetsFilterScreen() {
   const insets = useSafeAreaInsets();
   const bets = useBetsStore((b) => b.bets);
   const { query, setQuery } = useBetsQuery();
+  const { t } = useTranslation();
 
   // A local draft: nothing is applied until OK, so backing out of the screen
   // leaves the list exactly as it was found.
@@ -92,10 +94,10 @@ export function BetsFilterScreen() {
           contentContainerStyle={s.body}
           showsVerticalScrollIndicator={false}
         >
-          <Field label="Турнир / лига" hint="Часть названия — «StarLadder» найдёт «StarLadder StarSeries Fall 26»">
+          <Field label={t('filters.tournament')} hint={t('filters.tournamentHint')}>
             <TextInput
               style={inputStyle}
-              placeholder="Любой"
+              placeholder={t('filters.anyM')}
               placeholderTextColor={colors.textMuted}
               value={draft.tournament}
               onChangeText={set('tournament')}
@@ -104,10 +106,10 @@ export function BetsFilterScreen() {
             <Suggestions pool={vocab.tournaments} input={draft.tournament} onPick={set('tournament')} />
           </Field>
 
-          <Field label="Команда / спортсмен" hint="Только ставки НА эту команду, а не все матчи с ней">
+          <Field label={t('filters.team')} hint={t('filters.teamHint')}>
             <TextInput
               style={inputStyle}
-              placeholder="Любая"
+              placeholder={t('filters.anyF')}
               placeholderTextColor={colors.textMuted}
               value={draft.team}
               onChangeText={set('team')}
@@ -116,11 +118,11 @@ export function BetsFilterScreen() {
             <Suggestions pool={vocab.teams} input={draft.team} onPick={set('team')} />
           </Field>
 
-          <Field label="Коэффициент">
+          <Field label={t('bet.odds')}>
             <View style={s.pair}>
               <TextInput
                 style={[inputStyle, numeric, s.pairCell]}
-                placeholder="от"
+                placeholder={t('filters.from')}
                 placeholderTextColor={colors.textMuted}
                 value={draft.oddsFrom}
                 onChangeText={set('oddsFrom')}
@@ -128,7 +130,7 @@ export function BetsFilterScreen() {
               />
               <TextInput
                 style={[inputStyle, numeric, s.pairCell]}
-                placeholder="до"
+                placeholder={t('filters.to')}
                 placeholderTextColor={colors.textMuted}
                 value={draft.oddsTo}
                 onChangeText={set('oddsTo')}
@@ -137,11 +139,11 @@ export function BetsFilterScreen() {
             </View>
           </Field>
 
-          <Field label="Дата" hint="ГГГГ-ММ-ДД — как в форме ставки">
+          <Field label={t('bet.date')} hint={t('filters.dateHint')}>
             <View style={s.pair}>
               <TextInput
                 style={[inputStyle, numeric, s.pairCell]}
-                placeholder="от"
+                placeholder={t('filters.from')}
                 placeholderTextColor={colors.textMuted}
                 value={draft.dateFrom}
                 onChangeText={set('dateFrom')}
@@ -149,7 +151,7 @@ export function BetsFilterScreen() {
               />
               <TextInput
                 style={[inputStyle, numeric, s.pairCell]}
-                placeholder="до"
+                placeholder={t('filters.to')}
                 placeholderTextColor={colors.textMuted}
                 value={draft.dateTo}
                 onChangeText={set('dateTo')}
@@ -159,7 +161,7 @@ export function BetsFilterScreen() {
           </Field>
 
           <Text style={s.note}>
-            Фильтр складывается со статусом и сортировкой — они остаются как выбраны.
+            {t('filters.note')}
           </Text>
         </ScrollView>
 
@@ -170,10 +172,10 @@ export function BetsFilterScreen() {
             activeOpacity={0.75}
             disabled={active === 0}
           >
-            <Text style={[s.resetText, active === 0 && s.resetTextOff]}>Сбросить</Text>
+            <Text style={[s.resetText, active === 0 && s.resetTextOff]}>{t('filters.reset')}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={s.ok} onPress={apply} activeOpacity={0.85}>
-            <Text style={s.okText}>ОК{active > 0 ? ` · ${active}` : ''}</Text>
+            <Text style={s.okText}>{t('common.ok')}{active > 0 ? ` · ${active}` : ''}</Text>
           </TouchableOpacity>
         </View>
       </KeyboardAvoidingView>

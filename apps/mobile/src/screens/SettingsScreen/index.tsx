@@ -11,7 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { FREE_LIMITS, CURRENT_SCHEMA_VERSION } from '@sharklog/core';
-import { useBetsStore, defaultSettings } from '../../store/betsStore';
+import { useBetsStore, effectiveReminderHour } from '../../store/betsStore';
 import { colors, alpha, mix } from '../../theme/colors';
 import { useTranslation } from 'react-i18next';
 import { LANGUAGES, applyLanguage, type LangCode } from '../../i18n/index';
@@ -233,10 +233,7 @@ export function SettingsScreen() {
 
   const isPro = settings.isPro;
   const openPaywall = () => setShowPaywall(true);
-  // Free gets the default hour. One value for what the row SAYS and what is
-  // actually SCHEDULED: a Pro user who set 09:00 and then lapsed used to see
-  // "20:00" on the row while the reminder kept arriving at 09:00.
-  const reminderHour = isPro ? settings.reminderHour : defaultSettings.reminderHour;
+  const reminderHour = effectiveReminderHour(settings);
 
   // Days since last backup (null = never)
   const daysSinceBackup = settings.lastBackupAt
@@ -720,10 +717,8 @@ export function SettingsScreen() {
                   value={settings.reminderHour}
                   min={6}
                   max={23}
-                  onChange={async (v) => {
-                    updateSettings({ reminderHour: v });
-                    await scheduleDailyReminder(v);
-                  }}
+                  // App.tsx reschedules on any change of the effective hour.
+                  onChange={(v) => updateSettings({ reminderHour: v })}
                 />
               )
               : <ProBadge />}

@@ -13,6 +13,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors } from '../theme/colors';
 import { useTranslation } from 'react-i18next';
 import { useBetsStore } from '../store/betsStore';
+import { FREE_LIMITS } from '@sharklog/core';
 import { Freeze } from 'react-freeze';
 import { DrawerContext, type BetsFilter } from '../components/DrawerContext';
 import { BetsScreen } from '../screens/BetsScreen';
@@ -213,7 +214,14 @@ export function DrawerNavigator() {
 
   function handleAddBet() {
     if (!canAddBet()) {
-      Alert.alert('Лимит достигнут', 'Бесплатный план — до 50 ставок. Перейди на Pro для безлимитного трекинга.');
+      // Two different walls behind one `false`: Free ran out of bets, or Pro
+      // hit the daily limit they set themselves. One message for both told a
+      // paying user to "upgrade to Pro".
+      if (settings.isPro) {
+        Alert.alert(t('bet.dailyLimitTitle'), t('bet.dailyLimitMsg', { count: settings.dailyBetLimit }));
+      } else {
+        Alert.alert(t('bet.limitTitle'), t('bet.limitMsg', { count: FREE_LIMITS.MAX_BETS }));
+      }
       return;
     }
     if (settings.isPro && !settings.disableChecklist) {
@@ -384,7 +392,7 @@ function DrawerContent({ currentScreen, onNavigate, onClose, insets }: DrawerCon
 
       {/* Bottom: version / responsible gambling */}
       <View style={[styles.drawerBottom, { paddingBottom: insets.bottom + 8 }]}>
-        <Text style={styles.responsible}>18+ · Играй ответственно</Text>
+        <Text style={styles.responsible}>{t('nav.responsible')}</Text>
       </View>
     </View>
   );

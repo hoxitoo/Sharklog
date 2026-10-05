@@ -4,7 +4,9 @@ import { cardSurface } from '../../components/Card';
 import { View, StyleSheet, FlatList } from 'react-native';
 import { AppText as Text } from '../../components/AppText';
 import type { Bet } from '@sharklog/core';
-import { formatMoney } from '@sharklog/core';
+import { useFormatMoney } from '../../utils/useFormatMoney';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { useBetsStore } from '../../store/betsStore';
 import { colors, toneSurface } from '../../theme/colors';
 import { BetCard } from '../BetsScreen/BetCard';
@@ -19,18 +21,21 @@ function startedAt(bet: Bet): number {
   return isNaN(t) ? 0 : t;
 }
 
-function agoLabel(ms: number): string {
+function agoLabel(ms: number, t: TFunction): string {
   if (ms <= 0) return '';
   const h = Math.floor(ms / 3_600_000);
-  if (h >= 24) return `${Math.floor(h / 24)} д назад`;
-  if (h >= 1) return `${h} ч назад`;
-  return `${Math.max(1, Math.floor(ms / 60_000))} мин назад`;
+  if (h >= 24) return t('pending.agoDays', { count: Math.floor(h / 24) });
+  if (h >= 1) return t('pending.agoHours', { count: h });
+  return t('pending.agoMinutes', { count: Math.max(1, Math.floor(ms / 60_000)) });
 }
 
 export function PendingScreen() {
   // Same wheel as the bets list — one menu, one set of wedge positions.
   const betActions = useBetActions();
   const bets = useBetsStore((s) => s.bets);
+  const { t } = useTranslation();
+  // Through the hook, not formatMoney — it honours «Округлять суммы».
+  const fmt = useFormatMoney();
 
   // Oldest kick-off first — those are the ones whose result is already known.
   const pending = useMemo(
@@ -56,27 +61,27 @@ export function PendingScreen() {
     <View style={s.container}>
       <View style={s.header}>
         <View style={s.headerCell}>
-          <Text style={s.headerLabel}>В игре</Text>
+          <Text style={s.headerLabel}>{t('bet.inPlay')}</Text>
           <Text style={[s.headerValue, { color: colors.pending }]} numberOfLines={1} adjustsFontSizeToFit>
-            {formatMoney(exposure)}
+            {fmt(exposure)}
           </Text>
-          <Text style={s.headerSub}>{pending.length} ставок</Text>
+          <Text style={s.headerSub}>{t('common.betsCount', { count: pending.length })}</Text>
         </View>
         <View style={s.headerDivider} />
         <View style={s.headerCell}>
-          <Text style={s.headerLabel}>Если зайдут</Text>
+          <Text style={s.headerLabel}>{t('pending.ifWon')}</Text>
           <Text style={[s.headerValue, { color: colors.won }]} numberOfLines={1} adjustsFontSizeToFit>
-            {formatMoney(potential)}
+            {fmt(potential)}
           </Text>
-          <Text style={s.headerSub}>полный возврат</Text>
+          <Text style={s.headerSub}>{t('pending.ifWonSub')}</Text>
         </View>
         <View style={s.headerDivider} />
         <View style={s.headerCell}>
-          <Text style={s.headerLabel}>Пора закрыть</Text>
+          <Text style={s.headerLabel}>{t('pending.overdue')}</Text>
           <Text style={[s.headerValue, { color: overdue > 0 ? colors.lost : colors.textMuted }]}>
             {overdue > 0 ? String(overdue) : '—'}
           </Text>
-          <Text style={s.headerSub}>матч давно прошёл</Text>
+          <Text style={s.headerSub}>{t('pending.overdueSub')}</Text>
         </View>
       </View>
 
@@ -89,8 +94,8 @@ export function PendingScreen() {
         ListEmptyComponent={
           <View style={s.empty}>
             <Text style={s.emptyIcon}>✅</Text>
-            <Text style={s.emptyTitle}>Всё закрыто</Text>
-            <Text style={s.emptyText}>Незакрытых ставок нет — статистика актуальна.</Text>
+            <Text style={s.emptyTitle}>{t('pending.emptyTitle')}</Text>
+            <Text style={s.emptyText}>{t('pending.emptyText')}</Text>
           </View>
         }
         renderItem={({ item }) => {
@@ -102,7 +107,7 @@ export function PendingScreen() {
                 <Text style={s.timeText}>
                   {item.date.split('-').reverse().slice(0, 2).join('.')} · {item.time || '—'}
                 </Text>
-                {late && <Text style={s.agoText}>{agoLabel(now - started)}</Text>}
+                {late && <Text style={s.agoText}>{agoLabel(now - started, t)}</Text>}
               </View>
               <BetCard
                 bet={item}

@@ -60,6 +60,19 @@ i18n
     compatibilityJSON: 'v4',
   });
 
+/** BCP 47 tag for dates in the current language. */
+const DATE_LOCALES: Record<string, string> = { ru: 'ru-RU', en: 'en-US', kk: 'kk-KZ', be: 'be-BY' };
+
+/**
+ * The locale for `toLocaleDateString`. Screens used to pick it with
+ * `language === 'en' ? 'en-US' : 'ru-RU'`, so a Kazakh or Belarusian screen
+ * still printed Russian month names. An engine without data for a tag falls
+ * back to its default — no worse than the hardcoded Russian it replaces.
+ */
+export function dateLocale(): string {
+  return DATE_LOCALES[i18n.language] ?? 'ru-RU';
+}
+
 /** The only way the app should switch language — it owns the code mapping. */
 export function applyLanguage(lang: LangCode | undefined) {
   i18n.changeLanguage(toI18nCode(lang ?? detectDeviceLanguage()));

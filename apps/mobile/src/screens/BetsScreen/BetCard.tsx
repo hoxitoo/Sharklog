@@ -4,7 +4,8 @@ import { SPACE, RADIUS, hitSlopFor } from '../../theme/layout';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
 import type { Bet } from '@sharklog/core';
-import { SPORTS, BET_TYPES, formatMoney, formatOdds, parseMoneyInput } from '@sharklog/core';
+import { SPORTS, BET_TYPES, formatOdds, parseMoneyInput } from '@sharklog/core';
+import { useFormatMoney } from '../../utils/useFormatMoney';
 import { colors } from '../../theme/colors';
 import { numeric, SIZE } from '../../theme/typography';
 import { StatusBadge, STATUS_COLORS } from '../../components/StatusBadge';
@@ -41,6 +42,9 @@ export const BetCard = React.memo(function BetCard({
 }: Props) {
   const updateBet = useBetsStore((s) => s.updateBet);
   const { t } = useTranslation();
+  // Through the hook, not formatMoney: the card is the one place every amount
+  // is on screen at once, and it ignored the «Округлять суммы» setting.
+  const fmt = useFormatMoney();
   // Inline cashout entry: the amount is typed here rather than in the full editor.
   const [cashoutText, setCashoutText] = useState('');
 
@@ -104,15 +108,15 @@ export const BetCard = React.memo(function BetCard({
         </View>
         <View style={styles.right}>
           <Text style={styles.odds}>× {formatOdds(bet.odds)}</Text>
-          <Text style={styles.stake}>{formatMoney(bet.stake)}</Text>
+          <Text style={styles.stake}>{fmt(bet.stake)}</Text>
           {pnl !== null && pnl !== 0 && (
             <Text style={[styles.pnl, { color: pnl >= 0 ? colors.won : colors.lost }]}>
-              {pnl >= 0 ? '+' : ''}{formatMoney(pnl)}
+              {pnl >= 0 ? '+' : ''}{fmt(pnl)}
             </Text>
           )}
           {bet.status === 'cashout' && bet.cashoutAmount != null && (
             <Text style={styles.cashoutAmt}>
-              Выкуп: {formatMoney(bet.cashoutAmount)}
+              {t('bet.cashoutLine', { amount: fmt(bet.cashoutAmount) })}
             </Text>
           )}
         </View>
@@ -122,7 +126,7 @@ export const BetCard = React.memo(function BetCard({
         <StatusBadge status={bet.status} />
         {bet.isFreebet && (
           <View style={styles.freebetBadge}>
-            <Text style={styles.freebetBadgeText}>🎁 Фрибет</Text>
+            <Text style={styles.freebetBadgeText}>🎁 {t('bet.freebet')}</Text>
           </View>
         )}
         <Text style={styles.date}>{bet.date} {bet.time}</Text>
