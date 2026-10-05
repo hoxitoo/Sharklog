@@ -125,6 +125,23 @@ const END_OFFSET_MIN: Record<string, number> = {
   other: 150,
 };
 
+/**
+ * When this bet's result reminder should fire — or null when that moment is
+ * already past (or under a minute away, too close to schedule reliably).
+ *
+ * Shared by scheduling AND by the sync's cap, which used to count bets whose
+ * reminder could no longer be scheduled: a backlog of old unsettled bets took
+ * the 50 slots, and future matches got no reminder at all.
+ */
+export function reminderFireAt(bet: Bet, now = Date.now()): number | null {
+  // Parse as LOCAL time — a bare "YYYY-MM-DD" string would be read as UTC.
+  const start = new Date(`${bet.date}T${(bet.time || '12:00')}:00`).getTime();
+  if (isNaN(start)) return null;
+  const offset = END_OFFSET_MIN[bet.sport] ?? END_OFFSET_MIN['other']!;
+  const at = start + offset * 60_000;
+  return at > now + 60_000 ? at : null;
+}
+
 /** Registers the W/L action buttons. Safe to call repeatedly. */
 export async function registerBetResultCategory(): Promise<void> {
   try {
@@ -190,12 +207,9 @@ export async function scheduleBetResultReminder(bet: Bet): Promise<void> {
       const { status } = await Notifications.getPermissionsAsync();
       if (status !== 'granted') return;
 
-      // Parse as LOCAL time — a bare "YYYY-MM-DD" string would be read as UTC.
-      const start = new Date(`${bet.date}T${(bet.time || '12:00')}:00`);
-      if (isNaN(start.getTime())) return;
-      const offset = END_OFFSET_MIN[bet.sport] ?? END_OFFSET_MIN['other']!;
-      const fireAt = new Date(start.getTime() + offset * 60_000);
-      if (fireAt.getTime() <= Date.now() + 60_000) return;
+      const at = reminderFireAt(bet);
+      if (at === null) return;
+      const fireAt = new Date(at);
 
       await Notifications.scheduleNotificationAsync({
         identifier: reminderId(bet.id), // replaces any existing reminder for this bet
@@ -236,8 +250,13 @@ export async function dismissBetResultNotification(betId: string): Promise<void>
 /**
  * `rearm` re-issues EVERY pending reminder instead of only the missing ones —
  * needed after a language switch, because an already-scheduled notification
- * keeps the text it was scheduled with. The ids are deterministic, so this
- * replaces rather than duplicates.
+ * keeps the text it was scheduled with.
+ *
+ * It does NOT cancel first. Scheduling under the same deterministic id already
+ * replaces, and cancel-then-reschedule lost every reminder due within the next
+ * minute: those are too close to schedule, so they were cancelled and never
+ * came back. Since rearm runs on every launch, opening the app just before a
+ * match ended silently ate its reminder. Left alone, it fires as planned.
  */
 export async function syncBetResultReminders(
   bets: Bet[],
@@ -254,11 +273,13 @@ export async function syncBetResultReminders(
       const d = n.content.data as Record<string, unknown> | undefined;
       if (d?.['type'] !== 'bet_result') continue;
       const betId = typeof d['betId'] === 'string' ? d['betId'] : '';
-      if (!enabled || !betId || !pendingIds.has(betId) || opts?.rearm) {
+      if (!enabled || !betId || !pendingIds.has(betId)) {
         await Notifications.cancelScheduledNotificationAsync(n.identifier);
-      } else {
-        scheduledIds.add(betId);
+      } else if (!opts?.rearm) {
+        scheduledIds.add(betId); // armed already — leave it
       }
+      // rearm: not counted as armed, so the loop below re-issues it under the
+      // same id, which replaces it in place.
     }
 
     // Clear stale reminders that already reached the tray.
@@ -276,9 +297,12 @@ export async function syncBetResultReminders(
     // local notifications and silently drops the rest, so arm the nearest kick-offs first
     // and cap well under that ceiling (the daily reminder shares the budget).
     if (enabled) {
+      // Only bets whose reminder is still ahead compete for the slots: an
+      // overdue one cannot be scheduled, and counting it pushed out real ones.
+      const now = Date.now();
       const missing = bets
-        .filter((b) => b.status === 'pending' && !scheduledIds.has(b.id))
-        .sort((a, b) => `${a.date} ${a.time}`.localeCompare(`${b.date} ${b.time}`))
+        .filter((b) => b.status === 'pending' && !scheduledIds.has(b.id) && reminderFireAt(b, now) !== null)
+        .sort((a, b) => reminderFireAt(a, now)! - reminderFireAt(b, now)!)
         .slice(0, Math.max(0, MAX_SCHEDULED - scheduledIds.size));
       for (const bet of missing) await scheduleBetResultReminder(bet);
     }
