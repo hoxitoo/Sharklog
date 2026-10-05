@@ -1,5 +1,29 @@
 import type { Sport, BetType, Strategy, EsportsDiscipline } from '../types/bet';
 
+/**
+ * Pick values as they are STORED on a bet — a data format, not interface text.
+ *
+ * `getPickedTeams` reads П1/П2/Ф1/Ф2 to know which side the money is on (team
+ * stats, the team filter), the bet form parses these back when a bet is
+ * edited, and CSV carries them between devices. Translating them would break
+ * all three for every non-Russian user, and switching language would orphan
+ * every bet already saved. So they are written in one language, always; a
+ * screen that SHOWS a pick may translate it, but nothing may store anything
+ * other than these.
+ */
+export const PICK = {
+  HOME: 'П1',
+  AWAY: 'П2',
+  DRAW: 'Ничья',
+  HANDICAP_HOME: 'Ф1',
+  HANDICAP_AWAY: 'Ф2',
+  OVER: 'ТБ',
+  UNDER: 'ТМ',
+  YES: 'Да',
+  NO: 'Нет',
+  EXPRESS: 'Экспресс',
+} as const;
+
 export const SPORTS: Record<Sport, string> = {
   football: 'Футбол',
   hockey: 'Хоккей',

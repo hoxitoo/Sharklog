@@ -1,5 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import i18n from '../i18n';
+import { pickLabel } from './labels';
 
 /*
  * Every string here is resolved at the moment a notification is SCHEDULED, and
@@ -215,7 +216,7 @@ export async function scheduleBetResultReminder(bet: Bet): Promise<void> {
         identifier: reminderId(bet.id), // replaces any existing reminder for this bet
         content: {
           title: i18n.t('notifications.resultTitle'),
-          body: `${displayEvent(bet.event)} · ${bet.pick} × ${bet.odds}`,
+          body: `${displayEvent(bet.event)} · ${pickLabel(i18n.t, bet.pick)} × ${bet.odds}`,
           categoryIdentifier: BET_RESULT_CATEGORY,
           data: { type: 'bet_result', betId: bet.id },
         },
