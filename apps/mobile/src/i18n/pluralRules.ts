@@ -69,10 +69,43 @@ export class MiniPluralRules {
   }
 }
 
-/** Installs the fallback only where the engine has no `Intl.PluralRules` of its own. */
+type PluralRulesCtor = new (locale: string) => {
+  select(n: number): string;
+  resolvedOptions(): { locale: string; pluralCategories: string[] };
+};
+
+/**
+ * Does the engine's own implementation actually KNOW our languages?
+ *
+ * Having `Intl.PluralRules` is not enough. An engine built with trimmed locale
+ * data resolves `be` or `kk` to its default locale without complaint — which
+ * is exactly the Belarusian-gets-English bug, arriving by a different road.
+ * So each language is asked, and the answer has to be in that language with
+ * that language's number of forms.
+ */
+export function nativeCoversOurLanguages(PR: unknown): boolean {
+  if (typeof PR !== 'function') return false;
+  try {
+    return Object.entries(RULES).every(([lang, rule]) => {
+      const o = new (PR as PluralRulesCtor)(lang).resolvedOptions();
+      return String(o.locale).toLowerCase().split(/[-_]/)[0] === lang
+        && o.pluralCategories.length === rule.categories.length;
+    });
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Installs the fallback unless the engine's own rules cover all four languages.
+ *
+ * Replacing a native implementation is safe here because i18next is its only
+ * user in this app; a library that needs other locales would get English rules
+ * from this one, and would have to be weighed before it is added.
+ */
 export function installPluralRules(): void {
   const g = globalThis as { Intl?: Record<string, unknown> };
   if (!g.Intl) return;
-  if (typeof g.Intl.PluralRules === 'function') return;
+  if (nativeCoversOurLanguages(g.Intl.PluralRules)) return;
   g.Intl.PluralRules = MiniPluralRules;
 }

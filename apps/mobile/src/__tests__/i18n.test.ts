@@ -1,6 +1,6 @@
 import { readFileSync, readdirSync } from 'fs';
 import { join } from 'path';
-import { MiniPluralRules, installPluralRules } from '../i18n/pluralRules';
+import { MiniPluralRules, installPluralRules, nativeCoversOurLanguages } from '../i18n/pluralRules';
 import ru from '../i18n/locales/ru.json';
 import en from '../i18n/locales/en.json';
 import kz from '../i18n/locales/kz.json';
@@ -59,9 +59,34 @@ describe('plural rules fallback', () => {
       .toEqual([...real.resolvedOptions().pluralCategories].sort());
   });
 
-  it('does not replace an engine that already has PluralRules', () => {
+  it('does not replace an engine whose own rules cover all four languages', () => {
     installPluralRules();
     expect(Intl.PluralRules).toBe(ICU);
+  });
+
+  it('replaces an engine that HAS PluralRules but not the data for our languages', () => {
+    // Trimmed ICU: the constructor exists, `be` silently resolves to English.
+    // Checking only for the function would keep exactly the bug this file fixes.
+    class Trimmed {
+      constructor(private readonly l: string) {}
+      select(n: number) { return n === 1 ? 'one' : 'other'; }
+      resolvedOptions() {
+        const known = this.l === 'ru' || this.l === 'en';
+        return { locale: known ? this.l : 'en', pluralCategories: this.l === 'ru' ? ['one', 'few', 'many', 'other'] : ['one', 'other'] };
+      }
+    }
+    expect(nativeCoversOurLanguages(ICU)).toBe(true);
+    expect(nativeCoversOurLanguages(Trimmed)).toBe(false);
+    expect(nativeCoversOurLanguages(undefined)).toBe(false);
+
+    const g = globalThis as { Intl: Record<string, unknown> };
+    g.Intl.PluralRules = Trimmed;
+    try {
+      installPluralRules();
+      expect(g.Intl.PluralRules).toBe(MiniPluralRules);
+    } finally {
+      g.Intl.PluralRules = ICU;
+    }
   });
 
   it('makes i18next produce all four Russian forms on an engine without PluralRules', async () => {
@@ -203,7 +228,7 @@ const UNTRANSLATED: Record<string, number> = {
   'screens/InsightsScreen/index.tsx': 15,
   'screens/BetsScreen/index.tsx': 15,
   'screens/BetsFilterScreen/index.tsx': 13,
-  'components/ProGate.tsx': 13,
+  'components/ProGate.tsx': 12,
   'screens/PendingScreen/index.tsx': 11,
   'screens/InsightsScreen/YearBreakdown.tsx': 9,
   'components/ChecklistModal.tsx': 9,

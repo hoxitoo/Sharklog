@@ -11,7 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { FREE_LIMITS, CURRENT_SCHEMA_VERSION } from '@sharklog/core';
-import { useBetsStore } from '../../store/betsStore';
+import { useBetsStore, defaultSettings } from '../../store/betsStore';
 import { colors, alpha, mix } from '../../theme/colors';
 import { useTranslation } from 'react-i18next';
 import { LANGUAGES, applyLanguage, type LangCode } from '../../i18n/index';
@@ -233,6 +233,10 @@ export function SettingsScreen() {
 
   const isPro = settings.isPro;
   const openPaywall = () => setShowPaywall(true);
+  // Free gets the default hour. One value for what the row SAYS and what is
+  // actually SCHEDULED: a Pro user who set 09:00 and then lapsed used to see
+  // "20:00" on the row while the reminder kept arriving at 09:00.
+  const reminderHour = isPro ? settings.reminderHour : defaultSettings.reminderHour;
 
   // Days since last backup (null = never)
   const daysSinceBackup = settings.lastBackupAt
@@ -254,14 +258,15 @@ export function SettingsScreen() {
     setRestoring(true);
     try {
       const restored = await restorePurchases();
-      if (restored) {
+      if (restored === null) {
+        // Not "nothing found": the store was never asked.
+        Alert.alert(t('common.error'), t('errors.storeUnreachable'));
+      } else if (restored) {
         updateSettings({ isPro: true });
         Alert.alert(t('common.success'), t('settings.restoreDone'));
       } else {
         Alert.alert(t('settings.restoreNoneTitle'), t('settings.restoreNoneMsg'));
       }
-    } catch {
-      Alert.alert(t('common.error'), t('errors.network'));
     } finally {
       setRestoring(false);
     }
@@ -295,9 +300,9 @@ export function SettingsScreen() {
   async function handleEnableNotifications() {
     const granted = await requestNotificationPermission();
     if (granted) {
-      await scheduleDailyReminder(settings.reminderHour);
+      await scheduleDailyReminder(reminderHour);
       resyncReminders(); // bets logged before permission was granted had no reminder
-      Alert.alert(t('common.success'), t('settings.notifEnabled', { time: hh(settings.reminderHour) }));
+      Alert.alert(t('common.success'), t('settings.notifEnabled', { time: hh(reminderHour) }));
     } else {
       Alert.alert(t('settings.notifDeniedTitle'), t('settings.notifDeniedMsg'));
     }
@@ -516,7 +521,6 @@ export function SettingsScreen() {
   const limitHint = !isPro || settings.dailyBetLimit === 0
     ? t('settings.dailyLimitOff')
     : t('settings.dailyLimitOn', { count: settings.dailyBetLimit });
-  const reminderHour = isPro ? settings.reminderHour : 20;
   const currentLang = (settings.language ?? 'ru') as LangCode;
 
   const versionRight = updateStatus === 'checking'

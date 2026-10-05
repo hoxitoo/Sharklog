@@ -13,6 +13,7 @@ import {
   type OfferingPackages,
 } from '../services/revenueCat';
 import { SIZE, GLYPH } from '../theme/typography';
+import { useTranslation } from 'react-i18next';
 
 interface Props {
   children: React.ReactNode;
@@ -22,6 +23,7 @@ interface Props {
 export function ProGate({ children, feature }: Props) {
   const isPro = useBetsStore((s) => s.settings.isPro);
   const updateSettings = useBetsStore((s) => s.updateSettings);
+  const { t } = useTranslation();
 
   const [offerings, setOfferings] = useState<OfferingPackages>({ monthly: null, annual: null });
   const [loading, setLoading] = useState(true);
@@ -54,15 +56,18 @@ export function ProGate({ children, feature }: Props) {
     setPurchasing(true);
     try {
       const pro = await restorePurchases();
-      if (pro) {
+      if (pro === null) {
+        // The store was never reached — not the same as "nothing to restore".
+        Alert.alert(t('common.error'), t('errors.storeUnreachable'));
+      } else if (pro) {
         updateSettings({ isPro: true });
       } else {
-        Alert.alert('Ничего не найдено', 'Активная подписка Pro не обнаружена.');
+        Alert.alert(t('settings.restoreNoneTitle'), t('settings.restoreNoneMsg'));
       }
     } finally {
       setPurchasing(false);
     }
-  }, [updateSettings]);
+  }, [updateSettings, t]);
 
   if (isPro) return <>{children}</>;
 

@@ -400,6 +400,7 @@
     "exportFailed": "Failed to export data",
     "importFailed": "Failed to import data",
     "noFile": "File not found",
-    "invalidFile": "Invalid file format"
+    "invalidFile": "Invalid file format",
+    "storeUnreachable": "Couldn't reach the store. Check your connection and try again."
   }
 }
