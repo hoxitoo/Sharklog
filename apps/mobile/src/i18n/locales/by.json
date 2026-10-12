@@ -542,10 +542,8 @@
     "sectionTheme": "Тэма афармлення",
     "themeDark": "Цёмная",
     "themeLight": "Светлая",
-    "themeSoonMsg": "Гэтая тэма ў распрацоўцы і з’явіцца ў адным з наступных абнаўленняў.",
     "themeOlive": "Аліўкавая",
-    "themeNavy": "Цёмна-сіняя",
-    "themeSoonHint": "Астатнія — хутка"
+    "themeNavy": "Цёмна-сіняя"
   },
   "onboarding": {
     "welcome": "Сардэчна запрашаем",

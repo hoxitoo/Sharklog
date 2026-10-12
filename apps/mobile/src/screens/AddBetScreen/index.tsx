@@ -24,6 +24,7 @@ import { haptic } from '../../utils/haptics';
 import { Analytics } from '../../services/analytics';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { SIZE, GLYPH } from '../../theme/typography';
+import { themedStyles } from '../../theme/themed';
 
 const STEP_SLOP = hitSlopFor(32);
 
@@ -109,21 +110,23 @@ function Field({ label, error, children }: { label: string; error?: string; chil
   );
 }
 
-const field = StyleSheet.create({
+const field = themedStyles(() => ({
   container: { marginBottom: SPACE.lg },
   label: { fontSize: SIZE.caption, color: colors.textSecondary, marginBottom: SPACE.xs, textTransform: 'uppercase', letterSpacing: 0.5 },
   error: { fontSize: SIZE.caption, color: colors.lost, marginTop: SPACE.xs },
-});
+}));
 
+// Getters for the colours: a plain object here would keep the theme the app
+// started with.
 const inputStyle = {
-  backgroundColor: colors.bgCard,
+  get backgroundColor() { return colors.bgCard; },
   borderRadius: RADIUS.sm,
   paddingHorizontal: SPACE.md,
   paddingVertical: SPACE.md,
-  color: colors.textPrimary,
+  get color() { return colors.textPrimary; },
   fontSize: SIZE.lead,
   borderWidth: 1,
-  borderColor: colors.border,
+  get borderColor() { return colors.border; },
 };
 
 // ── Single Team Input with autocomplete ───────────────────────────────────────
@@ -208,7 +211,7 @@ function SingleTeamInput({
   );
 }
 
-const ac = StyleSheet.create({
+const ac = themedStyles(() => ({
   wrapper: { position: 'relative' },
   dropdown: {
     position: 'absolute',
@@ -245,7 +248,7 @@ const ac = StyleSheet.create({
   },
   badgeText: { fontSize: SIZE.micro, color: colors.purpleText, fontWeight: '600' },
   count: { fontSize: SIZE.caption, color: colors.textMuted },
-});
+}));
 
 // ── Tournament Input with autocomplete ────────────────────────────────────────
 
@@ -417,7 +420,7 @@ function KellyHelper({ odds, bankKopecks, onApply }: {
   );
 }
 
-const kl = StyleSheet.create({
+const kl = themedStyles(() => ({
   container: {
     backgroundColor: colors.bgElevated,
     borderRadius: RADIUS.md,
@@ -454,7 +457,7 @@ const kl = StyleSheet.create({
     borderColor: colors.accent + '66',
   },
   applyText: { fontSize: SIZE.body, fontWeight: '700', color: colors.accent },
-});
+}));
 
 // ── Main Screen ────────────────────────────────────────────────────────────────
 
@@ -1491,7 +1494,7 @@ export function AddBetScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   flex: { flex: 1, backgroundColor: colors.bg },
   container: { flex: 1, backgroundColor: colors.bg },
   content: { padding: SPACE.lg, paddingBottom: 40 },
@@ -1679,4 +1682,4 @@ const styles = StyleSheet.create({
     marginTop: SPACE.sm,
   },
   submitText: { fontSize: SIZE.lead, fontWeight: '700', color: '#fff' },
-});
+}));

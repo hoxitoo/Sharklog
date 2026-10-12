@@ -15,6 +15,7 @@ import { colors } from '../../theme/colors';
 import { ProGate } from '../../components/ProGate';
 import { haptic } from '../../utils/haptics';
 import { SIZE, GLYPH } from '../../theme/typography';
+import { themedStyles } from '../../theme/themed';
 
 function ResultScreen({ strategy, onReset }: { strategy: GeneratedStrategy; onReset: () => void }) {
   const updateSettings = useBetsStore((s) => s.updateSettings);
@@ -212,7 +213,7 @@ export function StrategyBuilderScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const s = themedStyles(() => ({
   root: { flex: 1, backgroundColor: colors.bg },
   scroll: { padding: SPACE.lg, paddingBottom: 40 },
   progressWrap: {
@@ -309,4 +310,4 @@ const s = StyleSheet.create({
     width: 18, textAlign: 'center', marginTop: 1,
   },
   principleText: { flex: 1, fontSize: SIZE.body, color: colors.textSecondary, lineHeight: 22 },
-});
+}));

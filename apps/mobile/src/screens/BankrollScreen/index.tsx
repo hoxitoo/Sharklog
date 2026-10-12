@@ -49,6 +49,7 @@ import { colors, alpha, toneSurface } from '../../theme/colors';
 import { FONTS, numeric, SIZE, GLYPH } from '../../theme/typography';
 import { BalanceChart } from '../../components/BalanceChart';
 import { SERIES } from '../../theme/chartColors';
+import { themedStyles } from '../../theme/themed';
 
 const STEP_SLOP = hitSlopFor(28);
 
@@ -127,7 +128,7 @@ function KellyCalculator({ bankroll }: { bankroll: number }) {
   );
 }
 
-const kc = StyleSheet.create({
+const kc = themedStyles(() => ({
   container: {
     ...cardSurface,
     padding: SPACE.lg, marginHorizontal: SPACE.lg, marginBottom: SPACE.md,
@@ -151,7 +152,7 @@ const kc = StyleSheet.create({
   resultRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   resultLabel: { fontSize: SIZE.body, color: colors.textSecondary },
   resultValue: { fontSize: SIZE.body, fontWeight: '700', color: colors.textPrimary },
-});
+}));
 
 // ── Inline transaction form ───────────────────────────────────────────────────
 
@@ -257,7 +258,7 @@ function TxForm({
   );
 }
 
-const tf = StyleSheet.create({
+const tf = themedStyles(() => ({
   container: { gap: SPACE.sm, marginTop: SPACE.xs },
   label: { fontSize: SIZE.caption, color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.4 },
   input: {
@@ -287,7 +288,7 @@ const tf = StyleSheet.create({
   cancelText: { fontSize: SIZE.lead, fontWeight: '600', color: colors.textSecondary },
   confirmBtn: { minHeight: TOUCH, justifyContent: 'center', flex: 1, borderRadius: RADIUS.sm, paddingVertical: SPACE.md, alignItems: 'center' },
   confirmText: { fontSize: SIZE.lead, fontWeight: '700', color: '#fff' },
-});
+}));
 
 // ── Transaction row ───────────────────────────────────────────────────────────
 
@@ -335,7 +336,7 @@ function TxRow({ tx, onDelete }: { tx: BankrollTransaction; onDelete: () => void
   );
 }
 
-const tx_ = StyleSheet.create({
+const tx_ = themedStyles(() => ({
   row: {
     minHeight: TOUCH,
     flexDirection: 'row', alignItems: 'center', gap: SPACE.sm,
@@ -351,7 +352,7 @@ const tx_ = StyleSheet.create({
   note: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: 1 },
   amount: { fontSize: SIZE.body, fontWeight: '700' },
   date: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: 2 },
-});
+}));
 
 // ── Main content ──────────────────────────────────────────────────────────────
 
@@ -604,7 +605,7 @@ function BankrollContent() {
   );
 }
 
-const bk = StyleSheet.create({
+const bk = themedStyles(() => ({
   summaryCard: {
     ...cardSurface, ...toneSurface('profit'),
     padding: SPACE.lg, marginHorizontal: SPACE.lg, marginBottom: SPACE.md,
@@ -685,7 +686,7 @@ const bk = StyleSheet.create({
     backgroundColor: colors.bgElevated, marginTop: SPACE.xs,
   },
   moreTxText: { fontSize: SIZE.body, fontWeight: '600', color: colors.textSecondary },
-});
+}));
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 

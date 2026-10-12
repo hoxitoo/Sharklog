@@ -12,6 +12,7 @@ import { LANDING_URL, storeReviewUrls, supportUrl } from '../../utils/storeLinks
 import { colors, alpha } from '../../theme/colors';
 import { SPACE, RADIUS, TOUCH } from '../../theme/layout';
 import { SIZE, GLYPH } from '../../theme/typography';
+import { themedStyles } from '../../theme/themed';
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -121,7 +122,7 @@ export function SupportScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   root: { flex: 1, backgroundColor: colors.bg },
   intro: { fontSize: SIZE.body, color: colors.textSecondary, lineHeight: 20, marginBottom: SPACE.sm },
   row: {
@@ -137,4 +138,4 @@ const styles = StyleSheet.create({
   rowText: { flex: 1 },
   rowTitle: { fontSize: SIZE.lead, fontWeight: '600', color: colors.textPrimary },
   rowSub: { fontSize: SIZE.caption, color: colors.textSecondary, marginTop: 2, lineHeight: 16 },
-});
+}));

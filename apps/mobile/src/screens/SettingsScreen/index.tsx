@@ -30,6 +30,7 @@ import { ThemePicker } from './ThemePicker';
 import { restorePurchases } from '../../services/revenueCat';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { SIZE, GLYPH, numeric } from '../../theme/typography';
+import { themedStyles } from '../../theme/themed';
 
 /** Re-arm / clear bet reminders from the store's current state. */
 function resyncReminders(): void {
@@ -75,7 +76,7 @@ function Section({ title, children }: { title?: string; children: React.ReactNod
   );
 }
 
-const sec = StyleSheet.create({
+const sec = themedStyles(() => ({
   wrap: { marginHorizontal: SPACE.lg, marginBottom: SPACE.lg },
   title: {
     fontSize: SIZE.caption, color: colors.textMuted, textTransform: 'uppercase',
@@ -83,7 +84,7 @@ const sec = StyleSheet.create({
   },
   card: { ...cardSurface, paddingHorizontal: SPACE.lg },
   divider: { height: 1, backgroundColor: colors.border },
-});
+}));
 
 /**
  * One setting: what it is on the left, its control on the right, and — under
@@ -122,7 +123,7 @@ function Row({ label, hint, right, onPress, chevron, tone, busy }: {
   );
 }
 
-const row = StyleSheet.create({
+const row = themedStyles(() => ({
   wrap: {
     minHeight: TOUCH + SPACE.sm,
     flexDirection: 'row', alignItems: 'center', gap: SPACE.md,
@@ -133,7 +134,7 @@ const row = StyleSheet.create({
   hint: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: 2 },
   danger: { color: colors.lost, fontWeight: '600' },
   gold: { color: colors.gold, fontWeight: '700' },
-});
+}));
 
 function Toggle({ value, onChange, label }: { value: boolean; onChange: (v: boolean) => void; label: string }) {
   return (
@@ -189,7 +190,7 @@ function ProBadge() {
   );
 }
 
-const ctl = StyleSheet.create({
+const ctl = themedStyles(() => ({
   toggle: {
     ...TOGGLE, borderRadius: RADIUS.pill, backgroundColor: colors.borderStrong,
     justifyContent: 'center', paddingHorizontal: 3,
@@ -211,7 +212,7 @@ const ctl = StyleSheet.create({
     backgroundColor: alpha(colors.gold, 0.12), borderWidth: 1, borderColor: alpha(colors.gold, 0.4),
   },
   proText: { fontSize: SIZE.micro, fontWeight: '700', color: colors.gold, letterSpacing: 0.5 },
-});
+}));
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
@@ -808,7 +809,7 @@ function hh(hour: number): string {
   return `${String(hour).padStart(2, '0')}:00`;
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   container: { flex: 1, backgroundColor: colors.bg },
 
   backupBanner: {
@@ -825,7 +826,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm,
     borderRadius: RADIUS.sm, backgroundColor: colors.gold,
   },
-  upgradeBtnText: { fontSize: SIZE.caption, fontWeight: '700', color: '#000' },
+  upgradeBtnText: { fontSize: SIZE.caption, fontWeight: '700', color: colors.onGold },
 
   segment: {
     flexDirection: 'row', padding: 2, borderRadius: RADIUS.sm,
@@ -865,4 +866,4 @@ const styles = StyleSheet.create({
   smallBtnText: { fontSize: SIZE.caption, fontWeight: '700', color: colors.purpleText },
   statusOk: { fontSize: SIZE.caption, color: colors.textSecondary },
   statusNew: { fontSize: SIZE.caption, fontWeight: '700', color: colors.accent },
-});
+}));

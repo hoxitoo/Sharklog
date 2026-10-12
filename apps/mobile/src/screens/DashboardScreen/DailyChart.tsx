@@ -8,6 +8,7 @@ import { colors } from '../../theme/colors';
 import { SERIES } from '../../theme/chartColors';
 import { SIZE } from '../../theme/typography';
 import { useTranslation } from 'react-i18next';
+import { themedStyles } from '../../theme/themed';
 
 export { SERIES } from '../../theme/chartColors';
 
@@ -154,11 +155,11 @@ export function DailyChart({ days, width, height, toggles, selected, onSelect, l
   );
 }
 
-const ch = StyleSheet.create({
+const ch = themedStyles(() => ({
   colSelected: { backgroundColor: colors.bgElevated, borderRadius: RADIUS.sm },
   xLabel: { fontSize: SIZE.micro, color: colors.textMuted },
   xLabelSel: { color: colors.textPrimary, fontWeight: '700' },
-});
+}));
 
 /** Small colour-key row shared by the compact and expanded views. */
 export function ChartLegend({ toggles }: { toggles: ChartToggles }) {
@@ -186,9 +187,9 @@ export function ChartLegend({ toggles }: { toggles: ChartToggles }) {
   );
 }
 
-const lg = StyleSheet.create({
+const lg = themedStyles(() => ({
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.md, marginTop: SPACE.sm },
   item: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs },
   dot: { width: 8, height: 8, borderRadius: RADIUS.xs },
   text: { fontSize: SIZE.micro, color: colors.textMuted },
-});
+}));

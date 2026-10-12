@@ -19,11 +19,12 @@ const STATUS_META: Array<{
   icon: WheelAction['icon'];
   color: string;
 }> = [
-  { key: 'won',     icon: 'checkmark-circle-outline', color: colors.won },
-  { key: 'lost',    icon: 'close-circle-outline',     color: colors.lost },
-  { key: 'refund',  icon: 'arrow-undo-outline',       color: colors.refund },
-  { key: 'cashout', icon: 'cash-outline',             color: colors.refund },
-  { key: 'pending', icon: 'time-outline',             color: colors.pending },
+  // Getters: the active theme's colours, not the one the app started with.
+  { key: 'won',     icon: 'checkmark-circle-outline', get color() { return colors.won; } },
+  { key: 'lost',    icon: 'close-circle-outline',     get color() { return colors.lost; } },
+  { key: 'refund',  icon: 'arrow-undo-outline',       get color() { return colors.refund; } },
+  { key: 'cashout', icon: 'cash-outline',             get color() { return colors.refund; } },
+  { key: 'pending', icon: 'time-outline',             get color() { return colors.pending; } },
 ];
 
 /**

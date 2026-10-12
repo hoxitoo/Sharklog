@@ -153,6 +153,9 @@ export interface GeneratedStrategy {
   answers: StrategyAnswers;
 }
 
+/** Colour themes of the mobile app. Stored in settings, so it travels with a backup. */
+export type AppTheme = 'dark' | 'light' | 'olive' | 'navy';
+
 export interface AppSettings {
   tiltThreshold: number;
   dailyBetLimit: number;
@@ -166,6 +169,8 @@ export interface AppSettings {
   generatedStrategy?: GeneratedStrategy;
   lastBackupAt?: string;
   language?: 'ru' | 'en' | 'kz' | 'by';
+  /** Mobile colour theme; missing = dark. The desktop ignores it. */
+  theme?: AppTheme;
   disableChecklist?: boolean;
   betResultReminders?: boolean; // local reminder with W/L buttons when a match should be over (default: on)
 }

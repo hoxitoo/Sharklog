@@ -8,6 +8,7 @@ import Svg, { Path } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, alpha, mix } from '../theme/colors';
 import { SIZE } from '../theme/typography';
+import { themedStyles } from '../theme/themed';
 
 export interface WheelAction {
   key: string;
@@ -164,7 +165,7 @@ export function ActionWheel({
   );
 }
 
-const wheel = StyleSheet.create({
+const wheel = themedStyles(() => ({
   backdrop: {
     flex: 1, backgroundColor: '#000000D0',
     alignItems: 'center', justifyContent: 'center',
@@ -185,4 +186,4 @@ const wheel = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.5, shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 }, elevation: 8,
   },
-});
+}));

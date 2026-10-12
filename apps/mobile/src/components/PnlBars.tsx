@@ -6,6 +6,7 @@ import type { PnlBucket } from '@sharklog/core';
 import { colors, alpha } from '../theme/colors';
 import { RADIUS } from '../theme/layout';
 import { SIZE } from '../theme/typography';
+import { themedStyles } from '../theme/themed';
 
 interface Props {
   buckets: PnlBucket[];
@@ -110,7 +111,7 @@ export function PnlBars({ buckets, width, height = 120, selected, onSelect, labe
   );
 }
 
-const bars = StyleSheet.create({
+const bars = themedStyles(() => ({
   labels: { position: 'absolute', bottom: 0, left: 0, flexDirection: 'row' },
   label: { fontSize: SIZE.micro, color: colors.textMuted, textAlign: 'center' },
-});
+}));

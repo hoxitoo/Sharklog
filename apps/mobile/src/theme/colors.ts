@@ -1,40 +1,39 @@
-export const colors = {
-  // ── Surface ladder ────────────────────────────────────────────────────────
-  // The old values (#080810 / #0E0E1C / #12121E) sat ~4% apart in luminance, so
-  // every card melted into the page. These steps are deliberately separable.
-  bg: '#06070D',          // page
-  bgCard: '#131522',      // card
-  bgElevated: '#1C1F2E',  // tile nested inside a card
-  bgSunken: '#0B0C14',    // wells: inputs, chart plots, table stripes
-  border: '#282C3F',      // default hairline — visible, not shouty
-  borderStrong: '#3A3F57',
+import { PALETTES, isThemeId, type Palette, type ThemeId } from './palettes';
 
-  // Two-accent palette matching web prototype
-  accent: '#22D3A0',      // teal — win/positive
-  accentDim: '#22D3A022',
-  purple: '#5B6AF0',      // purple — primary CTA / interactive
-  purpleText: '#7C88FF',  // same hue lifted to pass AA as text on dark surfaces
-  purpleDim: '#5B6AF022',
-  gold: '#F59E0B',        // pro badge / pending
-  red: '#F4455A',
-  violet: '#A78BFA',      // secondary stats
-  pink: '#EC4899',
-  // Raspberry — the "Support the author" accent in the menu: deeper and redder
-  // than `pink`, lifted just enough to pass AA as text on its own tinted card
-  // (4.7:1 over bgCard + 8% of itself; #EC3D7A fell short at 4.45).
-  raspberry: '#F0457F',
+/**
+ * The ACTIVE palette. Mutated in place by `applyTheme`, so every
+ * `colors.textMuted` read at render time sees the current theme — that is what
+ * lets 900 call sites stay as they are.
+ *
+ * The rule that makes it work: nothing may read `colors` at MODULE LOAD and
+ * keep the result. Styles go through `themedStyles` (theme/themed.ts), shared
+ * style objects through getters, and `__tests__/themeLive.test.ts` fails on any
+ * module-level read it finds.
+ */
+export const colors: Palette = { ...PALETTES.dark };
 
-  textPrimary: '#EAEBF5',
-  textSecondary: '#9296B4',
-  textMuted: '#828AA8',   // 4.8:1 on bgElevated — the old #666B87 failed AA
+export type Colors = Palette;
 
-  won: '#22D3A0',
-  lost: '#F4455A',
-  pending: '#F59E0B',
-  refund: '#A78BFA',
-} as const;
+let activeTheme: ThemeId = 'dark';
+let version = 0;
 
-export type Colors = typeof colors;
+/** Swap the active palette. Unknown or missing ids mean the default (dark). */
+export function applyTheme(id: string | undefined): void {
+  const next: ThemeId = isThemeId(id) ? id : 'dark';
+  if (next === activeTheme) return;
+  Object.assign(colors, PALETTES[next]);
+  activeTheme = next;
+  version += 1;
+}
+
+export function currentTheme(): ThemeId {
+  return activeTheme;
+}
+
+/** Bumped on every switch; lazy style caches compare against it. */
+export function themeVersion(): number {
+  return version;
+}
 
 /**
  * Hex + alpha (0..1) → 8-digit hex. Keeps tint maths readable at call sites.
@@ -77,14 +76,16 @@ export function mix(fg: string, bg: string, ratio: number): string {
  */
 export type CardTone = 'neutral' | 'profit' | 'loss' | 'warn' | 'info' | 'violet' | 'pink';
 
+// Getters, not values: read at module load they would freeze on the palette
+// the app started with.
 export const TONE_ACCENT: Record<CardTone, string> = {
-  neutral: colors.borderStrong,
-  profit: colors.accent,
-  loss: colors.red,
-  warn: colors.gold,
-  info: colors.purple,
-  violet: colors.violet,
-  pink: colors.pink,
+  get neutral() { return colors.borderStrong; },
+  get profit() { return colors.accent; },
+  get loss() { return colors.red; },
+  get warn() { return colors.gold; },
+  get info() { return colors.purple; },
+  get violet() { return colors.violet; },
+  get pink() { return colors.pink; },
 };
 
 export function toneSurface(tone: CardTone): { backgroundColor: string; borderColor: string } {

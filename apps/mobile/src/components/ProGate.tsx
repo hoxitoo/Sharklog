@@ -14,6 +14,7 @@ import {
 } from '../services/revenueCat';
 import { SIZE, GLYPH } from '../theme/typography';
 import { useTranslation } from 'react-i18next';
+import { themedStyles } from '../theme/themed';
 
 interface Props {
   children: React.ReactNode;
@@ -132,7 +133,7 @@ const PERKS = [
   'proGate.perkExport',
 ] as const;
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   overlay: {
     flex: 1,
     alignItems: 'center',
@@ -171,4 +172,4 @@ const styles = StyleSheet.create({
   buttonTextSecondary: { fontSize: SIZE.lead, fontWeight: '600', color: colors.purpleText },
   restore: { marginTop: SPACE.lg },
   restoreText: { fontSize: SIZE.body, color: colors.textSecondary },
-});
+}));

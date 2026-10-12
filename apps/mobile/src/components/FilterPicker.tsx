@@ -7,6 +7,7 @@ import { colors } from '../theme/colors';
 import { SIZE, GLYPH } from '../theme/typography';
 import { SPACE, RADIUS, TOUCH } from '../theme/layout';
 import { haptic } from '../utils/haptics';
+import { themedStyles } from '../theme/themed';
 
 export interface PickerOption<T extends string> {
   key: T;
@@ -136,7 +137,7 @@ export function FilterPicker<T extends string>({ label, options, value, onChange
   );
 }
 
-const picker = StyleSheet.create({
+const picker = themedStyles(() => ({
   btn: {
     flex: 1,
     minHeight: TOUCH,
@@ -191,4 +192,4 @@ const picker = StyleSheet.create({
   optionText: { fontSize: SIZE.lead, color: colors.textSecondary },
   optionTextCurrent: { color: colors.purpleText, fontWeight: '700' },
   check: { fontSize: SIZE.lead, color: colors.purpleText, fontWeight: '700' },
-});
+}));

@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors } from '../theme/colors';
 import { SIZE, GLYPH } from '../theme/typography';
 import { useTranslation } from 'react-i18next';
+import { themedStyles } from '../theme/themed';
 
 const STORAGE_KEY = '@sharklog/responsible_expanded';
 
@@ -58,7 +59,7 @@ export function ResponsibleGamblingBanner() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   container: {
     marginHorizontal: SPACE.lg,
     marginBottom: SPACE.xl,
@@ -88,4 +89,4 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
     lineHeight: 18,
   },
-});
+}));

@@ -24,6 +24,7 @@ import { useTranslation } from 'react-i18next';
 import { dateLocale } from '../../i18n';
 import { pickLabel } from '../../utils/labels';
 import { strategyName } from '../../utils/strategyText';
+import { themedStyles } from '../../theme/themed';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -73,7 +74,7 @@ function WLStrip({ bets }: { bets: Bet[] }) {
   );
 }
 
-const wl = StyleSheet.create({
+const wl = themedStyles(() => ({
   container: {
     ...cardSurface, ...toneSurface('violet'),
     marginHorizontal: SPACE.lg, marginBottom: SPACE.md, padding: SPACE.lg,
@@ -94,7 +95,7 @@ const wl = StyleSheet.create({
   squareL: { backgroundColor: colors.lost + '18', borderColor: colors.lost + '55' },
   squareR: { backgroundColor: colors.refund + '18', borderColor: colors.refund + '55' },
   letter: { fontSize: SIZE.body, fontWeight: '700' },
-});
+}));
 
 function Heatmap({ bets }: { bets: Bet[] }) {
   const { t } = useTranslation();
@@ -169,7 +170,7 @@ function Heatmap({ bets }: { bets: Bet[] }) {
   );
 }
 
-const hm = StyleSheet.create({
+const hm = themedStyles(() => ({
   container: {
     ...cardSurface,
     marginHorizontal: SPACE.lg, marginBottom: SPACE.md, padding: SPACE.lg,
@@ -181,7 +182,7 @@ const hm = StyleSheet.create({
   legend: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs, marginTop: SPACE.sm },
   legendCell: { width: 10, height: 10, borderRadius: RADIUS.xs },
   legendText: { fontSize: SIZE.micro, color: colors.textMuted },
-});
+}));
 
 // ── Top card: period turnover + current bank ─────────────────────────────────
 
@@ -220,7 +221,7 @@ function TurnoverCard({ turnover, bank, betCount, activeDays, pendingCount, peri
   );
 }
 
-const tc = StyleSheet.create({
+const tc = themedStyles(() => ({
   card: {
     ...cardSurface, ...toneSurface('info'),
     padding: SPACE.lg, marginHorizontal: SPACE.lg, marginBottom: SPACE.md,
@@ -239,7 +240,7 @@ const tc = StyleSheet.create({
   metaRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs, marginTop: SPACE.md },
   meta: { fontSize: SIZE.caption, color: colors.textMuted },
   metaDot: { fontSize: SIZE.caption, color: colors.border },
-});
+}));
 
 // ── Main block: interactive per-day dashboard ────────────────────────────────
 
@@ -362,7 +363,7 @@ function DailyDashboardCard({ days, onExpand }: { days: DayStats[]; onExpand: ()
   );
 }
 
-const dd = StyleSheet.create({
+const dd = themedStyles(() => ({
   card: {
     ...cardSurface, ...toneSurface('profit'),
     padding: SPACE.lg, marginHorizontal: SPACE.lg, marginBottom: SPACE.md,
@@ -398,7 +399,7 @@ const dd = StyleSheet.create({
   sumCell: { flex: 1 },
   sumLabel: { fontSize: SIZE.micro, color: colors.textMuted },
   sumValue: { fontSize: SIZE.body, fontWeight: '700', color: colors.textPrimary, marginTop: 3 },
-});
+}));
 
 export function DashboardScreen() {
   const navigation = useNavigation<Nav>();
@@ -625,7 +626,7 @@ export function DashboardScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   flex: { flex: 1 },
   container: { flex: 1, backgroundColor: colors.bg },
   strategyBadge: {
@@ -713,4 +714,4 @@ const styles = StyleSheet.create({
   },
   heatmapToggleText: { fontSize: SIZE.body, fontWeight: '600', color: colors.textSecondary },
   heatmapToggleChevron: { fontSize: GLYPH.sm, color: colors.textMuted },
-});
+}));

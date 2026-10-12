@@ -24,12 +24,21 @@ import { DisciplineScreen } from '../screens/DisciplineScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import type { RootStackParamList } from './RootNavigator';
 import { SIZE, GLYPH } from '../theme/typography';
+import { themedStyles } from '../theme/themed';
 
 export type DrawerScreen = 'Bets' | 'Dashboard' | 'Insights' | 'Analytics' | 'Discipline' | 'Settings';
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 
 const DRAWER_WIDTH = 272;
+
+/**
+ * The screen on show, outliving this component. Switching the colour theme
+ * remounts the whole tree (App.tsx), and without this the user who picked a
+ * theme in Settings landed back on Bets. Module state, not storage: a cold
+ * start still opens on Bets.
+ */
+let lastScreen: DrawerScreen = 'Bets';
 
 /**
  * The slide-in must END when it visibly ends. It used to be a spring, and a
@@ -101,12 +110,13 @@ const ActiveScreen = React.memo(function ActiveScreen({ screen, betsFilter, onCl
 });
 
 export function DrawerNavigator() {
-  const [screen, setScreen] = useState<DrawerScreen>('Bets');
+  const [screen, setScreen] = useState<DrawerScreen>(() => lastScreen);
   // Screens are kept once visited, so only the FIRST visit pays for a mount.
   // Lazily, not all six up front — that would move the whole cost to launch.
-  const [visited, setVisited] = useState<DrawerScreen[]>(['Bets']);
+  const [visited, setVisited] = useState<DrawerScreen[]>(() => [lastScreen]);
 
   const showScreen = useCallback((s: DrawerScreen) => {
+    lastScreen = s;
     setScreen(s);
     setVisited((v) => (v.includes(s) ? v : [...v, s]));
   }, []);
@@ -296,7 +306,7 @@ export function DrawerNavigator() {
 
         {/* Drawer panel */}
         <Animated.View
-          style={[styles.drawer, { transform: [{ translateX }] }]}
+          style={[styles.drawer, drawerVisible && styles.drawerShadow, { transform: [{ translateX }] }]}
           pointerEvents={drawerVisible ? 'auto' : 'none'}
         >
           <DrawerContent
@@ -361,7 +371,9 @@ function DrawerContent({ currentScreen, onNavigate, onClose, insets }: DrawerCon
                 <Ionicons
                   name={active ? item.iconActive : item.icon}
                   size={20}
-                  color={active ? colors.purple : colors.textSecondary}
+                  // purpleText, like the label: in a theme whose primary and
+                  // link colours differ, the icon and its label disagreed.
+                  color={active ? colors.purpleText : colors.textSecondary}
                   style={styles.navIcon}
                 />
                 <Text style={[styles.navLabel, active && styles.navLabelActive]}>
@@ -429,7 +441,7 @@ function DrawerContent({ currentScreen, onNavigate, onClose, insets }: DrawerCon
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   root: {
     flex: 1,
     backgroundColor: colors.bg,
@@ -455,6 +467,10 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
     borderRightColor: colors.border,
     zIndex: 20,
+  },
+  // Only while open. Parked off-screen at -272, the shadow still bled in at the
+  // left edge — a grey seam invisible on dark grounds and plain on a light one.
+  drawerShadow: {
     shadowColor: '#000',
     shadowOffset: { width: 4, height: 0 },
     shadowOpacity: 0.3,
@@ -475,6 +491,9 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: RADIUS.sm,
+    // The mark is white on transparent: tinted, it follows the theme instead
+    // of vanishing into a white card.
+    tintColor: colors.textPrimary,
   },
   logoText: {
     fontSize: SIZE.title,
@@ -611,4 +630,4 @@ const styles = StyleSheet.create({
     lineHeight: 41,
     marginTop: -2,
   },
-});
+}));

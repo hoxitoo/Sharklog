@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../theme/colors';
 import { FONTS, SIZE, sansFor } from '../theme/typography';
 import { useDrawer } from './DrawerContext';
+import { themedStyles } from '../theme/themed';
 
 /**
  * Header type, defined once for both kinds of header.
@@ -20,13 +21,18 @@ import { useDrawer } from './DrawerContext';
  * `fontWeight` is deliberately absent: the weight has already chosen the file,
  * and leaving it set fake-bolds a face that is already bold.
  */
-const HEADER_FACE = {
-  fontFamily: sansFor('700'),
-  color: colors.textPrimary,
-};
+const FACE = sansFor('700');
 
 /** Drawer screens: a large title that owns the top of the page. */
-export const HEADER_TITLE = { ...HEADER_FACE, fontSize: SIZE.hero, letterSpacing: -0.5 };
+export const HEADER_TITLE = {
+  fontFamily: FACE,
+  // A getter, like every shared style that names a colour: read when used, so
+  // it follows the active theme. A spread of a shared object would copy the
+  // value once, at import.
+  get color() { return colors.textPrimary; },
+  fontSize: SIZE.hero,
+  letterSpacing: -0.5,
+};
 
 /**
  * Stack screens: a nav-bar title, sharing a row with the back button.
@@ -35,7 +41,11 @@ export const HEADER_TITLE = { ...HEADER_FACE, fontSize: SIZE.hero, letterSpacing
  * family, size, weight and colour to the native header and drops the rest, so
  * setting it here would read as shared and render as nothing.
  */
-export const NAV_TITLE = { ...HEADER_FACE, fontSize: SIZE.title };
+export const NAV_TITLE = {
+  fontFamily: FACE,
+  get color() { return colors.textPrimary; },
+  fontSize: SIZE.title,
+};
 
 interface Props {
   title: string;
@@ -67,7 +77,7 @@ export function ScreenHeader({ title, subtitle, rightAction }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -95,4 +105,4 @@ const styles = StyleSheet.create({
   },
   actionText: { fontSize: SIZE.body, fontWeight: '700', color: '#fff' },
   actionPlaceholder: { width: 36 },
-});
+}));

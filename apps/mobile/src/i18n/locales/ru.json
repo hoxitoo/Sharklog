@@ -542,10 +542,8 @@
     "sectionTheme": "Тема оформления",
     "themeDark": "Тёмная",
     "themeLight": "Светлая",
-    "themeSoonMsg": "Эта тема в разработке и появится в одном из следующих обновлений.",
     "themeOlive": "Оливковая",
-    "themeNavy": "Тёмно-синяя",
-    "themeSoonHint": "Остальные — скоро"
+    "themeNavy": "Тёмно-синяя"
   },
   "onboarding": {
     "welcome": "Добро пожаловать",

@@ -11,6 +11,7 @@ import { useTranslation } from 'react-i18next';
 import { SPACE, RADIUS } from '../theme/layout';
 import { useFormatMoney } from '../utils/useFormatMoney';
 import { haptic } from '../utils/haptics';
+import { themedStyles } from '../theme/themed';
 
 /**
  * `balance` — the bank itself. `pnl` — cumulative betting result.
@@ -239,7 +240,7 @@ export function BalanceChart({ days, width, height, series = 'balance', color }:
   );
 }
 
-const bc = StyleSheet.create({
+const bc = themedStyles(() => ({
   empty: { alignItems: 'center', justifyContent: 'center' },
   emptyText: { fontSize: SIZE.caption, color: colors.textMuted },
   yLabel: { position: 'absolute', right: 0, fontSize: SIZE.micro, color: colors.textMuted, textAlign: 'right' },
@@ -254,4 +255,4 @@ const bc = StyleSheet.create({
   pillDate: { fontSize: SIZE.micro, color: colors.textMuted },
   pillValue: { ...numeric, fontSize: SIZE.caption, fontWeight: '700' },
   pillFlow: { ...numeric, fontSize: SIZE.micro, fontWeight: '700' },
-});
+}));

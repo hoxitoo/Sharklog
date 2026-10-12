@@ -4,7 +4,12 @@ import { View, StyleSheet, Animated, Easing } from 'react-native';
 import { AppText as Text } from './AppText';
 import { FONTS, SIZE } from '../theme/typography';
 import { useTranslation } from 'react-i18next';
-import { colors } from '../theme/colors';
+import { PALETTES } from '../theme/palettes';
+
+// The splash is the brand, not the theme: it continues the native splash,
+// which is dark whatever theme was picked — a light splash after it would flash.
+const BRAND = PALETTES.dark;
+import { themedStyles } from '../theme/themed';
 
 interface Props {
   onFinish: () => void;
@@ -128,10 +133,10 @@ export function AnimatedSplash({ onFinish }: Props) {
   );
 }
 
-const s = StyleSheet.create({
+const s = themedStyles(() => ({
   container: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: colors.bg,
+    backgroundColor: BRAND.bg,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -145,7 +150,7 @@ const s = StyleSheet.create({
     position: 'absolute',
     fontSize: SIZE.body,
     fontWeight: '600',
-    color: colors.accent,
+    color: BRAND.accent,
     letterSpacing: 0.3,
   },
   linesWrap: {
@@ -156,12 +161,12 @@ const s = StyleSheet.create({
   line: {
     height: 2,
     borderRadius: RADIUS.xs,
-    backgroundColor: colors.accent,
+    backgroundColor: BRAND.accent,
   },
   name: {
     fontSize: SIZE.display,
     fontWeight: '800',
-    color: colors.textPrimary,
+    color: BRAND.textPrimary,
     letterSpacing: -1,
     textAlign: 'center',
   },
@@ -170,9 +175,9 @@ const s = StyleSheet.create({
   tagline: {
     fontFamily: FONTS.sans,
     fontSize: SIZE.body,
-    color: colors.textMuted,
+    color: BRAND.textMuted,
     letterSpacing: 0.5,
     marginTop: SPACE.xs,
     textAlign: 'center',
   },
-});
+}));
