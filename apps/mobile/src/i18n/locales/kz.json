@@ -504,8 +504,10 @@
     "sectionTheme": "Безендіру тақырыбы",
     "themeDark": "Қараңғы",
     "themeLight": "Ашық",
-    "themeOldschool": "Old-school",
-    "themeSoonMsg": "Бұл тақырып әзірленуде, келесі жаңартулардың бірінде қосылады."
+    "themeSoonMsg": "Бұл тақырып әзірленуде, келесі жаңартулардың бірінде қосылады.",
+    "themeOlive": "Зәйтүн",
+    "themeNavy": "Қою көк",
+    "themeSoonHint": "Басқалары — жақында"
   },
   "onboarding": {
     "welcome": "Қош келдіңіз",

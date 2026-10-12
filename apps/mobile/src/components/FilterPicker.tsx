@@ -34,6 +34,9 @@ interface Props<T extends string> {
  * were, and the current one could be off-screen. A button states the current
  * choice in place and puts the rest one tap away, which also gives the bar back
  * enough height to be worth collapsing.
+ *
+ * The bet form uses it for the same reason (sport, bet type, discipline,
+ * strategy, status): one line per choice instead of rows of chips.
  */
 export function FilterPicker<T extends string>({ label, options, value, onChange, active, flex = 1 }: Props<T>) {
   const [open, setOpen] = useState(false);

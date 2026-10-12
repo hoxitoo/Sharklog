@@ -504,8 +504,10 @@
     "sectionTheme": "Theme",
     "themeDark": "Dark",
     "themeLight": "Light",
-    "themeOldschool": "Old-school",
-    "themeSoonMsg": "This theme is in the works and will arrive in an upcoming update."
+    "themeSoonMsg": "This theme is in the works and will arrive in an upcoming update.",
+    "themeOlive": "Olive",
+    "themeNavy": "Navy",
+    "themeSoonHint": "Others — coming soon"
   },
   "onboarding": {
     "welcome": "Welcome",

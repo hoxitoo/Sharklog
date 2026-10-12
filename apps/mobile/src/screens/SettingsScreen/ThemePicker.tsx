@@ -1,23 +1,30 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { AppText as Text } from '../../components/AppText';
 import { THEMES, type ThemeId } from '../../theme/themes';
 import { colors } from '../../theme/colors';
-import { SPACE, RADIUS, TOUCH } from '../../theme/layout';
-import { SIZE, GLYPH } from '../../theme/typography';
+import { SPACE, RADIUS, TOUCH, hitSlopFor } from '../../theme/layout';
+import { SIZE } from '../../theme/typography';
 
 const LABEL_KEY: Record<ThemeId, string> = {
   dark: 'settings.themeDark',
   light: 'settings.themeLight',
-  oldschool: 'settings.themeOldschool',
+  olive: 'settings.themeOlive',
+  navy: 'settings.themeNavy',
 };
 
+const DOT = 28;
+const RING = 2;
+const CELL = DOT + (RING + 2) * 2; // dot + gap + ring on each side
+const GAP = SPACE.sm;
+const SLOP = hitSlopFor(CELL, { maxHorizontal: GAP / 2 });
+
 /**
- * Three preview tiles, each painted in its own theme. Only the dark theme is
- * real; the others are marked "soon" and say so when tapped — a tile that
- * silently did nothing would read as broken.
+ * One row: the current theme's name on the left, a circle per theme on the
+ * right — each split diagonally into its ground and accent, no captions. Only
+ * the dark theme is real; tapping another says it is coming rather than doing
+ * nothing, which would read as broken.
  */
 export function ThemePicker() {
   const { t } = useTranslation();
@@ -25,58 +32,63 @@ export function ThemePicker() {
 
   return (
     <View style={s.row}>
-      {THEMES.map((theme) => {
-        const active = theme.id === current;
-        const { swatch } = theme;
-        return (
-          <TouchableOpacity
-            key={theme.id}
-            style={s.cell}
-            activeOpacity={0.75}
-            accessibilityRole="button"
-            accessibilityState={{ selected: active, disabled: !theme.available }}
-            onPress={() => {
-              if (!theme.available) Alert.alert(t(LABEL_KEY[theme.id]), t('settings.themeSoonMsg'));
-            }}
-          >
-            <View style={[s.tile, { backgroundColor: swatch.bg, borderColor: active ? colors.purple : colors.border }]}>
-              <View style={[s.card, { backgroundColor: swatch.card }]}>
-                <View style={[s.line, { backgroundColor: swatch.text }]} />
-                <View style={[s.lineShort, { backgroundColor: swatch.text }]} />
-              </View>
-              <View style={[s.dot, { backgroundColor: swatch.accent }]} />
-              {active && (
-                <View style={s.check}>
-                  <Ionicons name="checkmark" size={GLYPH.sm} color="#fff" />
+      <View style={s.text}>
+        <Text style={s.name}>{t(LABEL_KEY[current])}</Text>
+        <Text style={s.hint} numberOfLines={2}>{t('settings.themeSoonHint')}</Text>
+      </View>
+      <View style={s.dots}>
+        {THEMES.map((theme) => {
+          const active = theme.id === current;
+          return (
+            <TouchableOpacity
+              key={theme.id}
+              style={[s.cell, active && s.cellActive]}
+              hitSlop={SLOP}
+              activeOpacity={0.75}
+              accessibilityRole="button"
+              accessibilityLabel={t(LABEL_KEY[theme.id])}
+              accessibilityState={{ selected: active, disabled: !theme.available }}
+              onPress={() => {
+                if (!theme.available) Alert.alert(t(LABEL_KEY[theme.id]), t('settings.themeSoonMsg'));
+              }}
+            >
+              <View style={s.dot}>
+                {/* Two halves, turned 45° inside the clipped circle: a diagonal split. */}
+                <View style={s.split}>
+                  <View style={[s.half, { backgroundColor: theme.swatch.base }]} />
+                  <View style={[s.half, { backgroundColor: theme.swatch.accent }]} />
                 </View>
-              )}
-            </View>
-            <Text style={[s.label, active && s.labelActive]} numberOfLines={1}>{t(LABEL_KEY[theme.id])}</Text>
-            {!theme.available && <Text style={s.soon}>{t('common.soon')}</Text>}
-          </TouchableOpacity>
-        );
-      })}
+              </View>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
     </View>
   );
 }
 
 const s = StyleSheet.create({
-  row: { flexDirection: 'row', gap: SPACE.sm, paddingVertical: SPACE.md },
-  cell: { flex: 1, alignItems: 'center', minHeight: TOUCH },
-  tile: {
-    alignSelf: 'stretch', height: 64, borderRadius: RADIUS.md, borderWidth: 2,
-    padding: SPACE.sm, justifyContent: 'space-between', overflow: 'hidden',
+  row: {
+    minHeight: TOUCH + SPACE.sm,
+    flexDirection: 'row', alignItems: 'center', gap: SPACE.md,
+    paddingVertical: SPACE.sm,
   },
-  card: { borderRadius: RADIUS.xs, padding: SPACE.xs, gap: 3 },
-  line: { height: 3, width: '70%', borderRadius: RADIUS.xs, opacity: 0.85 },
-  lineShort: { height: 3, width: '40%', borderRadius: RADIUS.xs, opacity: 0.5 },
-  dot: { width: 16, height: 6, borderRadius: RADIUS.xs, alignSelf: 'flex-end' },
-  check: {
-    position: 'absolute', top: SPACE.xs, right: SPACE.xs,
-    width: 18, height: 18, borderRadius: RADIUS.pill,
-    backgroundColor: colors.purple, alignItems: 'center', justifyContent: 'center',
+  text: { flex: 1 },
+  name: { fontSize: SIZE.body, fontWeight: '500', color: colors.textPrimary },
+  hint: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: 2 },
+  dots: { flexDirection: 'row', gap: GAP },
+  cell: {
+    width: CELL, height: CELL, borderRadius: RADIUS.pill,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: RING, borderColor: 'transparent',
   },
-  label: { fontSize: SIZE.caption, color: colors.textSecondary, marginTop: SPACE.xs },
-  labelActive: { color: colors.textPrimary, fontWeight: '700' },
-  soon: { fontSize: SIZE.micro, color: colors.textMuted },
+  cellActive: { borderColor: colors.purple },
+  dot: {
+    width: DOT, height: DOT, borderRadius: RADIUS.pill, overflow: 'hidden',
+    // A hairline, or the dark theme's circle vanishes into the dark card.
+    borderWidth: 1, borderColor: colors.borderStrong,
+  },
+  // A rotated square keeps its inscribed circle, so the halves still fill the clip.
+  split: { flex: 1, flexDirection: 'row', transform: [{ rotate: '-45deg' }] },
+  half: { flex: 1 },
 });

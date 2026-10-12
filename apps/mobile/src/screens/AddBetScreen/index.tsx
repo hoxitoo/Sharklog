@@ -15,6 +15,7 @@ import {
   impliedProbability, halfKelly, expectedValue, recommendedStake, combineExpressOdds, CURRENT_SCHEMA_VERSION, FREE_LIMITS, calcDashboard, currentBank, toYmd,
 } from '@sharklog/core';
 import { useTranslation } from 'react-i18next';
+import { FilterPicker } from '../../components/FilterPicker';
 import { useFormatMoney } from '../../utils/useFormatMoney';
 import { sportLabel, betTypeLabel, strategyLabel, disciplineLabel } from '../../utils/labels';
 import { colors } from '../../theme/colors';
@@ -95,57 +96,6 @@ function uuid(): string {
 function nd(v: string): string {
   return v.replace(',', '.');
 }
-
-// ── Segmented Control ─────────────────────────────────────────────────────────
-
-/**
- * A group of choice chips that WRAPS onto as many lines as it needs. It used to
- * be one horizontal strip: eight sports or eight bet types ran off the right
- * edge, and the option you wanted had to be found by scrolling sideways —
- * "Киберспорт" sat half-cut at the screen edge on every phone.
- */
-function SegmentedControl<T extends string>({
-  label, options, value, onChange,
-}: {
-  label: string;
-  options: Array<{ key: T; label: string }>;
-  value: T;
-  onChange: (v: T) => void;
-}) {
-  return (
-    <View style={sc.container}>
-      <Text style={sc.label}>{label}</Text>
-      <View style={sc.row}>
-        {options.map((opt) => (
-          <TouchableOpacity
-            key={opt.key}
-            style={[sc.item, value === opt.key && sc.itemActive]}
-            onPress={() => onChange(opt.key)}
-          >
-            <Text style={[sc.text, value === opt.key && sc.textActive]}>
-              {opt.label}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </View>
-    </View>
-  );
-}
-
-const sc = StyleSheet.create({
-  container: { marginBottom: SPACE.lg },
-  label: { fontSize: SIZE.caption, color: colors.textSecondary, marginBottom: SPACE.xs, textTransform: 'uppercase', letterSpacing: 0.5 },
-  row: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.xs },
-  item: {
-    minHeight: TOUCH, justifyContent: 'center',
-    paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm,
-    borderRadius: RADIUS.sm, backgroundColor: colors.bgCard,
-    borderWidth: 1, borderColor: colors.border,
-  },
-  itemActive: { backgroundColor: colors.purple, borderColor: colors.purple },
-  text: { fontSize: SIZE.body, color: colors.textSecondary },
-  textActive: { color: '#fff', fontWeight: '700' },
-});
 
 // ── Field wrapper ─────────────────────────────────────────────────────────────
 
@@ -957,38 +907,25 @@ export function AddBetScreen() {
                   )}
                 </View>
 
-                {/* Per-leg sport chips — wrapped, like the single form: a strip
-                    that ran off the card hid half the sports. */}
-                <View style={styles.legChips}>
-                  {sportOptions.map((opt) => (
-                    <TouchableOpacity
-                      key={opt.key}
-                      style={[styles.legSportChip, leg.sport === opt.key && styles.legSportChipActive]}
-                      onPress={() => updateLeg(i, 'sport', opt.key)}
-                    >
-                      <Text style={[styles.legSportChipText, leg.sport === opt.key && styles.legSportChipTextActive]}>
-                        {opt.label}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
+                {/* Per-leg sport (and discipline for esports): one row of pickers,
+                    not chip rows — a leg stays the same height however many
+                    sports there are. */}
+                <View style={styles.legPickerRow}>
+                  <FilterPicker
+                    label={t('bet.sport')}
+                    options={sportOptions}
+                    value={leg.sport}
+                    onChange={(v) => updateLeg(i, 'sport', v)}
+                  />
+                  {leg.sport === 'esports' && (
+                    <FilterPicker
+                      label={t('addBet.discipline')}
+                      options={disciplineOptions}
+                      value={leg.discipline}
+                      onChange={(v) => updateLeg(i, 'discipline', v)}
+                    />
+                  )}
                 </View>
-
-                {/* Per-leg discipline (only when esports) */}
-                {leg.sport === 'esports' && (
-                  <View style={styles.legChips}>
-                    {disciplineOptions.map((opt) => (
-                      <TouchableOpacity
-                        key={opt.key}
-                        style={[styles.legSportChip, leg.discipline === opt.key && styles.legSportChipActive]}
-                        onPress={() => updateLeg(i, 'discipline', opt.key)}
-                      >
-                        <Text style={[styles.legSportChipText, leg.discipline === opt.key && styles.legSportChipTextActive]}>
-                          {opt.label}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                )}
 
                 <View style={{ marginBottom: SPACE.sm }}>
                   <SingleTeamInput
@@ -1111,16 +1048,29 @@ export function AddBetScreen() {
           />
         )}
 
-        {/* ── Sport (single mode only; express uses per-leg sport) ─── */}
+        {/* ── Sport and bet type: one row of two pickers (single only; express
+            picks a sport per leg). Each shows its current value and opens a
+            sheet with every option — the same control as the bet list's filters.
+            Chip rows either ran off the screen sideways or, wrapped, took six
+            lines of the form for two choices. ─── */}
         {isSingle && (
           <>
-            <Controller
-              control={control}
-              name="sport"
-              render={({ field: { onChange, value } }) => (
-                <SegmentedControl label={t('bet.sport')} options={sportOptions} value={value} onChange={onChange} />
-              )}
-            />
+            <View style={styles.pickerRow}>
+              <Controller
+                control={control}
+                name="sport"
+                render={({ field: { onChange, value } }) => (
+                  <FilterPicker label={t('bet.sport')} options={sportOptions} value={value} onChange={onChange} />
+                )}
+              />
+              <Controller
+                control={control}
+                name="betType"
+                render={({ field: { onChange, value } }) => (
+                  <FilterPicker label={t('bet.betType')} options={betTypeOptions} value={value} onChange={onChange} />
+                )}
+              />
+            </View>
 
             {watchedSport === 'other' && (
               <Field label={t('addBet.customSport')}>
@@ -1141,26 +1091,17 @@ export function AddBetScreen() {
             )}
 
             {watchedSport === 'esports' && (
-              <Controller
-                control={control}
-                name="discipline"
-                render={({ field: { onChange, value } }) => (
-                  <SegmentedControl label={t('addBet.discipline')} options={disciplineOptions} value={value} onChange={onChange} />
-                )}
-              />
+              <View style={styles.pickerRow}>
+                <Controller
+                  control={control}
+                  name="discipline"
+                  render={({ field: { onChange, value } }) => (
+                    <FilterPicker label={t('addBet.discipline')} options={disciplineOptions} value={value} onChange={onChange} />
+                  )}
+                />
+              </View>
             )}
           </>
-        )}
-
-        {/* ── Bet type (single only, express option removed) ─── */}
-        {isSingle && (
-          <Controller
-            control={control}
-            name="betType"
-            render={({ field: { onChange, value } }) => (
-              <SegmentedControl label={t('bet.betType')} options={betTypeOptions} value={value} onChange={onChange} />
-            )}
-          />
         )}
 
         {/* ── П1/Ничья/П2 outcome picker (only for 1X2 single) ─── */}
@@ -1349,7 +1290,9 @@ export function AddBetScreen() {
               control={control}
               name="strategy"
               render={({ field: { onChange, value } }) => (
-                <SegmentedControl label={t('bet.strategy')} options={strategyOptions} value={value} onChange={onChange} />
+                <View style={styles.pickerRow}>
+                  <FilterPicker label={t('bet.strategy')} options={strategyOptions} value={value} onChange={onChange} />
+                </View>
               )}
             />
 
@@ -1494,15 +1437,17 @@ export function AddBetScreen() {
             control={control}
             name="status"
             render={({ field: { onChange, value } }) => (
-              <SegmentedControl
-                label={t('common.status')}
-                // The same words as the status badge on the card ("Поражение",
-                // not this form's own "Проигрыш").
-                options={(['pending', 'won', 'lost', 'refund', 'cashout'] as BetStatus[])
-                  .map((k) => ({ key: k, label: t(`status.${k}`) }))}
-                value={value}
-                onChange={onChange}
-              />
+              <View style={styles.pickerRow}>
+                <FilterPicker
+                  label={t('common.status')}
+                  // The same words as the status badge on the card ("Поражение",
+                  // not this form's own "Проигрыш").
+                  options={(['pending', 'won', 'lost', 'refund', 'cashout'] as BetStatus[])
+                    .map((k) => ({ key: k, label: t(`status.${k}`) }))}
+                  value={value}
+                  onChange={onChange}
+                />
+              </View>
             )}
           />
         )}
@@ -1596,22 +1541,9 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   legRemove: { fontSize: SIZE.lead, color: colors.lost },
-  legChips: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.xs, marginBottom: SPACE.sm },
-  legSportChip: {
-    minHeight: TOUCH, justifyContent: 'center',
-    paddingHorizontal: SPACE.sm,
-    paddingVertical: SPACE.xs,
-    borderRadius: RADIUS.sm,
-    backgroundColor: colors.bgElevated,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  legSportChipActive: {
-    backgroundColor: colors.purple,
-    borderColor: colors.purple,
-  },
-  legSportChipText: { fontSize: SIZE.caption, color: colors.textSecondary },
-  legSportChipTextActive: { color: '#fff', fontWeight: '700' },
+  // Pickers side by side: sport + bet type, sport + discipline, or one alone.
+  pickerRow: { flexDirection: 'row', gap: SPACE.sm, marginBottom: SPACE.lg },
+  legPickerRow: { flexDirection: 'row', gap: SPACE.sm, marginBottom: SPACE.sm },
   addLegBtn: {
     minHeight: TOUCH, justifyContent: 'center',
     paddingVertical: SPACE.md,
