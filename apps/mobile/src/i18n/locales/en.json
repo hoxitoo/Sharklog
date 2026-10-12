@@ -109,7 +109,8 @@
     "limitMsg_one": "The free plan holds up to {{count}} bet. Upgrade to Pro for unlimited tracking.",
     "limitMsg_other": "The free plan holds up to {{count}} bets. Upgrade to Pro for unlimited tracking.",
     "dailyLimitTitle": "Daily limit",
-    "dailyLimitMsg": "Today's limit: {{count}}. You can add the next bet tomorrow — or change the limit in Settings."
+    "dailyLimitMsg": "Today's limit: {{count}}. You can add the next bet tomorrow — or change the limit in Settings.",
+    "bankShare": "{{pct}} of bank"
   },
   "dashboard": {
     "title": "Dashboard",

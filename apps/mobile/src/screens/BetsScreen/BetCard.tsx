@@ -4,9 +4,10 @@ import { SPACE, RADIUS, hitSlopFor } from '../../theme/layout';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
 import type { Bet } from '@sharklog/core';
-import { formatOdds, parseMoneyInput } from '@sharklog/core';
+import { formatOdds, parseMoneyInput, betPnl } from '@sharklog/core';
 import { sportLabel, betTypeLabel, pickLabel } from '../../utils/labels';
 import { useFormatMoney } from '../../utils/useFormatMoney';
+import { bankSharesFor, formatBankShare } from '../../utils/bankShares';
 import { colors } from '../../theme/colors';
 import { numeric, SIZE } from '../../theme/typography';
 import { StatusBadge, STATUS_COLORS } from '../../components/StatusBadge';
@@ -42,6 +43,11 @@ export const BetCard = React.memo(function BetCard({
   bet, onPress, cashoutOpen = false, onRequestCashout, onCloseCashout,
 }: Props) {
   const updateBet = useBetsStore((s) => s.updateBet);
+  // How far this bet moved the bank, in percent (`calcBankShares` in core).
+  // Over the WHOLE history — the bank a bet was placed against does not depend
+  // on the filter on screen. A number, so only this card re-renders when it
+  // changes; the list is computed once per write (utils/bankShares).
+  const bankShare = useBetsStore((s) => bankSharesFor(s.bets, s.bankroll.transactions).get(bet.id));
   const { t } = useTranslation();
   // Through the hook, not formatMoney: the card is the one place every amount
   // is on screen at once, and it ignored the «Округлять суммы» setting.
@@ -69,14 +75,10 @@ export const BetCard = React.memo(function BetCard({
     closeCashout();
   }
 
-  const potentialWin = Math.round(bet.stake * bet.odds);
-  const pnl = bet.status === 'won'
-    ? potentialWin - bet.stake
-    : bet.status === 'lost'
-    ? (bet.isFreebet ? 0 : -bet.stake)
-    : bet.status === 'cashout' && bet.cashoutAmount != null
-    ? bet.cashoutAmount - bet.stake
-    : null;
+  // Through betPnl, like every other P&L in the app — the percent below is
+  // computed from it, and the two must never disagree.
+  const pnl = betPnl(bet);
+  const share = bankShare != null ? formatBankShare(bankShare) : null;
 
   function handleQuickResult(status: 'won' | 'lost' | 'refund' | 'cashout') {
     if (status === 'won') haptic.success();
@@ -110,9 +112,14 @@ export const BetCard = React.memo(function BetCard({
         <View style={styles.right}>
           <Text style={styles.odds}>× {formatOdds(bet.odds)}</Text>
           <Text style={styles.stake}>{fmt(bet.stake)}</Text>
-          {pnl !== null && pnl !== 0 && (
+          {pnl !== 0 && (
             <Text style={[styles.pnl, { color: pnl >= 0 ? colors.won : colors.lost }]}>
               {pnl >= 0 ? '+' : ''}{fmt(pnl)}
+            </Text>
+          )}
+          {pnl !== 0 && share && (
+            <Text style={[styles.share, { color: pnl >= 0 ? colors.won : colors.lost }]}>
+              {t('bet.bankShare', { pct: share })}
             </Text>
           )}
           {bet.status === 'cashout' && bet.cashoutAmount != null && (
@@ -237,6 +244,8 @@ const styles = StyleSheet.create({
   odds: { ...numeric, fontSize: SIZE.title, fontWeight: '700', color: colors.textPrimary },
   stake: { ...numeric, fontSize: SIZE.body, color: colors.textSecondary, marginTop: 2 },
   pnl: { ...numeric, fontSize: SIZE.body, fontWeight: '600', marginTop: 2 },
+  // Secondary to the amount: same colour, smaller, a step quieter.
+  share: { ...numeric, fontSize: SIZE.caption, fontWeight: '500', marginTop: 1, opacity: 0.8 },
   footer: { flexDirection: 'row', alignItems: 'center', marginTop: SPACE.sm, gap: SPACE.sm },
   date: { fontSize: SIZE.caption, color: colors.textMuted, flex: 1 },
   bkBadge: {
