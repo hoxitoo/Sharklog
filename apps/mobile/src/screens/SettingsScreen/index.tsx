@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { SPACE, RADIUS, TOUCH, hitSlopFor } from '../../theme/layout';
 import {
-  View, StyleSheet, ScrollView, TouchableOpacity, Alert, Modal, ActivityIndicator, Pressable,
+  View, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
@@ -25,7 +25,7 @@ import {
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
-import { ProGate } from '../../components/ProGate';
+import { PaywallSheet } from '../../components/PaywallSheet';
 import { restorePurchases } from '../../services/revenueCat';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { SIZE, GLYPH, numeric } from '../../theme/typography';
@@ -234,6 +234,7 @@ export function SettingsScreen() {
 
   const isPro = settings.isPro;
   const openPaywall = () => setShowPaywall(true);
+  const closePaywall = useCallback(() => setShowPaywall(false), []);
   const reminderHour = effectiveReminderHour(settings);
 
   // Days since last backup (null = never)
@@ -241,10 +242,6 @@ export function SettingsScreen() {
     ? Math.floor((Date.now() - new Date(settings.lastBackupAt).getTime()) / DAY_MS)
     : null;
   const showBackupBanner = bets.length > 0 && (daysSinceBackup === null || daysSinceBackup > 30);
-
-  useEffect(() => {
-    if (isPro) setShowPaywall(false);
-  }, [isPro]);
 
   useEffect(() => () => {
     if (devTapTimer.current) clearTimeout(devTapTimer.current);
@@ -535,24 +532,7 @@ export function SettingsScreen() {
 
   return (
     <>
-      <Modal visible={showPaywall} animationType="slide" transparent onRequestClose={() => setShowPaywall(false)}>
-        {/* Tap outside the sheet to dismiss (standard bottom-sheet behavior) */}
-        <Pressable style={styles.paywallBg} onPress={() => setShowPaywall(false)}>
-          <Pressable style={styles.paywallSheet} onPress={(e) => e.stopPropagation()}>
-            <TouchableOpacity
-              style={styles.paywallClose}
-              hitSlop={hitSlopFor(32)}
-              onPress={() => setShowPaywall(false)}
-              accessibilityLabel={t('common.close')}
-            >
-              <Ionicons name="close" size={GLYPH.md} color={colors.textSecondary} />
-            </TouchableOpacity>
-            <ProGate feature={t('settings.proFeature')}>
-              <View />
-            </ProGate>
-          </Pressable>
-        </Pressable>
-      </Modal>
+      <PaywallSheet visible={showPaywall} onClose={closePaywall} feature={t('settings.proFeature')} />
 
       {/* Pinned, like every other drawer screen — a hamburger that scrolls away
           takes the only route into the menu with it. */}
@@ -878,15 +858,4 @@ const styles = StyleSheet.create({
   smallBtnText: { fontSize: SIZE.caption, fontWeight: '700', color: colors.purpleText },
   statusOk: { fontSize: SIZE.caption, color: colors.textSecondary },
   statusNew: { fontSize: SIZE.caption, fontWeight: '700', color: colors.accent },
-
-  paywallBg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
-  paywallSheet: {
-    backgroundColor: colors.bg, borderTopLeftRadius: RADIUS.sheet, borderTopRightRadius: RADIUS.sheet,
-    minHeight: '75%', overflow: 'hidden',
-  },
-  paywallClose: {
-    position: 'absolute', top: SPACE.md, right: SPACE.lg, zIndex: 10,
-    width: 32, height: 32, borderRadius: RADIUS.pill,
-    backgroundColor: colors.bgElevated, alignItems: 'center', justifyContent: 'center',
-  },
 });

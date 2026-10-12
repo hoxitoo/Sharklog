@@ -7,6 +7,7 @@ import { BankrollScreen } from '../screens/BankrollScreen';
 import { AddBetScreen } from '../screens/AddBetScreen';
 import { StrategyBuilderScreen } from '../screens/StrategyBuilderScreen';
 import { PartnersScreen } from '../screens/PartnersScreen';
+import { SupportScreen } from '../screens/SupportScreen';
 import { PendingScreen } from '../screens/PendingScreen';
 import { BetsFilterScreen } from '../screens/BetsFilterScreen';
 import { BetsQueryProvider } from '../components/BetsQueryContext';
@@ -19,6 +20,7 @@ export type RootStackParamList = {
   Bankroll: undefined;
   StrategyBuilder: undefined;
   Partners: undefined;
+  Support: undefined;
   Pending: undefined;
   BetsFilter: undefined;
 };
@@ -73,6 +75,11 @@ export function RootNavigator() {
         name="Partners"
         component={PartnersScreen}
         options={{ headerShown: true, ...headerOpts, title: t('nav.partners') }}
+      />
+      <Stack.Screen
+        name="Support"
+        component={SupportScreen}
+        options={{ headerShown: true, ...headerOpts, title: t('nav.support') }}
       />
     </Stack.Navigator>
     </BetsQueryProvider>

@@ -76,6 +76,6 @@ export const Analytics = {
   kellyUsed: () =>
     trackEvent('kelly_used'),
 
-  partnerLinkTapped: (partner: string) =>
-    trackEvent('partner_link_tapped', { partner }),
+  supportAction: (kind: 'pro' | 'rate' | 'share' | 'write') =>
+    trackEvent('support_action', { kind }),
 };

@@ -465,6 +465,89 @@ export interface PlanBreach {
   pnl: number;        // kopecks, 0 while unsettled
 }
 
+/**
+ * The bank a bet was placed against: the balance at the START of its day, from
+ * the whole history. Shared by the plan check and the bank share on a bet card,
+ * so the two can never disagree about what "the bank" was.
+ *
+ * `balance` already folds in the whole day — its results and its cash moves.
+ * Undo the parts that happened after the bet was placed: the day's results, and
+ * the withdrawals and reconciliations posted that evening. Deposits stay —
+ * topping up and then betting is the normal order. Without this, one evening
+ * withdrawal turned every bet made that morning into a plan breach, and a large
+ * negative reconciliation could drive the bank to zero and blank the card.
+ *
+ * Bets dated ahead of today have no day of their own (the breakdown stops at
+ * today); they were placed against the bank as it stands now — dating a bet by
+ * kick-off is ordinary use. `null` where the bank is not positive: "percent of
+ * bank" is then meaningless, not zero.
+ *
+ * `null` too BEFORE money first enters the books. `balance` is cash plus P&L,
+ * and with no cash yet it is the running P&L alone: history imported behind a
+ * deposit dated today, or weeks of bets before the first reconciliation, read
+ * "−80% of bank" for an 800 ₽ loss. Money enters on the first deposit's day
+ * (a deposit counts from its own morning), or the day AFTER the first
+ * reconciliation (a reconciliation is posted in the evening and is taken out
+ * of its own day's starting bank).
+ */
+export function bankAtBetTime(allBets: Bet[], transactions: BankrollTransaction[]): (date: string) => number | null {
+  const days = calcDailyBreakdown(allBets, transactions);
+  const atStart = new Map<string, number>();
+  let funded = false;
+  for (const d of days) {
+    if (d.deposits > 0) funded = true;
+    if (funded) atStart.set(d.date, d.balance - d.pnl + d.withdrawals - d.adjustments);
+    if (d.adjustments !== 0) funded = true;
+  }
+  const latest = days[days.length - 1];
+  const bankNow = latest && funded ? latest.balance : 0;
+  const lastDay = latest ? latest.date : '';
+  return (date) => {
+    const bank = date > lastDay ? bankNow : atStart.get(date);
+    return bank == null || bank <= 0 ? null : bank;
+  };
+}
+
+/**
+ * How far one settled bet moved the bank, in percent of the bank it was placed
+ * against (`bankAtBetTime`). Signed: a win is positive, a loss negative, a
+ * cashout whatever it actually returned (`betPnl`).
+ *
+ * Not the CURRENT bank: measured against today's balance, every old card would
+ * change its number on each deposit, and a winning streak would shrink the
+ * percentages of the very bets that built it.
+ *
+ * `null` where the number would mislead:
+ *  - a freebet: not own money, it never moved the bank by its stake;
+ *  - a refund or a pending bet: nothing happened to the bank;
+ *  - a stake larger than the bank: the bank records are incomplete (a deposit
+ *    never entered), and the share would be a fantasy like +250%.
+ */
+export function betBankShare(bet: Bet, bankAt: (date: string) => number | null): number | null {
+  if (bet.isFreebet) return null;
+  if (bet.status !== 'won' && bet.status !== 'lost' && bet.status !== 'cashout') return null;
+  if (bet.status === 'cashout' && bet.cashoutAmount == null) return null;
+  const bank = bankAt(bet.date);
+  if (bank == null || bet.stake > bank) return null;
+  return (betPnl(bet) / bank) * 100;
+}
+
+/**
+ * `betBankShare` for every bet, by id — computed once for a whole list. Empty
+ * when no bank is kept at all (no transactions): the "bank" would then be the
+ * running P&L alone, and a share of that says nothing about the money.
+ */
+export function calcBankShares(bets: Bet[], transactions: BankrollTransaction[]): Map<string, number> {
+  const out = new Map<string, number>();
+  if (transactions.length === 0) return out;
+  const bankAt = bankAtBetTime(bets, transactions);
+  for (const bet of bets) {
+    const share = betBankShare(bet, bankAt);
+    if (share != null) out.set(bet.id, share);
+  }
+  return out;
+}
+
 export interface PlanCompliance {
   limitPct: number;
   /** Bets that could be measured (a bank was known and own money was staked). */
@@ -506,24 +589,7 @@ export function calcPlanCompliance(
   // The bank is rebuilt from the WHOLE history even when only a slice is being
   // judged: reconstructing it from a filtered subset drops every result before
   // the window, which moves the bank and invents breaches that never happened.
-  const days = calcDailyBreakdown(allBets, transactions);
-  const bankAtStart = new Map<string, number>();
-  for (const d of days) {
-    // balance already folds in the whole day: its results, and its cash moves.
-    // Undo the parts that happened after the bet was placed — the day's results,
-    // and the withdrawals and reconciliations posted that evening. Deposits stay:
-    // topping up and then betting is the normal order. Without this, one evening
-    // withdrawal turned every bet made that morning into a plan breach, and a
-    // large negative reconciliation could drive the bank to zero and blank the
-    // whole card.
-    bankAtStart.set(d.date, d.balance - d.pnl + d.withdrawals - d.adjustments);
-  }
-  // Bets dated ahead of today have no day of their own — the breakdown stops at
-  // today. They were still placed against the bank as it stands now, and dating
-  // a bet by kick-off is ordinary use, so they must not vanish from the count.
-  const latest = days[days.length - 1];
-  const bankNow = latest ? latest.balance : 0;
-  const lastDay = latest ? latest.date : '';
+  const bankAt = bankAtBetTime(allBets, transactions);
 
   let within = 0;
   let over = 0;
@@ -535,9 +601,8 @@ export function calcPlanCompliance(
 
   for (const bet of evaluate) {
     if (bet.isFreebet) continue;
-    const bank = bet.date > lastDay ? bankNow : bankAtStart.get(bet.date);
-    // A non-positive bank makes "percent of bank" meaningless, not zero.
-    if (bank == null || bank <= 0) continue;
+    const bank = bankAt(bet.date);
+    if (bank == null) continue;
 
     const sharePct = (bet.stake / bank) * 100;
     const pnl = betPnl(bet);

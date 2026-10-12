@@ -247,3 +247,16 @@ describe('calcLuck — verdict matches the number on screen', () => {
     }
   });
 });
+
+describe('calcPlanCompliance before any money was entered', () => {
+  it('does not judge bets against a bank that was only running P&L', () => {
+    // A bet dated before the first deposit was measured against its own past
+    // profit — a 1 000 ₽ stake after a 500 ₽ win read as a 200% breach.
+    const early = bet({ date: '2026-07-01', stake: 50_000 });
+    const early2 = bet({ date: '2026-07-02', stake: 100_000 });
+    const c = calcPlanCompliance([early, early2], [
+      { id: 'd', type: 'deposit', amount: 1_000_000, date: '2026-08-01T09:00:00.000Z' },
+    ], 5);
+    expect(c).toBeNull();
+  });
+});

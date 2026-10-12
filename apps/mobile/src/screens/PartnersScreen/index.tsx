@@ -1,167 +1,47 @@
 import React from 'react';
-import { SPACE, RADIUS, TOUCH } from '../../theme/layout';
-import { cardSurface } from '../../components/Card';
-import {
-  View, StyleSheet, ScrollView, TouchableOpacity, Linking, Alert,
-} from 'react-native';
+import { View, StyleSheet } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { useTranslation } from 'react-i18next';
 import { AppText as Text } from '../../components/AppText';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { colors } from '../../theme/colors';
-import { Analytics } from '../../services/analytics';
+import { colors, alpha } from '../../theme/colors';
+import { SPACE, RADIUS } from '../../theme/layout';
 import { SIZE, GLYPH } from '../../theme/typography';
 
-const PARTNERS = [
-  {
-    id: 'fonbet',
-    name: 'Fonbet',
-    emoji: '🎯',
-    category: 'Топ букмекер',
-    description: 'Крупнейший легальный букмекер России. Широкая линия на спорт и киберспорт, быстрые выплаты.',
-    bonus: 'Бонус до 10 000 ₽ новым игрокам',
-    refUrl: 'https://fonbet.ru',
-  },
-  {
-    id: 'betcity',
-    name: 'BetCity',
-    emoji: '🏆',
-    category: 'Спорт',
-    description: 'Высокие лимиты, удобное мобильное приложение. Быстрые выплаты на карту и кошельки.',
-    bonus: 'Фрибет 1 000 ₽ при регистрации',
-    refUrl: 'https://betcity.ru',
-  },
-  {
-    id: '1xbet',
-    name: '1xBet',
-    emoji: '⚡',
-    category: 'Широкая линия',
-    description: 'Огромная линия событий, высокие кэфы. Live-ставки с трансляциями матчей.',
-    bonus: 'Бонус 100% на первый депозит до 100 €',
-    refUrl: 'https://1xbet.com',
-  },
-  {
-    id: 'parimatch',
-    name: 'Parimatch',
-    emoji: '🎪',
-    category: 'Киберспорт',
-    description: 'Популярный букмекер с акцентом на киберспорт. Хорошие кэфы на Dota 2, CS2, Valorant.',
-    bonus: 'Фрибет до 2 500 ₽',
-    refUrl: 'https://parimatch.ru',
-  },
-  {
-    id: 'leon',
-    name: 'Leon',
-    emoji: '🦁',
-    category: 'Аналитика',
-    description: 'Удобная статистика прямо в линии. Трансляции матчей, кэшбэк на проигрыши.',
-    bonus: 'Кэшбэк до 10% на проигранные ставки',
-    refUrl: 'https://leon.ru',
-  },
-  {
-    id: 'winline',
-    name: 'Winline',
-    emoji: '🎲',
-    category: 'Топ букмекер',
-    description: 'Легальный букмекер с хорошими бонусами и широкой линией на российский спорт.',
-    bonus: 'Страховка ставки до 2 000 ₽',
-    refUrl: 'https://winline.ru',
-  },
-];
-
-async function openPartner(partner: typeof PARTNERS[number]) {
-  Analytics.partnerLinkTapped(partner.id);
-  const canOpen = await Linking.canOpenURL(partner.refUrl);
-  if (canOpen) {
-    Linking.openURL(partner.refUrl);
-  } else {
-    Alert.alert('Ошибка', 'Не удалось открыть ссылку');
-  }
-}
-
+/**
+ * A placeholder until the partner programme is settled.
+ *
+ * The previous list carried made-up bonuses ("до 10 000 ₽ новым игрокам")
+ * next to real bookmaker names and plain links — advertising of bookmakers
+ * without the marking and wording the law asks for. Nothing goes back here
+ * without real offers from the affiliate network.
+ */
 export function PartnersScreen() {
-  const insets = useSafeAreaInsets();
-
+  const { t } = useTranslation();
   return (
-    <ScrollView keyboardShouldPersistTaps="handled"
-      style={styles.root}
-      contentContainerStyle={{ padding: SPACE.lg, paddingBottom: insets.bottom + 24 }}
-    >
-      {/* The native stack header already says "Партнёры" — one title is enough. */}
-      <Text style={styles.subtitle}>
-        Используй реферальную ссылку и получи бонус при регистрации у букмекера.
-      </Text>
-
-      <View style={styles.notice}>
-        <Text style={styles.noticeText}>
-          ⚠️ Партнёрские ссылки — мы получаем комиссию. Ставки несут финансовый риск. Играй ответственно.
-        </Text>
+    <View style={styles.root}>
+      <View style={styles.badge}>
+        <Ionicons name="gift-outline" size={GLYPH.xl} color={colors.accent} />
       </View>
-
-      {PARTNERS.map((p) => (
-        <View key={p.id} style={styles.card}>
-          <View style={styles.cardTop}>
-            <Text style={styles.emoji}>{p.emoji}</Text>
-            <View style={styles.cardInfo}>
-              <Text style={styles.partnerName}>{p.name}</Text>
-              <View style={styles.categoryBadge}>
-                <Text style={styles.categoryText}>{p.category}</Text>
-              </View>
-            </View>
-          </View>
-
-          <Text style={styles.description}>{p.description}</Text>
-
-          <View style={styles.bonusRow}>
-            <Text style={styles.bonusText}>🎁 {p.bonus}</Text>
-          </View>
-
-          <TouchableOpacity
-            style={styles.btn}
-            onPress={() => openPartner(p)}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.btnText}>Открыть {p.name} →</Text>
-          </TouchableOpacity>
-        </View>
-      ))}
-    </ScrollView>
+      {/* The native stack header already names the section. */}
+      <Text style={styles.title}>{t('partners.stubTitle')}</Text>
+      <Text style={styles.text}>{t('partners.stubText')}</Text>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.bg },
-  subtitle: {
-    fontSize: SIZE.body, color: colors.textSecondary, lineHeight: 20, marginBottom: SPACE.md,
+  root: {
+    flex: 1, backgroundColor: colors.bg,
+    alignItems: 'center', justifyContent: 'center',
+    paddingHorizontal: SPACE.xl, gap: SPACE.md,
   },
-  notice: {
-    backgroundColor: colors.bgElevated, borderRadius: RADIUS.sm,
-    padding: SPACE.md, marginBottom: SPACE.lg,
-    borderWidth: 1, borderColor: colors.border,
+  badge: {
+    width: 72, height: 72, borderRadius: RADIUS.pill,
+    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: alpha(colors.accent, 0.1),
+    borderWidth: 1, borderColor: alpha(colors.accent, 0.3),
+    marginBottom: SPACE.sm,
   },
-  noticeText: { fontSize: SIZE.caption, color: colors.textMuted, lineHeight: 18 },
-  card: {
-    ...cardSurface,
-    padding: SPACE.lg, marginBottom: SPACE.md, gap: SPACE.md,
-  },
-  cardTop: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md },
-  emoji: { fontSize: GLYPH.xxl },
-  cardInfo: { flex: 1 },
-  partnerName: {
-    fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary, marginBottom: SPACE.xs,
-  },
-  categoryBadge: {
-    alignSelf: 'flex-start', backgroundColor: colors.purple + '22',
-    borderRadius: RADIUS.xs, paddingHorizontal: SPACE.xs, paddingVertical: 2,
-  },
-  categoryText: { fontSize: SIZE.caption, color: colors.purpleText, fontWeight: '600' },
-  description: { fontSize: SIZE.body, color: colors.textSecondary, lineHeight: 20 },
-  bonusRow: {
-    backgroundColor: colors.accent + '18', borderRadius: RADIUS.sm, padding: SPACE.sm,
-  },
-  bonusText: { fontSize: SIZE.body, color: colors.accent, fontWeight: '600' },
-  btn: {
-    minHeight: TOUCH, justifyContent: 'center',
-    backgroundColor: colors.purple, borderRadius: RADIUS.sm,
-    paddingVertical: SPACE.md, alignItems: 'center',
-  },
-  btnText: { fontSize: SIZE.body, fontWeight: '700', color: '#fff' },
+  title: { fontSize: SIZE.title, fontWeight: '700', color: colors.textPrimary, textAlign: 'center' },
+  text: { fontSize: SIZE.body, color: colors.textSecondary, textAlign: 'center', lineHeight: 20 },
 });
