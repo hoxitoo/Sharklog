@@ -220,6 +220,11 @@ export function DrawerNavigator() {
   // Unwind one level at a time instead: drawer → day filter → Bets → exit.
   useEffect(() => {
     const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      // A stacked screen (Bankroll, Support, AddBet…) is on top: back is the
+      // stack's. RN calls the NEWEST listener first, and this one re-registers
+      // on every screen switch, so it outranked the stack's: Back on Support
+      // silently flipped the hidden screen to Bets instead of closing Support.
+      if (!navigation.isFocused()) return false;
       if (drawerVisibleRef.current) { closeDrawer(); return true; }
       if (betsFilter) { setBetsFilter(null); return true; }
       if (screen !== 'Bets') { showScreen('Bets'); return true; }

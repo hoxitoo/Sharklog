@@ -21,4 +21,19 @@ describe('drawer slide-in', () => {
     expect(ms).toBeGreaterThan(0);
     expect(ms).toBeLessThanOrEqual(300);
   });
+
+  it('uses that duration for the slide itself', () => {
+    expect(SRC).toMatch(/Animated\.timing\(translateX, \{\s*toValue: 0,\s*duration: OPEN_MS,/);
+  });
+});
+
+describe('Android back in the drawer', () => {
+  it('steps aside while a stacked screen is on top', () => {
+    // RN asks the newest listener first, and the drawer's re-registers on every
+    // screen switch — so without this check it answered Back for Support,
+    // Bankroll or the bet form, flipping the hidden screen instead of closing.
+    const handler = SRC.slice(SRC.indexOf("addEventListener('hardwareBackPress'"));
+    const firstLine = handler.split('\n').find((l) => /^\s*if \(/.test(l));
+    expect(firstLine).toMatch(/if \(!navigation\.isFocused\(\)\) return false;/);
+  });
 });

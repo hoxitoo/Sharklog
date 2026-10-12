@@ -92,4 +92,28 @@ describe('calcBankShares', () => {
     const future = bet({ date: toYmd(ahead) });
     expect(calcBankShares([future], [tx('deposit', 1_000_000, today)]).get(future.id)).toBeCloseTo(10);
   });
+
+  it('says nothing for bets placed before any money was entered', () => {
+    // History imported behind a deposit dated later: before it, the "bank" is
+    // the running P&L alone, and an 800 ₽ loss read "−80% of bank".
+    const early1 = bet({ date: '2026-03-01', stake: 100_000 });               // +1 000 ₽
+    const early2 = bet({ date: '2026-03-02', stake: 80_000, status: 'lost' }); // −800 ₽
+    const funded = bet({ date: '2026-03-05' });
+    const s = calcBankShares([early1, early2, funded], [tx('deposit', 1_000_000, '2026-03-05')]);
+    expect(s.has(early1.id)).toBe(false);
+    expect(s.has(early2.id)).toBe(false);
+    expect(s.get(funded.id)).toBeCloseTo((100_000 / (1_000_000 + 20_000)) * 100);
+  });
+
+  it('starts counting the day AFTER a first reconciliation, not on it', () => {
+    // A reconciliation is posted in the evening; that day's bets were placed
+    // against a bank nobody had entered yet.
+    const before = bet({ date: '2026-03-01' });
+    const sameDay = bet({ date: '2026-03-02' });
+    const after = bet({ date: '2026-03-03' });
+    const s = calcBankShares([before, sameDay, after], [tx('adjustment', 1_000_000, '2026-03-02')]);
+    expect(s.has(before.id)).toBe(false);
+    expect(s.has(sameDay.id)).toBe(false);
+    expect(s.has(after.id)).toBe(true);
+  });
 });

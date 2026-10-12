@@ -481,13 +481,26 @@ export interface PlanBreach {
  * today); they were placed against the bank as it stands now — dating a bet by
  * kick-off is ordinary use. `null` where the bank is not positive: "percent of
  * bank" is then meaningless, not zero.
+ *
+ * `null` too BEFORE money first enters the books. `balance` is cash plus P&L,
+ * and with no cash yet it is the running P&L alone: history imported behind a
+ * deposit dated today, or weeks of bets before the first reconciliation, read
+ * "−80% of bank" for an 800 ₽ loss. Money enters on the first deposit's day
+ * (a deposit counts from its own morning), or the day AFTER the first
+ * reconciliation (a reconciliation is posted in the evening and is taken out
+ * of its own day's starting bank).
  */
 export function bankAtBetTime(allBets: Bet[], transactions: BankrollTransaction[]): (date: string) => number | null {
   const days = calcDailyBreakdown(allBets, transactions);
   const atStart = new Map<string, number>();
-  for (const d of days) atStart.set(d.date, d.balance - d.pnl + d.withdrawals - d.adjustments);
+  let funded = false;
+  for (const d of days) {
+    if (d.deposits > 0) funded = true;
+    if (funded) atStart.set(d.date, d.balance - d.pnl + d.withdrawals - d.adjustments);
+    if (d.adjustments !== 0) funded = true;
+  }
   const latest = days[days.length - 1];
-  const bankNow = latest ? latest.balance : 0;
+  const bankNow = latest && funded ? latest.balance : 0;
   const lastDay = latest ? latest.date : '';
   return (date) => {
     const bank = date > lastDay ? bankNow : atStart.get(date);

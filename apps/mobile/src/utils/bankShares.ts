@@ -26,10 +26,15 @@ export function bankSharesFor(bets: Bet[], transactions: BankrollTransaction[]):
   return lastShares;
 }
 
-/** Two decimals under 1% — a 0.04% bet must not read as "+0.0%". Null for a share that rounds to nothing. */
+/**
+ * Two decimals under 1% — a 0.04% bet must not read as "+0.0%". Null for a
+ * share that rounds to nothing. The precision is chosen AFTER rounding, so
+ * 0.996 reads "+1.0%" like 1.0 does, not "+1.00%".
+ */
 export function formatBankShare(pct: number): string | null {
-  const digits = Math.abs(pct) < 1 ? 2 : 1;
+  const fine = Number(pct.toFixed(2));
+  if (fine === 0) return null;
+  const digits = Math.abs(fine) < 1 ? 2 : 1;
   const rounded = Number(pct.toFixed(digits));
-  if (rounded === 0) return null;
   return `${rounded > 0 ? '+' : ''}${rounded.toFixed(digits)}%`;
 }

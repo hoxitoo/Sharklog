@@ -15,8 +15,14 @@ describe('bankSharesFor', () => {
   });
 
   it('recomputes when the bets or the bank change', () => {
-    const before = bankSharesFor([bet], txs);
-    expect(bankSharesFor([bet], txs)).not.toBe(before); // a new array is a new write
+    const bets = [bet];
+    const before = bankSharesFor(bets, txs);
+    expect(bankSharesFor([bet], txs)).not.toBe(before); // a new bets array is a new write
+    const sameBets = bankSharesFor(bets, txs);
+    const moreMoney = [...txs, { id: 'd2', type: 'deposit', amount: 1_000_000, date: '2026-08-01T10:00:00' } as BankrollTransaction];
+    const after = bankSharesFor(bets, moreMoney);
+    expect(after).not.toBe(sameBets);
+    expect(after.get('a')).toBeCloseTo(5); // 1 000 ₽ on 20 000 ₽ now
   });
 });
 
@@ -26,6 +32,11 @@ describe('formatBankShare', () => {
     expect(formatBankShare(-0.5)).toBe('-0.50%');
     expect(formatBankShare(3.21)).toBe('+3.2%');
     expect(formatBankShare(-12.345)).toBe('-12.3%');
+  });
+
+  it('picks the precision after rounding, so 0.996 reads like 1.0', () => {
+    expect(formatBankShare(0.996)).toBe('+1.0%');
+    expect(formatBankShare(-0.999)).toBe('-1.0%');
   });
 
   it('shows nothing rather than "+0.00%"', () => {
