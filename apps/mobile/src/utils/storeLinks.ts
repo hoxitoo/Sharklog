@@ -9,6 +9,18 @@ export const LANDING_URL = 'https://hoxitoo.github.io/Sharklog/';
 export const ANDROID_PACKAGE = 'app.sharklog.mobile';
 
 /**
+ * Where "Message the author" goes. Deliberately NOT written here: this repo is
+ * public and tied to the author, and the support contact must not lead back
+ * to them. It comes from `EXPO_PUBLIC_SUPPORT_URL` — `apps/mobile/.env.local`
+ * (gitignored) for local builds, EAS environment variables for store builds.
+ * Unset means no row, rather than a link to nowhere.
+ */
+export function supportUrl(raw: string | undefined = process.env['EXPO_PUBLIC_SUPPORT_URL']): string | null {
+  const url = raw?.trim() ?? '';
+  return url.startsWith('https://') ? url : null;
+}
+
+/**
  * The numeric App Store id. Empty until the app is created in App Store
  * Connect (`ascAppId` in eas.json is still a placeholder too) — and while it is
  * empty the "rate" row is not shown on iOS, rather than opening a dead link.

@@ -984,6 +984,9 @@
     "share": "Tell a friend",
     "shareSub": "Share a link to SharkLog",
     "shareMessage": "I track my bets in SharkLog — stats, bankroll and anti-tilt: {{url}}",
-    "openFailed": "Couldn’t open the store"
+    "openFailed": "Couldn’t open the store",
+    "write": "Message the author",
+    "writeSub": "A question, an idea or a bug — the reply comes in Telegram",
+    "linkFailed": "Couldn’t open the link"
   }
 }

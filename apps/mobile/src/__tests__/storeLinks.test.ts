@@ -1,5 +1,5 @@
 import appJson from '../../app.json';
-import { ANDROID_PACKAGE, storeReviewUrls } from '../utils/storeLinks';
+import { ANDROID_PACKAGE, storeReviewUrls, supportUrl } from '../utils/storeLinks';
 
 describe('store links', () => {
   it('use the package the app is actually published under', () => {
@@ -16,5 +16,12 @@ describe('store links', () => {
   it('send nowhere on iOS until there is an App Store id', () => {
     expect(storeReviewUrls('ios', '')).toBeNull();
     expect(storeReviewUrls('ios', '123')?.[0]).toBe('itms-apps://apps.apple.com/app/id123?action=write-review');
+  });
+
+  it('take the support contact from the environment only, and drop anything that is not an https link', () => {
+    expect(supportUrl(undefined)).toBeNull();
+    expect(supportUrl('  ')).toBeNull();
+    expect(supportUrl('tg://resolve?domain=x')).toBeNull();
+    expect(supportUrl(' https://t.me/example_bot ')).toBe('https://t.me/example_bot');
   });
 });

@@ -8,7 +8,7 @@ import { cardSurface } from '../../components/Card';
 import { PaywallSheet } from '../../components/PaywallSheet';
 import { useBetsStore } from '../../store/betsStore';
 import { Analytics } from '../../services/analytics';
-import { LANDING_URL, storeReviewUrls } from '../../utils/storeLinks';
+import { LANDING_URL, storeReviewUrls, supportUrl } from '../../utils/storeLinks';
 import { colors, alpha } from '../../theme/colors';
 import { SPACE, RADIUS, TOUCH } from '../../theme/layout';
 import { SIZE, GLYPH } from '../../theme/typography';
@@ -55,6 +55,7 @@ export function SupportScreen() {
   const [paywall, setPaywall] = useState(false);
   const closePaywall = useCallback(() => setPaywall(false), []);
   const review = storeReviewUrls(Platform.OS);
+  const contact = supportUrl();
 
   function openPro() {
     Analytics.supportAction('pro');
@@ -75,6 +76,14 @@ export function SupportScreen() {
         Alert.alert(t('common.error'), t('support.openFailed'));
       }
     }
+  }
+
+  function write() {
+    if (!contact) return;
+    Analytics.supportAction('write');
+    // An https link, not tg:// — it opens the Telegram app when it is
+    // installed and the web page when it is not, so nobody hits a dead end.
+    Linking.openURL(contact).catch(() => Alert.alert(t('common.error'), t('support.linkFailed')));
   }
 
   function share() {
@@ -101,6 +110,10 @@ export function SupportScreen() {
         )}
 
         <Row icon="share-social-outline" tint={colors.purple} title={t('support.share')} sub={t('support.shareSub')} onPress={share} />
+
+        {contact && (
+          <Row icon="paper-plane-outline" tint={colors.violet} title={t('support.write')} sub={t('support.writeSub')} onPress={write} />
+        )}
       </ScrollView>
 
       <PaywallSheet visible={paywall} onClose={closePaywall} feature={t('support.proFeature')} />

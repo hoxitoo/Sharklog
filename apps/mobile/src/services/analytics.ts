@@ -76,6 +76,6 @@ export const Analytics = {
   kellyUsed: () =>
     trackEvent('kelly_used'),
 
-  supportAction: (kind: 'pro' | 'rate' | 'share') =>
+  supportAction: (kind: 'pro' | 'rate' | 'share' | 'write') =>
     trackEvent('support_action', { kind }),
 };
