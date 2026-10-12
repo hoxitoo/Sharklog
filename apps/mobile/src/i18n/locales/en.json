@@ -9,10 +9,11 @@
     "bankroll": "Bankroll",
     "strategyBuilder": "Strategy Builder",
     "partners": "Partners",
-    "partnersSub": "Registration bonuses",
+    "partnersSub": "Coming soon: offers and bonuses",
     "pending": "Awaiting result",
     "filters": "Filters",
-    "responsible": "18+ · Bet responsibly"
+    "responsible": "18+ · Bet responsibly",
+    "support": "Support the author"
   },
   "status": {
     "pending": "Pending",
@@ -967,5 +968,22 @@
     "savedMsg": "The strategy is applied and shown on the dashboard",
     "tiltValue_one": "{{count}} loss in a row",
     "tiltValue_other": "{{count}} losses in a row"
+  },
+  "partners": {
+    "stubTitle": "This section is in progress",
+    "stubText": "Partners with offers and bonuses will appear here."
+  },
+  "support": {
+    "intro": "SharkLog is made by one person. If the app helps you keep your betting under control, here is how you can help the project.",
+    "pro": "Get Pro",
+    "proSub": "A subscription is the best way to help: it pays for the app’s development",
+    "proActive": "You’re on Pro — thank you for your support!",
+    "proFeature": "Analytics, insights and strategies",
+    "rate": "Rate the app",
+    "rateSub": "A store review helps others find SharkLog",
+    "share": "Tell a friend",
+    "shareSub": "Share a link to SharkLog",
+    "shareMessage": "I track my bets in SharkLog — stats, bankroll and anti-tilt: {{url}}",
+    "openFailed": "Couldn’t open the store"
   }
 }

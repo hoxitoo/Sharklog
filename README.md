@@ -59,7 +59,7 @@
 
 ```
 apps/
-  mobile/     — React Native + Expo 51  (iOS + Android)
+  mobile/     — React Native + Expo 56  (iOS + Android)
   desktop/    — Tauri v2 + React + Vite (Win / Mac / Linux)
 packages/
   core/       — TypeScript бизнес-логика (типы, статистика, Kelly, форматтеры, стратегии)
@@ -159,7 +159,7 @@ eas submit -p ios
 
 | | Мобилка | Десктоп |
 |-|---------|---------|
-| Фреймворк | React Native + Expo 51 | Tauri v2 + React 18 |
+| Фреймворк | React Native + Expo 56 | Tauri v2 + React 18 |
 | Состояние | Zustand + AsyncStorage | Zustand + SQLite / localStorage |
 | Графики | react-native-gifted-charts | Recharts |
 | Шрифты | DM Sans + DM Mono | DM Sans + DM Mono |

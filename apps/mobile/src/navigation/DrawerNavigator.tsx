@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { SPACE, RADIUS, TOUCH, FAB_SIZE, FAB_BOTTOM } from '../theme/layout';
 import {
   View, StyleSheet, TouchableOpacity, Animated, Pressable, ScrollView, Image, Alert, PanResponder, BackHandler,
-  Keyboard,
+  Keyboard, Easing,
 } from 'react-native';
 import { AppText as Text } from '../components/AppText';
 import { Ionicons } from '@expo/vector-icons';
@@ -30,6 +30,21 @@ export type DrawerScreen = 'Bets' | 'Dashboard' | 'Insights' | 'Analytics' | 'Di
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 
 const DRAWER_WIDTH = 272;
+
+/**
+ * The slide-in must END when it visibly ends. It used to be a spring, and a
+ * spring that looks settled after ~250 ms keeps running for ~700 ms more,
+ * shaving off sub-pixel motion. The menu items did not take taps for that
+ * whole tail — the "dead for about a second after a swipe" bug.
+ *
+ * Why the tail blocks taps: the slide runs on the native driver, so React's
+ * copy of the drawer's layout stays at the starting offset (off-screen) until
+ * the animation reports finished. A touchable measures itself against that
+ * copy when pressed, finds the finger outside itself at the first jitter, and
+ * cancels the press. Hence a timed curve that stops when the motion stops —
+ * `__tests__/drawerMotion.test.ts` keeps the spring out.
+ */
+const OPEN_MS = 240;
 
 interface NavItem {
   screen: DrawerScreen;
@@ -120,15 +135,16 @@ export function DrawerNavigator() {
     openToken.current += 1;
     setDrawerVisible(true);
     Animated.parallel([
-      Animated.spring(translateX, {
+      Animated.timing(translateX, {
         toValue: 0,
+        duration: OPEN_MS,
+        // Decelerating, so it still lands softly the way the spring did.
+        easing: Easing.out(Easing.cubic),
         useNativeDriver: true,
-        tension: 100,
-        friction: 14,
       }),
       Animated.timing(overlayOpacity, {
         toValue: 1,
-        duration: 220,
+        duration: OPEN_MS,
         useNativeDriver: true,
       }),
     ]).start();
@@ -313,7 +329,7 @@ function DrawerContent({ currentScreen, onNavigate, onClose, insets }: DrawerCon
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const settings = useBetsStore((s) => s.settings);
 
-  function goStack(name: 'Bankroll' | 'StrategyBuilder' | 'Partners') {
+  function goStack(name: 'Bankroll' | 'StrategyBuilder' | 'Partners' | 'Support') {
     onClose(() => navigation.navigate(name));
   }
 
@@ -388,6 +404,13 @@ function DrawerContent({ currentScreen, onNavigate, onClose, insets }: DrawerCon
           </View>
           <Ionicons name="chevron-forward" size={16} color={colors.accent} />
         </TouchableOpacity>
+
+        <View style={styles.section}>
+          <TouchableOpacity style={styles.navItem} onPress={() => goStack('Support')} activeOpacity={0.75}>
+            <Ionicons name="heart-outline" size={20} color={colors.pink} style={styles.navIcon} />
+            <Text style={styles.navLabel}>{t('nav.support')}</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
 
       {/* Bottom: version / responsible gambling */}
