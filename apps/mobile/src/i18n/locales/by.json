@@ -9,11 +9,11 @@
     "bankroll": "Банкрол",
     "strategyBuilder": "Будаўнік стратэгій",
     "partners": "Партнёры",
-    "partnersSub": "Хутка: акцыі і бонусы",
     "pending": "Чакаюць выніку",
     "filters": "Фільтры",
     "responsible": "18+ · Гуляйце адказна",
-    "support": "Падтрымаць аўтара"
+    "support": "Падтрымаць аўтара",
+    "supportSub": "Pro, водгук ці спасылка сябру"
   },
   "status": {
     "pending": "Чаканне",
@@ -538,7 +538,12 @@
     "clearProNote": "Падпіска Pro не пацерпіць: яна прывязана да акаўнта App Store / Google Play. Пасля ачысткі націсніце «Аднавіць пакупкі».",
     "clearBackupNote": "У вас яшчэ няма рэзервовай копіі — лепш спачатку зрабіць яе.",
     "clearAction": "Ачысціць",
-    "exportDialogTitle": "Экспарт стаўак"
+    "exportDialogTitle": "Экспарт стаўак",
+    "sectionTheme": "Тэма афармлення",
+    "themeDark": "Цёмная",
+    "themeLight": "Светлая",
+    "themeOldschool": "Old-school",
+    "themeSoonMsg": "Гэтая тэма ў распрацоўцы і з’явіцца ў адным з наступных абнаўленняў."
   },
   "onboarding": {
     "welcome": "Сардэчна запрашаем",
@@ -600,7 +605,8 @@
     "collapse": "Згарнуць",
     "showMore": "Яшчэ {{count}}",
     "gotIt": "Зразумела",
-    "back": "Назад"
+    "back": "Назад",
+    "soon": "хутка"
   },
   "sports": {
     "football": "Футбол",

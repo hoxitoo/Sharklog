@@ -98,6 +98,12 @@ function nd(v: string): string {
 
 // ── Segmented Control ─────────────────────────────────────────────────────────
 
+/**
+ * A group of choice chips that WRAPS onto as many lines as it needs. It used to
+ * be one horizontal strip: eight sports or eight bet types ran off the right
+ * edge, and the option you wanted had to be found by scrolling sideways —
+ * "Киберспорт" sat half-cut at the screen edge on every phone.
+ */
 function SegmentedControl<T extends string>({
   label, options, value, onChange,
 }: {
@@ -109,21 +115,19 @@ function SegmentedControl<T extends string>({
   return (
     <View style={sc.container}>
       <Text style={sc.label}>{label}</Text>
-      <ScrollView keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false}>
-        <View style={sc.row}>
-          {options.map((opt) => (
-            <TouchableOpacity
-              key={opt.key}
-              style={[sc.item, value === opt.key && sc.itemActive]}
-              onPress={() => onChange(opt.key)}
-            >
-              <Text style={[sc.text, value === opt.key && sc.textActive]}>
-                {opt.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-      </ScrollView>
+      <View style={sc.row}>
+        {options.map((opt) => (
+          <TouchableOpacity
+            key={opt.key}
+            style={[sc.item, value === opt.key && sc.itemActive]}
+            onPress={() => onChange(opt.key)}
+          >
+            <Text style={[sc.text, value === opt.key && sc.textActive]}>
+              {opt.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
     </View>
   );
 }
@@ -131,7 +135,7 @@ function SegmentedControl<T extends string>({
 const sc = StyleSheet.create({
   container: { marginBottom: SPACE.lg },
   label: { fontSize: SIZE.caption, color: colors.textSecondary, marginBottom: SPACE.xs, textTransform: 'uppercase', letterSpacing: 0.5 },
-  row: { flexDirection: 'row', gap: SPACE.xs },
+  row: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.xs },
   item: {
     minHeight: TOUCH, justifyContent: 'center',
     paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm,
@@ -953,40 +957,37 @@ export function AddBetScreen() {
                   )}
                 </View>
 
-                {/* Per-leg sport chips */}
-                <ScrollView keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: SPACE.sm }}>
-                  <View style={{ flexDirection: 'row', gap: SPACE.xs }}>
-                    {sportOptions.map((opt) => (
+                {/* Per-leg sport chips — wrapped, like the single form: a strip
+                    that ran off the card hid half the sports. */}
+                <View style={styles.legChips}>
+                  {sportOptions.map((opt) => (
+                    <TouchableOpacity
+                      key={opt.key}
+                      style={[styles.legSportChip, leg.sport === opt.key && styles.legSportChipActive]}
+                      onPress={() => updateLeg(i, 'sport', opt.key)}
+                    >
+                      <Text style={[styles.legSportChipText, leg.sport === opt.key && styles.legSportChipTextActive]}>
+                        {opt.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+
+                {/* Per-leg discipline (only when esports) */}
+                {leg.sport === 'esports' && (
+                  <View style={styles.legChips}>
+                    {disciplineOptions.map((opt) => (
                       <TouchableOpacity
                         key={opt.key}
-                        style={[styles.legSportChip, leg.sport === opt.key && styles.legSportChipActive]}
-                        onPress={() => updateLeg(i, 'sport', opt.key)}
+                        style={[styles.legSportChip, leg.discipline === opt.key && styles.legSportChipActive]}
+                        onPress={() => updateLeg(i, 'discipline', opt.key)}
                       >
-                        <Text style={[styles.legSportChipText, leg.sport === opt.key && styles.legSportChipTextActive]}>
+                        <Text style={[styles.legSportChipText, leg.discipline === opt.key && styles.legSportChipTextActive]}>
                           {opt.label}
                         </Text>
                       </TouchableOpacity>
                     ))}
                   </View>
-                </ScrollView>
-
-                {/* Per-leg discipline (only when esports) */}
-                {leg.sport === 'esports' && (
-                  <ScrollView keyboardShouldPersistTaps="handled" horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: SPACE.sm }}>
-                    <View style={{ flexDirection: 'row', gap: SPACE.xs }}>
-                      {disciplineOptions.map((opt) => (
-                        <TouchableOpacity
-                          key={opt.key}
-                          style={[styles.legSportChip, leg.discipline === opt.key && styles.legSportChipActive]}
-                          onPress={() => updateLeg(i, 'discipline', opt.key)}
-                        >
-                          <Text style={[styles.legSportChipText, leg.discipline === opt.key && styles.legSportChipTextActive]}>
-                            {opt.label}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </ScrollView>
                 )}
 
                 <View style={{ marginBottom: SPACE.sm }}>
@@ -1595,6 +1596,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.5,
   },
   legRemove: { fontSize: SIZE.lead, color: colors.lost },
+  legChips: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.xs, marginBottom: SPACE.sm },
   legSportChip: {
     minHeight: TOUCH, justifyContent: 'center',
     paddingHorizontal: SPACE.sm,

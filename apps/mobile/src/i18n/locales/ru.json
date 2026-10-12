@@ -9,11 +9,11 @@
     "bankroll": "Банкролл",
     "strategyBuilder": "Билдер стратегий",
     "partners": "Партнёры",
-    "partnersSub": "Скоро: акции и бонусы",
     "pending": "Ждут результата",
     "filters": "Фильтры",
     "responsible": "18+ · Играй ответственно",
-    "support": "Поддержать автора"
+    "support": "Поддержать автора",
+    "supportSub": "Pro, отзыв или ссылка другу"
   },
   "status": {
     "pending": "Ожидание",
@@ -538,7 +538,12 @@
     "clearProNote": "Подписка Pro не пострадает: она привязана к аккаунту App Store / Google Play. После очистки нажми «Восстановить покупки».",
     "clearBackupNote": "Резервной копии у тебя ещё нет — лучше сначала сделать её.",
     "clearAction": "Очистить",
-    "exportDialogTitle": "Экспорт ставок"
+    "exportDialogTitle": "Экспорт ставок",
+    "sectionTheme": "Тема оформления",
+    "themeDark": "Тёмная",
+    "themeLight": "Светлая",
+    "themeOldschool": "Old-school",
+    "themeSoonMsg": "Эта тема в разработке и появится в одном из следующих обновлений."
   },
   "onboarding": {
     "welcome": "Добро пожаловать",
@@ -600,7 +605,8 @@
     "collapse": "Свернуть",
     "showMore": "Ещё {{count}}",
     "gotIt": "Понятно",
-    "back": "Назад"
+    "back": "Назад",
+    "soon": "скоро"
   },
   "sports": {
     "football": "Футбол",

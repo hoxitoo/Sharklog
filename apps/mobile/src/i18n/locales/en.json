@@ -9,11 +9,11 @@
     "bankroll": "Bankroll",
     "strategyBuilder": "Strategy Builder",
     "partners": "Partners",
-    "partnersSub": "Coming soon: offers and bonuses",
     "pending": "Awaiting result",
     "filters": "Filters",
     "responsible": "18+ · Bet responsibly",
-    "support": "Support the author"
+    "support": "Support the author",
+    "supportSub": "Pro, a review or a link to a friend"
   },
   "status": {
     "pending": "Pending",
@@ -500,7 +500,12 @@
     "clearProNote": "Your Pro subscription is safe: it's tied to your App Store / Google Play account. After clearing, tap “Restore purchases”.",
     "clearBackupNote": "You don't have a backup yet — better make one first.",
     "clearAction": "Clear",
-    "exportDialogTitle": "Export bets"
+    "exportDialogTitle": "Export bets",
+    "sectionTheme": "Theme",
+    "themeDark": "Dark",
+    "themeLight": "Light",
+    "themeOldschool": "Old-school",
+    "themeSoonMsg": "This theme is in the works and will arrive in an upcoming update."
   },
   "onboarding": {
     "welcome": "Welcome",
@@ -556,7 +561,8 @@
     "collapse": "Collapse",
     "showMore": "{{count}} more",
     "gotIt": "Got it",
-    "back": "Back"
+    "back": "Back",
+    "soon": "soon"
   },
   "sports": {
     "football": "Football",

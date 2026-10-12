@@ -10,7 +10,7 @@ import { ChecklistModal } from '../components/ChecklistModal';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { colors } from '../theme/colors';
+import { colors, alpha } from '../theme/colors';
 import { useTranslation } from 'react-i18next';
 import { useBetsStore } from '../store/betsStore';
 import { FREE_LIMITS } from '@sharklog/core';
@@ -392,30 +392,33 @@ function DrawerContent({ currentScreen, onNavigate, onClose, insets }: DrawerCon
               <Text style={styles.navLabel}>{t('nav.strategyBuilder')}</Text>
             </TouchableOpacity>
           )}
+
+          {/* An ordinary row while the section is a placeholder — a highlighted
+              card for an empty screen promised more than was there. */}
+          <TouchableOpacity style={styles.navItem} onPress={() => goStack('Partners')} activeOpacity={0.75}>
+            <Ionicons name="gift-outline" size={20} color={colors.textSecondary} style={styles.navIcon} />
+            <Text style={styles.navLabel}>{t('nav.partners')}</Text>
+            <View style={styles.soonBadge}>
+              <Text style={styles.soonBadgeText}>{t('common.soon')}</Text>
+            </View>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.divider} />
 
-        {/* Partners — highlighted */}
+        {/* Support the author — the one highlighted card. */}
         <TouchableOpacity
-          style={styles.partnersCard}
-          onPress={() => goStack('Partners')}
+          style={styles.supportCard}
+          onPress={() => goStack('Support')}
           activeOpacity={0.8}
         >
-          <Ionicons name="gift-outline" size={22} color={colors.accent} />
+          <Ionicons name="heart" size={22} color={colors.raspberry} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.partnersTitle}>{t('nav.partners')}</Text>
-            <Text style={styles.partnersSub}>{t('nav.partnersSub')}</Text>
+            <Text style={styles.supportTitle}>{t('nav.support')}</Text>
+            <Text style={styles.supportSub}>{t('nav.supportSub')}</Text>
           </View>
-          <Ionicons name="chevron-forward" size={16} color={colors.accent} />
+          <Ionicons name="chevron-forward" size={16} color={colors.raspberry} />
         </TouchableOpacity>
-
-        <View style={styles.section}>
-          <TouchableOpacity style={styles.navItem} onPress={() => goStack('Support')} activeOpacity={0.75}>
-            <Ionicons name="heart-outline" size={20} color={colors.pink} style={styles.navIcon} />
-            <Text style={styles.navLabel}>{t('nav.support')}</Text>
-          </TouchableOpacity>
-        </View>
       </ScrollView>
 
       {/* Bottom: version / responsible gambling */}
@@ -529,7 +532,20 @@ const styles = StyleSheet.create({
     marginHorizontal: SPACE.lg,
     marginVertical: SPACE.sm,
   },
-  partnersCard: {
+  soonBadge: {
+    backgroundColor: colors.bgElevated,
+    borderRadius: RADIUS.xs,
+    paddingHorizontal: SPACE.xs,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  soonBadgeText: {
+    fontSize: SIZE.micro,
+    fontWeight: '600',
+    color: colors.textMuted,
+  },
+  supportCard: {
     minHeight: TOUCH,
     flexDirection: 'row',
     alignItems: 'center',
@@ -537,17 +553,17 @@ const styles = StyleSheet.create({
     marginHorizontal: SPACE.sm,
     marginBottom: SPACE.xs,
     padding: SPACE.md,
-    backgroundColor: colors.accent + '14',
+    backgroundColor: alpha(colors.raspberry, 0.08),
     borderRadius: RADIUS.md,
     borderWidth: 1,
-    borderColor: colors.accent + '44',
+    borderColor: alpha(colors.raspberry, 0.32),
   },
-  partnersTitle: {
+  supportTitle: {
     fontSize: SIZE.body,
     fontWeight: '700',
-    color: colors.accent,
+    color: colors.raspberry,
   },
-  partnersSub: {
+  supportSub: {
     fontSize: SIZE.caption,
     color: colors.textSecondary,
     marginTop: 2,

@@ -26,6 +26,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
 import { PaywallSheet } from '../../components/PaywallSheet';
+import { ThemePicker } from './ThemePicker';
 import { restorePurchases } from '../../services/revenueCat';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { SIZE, GLYPH, numeric } from '../../theme/typography';
@@ -558,6 +559,12 @@ export function SettingsScreen() {
             <Ionicons name="chevron-forward" size={GLYPH.md} color={colors.textMuted} />
           </TouchableOpacity>
         )}
+
+        {/* 0. How the app looks — first, because it is the first thing anyone
+            looks for. Only the dark theme ships today; see ThemePicker. */}
+        <Section title={t('settings.sectionTheme')}>
+          <ThemePicker />
+        </Section>
 
         {/* 1. What you have: one line for the plan, one to get it back. */}
         <Section title={t('settings.sectionSubscription')}>

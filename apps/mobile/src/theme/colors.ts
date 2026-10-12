@@ -19,6 +19,10 @@ export const colors = {
   red: '#F4455A',
   violet: '#A78BFA',      // secondary stats
   pink: '#EC4899',
+  // Raspberry — the "Support the author" accent in the menu: deeper and redder
+  // than `pink`, lifted just enough to pass AA as text on its own tinted card
+  // (4.7:1 over bgCard + 8% of itself; #EC3D7A fell short at 4.45).
+  raspberry: '#F0457F',
 
   textPrimary: '#EAEBF5',
   textSecondary: '#9296B4',
