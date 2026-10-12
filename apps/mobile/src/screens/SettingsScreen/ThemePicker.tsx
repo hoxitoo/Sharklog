@@ -47,7 +47,11 @@ export function ThemePicker() {
               activeOpacity={0.75}
               accessibilityRole="button"
               accessibilityLabel={t(LABEL_KEY[theme.id])}
-              accessibilityState={{ selected: active, disabled: !theme.available }}
+              // NOT `disabled` in accessibilityState: RN 0.85's TouchableOpacity
+              // reads it as `disabled` and drops the press, and the "coming soon"
+              // alert never showed. A screen reader hears the hint instead.
+              accessibilityState={{ selected: active }}
+              {...(theme.available ? {} : { accessibilityHint: t('settings.themeSoonMsg') })}
               onPress={() => {
                 if (!theme.available) Alert.alert(t(LABEL_KEY[theme.id]), t('settings.themeSoonMsg'));
               }}
@@ -88,7 +92,9 @@ const s = StyleSheet.create({
     // A hairline, or the dark theme's circle vanishes into the dark card.
     borderWidth: 1, borderColor: colors.borderStrong,
   },
-  // A rotated square keeps its inscribed circle, so the halves still fill the clip.
-  split: { flex: 1, flexDirection: 'row', transform: [{ rotate: '-45deg' }] },
+  // Rotated a quarter-turn's half and oversized, so the halves cover the clip
+  // with room to spare — at exactly circle size the corners touch the edge and
+  // can leave sub-pixel specks of the card showing through.
+  split: { flex: 1, flexDirection: 'row', transform: [{ rotate: '-45deg' }, { scale: 1.5 }] },
   half: { flex: 1 },
 });

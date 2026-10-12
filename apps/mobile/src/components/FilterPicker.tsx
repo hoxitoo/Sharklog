@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import {
-  View, StyleSheet, TouchableOpacity, Modal, Pressable, ScrollView, Animated, PanResponder,
+  View, StyleSheet, TouchableOpacity, Modal, Pressable, ScrollView, Animated, PanResponder, Keyboard,
 } from 'react-native';
 import { AppText as Text } from './AppText';
 import { colors } from '../theme/colors';
@@ -47,6 +47,10 @@ export function FilterPicker<T extends string>({ label, options, value, onChange
   const dragY = useRef(new Animated.Value(0)).current;
 
   function open_() {
+    // A keyboard left up covers the sheet on iOS: in the bet form, typing the
+    // stake and then tapping "Sport" opened a list with its lower half under
+    // the keyboard and the later options out of reach. Same rule as openDrawer().
+    Keyboard.dismiss();
     dragY.setValue(0);
     setOpen(true);
   }
@@ -84,7 +88,9 @@ export function FilterPicker<T extends string>({ label, options, value, onChange
       >
         <View style={picker.btnText}>
           <Text style={picker.label}>{label}</Text>
-          <Text style={[picker.value, active && picker.valueActive]} numberOfLines={1}>
+          {/* Two lines: at half width in the bet form, "League of Legends" or
+              "Дакладны рахунак" were cut to an ellipsis. */}
+          <Text style={[picker.value, active && picker.valueActive]} numberOfLines={2}>
             {current?.label ?? ''}
           </Text>
         </View>

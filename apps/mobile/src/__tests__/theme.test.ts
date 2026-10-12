@@ -52,6 +52,13 @@ describe('theme/colors', () => {
     }
   });
 
+  it('raspberry reads as text on its own tinted card (the Support card in the menu)', () => {
+    // The card is bgCard with 8% raspberry over it; the title is raspberry.
+    // #EC3D7A looked right and fell short at 4.45.
+    const card = mix(colors.raspberry, colors.bgCard, 0.08);
+    expect(contrast(colors.raspberry, card)).toBeGreaterThanOrEqual(4.5);
+  });
+
   it('purpleText is legible where purple would not be', () => {
     expect(contrast(colors.purple, colors.bgElevated)).toBeLessThan(4.5);
     expect(contrast(colors.purpleText, colors.bgElevated)).toBeGreaterThanOrEqual(4.5);
