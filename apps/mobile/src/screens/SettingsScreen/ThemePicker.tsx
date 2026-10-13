@@ -85,7 +85,7 @@ const s = themedStyles(() => ({
     alignItems: 'center', justifyContent: 'center',
     borderWidth: RING, borderColor: 'transparent',
   },
-  cellActive: { borderColor: colors.purple },
+  cellActive: { borderColor: colors.purpleText },
   dot: {
     width: DOT, height: DOT, borderRadius: RADIUS.pill, overflow: 'hidden',
     // A hairline, or a circle the colour of the card vanishes into it.

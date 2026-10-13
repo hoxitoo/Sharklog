@@ -110,7 +110,7 @@ export function SupportScreen() {
           <Row icon="thumbs-up-outline" tint={colors.accent} title={t('support.rate')} sub={t('support.rateSub')} onPress={rate} />
         )}
 
-        <Row icon="share-social-outline" tint={colors.purple} title={t('support.share')} sub={t('support.shareSub')} onPress={share} />
+        <Row icon="share-social-outline" tint={colors.purpleText} title={t('support.share')} sub={t('support.shareSub')} onPress={share} />
 
         {contact && (
           <Row icon="paper-plane-outline" tint={colors.violet} title={t('support.write')} sub={t('support.writeSub')} onPress={write} />

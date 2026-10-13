@@ -33,6 +33,10 @@ export interface Palette {
   violet: string;
   pink: string;
   raspberry: string;   // "Support the author" in the menu
+  // Deposit marker on the charts. Its own key, not `purple`: in the olive and
+  // navy themes the primary is a muted olive that vanishes as a dot on a card,
+  // and `purpleText` there would collide with the amber P&L line.
+  deposit: string;
 
   textPrimary: string;
   textSecondary: string;
@@ -48,6 +52,7 @@ export interface Palette {
   // primary, and the test says so.
   onAccent: string;
   onGold: string;
+  onLost: string;      // the swipe-to-delete label, the wheel's close button
 }
 
 export const PALETTES: Record<ThemeId, Palette> = {
@@ -69,6 +74,7 @@ export const PALETTES: Record<ThemeId, Palette> = {
     violet: '#A78BFA',
     pink: '#EC4899',
     raspberry: '#F0457F',
+    deposit: '#5B6AF0',
     textPrimary: '#EAEBF5',
     textSecondary: '#9296B4',
     textMuted: '#828AA8',
@@ -78,6 +84,7 @@ export const PALETTES: Record<ThemeId, Palette> = {
     refund: '#A78BFA',
     onAccent: '#000000',
     onGold: '#000000',
+    onLost: '#FFFFFF',
   },
 
   // White cards on a cool grey page. Signal colours are the dark-theme hues
@@ -100,6 +107,7 @@ export const PALETTES: Record<ThemeId, Palette> = {
     violet: '#6D4BC9',
     pink: '#B8246E',
     raspberry: '#B61F5A',
+    deposit: '#4F5BD5',
     textPrimary: '#161826',
     textSecondary: '#4A4F66',
     textMuted: '#5E647C',
@@ -109,6 +117,7 @@ export const PALETTES: Record<ThemeId, Palette> = {
     refund: '#6D4BC9',
     onAccent: '#FFFFFF',
     onGold: '#FFFFFF',
+    onLost: '#FFFFFF',
   },
 
   // "Quiet luxury": chocolate ground, milk text, beige secondary, olive as the
@@ -130,6 +139,7 @@ export const PALETTES: Record<ThemeId, Palette> = {
     violet: '#C2AEDA',
     pink: '#E59AB0',
     raspberry: '#EC7C9C',
+    deposit: '#8DB4C8',
     textPrimary: '#EEE9DF',
     textSecondary: '#C7B49A',
     textMuted: '#AE9F88',
@@ -139,6 +149,7 @@ export const PALETTES: Record<ThemeId, Palette> = {
     refund: '#C2AEDA',
     onAccent: '#1C1915',
     onGold: '#1C1915',
+    onLost: '#1C1915',
   },
 
   // "Elegant contrast": navy ground, milk text, olive as the primary, gold as
@@ -160,6 +171,7 @@ export const PALETTES: Record<ThemeId, Palette> = {
     violet: '#B9A8E3',
     pink: '#E89AC0',
     raspberry: '#F07FA1',
+    deposit: '#8AB4F8',
     textPrimary: '#EEEAE2',
     textSecondary: '#B4BCC8',
     textMuted: '#97A2B2',
@@ -169,6 +181,7 @@ export const PALETTES: Record<ThemeId, Palette> = {
     refund: '#B9A8E3',
     onAccent: '#0E1621',
     onGold: '#0E1621',
+    onLost: '#0E1621',
   },
 };
 
@@ -183,5 +196,6 @@ export const THEME_META: Record<ThemeId, { dark: boolean }> = {
 export const THEME_IDS = Object.keys(PALETTES) as ThemeId[];
 
 export function isThemeId(v: unknown): v is ThemeId {
-  return typeof v === 'string' && v in PALETTES;
+  // Own keys only: `'toString' in PALETTES` is true, and the theme would be undefined.
+  return typeof v === 'string' && Object.prototype.hasOwnProperty.call(PALETTES, v);
 }

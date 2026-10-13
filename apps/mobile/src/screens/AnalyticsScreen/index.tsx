@@ -20,8 +20,6 @@ import { numeric, SIZE, GLYPH } from '../../theme/typography';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 
-/** The donut lives in a pink-toned Card, so its hole must match that surface. */
-const DONUT_SURFACE = toneSurface('pink').backgroundColor;
 import { cardSurface, Card, tileStyle } from '../../components/Card';
 import { PnlBars } from '../../components/PnlBars';
 import { themedStyles } from '../../theme/themed';
@@ -427,6 +425,10 @@ function TimeCard({ bets }: { bets: Bet[] }) {
     .map((b, i) => ({ value: b.count, color: BUCKET_COLORS[i]!, label: b.label }))
     .filter((s) => s.value > 0);
 
+  // The donut lives in a pink-toned Card, so its hole must match that surface.
+  // Read at render, not at module load: the surface depends on the theme.
+  const donutSurface = toneSurface('pink').backgroundColor;
+
   return (
     <Card title={tr('analytics.timeTitle')} tone="pink">
       {/* Top-4 exact hours with P&L */}
@@ -448,9 +450,9 @@ function TimeCard({ bets }: { bets: Bet[] }) {
           donut
           radius={64}
           innerRadius={40}
-          innerCircleColor={DONUT_SURFACE}
+          innerCircleColor={donutSurface}
           strokeWidth={2}
-          strokeColor={DONUT_SURFACE}
+          strokeColor={donutSurface}
           centerLabelComponent={() => (
             <View style={{ alignItems: 'center' }}>
               <Text style={time.centerValue}>{total}</Text>

@@ -374,7 +374,7 @@ export function BetsScreen({ filter, onClearFilter }: {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={colors.purple}
+              tintColor={colors.purpleText}
               colors={[colors.purple]}
               progressViewOffset={barHeight}
             />

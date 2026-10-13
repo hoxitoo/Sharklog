@@ -92,7 +92,7 @@ export function ProGate({ children, feature }: Props) {
       <Text style={styles.trialBadge}>{t('proGate.trial')}</Text>
 
       {loading ? (
-        <ActivityIndicator color={colors.purple} style={{ marginTop: SPACE.xl }} />
+        <ActivityIndicator color={colors.purpleText} style={{ marginTop: SPACE.xl }} />
       ) : (
         <>
           <TouchableOpacity
@@ -116,7 +116,7 @@ export function ProGate({ children, feature }: Props) {
         </>
       )}
 
-      {purchasing && <ActivityIndicator color={colors.purple} style={{ marginTop: SPACE.md }} />}
+      {purchasing && <ActivityIndicator color={colors.purpleText} style={{ marginTop: SPACE.md }} />}
 
       <TouchableOpacity onPress={handleRestore} disabled={purchasing} style={styles.restore}>
         <Text style={styles.restoreText}>{t('settings.restorePurchases')}</Text>

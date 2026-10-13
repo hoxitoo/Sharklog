@@ -11,6 +11,6 @@ export const SERIES = {
   get loss() { return colors.lost; },           // loss amount
   get pnl() { return colors.pending; },         // cumulative P&L line (amber)
   get balance() { return colors.violet; },      // bank balance line
-  get deposit() { return colors.purple; },      // deposit marker
+  get deposit() { return colors.deposit; },     // deposit marker
   get withdrawal() { return colors.pink; },     // withdrawal marker
 };

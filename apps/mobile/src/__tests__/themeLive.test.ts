@@ -1,4 +1,5 @@
-import { readdirSync, readFileSync } from 'fs';
+import { mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'fs';
+import { tmpdir } from 'os';
 import { join, relative } from 'path';
 import ts from 'typescript';
 
@@ -22,7 +23,22 @@ import { SERIES } from '../theme/chartColors';
  */
 
 const SRC = join(__dirname, '..');
-const PALETTE_NAMES = new Set(['colors', 'SERIES', 'TONE_ACCENT', 'cardSurface', 'tileStyle', 'STATUS_COLORS']);
+// Everything that hands out a theme colour: the palette itself, the getter
+// objects built on it, and the helpers that compute from it (`toneSurface` at
+// module load froze the Analytics donut in the dark theme).
+const PALETTE_NAMES = new Set([
+  'colors', 'SERIES', 'TONE_ACCENT', 'STATUS_COLORS', 'toneSurface',
+  'cardSurface', 'tileStyle', 'HEADER_TITLE', 'NAV_TITLE', 'typography', 'inputStyle',
+]);
+// App.tsx sits outside src/ and is the first module to load.
+const EXTRA = [join(SRC, '..', 'App.tsx')];
+
+/** `(() => colors.bg)()` runs at load just like a bare read. */
+function isIife(fn: ts.Node): boolean {
+  let n = fn;
+  while (ts.isParenthesizedExpression(n.parent)) n = n.parent;
+  return ts.isCallExpression(n.parent) && n.parent.expression === n;
+}
 
 function sources(dir: string, out: string[] = []): string[] {
   for (const e of readdirSync(dir, { withFileTypes: true })) {
@@ -38,7 +54,7 @@ function moduleLevelReads(file: string): string[] {
   const src = ts.createSourceFile(file, readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true);
   const found: string[] = [];
   const visit = (node: ts.Node, inFn: boolean): void => {
-    if (ts.isFunctionLike(node)) inFn = true;
+    if (ts.isFunctionLike(node) && !isIife(node)) inFn = true;
     if (!inFn && ts.isCallExpression(node) && node.expression.getText(src) === 'StyleSheet.create') {
       found.push(`${relative(SRC, file)}: top-level StyleSheet.create — use themedStyles`);
     }
@@ -62,10 +78,27 @@ afterAll(() => applyTheme('dark'));
 
 describe('theme switching', () => {
   it('nothing reads the palette at module load', () => {
-    const found = sources(SRC)
+    const found = [...sources(SRC), ...EXTRA]
       .filter((f) => !f.endsWith(join('theme', 'palettes.ts')))
       .flatMap(moduleLevelReads);
     expect(found).toEqual([]);
+  });
+
+  it('the guard itself catches what it is meant to', () => {
+    // Without this, a typo in PALETTE_NAMES or a broken walk passes silently.
+    const dir = mkdtempSync(join(tmpdir(), 'themelive-'));
+    const probe = (code: string) => {
+      const f = join(dir, 'probe.tsx');
+      writeFileSync(f, code);
+      return moduleLevelReads(f).length;
+    };
+    expect(probe("const A = toneSurface('pink').backgroundColor;")).toBe(1);
+    expect(probe('const B = (() => colors.bg)();')).toBe(1);
+    expect(probe('const C = { ...HEADER_TITLE };')).toBe(1);
+    expect(probe('const s = StyleSheet.create({});')).toBe(1);
+    expect(probe('const s = themedStyles(() => ({ a: { color: colors.bg } }));')).toBe(0);
+    expect(probe('function F() { return colors.bg; }')).toBe(0);
+    rmSync(dir, { recursive: true });
   });
 
   it('applyTheme swaps the live palette and bumps the version', () => {

@@ -111,7 +111,7 @@ function Row({ label, hint, right, onPress, chevron, tone, busy }: {
         </Text>
         {hint ? <Text style={row.hint} numberOfLines={2}>{hint}</Text> : null}
       </View>
-      {busy ? <ActivityIndicator size="small" color={colors.purple} /> : right}
+      {busy ? <ActivityIndicator size="small" color={colors.purpleText} /> : right}
       {chevron && !busy ? <Ionicons name="chevron-forward" size={GLYPH.md} color={colors.textMuted} /> : null}
     </View>
   );
@@ -164,7 +164,7 @@ function Stepper({ value, min, max, onChange }: {
         disabled={value <= min}
         accessibilityLabel="−"
       >
-        <Text style={ctl.stepBtnText}>−</Text>
+        <Text style={[ctl.stepBtnText, value <= min && ctl.stepBtnTextOff]}>−</Text>
       </TouchableOpacity>
       <Text style={ctl.stepVal}>{value === 0 && min === 0 ? '∞' : value}</Text>
       <TouchableOpacity
@@ -174,7 +174,7 @@ function Stepper({ value, min, max, onChange }: {
         disabled={value >= max}
         accessibilityLabel="+"
       >
-        <Text style={ctl.stepBtnText}>+</Text>
+        <Text style={[ctl.stepBtnText, value >= max && ctl.stepBtnTextOff]}>+</Text>
       </TouchableOpacity>
     </View>
   );
@@ -205,6 +205,8 @@ const ctl = themedStyles(() => ({
   },
   stepBtnOff: { backgroundColor: colors.bgElevated },
   stepBtnText: { fontSize: GLYPH.md, color: '#fff', fontWeight: '700', lineHeight: 20 },
+  // White is the label on the primary; on the light theme's pale off-state tile it vanished.
+  stepBtnTextOff: { color: colors.textMuted },
   stepVal: { ...numeric, fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary, minWidth: 24, textAlign: 'center' },
   pro: {
     flexDirection: 'row', alignItems: 'center', gap: SPACE.xs,
@@ -521,7 +523,7 @@ export function SettingsScreen() {
   const currentLang = (settings.language ?? 'ru') as LangCode;
 
   const versionRight = updateStatus === 'checking'
-    ? <ActivityIndicator size="small" color={colors.purple} />
+    ? <ActivityIndicator size="small" color={colors.purpleText} />
     : updateStatus === 'latest'
       ? <Text style={styles.statusOk}>{t('settings.updateLatest')}</Text>
       : updateStatus === 'available'
@@ -562,7 +564,7 @@ export function SettingsScreen() {
         )}
 
         {/* 0. How the app looks — first, because it is the first thing anyone
-            looks for. Only the dark theme ships today; see ThemePicker. */}
+            looks for. The switch itself is App.tsx's job; see ThemePicker. */}
         <Section title={t('settings.sectionTheme')}>
           <ThemePicker />
         </Section>
@@ -754,7 +756,7 @@ export function SettingsScreen() {
                 disabled={!newBookmaker.trim()}
                 accessibilityLabel={t('common.add')}
               >
-                <Ionicons name="add" size={GLYPH.lg} color="#fff" />
+                <Ionicons name="add" size={GLYPH.lg} color={newBookmaker.trim() ? '#fff' : colors.textMuted} />
               </TouchableOpacity>
             </View>
           </View>

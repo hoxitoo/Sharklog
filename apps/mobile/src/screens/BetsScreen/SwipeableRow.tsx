@@ -113,5 +113,5 @@ const styles = themedStyles(() => ({
   },
   deleteBtn: { alignItems: 'center', gap: 3 },
   deleteIcon: { fontSize: GLYPH.lg },
-  deleteText: { fontSize: SIZE.micro, fontWeight: '700', color: '#fff' },
+  deleteText: { fontSize: SIZE.micro, fontWeight: '700', color: colors.onLost },
 }));

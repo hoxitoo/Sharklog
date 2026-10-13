@@ -84,6 +84,21 @@ describe.each(THEME_IDS)('%s theme', (id) => {
     expect(contrast(p.onGold, p.gold)).toBeGreaterThanOrEqual(4.5);
   });
 
+  it('labels its red fill (swipe-to-delete, the wheel\'s close button)', () => {
+    // White on the dark brand red is 3.59 and has always been; a label in
+    // bold next to an icon. No theme may go below it, and a new one meets AA:
+    // white on olive's or navy's soft red was 2.5.
+    expect(contrast(p.onLost, p.lost)).toBeGreaterThanOrEqual(id === 'dark' ? 3.55 : 4.5);
+  });
+
+  it('draws its deposit marker visibly and apart from the other series', () => {
+    // A dot on a chart: graphics need 3:1. It must not share a colour with the
+    // P&L line, the bank line or the withdrawal marker it sits among.
+    expect(contrast(p.deposit, p.bgCard)).toBeGreaterThanOrEqual(3);
+    expect(contrast(p.deposit, p.bgElevated)).toBeGreaterThanOrEqual(3);
+    expect([p.pending, p.violet, p.pink, p.won, p.lost]).not.toContain(p.deposit);
+  });
+
   it('reads raspberry on its own tinted card (Support in the menu)', () => {
     expect(contrast(p.raspberry, mix(p.raspberry, p.bgCard, 0.08))).toBeGreaterThanOrEqual(4.5);
   });
