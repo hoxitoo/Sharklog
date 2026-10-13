@@ -27,7 +27,7 @@ const SRC = join(__dirname, '..');
 // objects built on it, and the helpers that compute from it (`toneSurface` at
 // module load froze the Analytics donut in the dark theme).
 const PALETTE_NAMES = new Set([
-  'colors', 'SERIES', 'TONE_ACCENT', 'STATUS_COLORS', 'toneSurface',
+  'colors', 'SERIES', 'TONE_ACCENT', 'STATUS_COLORS', 'toneSurface', 'signalTint', 'signalInk',
   'cardSurface', 'tileStyle', 'HEADER_TITLE', 'NAV_TITLE', 'typography', 'inputStyle',
 ]);
 // App.tsx sits outside src/ and is the first module to load.

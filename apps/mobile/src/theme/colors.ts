@@ -1,4 +1,4 @@
-import { PALETTES, isThemeId, type Palette, type ThemeId } from './palettes';
+import { PALETTES, THEME_META, isThemeId, type Palette, type ThemeId } from './palettes';
 
 /**
  * The ACTIVE palette. Mutated in place by `applyTheme`, so every
@@ -43,6 +43,21 @@ export function alpha(hex: string, a: number): string {
   const clamped = Math.max(0, Math.min(1, a));
   const suffix = Math.round(clamped * 255).toString(16).padStart(2, '0');
   return '#' + expand(hex) + suffix;
+}
+
+/**
+ * A status colour's wash (badge fill, chip fill and border), scaled for the
+ * active theme — see `THEME_META.tint`. `base` is the strength on the dark
+ * theme. Read at render (or inside `themedStyles`), never at module load.
+ */
+export function signalTint(hex: string, base: number): string {
+  return alpha(hex, base * THEME_META[activeTheme].tint);
+}
+
+/** The label for text drawn on `signalTint` of the same colour. */
+export function signalInk(hex: string): string {
+  const lift = THEME_META[activeTheme].ink;
+  return lift ? mix(colors.textPrimary, hex, lift) : hex;
 }
 
 /** Normalises any accepted hex form to 6 digits without the leading `#`. */

@@ -1,4 +1,4 @@
-import { alpha, mix, toneSurface, TONE_ACCENT, applyTheme, colors, type CardTone } from '../theme/colors';
+import { alpha, mix, toneSurface, TONE_ACCENT, applyTheme, colors, signalInk, type CardTone } from '../theme/colors';
 import { PALETTES, THEME_IDS, THEME_META, type Palette } from '../theme/palettes';
 
 const TONES: CardTone[] = ['neutral', 'profit', 'loss', 'warn', 'info', 'violet', 'pink'];
@@ -89,6 +89,34 @@ describe.each(THEME_IDS)('%s theme', (id) => {
     // bold next to an icon. No theme may go below it, and a new one meets AA:
     // white on olive's or navy's soft red was 2.5.
     expect(contrast(p.onLost, p.lost)).toBeGreaterThanOrEqual(id === 'dark' ? 3.55 : 4.5);
+  });
+
+  it('labels status badges and result chips legibly on their own wash', () => {
+    // The wash (`signalTint`) and the label (`signalInk`) move together: a
+    // stronger wash of the same hue eats the label's contrast. Badge 13%,
+    // chip 9.4% on the dark theme, scaled by THEME_META.tint. The dark red
+    // badge sits at 4.43 and always has — no theme may go below it.
+    const { tint } = THEME_META[id];
+    const floor = id === 'dark' ? 4.4 : 4.5;
+    const short: string[] = [];
+    for (const k of ['won', 'lost', 'pending', 'refund'] as const) {
+      for (const base of [0.133, 0.094]) {
+        const ratio = contrast(signalInk(p[k]), mix(p[k], p.bgCard, Math.min(1, base * tint)));
+        if (ratio < floor) short.push(`${k}@${base}: ${ratio.toFixed(2)}`);
+      }
+    }
+    expect(short).toEqual([]);
+  });
+
+  it('makes a status wash stand off a mid-tone card', () => {
+    // On the chocolate and navy cards a dark-theme-strength wash read as the
+    // same mud for every status. Not a rule for the near-black dark card or
+    // white light card, where the old strength always worked.
+    if (THEME_META[id].tint === 1) return;
+    for (const k of ['won', 'lost', 'pending', 'refund'] as const) {
+      const wash = mix(p[k], p.bgCard, 0.133 * THEME_META[id].tint);
+      expect(contrast(wash, p.bgCard)).toBeGreaterThanOrEqual(1.5);
+    }
   });
 
   it('draws its deposit marker visibly and apart from the other series', () => {

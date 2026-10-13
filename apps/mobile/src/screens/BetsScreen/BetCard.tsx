@@ -8,7 +8,7 @@ import { formatOdds, parseMoneyInput, betPnl } from '@sharklog/core';
 import { sportLabel, betTypeLabel, pickLabel } from '../../utils/labels';
 import { useFormatMoney } from '../../utils/useFormatMoney';
 import { bankSharesFor, formatBankShare } from '../../utils/bankShares';
-import { colors } from '../../theme/colors';
+import { colors, signalInk, signalTint } from '../../theme/colors';
 import { numeric, SIZE } from '../../theme/typography';
 import { StatusBadge, STATUS_COLORS } from '../../components/StatusBadge';
 import { useBetsStore } from '../../store/betsStore';
@@ -154,7 +154,7 @@ export const BetCard = React.memo(function BetCard({
             onPress={() => handleQuickResult('won')}
             activeOpacity={0.75}
           >
-            <Text style={[styles.chipText, { color: colors.won }]}>W</Text>
+            <Text style={[styles.chipText, { color: signalInk(colors.won) }]}>W</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.resultChip, styles.chipLost]}
@@ -162,7 +162,7 @@ export const BetCard = React.memo(function BetCard({
             onPress={() => handleQuickResult('lost')}
             activeOpacity={0.75}
           >
-            <Text style={[styles.chipText, { color: colors.lost }]}>L</Text>
+            <Text style={[styles.chipText, { color: signalInk(colors.lost) }]}>L</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.resultChip, styles.chipRefund]}
@@ -170,7 +170,7 @@ export const BetCard = React.memo(function BetCard({
             onPress={() => handleQuickResult('refund')}
             activeOpacity={0.75}
           >
-            <Text style={[styles.chipText, { color: colors.refund }]}>R</Text>
+            <Text style={[styles.chipText, { color: signalInk(colors.refund) }]}>R</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.resultChip, styles.chipRefund]}
@@ -178,7 +178,7 @@ export const BetCard = React.memo(function BetCard({
             onPress={() => { haptic.selection(); onRequestCashout?.(); }}
             activeOpacity={0.75}
           >
-            <Text style={[styles.chipText, { color: colors.refund }]}>C</Text>
+            <Text style={[styles.chipText, { color: signalInk(colors.refund) }]}>C</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -276,9 +276,9 @@ const styles = themedStyles(() => ({
     justifyContent: 'center',
     borderWidth: 1,
   },
-  chipWon: { backgroundColor: colors.won + '18', borderColor: colors.won + '55' },
-  chipLost: { backgroundColor: colors.lost + '18', borderColor: colors.lost + '55' },
-  chipRefund: { backgroundColor: colors.refund + '18', borderColor: colors.refund + '55' },
+  chipWon: { backgroundColor: signalTint(colors.won, 0.094), borderColor: signalTint(colors.won, 0.333) },
+  chipLost: { backgroundColor: signalTint(colors.lost, 0.094), borderColor: signalTint(colors.lost, 0.333) },
+  chipRefund: { backgroundColor: signalTint(colors.refund, 0.094), borderColor: signalTint(colors.refund, 0.333) },
   chipText: { fontSize: SIZE.body, fontWeight: '700' },
   cashoutRow: {
     flexDirection: 'row',
@@ -308,7 +308,7 @@ const styles = themedStyles(() => ({
     justifyContent: 'center',
     borderWidth: 1,
   },
-  cashoutConfirm: { backgroundColor: colors.won + '18', borderColor: colors.won + '55' },
+  cashoutConfirm: { backgroundColor: signalTint(colors.won, 0.094), borderColor: signalTint(colors.won, 0.333) },
   cashoutCancel: { backgroundColor: colors.bgElevated, borderColor: colors.border },
   cashoutBtnText: { fontSize: SIZE.lead, fontWeight: '700' },
   notes: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: SPACE.xs, fontStyle: 'italic' },
