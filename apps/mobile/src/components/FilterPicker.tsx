@@ -1,12 +1,13 @@
 import React, { useRef, useState } from 'react';
 import {
-  View, StyleSheet, TouchableOpacity, Modal, Pressable, ScrollView, Animated, PanResponder,
+  View, StyleSheet, TouchableOpacity, Modal, Pressable, ScrollView, Animated, PanResponder, Keyboard,
 } from 'react-native';
 import { AppText as Text } from './AppText';
 import { colors } from '../theme/colors';
 import { SIZE, GLYPH } from '../theme/typography';
 import { SPACE, RADIUS, TOUCH } from '../theme/layout';
 import { haptic } from '../utils/haptics';
+import { themedStyles } from '../theme/themed';
 
 export interface PickerOption<T extends string> {
   key: T;
@@ -34,6 +35,9 @@ interface Props<T extends string> {
  * were, and the current one could be off-screen. A button states the current
  * choice in place and puts the rest one tap away, which also gives the bar back
  * enough height to be worth collapsing.
+ *
+ * The bet form uses it for the same reason (sport, bet type, discipline,
+ * strategy, status): one line per choice instead of rows of chips.
  */
 export function FilterPicker<T extends string>({ label, options, value, onChange, active, flex = 1 }: Props<T>) {
   const [open, setOpen] = useState(false);
@@ -44,6 +48,10 @@ export function FilterPicker<T extends string>({ label, options, value, onChange
   const dragY = useRef(new Animated.Value(0)).current;
 
   function open_() {
+    // A keyboard left up covers the sheet on iOS: in the bet form, typing the
+    // stake and then tapping "Sport" opened a list with its lower half under
+    // the keyboard and the later options out of reach. Same rule as openDrawer().
+    Keyboard.dismiss();
     dragY.setValue(0);
     setOpen(true);
   }
@@ -81,7 +89,9 @@ export function FilterPicker<T extends string>({ label, options, value, onChange
       >
         <View style={picker.btnText}>
           <Text style={picker.label}>{label}</Text>
-          <Text style={[picker.value, active && picker.valueActive]} numberOfLines={1}>
+          {/* Two lines: at half width in the bet form, "League of Legends" or
+              "Дакладны рахунак" were cut to an ellipsis. */}
+          <Text style={[picker.value, active && picker.valueActive]} numberOfLines={2}>
             {current?.label ?? ''}
           </Text>
         </View>
@@ -127,7 +137,7 @@ export function FilterPicker<T extends string>({ label, options, value, onChange
   );
 }
 
-const picker = StyleSheet.create({
+const picker = themedStyles(() => ({
   btn: {
     flex: 1,
     minHeight: TOUCH,
@@ -182,4 +192,4 @@ const picker = StyleSheet.create({
   optionText: { fontSize: SIZE.lead, color: colors.textSecondary },
   optionTextCurrent: { color: colors.purpleText, fontWeight: '700' },
   check: { fontSize: SIZE.lead, color: colors.purpleText, fontWeight: '700' },
-});
+}));

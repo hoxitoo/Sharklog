@@ -7,7 +7,9 @@ import { AppText as Text } from './AppText';
 import Svg, { Path } from 'react-native-svg';
 import { Ionicons } from '@expo/vector-icons';
 import { colors, alpha, mix } from '../theme/colors';
+import { PALETTES } from '../theme/palettes';
 import { SIZE } from '../theme/typography';
+import { themedStyles } from '../theme/themed';
 
 export interface WheelAction {
   key: string;
@@ -154,7 +156,7 @@ export function ActionWheel({
                 }]}
                 onPress={onClose}
               >
-                <Ionicons name={centerIcon} size={26} color="#fff" />
+                <Ionicons name={centerIcon} size={26} color={colors.onLost} />
               </Pressable>
             </View>
           </Pressable>
@@ -164,15 +166,17 @@ export function ActionWheel({
   );
 }
 
-const wheel = StyleSheet.create({
+const wheel = themedStyles(() => ({
   backdrop: {
     flex: 1, backgroundColor: '#000000D0',
     alignItems: 'center', justifyContent: 'center',
   },
   stage: { alignItems: 'center' },
   head: { alignItems: 'center', marginBottom: SPACE.lg, paddingHorizontal: SPACE.xxl },
-  title: { fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary, textAlign: 'center' },
-  subtitle: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: 3, textAlign: 'center' },
+  // The heading sits on the black scrim, not on a themed surface: the light
+  // theme's dark text would vanish there. Fixed light text, whatever the theme.
+  title: { fontSize: SIZE.lead, fontWeight: '700', color: PALETTES.dark.textPrimary, textAlign: 'center' },
+  subtitle: { fontSize: SIZE.caption, color: PALETTES.dark.textMuted, marginTop: 3, textAlign: 'center' },
   label: {
     position: 'absolute', width: LABEL_WIDTH, height: LABEL_HEIGHT,
     alignItems: 'center', justifyContent: 'center', gap: SPACE.xs,
@@ -185,4 +189,4 @@ const wheel = StyleSheet.create({
     shadowColor: '#000', shadowOpacity: 0.5, shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 }, elevation: 8,
   },
-});
+}));

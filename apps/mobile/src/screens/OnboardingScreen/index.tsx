@@ -28,8 +28,10 @@ function uuid(): string {
   });
 }
 import { useBetsStore } from '../../store/betsStore';
-import { colors } from '../../theme/colors';
+import { colors, currentTheme } from '../../theme/colors';
+import { THEME_META } from '../../theme/palettes';
 import { SIZE, GLYPH } from '../../theme/typography';
+import { themedStyles } from '../../theme/themed';
 
 const STEPS = 3;
 
@@ -91,7 +93,7 @@ export function OnboardingScreen() {
       style={[styles.container, { paddingTop: insets.top }]}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle={THEME_META[currentTheme()].dark ? 'light-content' : 'dark-content'} />
 
       {/* Progress dots */}
       <View style={styles.dots}>
@@ -243,13 +245,14 @@ export function OnboardingScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   container: { flex: 1, backgroundColor: colors.bg },
   dots: { flexDirection: 'row', justifyContent: 'center', gap: SPACE.xs, paddingTop: SPACE.md, paddingBottom: SPACE.sm },
   dot: { width: 6, height: 6, borderRadius: RADIUS.xs, backgroundColor: colors.border },
   dotActive: { width: 20, backgroundColor: colors.purple },
   stepContent: { flex: 1, paddingHorizontal: SPACE.xl, paddingTop: SPACE.xl, paddingBottom: SPACE.lg },
-  logo: { width: 180, height: 180, alignSelf: 'center', marginBottom: SPACE.sm },
+  // Tinted: the mark is white on transparent and would vanish on a light page.
+  logo: { width: 180, height: 180, alignSelf: 'center', marginBottom: SPACE.sm, tintColor: colors.textPrimary },
   tagline: { fontSize: SIZE.lead, color: colors.textSecondary, textAlign: 'center', marginBottom: SPACE.xxl, marginTop: SPACE.xs },
   features: { gap: SPACE.lg, marginBottom: SPACE.xl },
   featureRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.lg },
@@ -312,4 +315,4 @@ const styles = StyleSheet.create({
   nextBtnText: { fontSize: SIZE.lead, fontWeight: '700', color: '#fff' },
   skipText: { fontSize: SIZE.body, color: colors.textMuted, textAlign: 'center', paddingVertical: SPACE.xs },
   backText: { fontSize: SIZE.body, color: colors.textMuted, textAlign: 'center', paddingVertical: SPACE.xs },
-});
+}));

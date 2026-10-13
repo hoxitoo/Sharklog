@@ -11,16 +11,19 @@ import { SIZE, numeric } from '../../theme/typography';
 import { haptic } from '../../utils/haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
+import { themedStyles } from '../../theme/themed';
 
+// Getters for the colours: a plain object here would keep the theme the app
+// started with.
 const inputStyle = {
-  backgroundColor: colors.bgCard,
+  get backgroundColor() { return colors.bgCard; },
   borderRadius: RADIUS.sm,
   paddingHorizontal: SPACE.md,
   paddingVertical: SPACE.md,
-  color: colors.textPrimary,
+  get color() { return colors.textPrimary; },
   fontSize: SIZE.lead,
   borderWidth: 1,
-  borderColor: colors.border,
+  get borderColor() { return colors.border; },
 };
 
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
@@ -183,7 +186,7 @@ export function BetsFilterScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const s = themedStyles(() => ({
   container: { flex: 1, backgroundColor: colors.bg },
   body: { padding: SPACE.lg, paddingBottom: SPACE.xxl },
   field: { marginBottom: SPACE.xl },
@@ -218,4 +221,4 @@ const s = StyleSheet.create({
     borderRadius: RADIUS.sm, backgroundColor: colors.purple,
   },
   okText: { fontSize: SIZE.lead, fontWeight: '700', color: '#fff' },
-});
+}));

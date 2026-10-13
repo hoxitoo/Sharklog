@@ -6,6 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors } from '../theme/colors';
 import { SIZE } from '../theme/typography';
 import { useTranslation } from 'react-i18next';
+import { themedStyles } from '../theme/themed';
 
 interface Props {
   storageKey: string;
@@ -58,7 +59,7 @@ export function Coachmark({ storageKey, title, body, position = 'bottom' }: Prop
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   container: {
     position: 'absolute',
     left: 16,
@@ -95,4 +96,4 @@ const styles = StyleSheet.create({
     borderRadius: RADIUS.sm,
   },
   btnText: { fontSize: SIZE.body, fontWeight: '600', color: '#fff' },
-});
+}));

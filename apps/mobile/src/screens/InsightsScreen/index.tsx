@@ -22,6 +22,7 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { ProGate } from '../../components/ProGate';
 import { useFormatMoney } from '../../utils/useFormatMoney';
 import { YearBreakdown } from './YearBreakdown';
+import { themedStyles } from '../../theme/themed';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -321,7 +322,7 @@ export function InsightsScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const s = themedStyles(() => ({
   root: { flex: 1, backgroundColor: colors.bg },
   scroll: { padding: SPACE.lg, paddingBottom: SPACE.xxl },
 
@@ -384,4 +385,4 @@ const s = StyleSheet.create({
   },
   moreText: { fontSize: SIZE.body, fontWeight: '700', color: colors.purpleText },
   moreChevron: { fontSize: GLYPH.sm, color: colors.purpleText },
-});
+}));

@@ -8,6 +8,7 @@ import { colors } from '../theme/colors';
 import { SIZE, GLYPH } from '../theme/typography';
 
 import { useTranslation } from 'react-i18next';
+import { themedStyles } from '../theme/themed';
 
 const CHECKLIST = [
   { emoji: '🧠', key: 'checklist.tilt' },
@@ -99,7 +100,7 @@ export function ChecklistModal({ visible, onConfirm, onCancel }: Props) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   overlay: {
     flex: 1,
     backgroundColor: '#00000088',
@@ -166,7 +167,7 @@ const styles = StyleSheet.create({
     borderColor: colors.accent,
     backgroundColor: colors.accent,
   },
-  checkmark: { fontSize: SIZE.body, color: '#000', fontWeight: '700' },
+  checkmark: { fontSize: SIZE.body, color: colors.onAccent, fontWeight: '700' },
   emoji: { fontSize: GLYPH.lg, flexShrink: 0 },
   itemText: { fontSize: SIZE.body, color: colors.textSecondary, flex: 1, lineHeight: 20 },
   itemTextChecked: { color: colors.textPrimary },
@@ -186,4 +187,4 @@ const styles = StyleSheet.create({
   confirmTextDisabled: { color: colors.textMuted },
   cancelBtn: { minHeight: TOUCH, justifyContent: 'center', alignItems: 'center', paddingVertical: SPACE.sm },
   cancelText: { fontSize: SIZE.body, color: colors.textMuted },
-});
+}));

@@ -13,6 +13,7 @@ import { colors } from '../../theme/colors';
 import { DailyChart, ChartLegend, SERIES, type ChartToggles } from './DailyChart';
 import { SIZE } from '../../theme/typography';
 import { useTranslation } from 'react-i18next';
+import { themedStyles } from '../../theme/themed';
 
 interface Props {
   visible: boolean;
@@ -207,7 +208,7 @@ export function ExpandedDashboard({ visible, days, onClose }: Props) {
   );
 }
 
-const ex = StyleSheet.create({
+const ex = themedStyles(() => ({
   header: { flexDirection: 'row', alignItems: 'center', gap: SPACE.lg },
   title: { fontSize: SIZE.lead, fontWeight: '800', color: colors.textPrimary },
   headerStats: { flexDirection: 'row', gap: SPACE.lg, flex: 1 },
@@ -263,4 +264,4 @@ const ex = StyleSheet.create({
   cDate: { width: 60 },
   cNum: { width: 60, textAlign: 'right' },
   cMoney: { flex: 1, textAlign: 'right', paddingRight: SPACE.sm },
-});
+}));

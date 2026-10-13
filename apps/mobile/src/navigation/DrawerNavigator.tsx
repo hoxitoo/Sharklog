@@ -10,7 +10,7 @@ import { ChecklistModal } from '../components/ChecklistModal';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { colors } from '../theme/colors';
+import { colors, alpha } from '../theme/colors';
 import { useTranslation } from 'react-i18next';
 import { useBetsStore } from '../store/betsStore';
 import { FREE_LIMITS } from '@sharklog/core';
@@ -24,12 +24,21 @@ import { DisciplineScreen } from '../screens/DisciplineScreen';
 import { SettingsScreen } from '../screens/SettingsScreen';
 import type { RootStackParamList } from './RootNavigator';
 import { SIZE, GLYPH } from '../theme/typography';
+import { themedStyles } from '../theme/themed';
 
 export type DrawerScreen = 'Bets' | 'Dashboard' | 'Insights' | 'Analytics' | 'Discipline' | 'Settings';
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 
 const DRAWER_WIDTH = 272;
+
+/**
+ * The screen on show, outliving this component. Switching the colour theme
+ * remounts the whole tree (App.tsx), and without this the user who picked a
+ * theme in Settings landed back on Bets. Module state, not storage: a cold
+ * start still opens on Bets.
+ */
+let lastScreen: DrawerScreen = 'Bets';
 
 /**
  * The slide-in must END when it visibly ends. It used to be a spring, and a
@@ -101,12 +110,13 @@ const ActiveScreen = React.memo(function ActiveScreen({ screen, betsFilter, onCl
 });
 
 export function DrawerNavigator() {
-  const [screen, setScreen] = useState<DrawerScreen>('Bets');
+  const [screen, setScreen] = useState<DrawerScreen>(() => lastScreen);
   // Screens are kept once visited, so only the FIRST visit pays for a mount.
   // Lazily, not all six up front — that would move the whole cost to launch.
-  const [visited, setVisited] = useState<DrawerScreen[]>(['Bets']);
+  const [visited, setVisited] = useState<DrawerScreen[]>(() => [lastScreen]);
 
   const showScreen = useCallback((s: DrawerScreen) => {
+    lastScreen = s;
     setScreen(s);
     setVisited((v) => (v.includes(s) ? v : [...v, s]));
   }, []);
@@ -296,7 +306,7 @@ export function DrawerNavigator() {
 
         {/* Drawer panel */}
         <Animated.View
-          style={[styles.drawer, { transform: [{ translateX }] }]}
+          style={[styles.drawer, drawerVisible && styles.drawerShadow, { transform: [{ translateX }] }]}
           pointerEvents={drawerVisible ? 'auto' : 'none'}
         >
           <DrawerContent
@@ -361,7 +371,9 @@ function DrawerContent({ currentScreen, onNavigate, onClose, insets }: DrawerCon
                 <Ionicons
                   name={active ? item.iconActive : item.icon}
                   size={20}
-                  color={active ? colors.purple : colors.textSecondary}
+                  // purpleText, like the label: in a theme whose primary and
+                  // link colours differ, the icon and its label disagreed.
+                  color={active ? colors.purpleText : colors.textSecondary}
                   style={styles.navIcon}
                 />
                 <Text style={[styles.navLabel, active && styles.navLabelActive]}>
@@ -392,30 +404,33 @@ function DrawerContent({ currentScreen, onNavigate, onClose, insets }: DrawerCon
               <Text style={styles.navLabel}>{t('nav.strategyBuilder')}</Text>
             </TouchableOpacity>
           )}
+
+          {/* An ordinary row while the section is a placeholder — a highlighted
+              card for an empty screen promised more than was there. */}
+          <TouchableOpacity style={styles.navItem} onPress={() => goStack('Partners')} activeOpacity={0.75}>
+            <Ionicons name="gift-outline" size={20} color={colors.textSecondary} style={styles.navIcon} />
+            <Text style={styles.navLabel}>{t('nav.partners')}</Text>
+            <View style={styles.soonBadge}>
+              <Text style={styles.soonBadgeText}>{t('common.soon')}</Text>
+            </View>
+          </TouchableOpacity>
         </View>
 
         <View style={styles.divider} />
 
-        {/* Partners — highlighted */}
+        {/* Support the author — the one highlighted card. */}
         <TouchableOpacity
-          style={styles.partnersCard}
-          onPress={() => goStack('Partners')}
+          style={styles.supportCard}
+          onPress={() => goStack('Support')}
           activeOpacity={0.8}
         >
-          <Ionicons name="gift-outline" size={22} color={colors.accent} />
+          <Ionicons name="heart" size={22} color={colors.raspberry} />
           <View style={{ flex: 1 }}>
-            <Text style={styles.partnersTitle}>{t('nav.partners')}</Text>
-            <Text style={styles.partnersSub}>{t('nav.partnersSub')}</Text>
+            <Text style={styles.supportTitle}>{t('nav.support')}</Text>
+            <Text style={styles.supportSub}>{t('nav.supportSub')}</Text>
           </View>
-          <Ionicons name="chevron-forward" size={16} color={colors.accent} />
+          <Ionicons name="chevron-forward" size={16} color={colors.raspberry} />
         </TouchableOpacity>
-
-        <View style={styles.section}>
-          <TouchableOpacity style={styles.navItem} onPress={() => goStack('Support')} activeOpacity={0.75}>
-            <Ionicons name="heart-outline" size={20} color={colors.pink} style={styles.navIcon} />
-            <Text style={styles.navLabel}>{t('nav.support')}</Text>
-          </TouchableOpacity>
-        </View>
       </ScrollView>
 
       {/* Bottom: version / responsible gambling */}
@@ -426,7 +441,7 @@ function DrawerContent({ currentScreen, onNavigate, onClose, insets }: DrawerCon
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   root: {
     flex: 1,
     backgroundColor: colors.bg,
@@ -452,6 +467,10 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
     borderRightColor: colors.border,
     zIndex: 20,
+  },
+  // Only while open. Parked off-screen at -272, the shadow still bled in at the
+  // left edge — a grey seam invisible on dark grounds and plain on a light one.
+  drawerShadow: {
     shadowColor: '#000',
     shadowOffset: { width: 4, height: 0 },
     shadowOpacity: 0.3,
@@ -472,6 +491,9 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: RADIUS.sm,
+    // The mark is white on transparent: tinted, it follows the theme instead
+    // of vanishing into a white card.
+    tintColor: colors.textPrimary,
   },
   logoText: {
     fontSize: SIZE.title,
@@ -529,7 +551,20 @@ const styles = StyleSheet.create({
     marginHorizontal: SPACE.lg,
     marginVertical: SPACE.sm,
   },
-  partnersCard: {
+  soonBadge: {
+    backgroundColor: colors.bgElevated,
+    borderRadius: RADIUS.xs,
+    paddingHorizontal: SPACE.xs,
+    paddingVertical: 2,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  soonBadgeText: {
+    fontSize: SIZE.micro,
+    fontWeight: '600',
+    color: colors.textMuted,
+  },
+  supportCard: {
     minHeight: TOUCH,
     flexDirection: 'row',
     alignItems: 'center',
@@ -537,17 +572,17 @@ const styles = StyleSheet.create({
     marginHorizontal: SPACE.sm,
     marginBottom: SPACE.xs,
     padding: SPACE.md,
-    backgroundColor: colors.accent + '14',
+    backgroundColor: alpha(colors.raspberry, 0.08),
     borderRadius: RADIUS.md,
     borderWidth: 1,
-    borderColor: colors.accent + '44',
+    borderColor: alpha(colors.raspberry, 0.32),
   },
-  partnersTitle: {
+  supportTitle: {
     fontSize: SIZE.body,
     fontWeight: '700',
-    color: colors.accent,
+    color: colors.raspberry,
   },
-  partnersSub: {
+  supportSub: {
     fontSize: SIZE.caption,
     color: colors.textSecondary,
     marginTop: 2,
@@ -595,4 +630,4 @@ const styles = StyleSheet.create({
     lineHeight: 41,
     marginTop: -2,
   },
-});
+}));

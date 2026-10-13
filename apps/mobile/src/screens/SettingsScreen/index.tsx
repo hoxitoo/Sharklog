@@ -26,9 +26,11 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
 import { PaywallSheet } from '../../components/PaywallSheet';
+import { ThemePicker } from './ThemePicker';
 import { restorePurchases } from '../../services/revenueCat';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { SIZE, GLYPH, numeric } from '../../theme/typography';
+import { themedStyles } from '../../theme/themed';
 
 /** Re-arm / clear bet reminders from the store's current state. */
 function resyncReminders(): void {
@@ -74,7 +76,7 @@ function Section({ title, children }: { title?: string; children: React.ReactNod
   );
 }
 
-const sec = StyleSheet.create({
+const sec = themedStyles(() => ({
   wrap: { marginHorizontal: SPACE.lg, marginBottom: SPACE.lg },
   title: {
     fontSize: SIZE.caption, color: colors.textMuted, textTransform: 'uppercase',
@@ -82,7 +84,7 @@ const sec = StyleSheet.create({
   },
   card: { ...cardSurface, paddingHorizontal: SPACE.lg },
   divider: { height: 1, backgroundColor: colors.border },
-});
+}));
 
 /**
  * One setting: what it is on the left, its control on the right, and — under
@@ -109,7 +111,7 @@ function Row({ label, hint, right, onPress, chevron, tone, busy }: {
         </Text>
         {hint ? <Text style={row.hint} numberOfLines={2}>{hint}</Text> : null}
       </View>
-      {busy ? <ActivityIndicator size="small" color={colors.purple} /> : right}
+      {busy ? <ActivityIndicator size="small" color={colors.purpleText} /> : right}
       {chevron && !busy ? <Ionicons name="chevron-forward" size={GLYPH.md} color={colors.textMuted} /> : null}
     </View>
   );
@@ -121,7 +123,7 @@ function Row({ label, hint, right, onPress, chevron, tone, busy }: {
   );
 }
 
-const row = StyleSheet.create({
+const row = themedStyles(() => ({
   wrap: {
     minHeight: TOUCH + SPACE.sm,
     flexDirection: 'row', alignItems: 'center', gap: SPACE.md,
@@ -132,7 +134,7 @@ const row = StyleSheet.create({
   hint: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: 2 },
   danger: { color: colors.lost, fontWeight: '600' },
   gold: { color: colors.gold, fontWeight: '700' },
-});
+}));
 
 function Toggle({ value, onChange, label }: { value: boolean; onChange: (v: boolean) => void; label: string }) {
   return (
@@ -162,7 +164,7 @@ function Stepper({ value, min, max, onChange }: {
         disabled={value <= min}
         accessibilityLabel="−"
       >
-        <Text style={ctl.stepBtnText}>−</Text>
+        <Text style={[ctl.stepBtnText, value <= min && ctl.stepBtnTextOff]}>−</Text>
       </TouchableOpacity>
       <Text style={ctl.stepVal}>{value === 0 && min === 0 ? '∞' : value}</Text>
       <TouchableOpacity
@@ -172,7 +174,7 @@ function Stepper({ value, min, max, onChange }: {
         disabled={value >= max}
         accessibilityLabel="+"
       >
-        <Text style={ctl.stepBtnText}>+</Text>
+        <Text style={[ctl.stepBtnText, value >= max && ctl.stepBtnTextOff]}>+</Text>
       </TouchableOpacity>
     </View>
   );
@@ -188,7 +190,7 @@ function ProBadge() {
   );
 }
 
-const ctl = StyleSheet.create({
+const ctl = themedStyles(() => ({
   toggle: {
     ...TOGGLE, borderRadius: RADIUS.pill, backgroundColor: colors.borderStrong,
     justifyContent: 'center', paddingHorizontal: 3,
@@ -203,6 +205,8 @@ const ctl = StyleSheet.create({
   },
   stepBtnOff: { backgroundColor: colors.bgElevated },
   stepBtnText: { fontSize: GLYPH.md, color: '#fff', fontWeight: '700', lineHeight: 20 },
+  // White is the label on the primary; on the light theme's pale off-state tile it vanished.
+  stepBtnTextOff: { color: colors.textMuted },
   stepVal: { ...numeric, fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary, minWidth: 24, textAlign: 'center' },
   pro: {
     flexDirection: 'row', alignItems: 'center', gap: SPACE.xs,
@@ -210,7 +214,7 @@ const ctl = StyleSheet.create({
     backgroundColor: alpha(colors.gold, 0.12), borderWidth: 1, borderColor: alpha(colors.gold, 0.4),
   },
   proText: { fontSize: SIZE.micro, fontWeight: '700', color: colors.gold, letterSpacing: 0.5 },
-});
+}));
 
 // ── Screen ────────────────────────────────────────────────────────────────────
 
@@ -519,7 +523,7 @@ export function SettingsScreen() {
   const currentLang = (settings.language ?? 'ru') as LangCode;
 
   const versionRight = updateStatus === 'checking'
-    ? <ActivityIndicator size="small" color={colors.purple} />
+    ? <ActivityIndicator size="small" color={colors.purpleText} />
     : updateStatus === 'latest'
       ? <Text style={styles.statusOk}>{t('settings.updateLatest')}</Text>
       : updateStatus === 'available'
@@ -558,6 +562,12 @@ export function SettingsScreen() {
             <Ionicons name="chevron-forward" size={GLYPH.md} color={colors.textMuted} />
           </TouchableOpacity>
         )}
+
+        {/* 0. How the app looks — first, because it is the first thing anyone
+            looks for. The switch itself is App.tsx's job; see ThemePicker. */}
+        <Section title={t('settings.sectionTheme')}>
+          <ThemePicker />
+        </Section>
 
         {/* 1. What you have: one line for the plan, one to get it back. */}
         <Section title={t('settings.sectionSubscription')}>
@@ -746,7 +756,7 @@ export function SettingsScreen() {
                 disabled={!newBookmaker.trim()}
                 accessibilityLabel={t('common.add')}
               >
-                <Ionicons name="add" size={GLYPH.lg} color="#fff" />
+                <Ionicons name="add" size={GLYPH.lg} color={newBookmaker.trim() ? '#fff' : colors.textMuted} />
               </TouchableOpacity>
             </View>
           </View>
@@ -801,7 +811,7 @@ function hh(hour: number): string {
   return `${String(hour).padStart(2, '0')}:00`;
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   container: { flex: 1, backgroundColor: colors.bg },
 
   backupBanner: {
@@ -818,7 +828,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: SPACE.md, paddingVertical: SPACE.sm,
     borderRadius: RADIUS.sm, backgroundColor: colors.gold,
   },
-  upgradeBtnText: { fontSize: SIZE.caption, fontWeight: '700', color: '#000' },
+  upgradeBtnText: { fontSize: SIZE.caption, fontWeight: '700', color: colors.onGold },
 
   segment: {
     flexDirection: 'row', padding: 2, borderRadius: RADIUS.sm,
@@ -858,4 +868,4 @@ const styles = StyleSheet.create({
   smallBtnText: { fontSize: SIZE.caption, fontWeight: '700', color: colors.purpleText },
   statusOk: { fontSize: SIZE.caption, color: colors.textSecondary },
   statusNew: { fontSize: SIZE.caption, fontWeight: '700', color: colors.accent },
-});
+}));

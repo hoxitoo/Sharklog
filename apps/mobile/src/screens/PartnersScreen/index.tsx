@@ -6,6 +6,7 @@ import { AppText as Text } from '../../components/AppText';
 import { colors, alpha } from '../../theme/colors';
 import { SPACE, RADIUS } from '../../theme/layout';
 import { SIZE, GLYPH } from '../../theme/typography';
+import { themedStyles } from '../../theme/themed';
 
 /**
  * A placeholder until the partner programme is settled.
@@ -29,7 +30,7 @@ export function PartnersScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   root: {
     flex: 1, backgroundColor: colors.bg,
     alignItems: 'center', justifyContent: 'center',
@@ -44,4 +45,4 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: SIZE.title, fontWeight: '700', color: colors.textPrimary, textAlign: 'center' },
   text: { fontSize: SIZE.body, color: colors.textSecondary, textAlign: 'center', lineHeight: 20 },
-});
+}));

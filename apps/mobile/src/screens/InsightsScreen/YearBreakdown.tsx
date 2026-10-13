@@ -10,6 +10,7 @@ import { numeric, SIZE } from '../../theme/typography';
 import { useFormatMoney } from '../../utils/useFormatMoney';
 import { haptic } from '../../utils/haptics';
 import { useTranslation } from 'react-i18next';
+import { themedStyles } from '../../theme/themed';
 
 interface Props {
   bets: Bet[];
@@ -160,7 +161,7 @@ function Bar({ row, peak, fmt, onPress }: {
   );
 }
 
-const y = StyleSheet.create({
+const y = themedStyles(() => ({
   sectionTitle: {
     fontSize: SIZE.caption, color: colors.textMuted, textTransform: 'uppercase',
     letterSpacing: 0.6, fontWeight: '700', marginBottom: SPACE.sm, marginTop: SPACE.xs,
@@ -201,4 +202,4 @@ const y = StyleSheet.create({
 
   moreBtn: { alignItems: 'center', paddingTop: SPACE.md, paddingBottom: 2 },
   moreText: { fontSize: SIZE.body, fontWeight: '700', color: colors.purpleText },
-});
+}));

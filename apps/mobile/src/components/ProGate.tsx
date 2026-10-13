@@ -14,6 +14,7 @@ import {
 } from '../services/revenueCat';
 import { SIZE, GLYPH } from '../theme/typography';
 import { useTranslation } from 'react-i18next';
+import { themedStyles } from '../theme/themed';
 
 interface Props {
   children: React.ReactNode;
@@ -91,7 +92,7 @@ export function ProGate({ children, feature }: Props) {
       <Text style={styles.trialBadge}>{t('proGate.trial')}</Text>
 
       {loading ? (
-        <ActivityIndicator color={colors.purple} style={{ marginTop: SPACE.xl }} />
+        <ActivityIndicator color={colors.purpleText} style={{ marginTop: SPACE.xl }} />
       ) : (
         <>
           <TouchableOpacity
@@ -115,7 +116,7 @@ export function ProGate({ children, feature }: Props) {
         </>
       )}
 
-      {purchasing && <ActivityIndicator color={colors.purple} style={{ marginTop: SPACE.md }} />}
+      {purchasing && <ActivityIndicator color={colors.purpleText} style={{ marginTop: SPACE.md }} />}
 
       <TouchableOpacity onPress={handleRestore} disabled={purchasing} style={styles.restore}>
         <Text style={styles.restoreText}>{t('settings.restorePurchases')}</Text>
@@ -132,7 +133,7 @@ const PERKS = [
   'proGate.perkExport',
 ] as const;
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   overlay: {
     flex: 1,
     alignItems: 'center',
@@ -171,4 +172,4 @@ const styles = StyleSheet.create({
   buttonTextSecondary: { fontSize: SIZE.lead, fontWeight: '600', color: colors.purpleText },
   restore: { marginTop: SPACE.lg },
   restoreText: { fontSize: SIZE.body, color: colors.textSecondary },
-});
+}));

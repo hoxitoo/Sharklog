@@ -4,6 +4,7 @@ import {
   type TextProps, type TextInputProps, type TextStyle,
 } from 'react-native';
 import { resolveFont } from '../theme/typography';
+import { themedStyles } from '../theme/themed';
 
 /**
  * `Text` with the app's typeface applied.
@@ -54,10 +55,10 @@ function fontFor(style: TextProps['style']): TextStyle {
   return resolveFont(flat?.fontFamily, flat?.fontWeight);
 }
 
-const base = StyleSheet.create({
+const base = themedStyles(() => ({
   text: {
     // Harmless where the face has no tabular figures, and it lines up digits
     // everywhere it does — money that is not on the mono style still benefits.
     fontVariant: ['tabular-nums'],
   },
-});
+}));

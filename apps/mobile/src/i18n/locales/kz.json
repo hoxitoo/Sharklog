@@ -9,11 +9,11 @@
     "bankroll": "Банкролл",
     "strategyBuilder": "Стратегия құрушы",
     "partners": "Серіктестер",
-    "partnersSub": "Жақында: акциялар мен бонустар",
     "pending": "Нәтижені күтуде",
     "filters": "Сүзгілер",
     "responsible": "18+ · Жауапты ойнаңыз",
-    "support": "Авторды қолдау"
+    "support": "Авторды қолдау",
+    "supportSub": "Pro, пікір немесе досқа сілтеме"
   },
   "status": {
     "pending": "Күтуде",
@@ -500,7 +500,12 @@
     "clearProNote": "Pro жазылымына әсер етпейді: ол App Store / Google Play аккаунтына байланған. Тазалағаннан кейін «Сатып алуларды қалпына келтіру» батырмасын басыңыз.",
     "clearBackupNote": "Сізде әлі сақтық көшірме жоқ — алдымен оны жасаған дұрыс.",
     "clearAction": "Жою",
-    "exportDialogTitle": "Ставкаларды экспорттау"
+    "exportDialogTitle": "Ставкаларды экспорттау",
+    "sectionTheme": "Безендіру тақырыбы",
+    "themeDark": "Қараңғы",
+    "themeLight": "Ашық",
+    "themeOlive": "Зәйтүн",
+    "themeNavy": "Қою көк"
   },
   "onboarding": {
     "welcome": "Қош келдіңіз",
@@ -556,7 +561,8 @@
     "collapse": "Жию",
     "showMore": "Тағы {{count}}",
     "gotIt": "Түсінікті",
-    "back": "Артқа"
+    "back": "Артқа",
+    "soon": "жақында"
   },
   "sports": {
     "football": "Футбол",

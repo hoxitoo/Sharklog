@@ -12,6 +12,7 @@ import { LANDING_URL, storeReviewUrls, supportUrl } from '../../utils/storeLinks
 import { colors, alpha } from '../../theme/colors';
 import { SPACE, RADIUS, TOUCH } from '../../theme/layout';
 import { SIZE, GLYPH } from '../../theme/typography';
+import { themedStyles } from '../../theme/themed';
 
 type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 
@@ -109,7 +110,7 @@ export function SupportScreen() {
           <Row icon="thumbs-up-outline" tint={colors.accent} title={t('support.rate')} sub={t('support.rateSub')} onPress={rate} />
         )}
 
-        <Row icon="share-social-outline" tint={colors.purple} title={t('support.share')} sub={t('support.shareSub')} onPress={share} />
+        <Row icon="share-social-outline" tint={colors.purpleText} title={t('support.share')} sub={t('support.shareSub')} onPress={share} />
 
         {contact && (
           <Row icon="paper-plane-outline" tint={colors.violet} title={t('support.write')} sub={t('support.writeSub')} onPress={write} />
@@ -121,7 +122,7 @@ export function SupportScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   root: { flex: 1, backgroundColor: colors.bg },
   intro: { fontSize: SIZE.body, color: colors.textSecondary, lineHeight: 20, marginBottom: SPACE.sm },
   row: {
@@ -137,4 +138,4 @@ const styles = StyleSheet.create({
   rowText: { flex: 1 },
   rowTitle: { fontSize: SIZE.lead, fontWeight: '600', color: colors.textPrimary },
   rowSub: { fontSize: SIZE.caption, color: colors.textSecondary, marginTop: 2, lineHeight: 16 },
-});
+}));

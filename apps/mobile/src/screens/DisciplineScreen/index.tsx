@@ -13,6 +13,7 @@ import type { DiaryEntry } from '@sharklog/core';
 import { SIZE, GLYPH } from '../../theme/typography';
 import { useTranslation } from 'react-i18next';
 import { dateLocale } from '../../i18n';
+import { themedStyles } from '../../theme/themed';
 
 // Labels are `discipline.mood<value>`.
 const MOODS: Array<{ value: 1 | 2 | 3 | 4 | 5; emoji: string }> = [
@@ -74,7 +75,7 @@ function MoodPicker({
   );
 }
 
-const mp = StyleSheet.create({
+const mp = themedStyles(() => ({
   row: { flexDirection: 'row', justifyContent: 'space-between', gap: SPACE.xs },
   btn: {
     minHeight: TOUCH, justifyContent: 'center',
@@ -93,7 +94,7 @@ const mp = StyleSheet.create({
   emoji: { fontSize: GLYPH.lg },
   label: { fontSize: SIZE.micro, color: colors.textMuted, marginTop: 3, textAlign: 'center' },
   labelActive: { color: colors.purpleText },
-});
+}));
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -104,7 +105,7 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
   );
 }
 
-const card = StyleSheet.create({
+const card = themedStyles(() => ({
   container: {
     backgroundColor: colors.bgCard,
     borderRadius: RADIUS.md,
@@ -115,7 +116,7 @@ const card = StyleSheet.create({
     borderColor: colors.border,
   },
   title: { fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary, marginBottom: SPACE.md },
-});
+}));
 
 export function DisciplineScreen() {
   const bets = useBetsStore((s) => s.bets);
@@ -259,7 +260,7 @@ export function DisciplineScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   container: { flex: 1, backgroundColor: colors.bg },
   tiltBanner: {
     flexDirection: 'row',
@@ -344,4 +345,4 @@ const styles = StyleSheet.create({
   diaryEmoji: { fontSize: GLYPH.lg, marginTop: 1 },
   diaryDate: { fontSize: SIZE.caption, color: colors.textMuted, marginBottom: 2 },
   diaryText: { fontSize: SIZE.body, color: colors.textSecondary },
-});
+}));

@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, DarkTheme, DefaultTheme, type NavigationState } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { useFonts, DMSans_400Regular, DMSans_500Medium, DMSans_600SemiBold, DMSans_700Bold } from '@expo-google-fonts/dm-sans';
 import { DMMono_400Regular, DMMono_500Medium } from '@expo-google-fonts/dm-mono';
@@ -11,7 +11,8 @@ import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { AnimatedSplash } from './src/components/AnimatedSplash';
 import { useBetsStore, effectiveReminderHour } from './src/store/betsStore';
-import { colors } from './src/theme/colors';
+import { colors, applyTheme, currentTheme } from './src/theme/colors';
+import { PALETTES, THEME_META } from './src/theme/palettes';
 import * as Notifications from 'expo-notifications';
 import {
   scheduleDailyReminder, registerBetResultCategory,
@@ -26,6 +27,31 @@ import { applyLanguage } from './src/i18n/index';
 // Keep native splash visible until React Native is ready to render
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
+// The palette follows the stored setting — applied from a store subscription
+// registered HERE, at module load, before any component subscribes: on every
+// write it runs before React gets to re-render, so the tree that renders next
+// already reads the new colours. See theme/colors.ts for why `colors` is
+// mutated in place rather than passed down.
+applyTheme(useBetsStore.getState().settings.theme);
+useBetsStore.subscribe((s) => applyTheme(s.settings.theme));
+
+/** react-navigation's own colours (stack background, transitions) from the active palette. */
+function navigationTheme() {
+  const base = THEME_META[currentTheme()].dark ? DarkTheme : DefaultTheme;
+  return {
+    ...base,
+    colors: {
+      ...base.colors,
+      primary: colors.purple,
+      background: colors.bg,
+      card: colors.bg,
+      text: colors.textPrimary,
+      border: colors.border,
+      notification: colors.lost,
+    },
+  };
+}
+
 export default function App() {
   const load = useBetsStore((s) => s.load);
   const isLoaded = useBetsStore((s) => s.isLoaded);
@@ -33,6 +59,12 @@ export default function App() {
   // A number, so the selector is stable; changes with Pro status as well as the hour.
   const reminderHour = useBetsStore((s) => effectiveReminderHour(s.settings));
   const onboardingComplete = useBetsStore((s) => s.settings.onboardingComplete);
+  // Keys the app tree: a theme switch REMOUNTS everything, so every screen —
+  // hidden, frozen and memoised ones included — renders again with the new
+  // palette. The open stack is carried across (navState); the drawer keeps its
+  // screen itself (DrawerNavigator's lastScreen).
+  const themeKey = useBetsStore((s) => s.settings.theme ?? 'dark');
+  const navState = useRef<NavigationState | undefined>(undefined);
   const updateSettings = useBetsStore((s) => s.updateSettings);
   const [splashDone, setSplashDone] = useState(false);
 
@@ -165,7 +197,8 @@ export default function App() {
   // whole session — five screen titles in Roboto.
   if (!splashDone || !appReady) {
     return (
-      <View style={{ flex: 1, backgroundColor: colors.bg }}>
+      // The brand palette, not the theme: the splash continues the native one.
+      <View style={{ flex: 1, backgroundColor: PALETTES.dark.bg }}>
         <StatusBar style="light" />
         {/* Only once the app is READY — fonts AND store — not fonts alone.
             Fonts: the splash names DM Sans, and Android measures a Text with
@@ -183,11 +216,13 @@ export default function App() {
     );
   }
 
+  const statusBarStyle = THEME_META[currentTheme()].dark ? 'light' : 'dark';
+
   if (!onboardingComplete) {
     return (
-      <ErrorBoundary>
+      <ErrorBoundary key={themeKey}>
         <SafeAreaProvider>
-          <StatusBar style="light" />
+          <StatusBar style={statusBarStyle} />
           <OnboardingScreen />
         </SafeAreaProvider>
       </ErrorBoundary>
@@ -195,10 +230,14 @@ export default function App() {
   }
 
   return (
-    <ErrorBoundary>
+    <ErrorBoundary key={themeKey}>
       <SafeAreaProvider>
-        <NavigationContainer>
-          <StatusBar style="light" />
+        <NavigationContainer
+          theme={navigationTheme()}
+          {...(navState.current ? { initialState: navState.current } : {})}
+          onStateChange={(s) => { navState.current = s; }}
+        >
+          <StatusBar style={statusBarStyle} />
           <RootNavigator />
         </NavigationContainer>
       </SafeAreaProvider>

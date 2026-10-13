@@ -6,14 +6,15 @@ import type { BetStatus } from '@sharklog/core';
 import { colors } from '../theme/colors';
 import { useTranslation } from 'react-i18next';
 import { SIZE } from '../theme/typography';
+import { themedStyles } from '../theme/themed';
 
-/** Shared so the card's edge rail always matches the badge. */
+/** Shared so the card's edge rail always matches the badge. Getters: the active theme's colours. */
 export const STATUS_COLORS: Record<BetStatus, string> = {
-  pending:  colors.pending,
-  won:      colors.won,
-  lost:     colors.lost,
-  refund:   colors.refund,
-  cashout:  colors.refund,
+  get pending() { return colors.pending; },
+  get won() { return colors.won; },
+  get lost() { return colors.lost; },
+  get refund() { return colors.refund; },
+  get cashout() { return colors.refund; },
 };
 
 export function StatusBadge({ status }: { status: BetStatus }) {
@@ -26,7 +27,7 @@ export function StatusBadge({ status }: { status: BetStatus }) {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   badge: {
     paddingHorizontal: SPACE.sm,
     paddingVertical: 3,
@@ -34,4 +35,4 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   text: { fontSize: SIZE.caption, fontWeight: '600' },
-});
+}));

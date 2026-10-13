@@ -29,6 +29,7 @@ import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { useTranslation } from 'react-i18next';
 import { dateLocale } from '../../i18n/index';
 import { SIZE, GLYPH, numeric } from '../../theme/typography';
+import { themedStyles } from '../../theme/themed';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -373,7 +374,7 @@ export function BetsScreen({ filter, onClearFilter }: {
             <RefreshControl
               refreshing={refreshing}
               onRefresh={onRefresh}
-              tintColor={colors.purple}
+              tintColor={colors.purpleText}
               colors={[colors.purple]}
               progressViewOffset={barHeight}
             />
@@ -621,7 +622,7 @@ export function BetsScreen({ filter, onClearFilter }: {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   container: { flex: 1, backgroundColor: colors.bg },
   search: {
     marginHorizontal: SPACE.lg,
@@ -736,7 +737,7 @@ const styles = StyleSheet.create({
   sectionDate: { fontSize: SIZE.caption, color: colors.textMuted, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
   sectionPnl: { fontSize: SIZE.caption, fontWeight: '700' },
   empty: { alignItems: 'center', paddingTop: 80 },
-  emptyIcon: { width: 90, height: 90, marginBottom: SPACE.md, alignSelf: 'center' },
+  emptyIcon: { width: 90, height: 90, marginBottom: SPACE.md, alignSelf: 'center', tintColor: colors.textPrimary },
   emptyTitle: { fontSize: SIZE.title, fontWeight: '600', color: colors.textPrimary, marginBottom: SPACE.xs },
   emptySubtitle: { fontSize: SIZE.body, color: colors.textSecondary, textAlign: 'center' },
   limitBanner: {
@@ -763,4 +764,4 @@ const styles = StyleSheet.create({
   tiltEmoji: { fontSize: GLYPH.lg },
   tiltTitle: { fontSize: SIZE.body, fontWeight: '700', color: colors.lost },
   tiltSub: { fontSize: SIZE.caption, color: colors.textSecondary, marginTop: 2 },
-});
+}));

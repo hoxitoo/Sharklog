@@ -12,6 +12,7 @@ import { colors, toneSurface } from '../../theme/colors';
 import { BetCard } from '../BetsScreen/BetCard';
 import { useBetActions } from '../../components/useBetActions';
 import { SIZE, GLYPH } from '../../theme/typography';
+import { themedStyles } from '../../theme/themed';
 
 /** Kick-off timestamp, parsed as LOCAL time (a bare date string would read as UTC). */
 function startedAt(bet: Bet): number {
@@ -126,7 +127,7 @@ export function PendingScreen() {
   );
 }
 
-const s = StyleSheet.create({
+const s = themedStyles(() => ({
   container: { flex: 1, backgroundColor: colors.bg },
   header: {
     ...cardSurface, ...toneSurface('warn'),
@@ -148,4 +149,4 @@ const s = StyleSheet.create({
   emptyIcon: { fontSize: GLYPH.xxl, marginBottom: SPACE.md },
   emptyTitle: { fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary },
   emptyText: { fontSize: SIZE.body, color: colors.textMuted, textAlign: 'center', marginTop: SPACE.xs, lineHeight: 20 },
-});
+}));

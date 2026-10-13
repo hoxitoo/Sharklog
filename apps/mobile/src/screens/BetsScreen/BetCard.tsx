@@ -14,6 +14,7 @@ import { StatusBadge, STATUS_COLORS } from '../../components/StatusBadge';
 import { useBetsStore } from '../../store/betsStore';
 import { haptic } from '../../utils/haptics';
 import { useTranslation } from 'react-i18next';
+import { themedStyles } from '../../theme/themed';
 
 // Both rows sit their controls a gap apart, so each may claim at most half of
 // it sideways — otherwise the right edge of "W" would fire "L".
@@ -221,7 +222,7 @@ export const BetCard = React.memo(function BetCard({
   );
 });
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   card: {
     ...cardSurface,
     padding: SPACE.lg,
@@ -321,4 +322,4 @@ const styles = StyleSheet.create({
     borderColor: colors.accent + '44',
   },
   freebetBadgeText: { fontSize: SIZE.micro, color: colors.accent, fontWeight: '600' },
-});
+}));

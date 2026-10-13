@@ -20,10 +20,9 @@ import { numeric, SIZE, GLYPH } from '../../theme/typography';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 
-/** The donut lives in a pink-toned Card, so its hole must match that surface. */
-const DONUT_SURFACE = toneSurface('pink').backgroundColor;
 import { cardSurface, Card, tileStyle } from '../../components/Card';
 import { PnlBars } from '../../components/PnlBars';
+import { themedStyles } from '../../theme/themed';
 
 const { width } = Dimensions.get('window');
 
@@ -154,7 +153,7 @@ function HeroPnl({ bets, period }: { bets: Bet[]; period: APeriodFilter }) {
   );
 }
 
-const hero = StyleSheet.create({
+const hero = themedStyles(() => ({
   box: {
     ...cardSurface,
     padding: SPACE.lg, marginHorizontal: SPACE.lg, marginBottom: SPACE.md,
@@ -173,7 +172,7 @@ const hero = StyleSheet.create({
   // Fixed height so selecting a bar never moves the chart under the finger.
   chartMeta: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', height: 14, marginBottom: SPACE.xs },
   chartMetaText: { ...numeric, flexShrink: 1, fontSize: SIZE.micro, color: colors.textMuted, fontWeight: '600' },
-});
+}));
 
 // ── Two-tile row (streaks, extremes) ─────────────────────────────────────────
 
@@ -203,7 +202,7 @@ function MiniTile({ label, value, color, sub, info }: {
   );
 }
 
-const tile = StyleSheet.create({
+const tile = themedStyles(() => ({
   box: { ...tileStyle, flex: 1 },
   label: { fontSize: SIZE.caption, color: colors.textMuted, marginBottom: SPACE.xs, lineHeight: 15, height: 30 }, // reserve 2 lines
   labelWithInfo: { paddingRight: SPACE.lg }, // keep clear of the "?" badge
@@ -216,7 +215,7 @@ const tile = StyleSheet.create({
     alignItems: 'center', justifyContent: 'center',
   },
   infoBtnText: { fontSize: SIZE.micro, color: colors.textMuted, fontWeight: '700' },
-});
+}));
 
 function StreaksCard({ bets }: { bets: Bet[] }) {
   const { t } = useTranslation();
@@ -278,9 +277,9 @@ function ExtremesCard({ bets }: { bets: Bet[] }) {
   );
 }
 
-const row = StyleSheet.create({
+const row = themedStyles(() => ({
   wrap: { flexDirection: 'row' },
-});
+}));
 
 // ── Edge & risk: win-rate-vs-breakeven + max drawdown + sample reliability ───
 
@@ -326,9 +325,9 @@ function EdgeRiskCard({ bets }: { bets: Bet[] }) {
   );
 }
 
-const edge = StyleSheet.create({
+const edge = themedStyles(() => ({
   caption: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: SPACE.sm, lineHeight: 16 },
-});
+}));
 
 // ── Luck vs decisions ────────────────────────────────────────────────────────
 
@@ -394,7 +393,7 @@ function LuckCard({ bets }: { bets: Bet[] }) {
   );
 }
 
-const luck = StyleSheet.create({
+const luck = themedStyles(() => ({
   winsRow: {
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     marginTop: SPACE.md, paddingTop: SPACE.sm, borderTopWidth: 1, borderTopColor: colors.border,
@@ -406,7 +405,7 @@ const luck = StyleSheet.create({
   winsSwing: { ...numeric, fontSize: SIZE.body, fontWeight: '700' },
   verdict: { fontSize: SIZE.caption, color: colors.textSecondary, lineHeight: 17, marginTop: SPACE.sm },
   caption: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: SPACE.sm, lineHeight: 16 },
-});
+}));
 
 // ── Time of day: top hours + donut ───────────────────────────────────────────
 
@@ -425,6 +424,10 @@ function TimeCard({ bets }: { bets: Bet[] }) {
   const pie = t.buckets
     .map((b, i) => ({ value: b.count, color: BUCKET_COLORS[i]!, label: b.label }))
     .filter((s) => s.value > 0);
+
+  // The donut lives in a pink-toned Card, so its hole must match that surface.
+  // Read at render, not at module load: the surface depends on the theme.
+  const donutSurface = toneSurface('pink').backgroundColor;
 
   return (
     <Card title={tr('analytics.timeTitle')} tone="pink">
@@ -447,9 +450,9 @@ function TimeCard({ bets }: { bets: Bet[] }) {
           donut
           radius={64}
           innerRadius={40}
-          innerCircleColor={DONUT_SURFACE}
+          innerCircleColor={donutSurface}
           strokeWidth={2}
-          strokeColor={DONUT_SURFACE}
+          strokeColor={donutSurface}
           centerLabelComponent={() => (
             <View style={{ alignItems: 'center' }}>
               <Text style={time.centerValue}>{total}</Text>
@@ -474,7 +477,7 @@ function TimeCard({ bets }: { bets: Bet[] }) {
   );
 }
 
-const time = StyleSheet.create({
+const time = themedStyles(() => ({
   empty: { fontSize: SIZE.body, color: colors.textMuted },
   topRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: SPACE.lg },
   topCell: { alignItems: 'center', flex: 1 },
@@ -489,7 +492,7 @@ const time = StyleSheet.create({
   dot: { width: 10, height: 10, borderRadius: RADIUS.pill, marginRight: SPACE.sm },
   legendLabel: { fontSize: SIZE.caption, color: colors.textSecondary, flex: 1 },
   legendCount: { fontSize: SIZE.caption, color: colors.textMuted, fontWeight: '600' },
-});
+}));
 
 // ── CLV ──────────────────────────────────────────────────────────────────────
 
@@ -535,9 +538,9 @@ function ClvCard({ bets }: { bets: Bet[] }) {
   );
 }
 
-const clv = StyleSheet.create({
+const clv = themedStyles(() => ({
   hint: { fontSize: SIZE.caption, color: colors.textSecondary, lineHeight: 18 },
-});
+}));
 
 // ── Extended (detailed slices) ───────────────────────────────────────────────
 
@@ -563,7 +566,7 @@ function SliceRow({ stat, maxPnl }: { stat: SliceStats; maxPnl: number }) {
   );
 }
 
-const slice = StyleSheet.create({
+const slice = themedStyles(() => ({
   row: { flexDirection: 'row', alignItems: 'center', marginBottom: SPACE.md },
   labelCol: { width: 90 },
   label: { fontSize: SIZE.body, color: colors.textPrimary, fontWeight: '500' },
@@ -573,7 +576,7 @@ const slice = StyleSheet.create({
   valueCol: { width: 62, alignItems: 'flex-end' },
   pnl: { fontSize: SIZE.body, fontWeight: '700' },
   pnlSub: { fontSize: SIZE.micro, color: colors.textMuted },
-});
+}));
 
 function ExtendedSection({ title, stats }: { title: string; stats: SliceStats[] }) {
   const maxPnl = Math.max(...stats.map((s) => Math.abs(s.pnl)), 1);
@@ -656,7 +659,7 @@ function SportBreakdown({ stats }: { stats: SliceStats[] }) {
   );
 }
 
-const sport = StyleSheet.create({
+const sport = themedStyles(() => ({
   row: { marginBottom: SPACE.lg },
   head: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
   name: { flex: 1, fontSize: SIZE.body, fontWeight: '600', color: colors.textPrimary },
@@ -671,7 +674,7 @@ const sport = StyleSheet.create({
   metaRow: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
   meta: { flex: 1, fontSize: SIZE.micro, color: colors.textMuted },
   roi: { ...numeric, fontSize: SIZE.micro, fontWeight: '700', marginLeft: SPACE.sm },
-});
+}));
 
 // ── Screen ───────────────────────────────────────────────────────────────────
 
@@ -770,7 +773,7 @@ export function AnalyticsScreen() {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   container: { flex: 1, backgroundColor: colors.bg },
   periodRow: { flexDirection: 'row', paddingHorizontal: SPACE.lg, gap: SPACE.sm, marginTop: SPACE.sm, marginBottom: SPACE.md },
   periodBtn: {
@@ -790,4 +793,4 @@ const styles = StyleSheet.create({
   },
   extToggleText: { fontSize: SIZE.body, fontWeight: '700', color: colors.purpleText },
   extChevron: { fontSize: GLYPH.sm, color: colors.textMuted },
-});
+}));

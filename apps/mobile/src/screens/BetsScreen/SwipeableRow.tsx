@@ -8,6 +8,7 @@ import { colors } from '../../theme/colors';
 import { haptic } from '../../utils/haptics';
 import { SIZE, GLYPH } from '../../theme/typography';
 import { useTranslation } from 'react-i18next';
+import { themedStyles } from '../../theme/themed';
 
 const DELETE_W = 76;
 
@@ -94,7 +95,7 @@ export const SwipeableRow = React.memo(function SwipeableRow({ children, onDelet
   );
 });
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   container: {
     overflow: 'hidden',
   },
@@ -112,5 +113,5 @@ const styles = StyleSheet.create({
   },
   deleteBtn: { alignItems: 'center', gap: 3 },
   deleteIcon: { fontSize: GLYPH.lg },
-  deleteText: { fontSize: SIZE.micro, fontWeight: '700', color: '#fff' },
-});
+  deleteText: { fontSize: SIZE.micro, fontWeight: '700', color: colors.onLost },
+}));

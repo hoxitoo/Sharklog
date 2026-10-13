@@ -86,14 +86,15 @@ export function monoFor(weight: TextStyle['fontWeight']): string {
   }
 }
 
+// Colours as getters so each preset follows the active theme.
 export const typography: Record<string, TextStyle> = {
-  h1: { fontSize: SIZE.hero, fontFamily: FONTS.sansBold, color: colors.textPrimary, letterSpacing: -0.5 },
-  h2: { fontSize: SIZE.title, fontFamily: FONTS.sansSemiBold, color: colors.textPrimary },
-  h3: { fontSize: SIZE.title, fontFamily: FONTS.sansSemiBold, color: colors.textPrimary },
-  body: { fontSize: SIZE.lead, fontFamily: FONTS.sans, color: colors.textPrimary },
-  bodySmall: { fontSize: SIZE.body, fontFamily: FONTS.sans, color: colors.textSecondary },
-  caption: { fontSize: SIZE.caption, fontFamily: FONTS.sans, color: colors.textMuted },
-  mono: { fontSize: SIZE.body, fontFamily: FONTS.mono, color: colors.textPrimary },
+  h1: { fontSize: SIZE.hero, fontFamily: FONTS.sansBold, get color() { return colors.textPrimary; }, letterSpacing: -0.5 },
+  h2: { fontSize: SIZE.title, fontFamily: FONTS.sansSemiBold, get color() { return colors.textPrimary; } },
+  h3: { fontSize: SIZE.title, fontFamily: FONTS.sansSemiBold, get color() { return colors.textPrimary; } },
+  body: { fontSize: SIZE.lead, fontFamily: FONTS.sans, get color() { return colors.textPrimary; } },
+  bodySmall: { fontSize: SIZE.body, fontFamily: FONTS.sans, get color() { return colors.textSecondary; } },
+  caption: { fontSize: SIZE.caption, fontFamily: FONTS.sans, get color() { return colors.textMuted; } },
+  mono: { fontSize: SIZE.body, fontFamily: FONTS.mono, get color() { return colors.textPrimary; } },
 };
 
 /**

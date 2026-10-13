@@ -7,6 +7,7 @@ import { useBetsStore } from '../store/betsStore';
 import { colors } from '../theme/colors';
 import { SPACE, RADIUS, hitSlopFor } from '../theme/layout';
 import { GLYPH } from '../theme/typography';
+import { themedStyles } from '../theme/themed';
 
 /**
  * The paywall as a bottom sheet, for places that offer Pro without gating a
@@ -50,7 +51,7 @@ export function PaywallSheet({ visible, onClose, feature }: {
   );
 }
 
-const styles = StyleSheet.create({
+const styles = themedStyles(() => ({
   bg: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
   sheet: {
     backgroundColor: colors.bg, borderTopLeftRadius: RADIUS.sheet, borderTopRightRadius: RADIUS.sheet,
@@ -61,4 +62,4 @@ const styles = StyleSheet.create({
     width: 32, height: 32, borderRadius: RADIUS.pill,
     backgroundColor: colors.bgElevated, alignItems: 'center', justifyContent: 'center',
   },
-});
+}));

@@ -1,9 +1,11 @@
 import React from 'react';
 import { View, StyleSheet, type ViewStyle, type StyleProp } from 'react-native';
 import { AppText as Text } from './AppText';
-import { colors, alpha, toneSurface, TONE_ACCENT, type CardTone } from '../theme/colors';
+import { colors, alpha, toneSurface, TONE_ACCENT, type CardTone, currentTheme } from '../theme/colors';
+import { THEME_META } from '../theme/palettes';
 import { RADIUS, SPACE } from '../theme/layout';
 import { SIZE } from '../theme/typography';
+import { themedStyles } from '../theme/themed';
 
 interface Props {
   title?: string;
@@ -53,19 +55,21 @@ export function Card({ title, subtitle, tone = 'neutral', right, children, style
  * override only what genuinely differs.
  */
 export const cardSurface: ViewStyle = {
-  backgroundColor: colors.bgCard,
+  // Getters: spread inside a themedStyles factory, these read the ACTIVE theme.
+  get backgroundColor() { return colors.bgCard; },
   borderRadius: RADIUS.lg,
   borderWidth: 1,
-  borderColor: colors.border,
-  // Lifts the card off the page on both platforms.
+  get borderColor() { return colors.border; },
+  // Lifts the card off the page on both platforms — softly on a light theme,
+  // where a dark-theme shadow reads as a smudge.
   shadowColor: '#000',
-  shadowOpacity: 0.35,
+  get shadowOpacity() { return THEME_META[currentTheme()].dark ? 0.35 : 0.08; },
   shadowRadius: 12,
   shadowOffset: { width: 0, height: 4 },
   elevation: 3,
 };
 
-const card = StyleSheet.create({
+const card = themedStyles(() => ({
   box: {
     ...cardSurface,
     padding: SPACE.lg,
@@ -77,13 +81,13 @@ const card = StyleSheet.create({
   headText: { flex: 1 },
   title: { fontSize: SIZE.body, fontWeight: '700', color: colors.textPrimary, letterSpacing: 0.2 },
   subtitle: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: 2 },
-});
+}));
 
 /** Nested tile inside a Card — the second surface level, one radius down. */
 export const tileStyle: ViewStyle = {
-  backgroundColor: colors.bgElevated,
+  get backgroundColor() { return colors.bgElevated; },
   borderRadius: RADIUS.md,
   padding: SPACE.md,
   borderWidth: 1,
-  borderColor: alpha(colors.borderStrong, 0.55),
+  get borderColor() { return alpha(colors.borderStrong, 0.55); },
 };
