@@ -8,7 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { SIZE } from '../theme/typography';
 import { themedStyles } from '../theme/themed';
 
-/** Shared so the card's edge rail always matches the badge. Getters: the active theme's colours. */
+/** Shared so the card's status outline always matches the badge. Getters: the active theme's colours. */
 export const STATUS_COLORS: Record<BetStatus, string> = {
   get pending() { return colors.pending; },
   get won() { return colors.won; },
