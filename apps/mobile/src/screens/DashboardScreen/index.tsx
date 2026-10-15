@@ -8,7 +8,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { calcDashboard, isInTilt, calcDailyBreakdown, summarizeDays, toYmd } from '@sharklog/core';
 import type { Bet, DayStats } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
-import { colors, toneSurface } from '../../theme/colors';
+import { colors, signalInk, signalTint, toneSurface } from '../../theme/colors';
 import { cardSurface, tileStyle } from '../../components/Card';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { ResponsibleGamblingBanner } from '../../components/ResponsibleGamblingBanner';
@@ -61,9 +61,9 @@ function WLStrip({ bets }: { bets: Bet[] }) {
             ]}
           >
             <Text style={[wl.letter, {
-              color: b.status === 'won' ? colors.won
+              color: signalInk(b.status === 'won' ? colors.won
                 : b.status === 'lost' ? colors.lost
-                : colors.refund,
+                : colors.refund),
             }]}>
               {b.status === 'won' ? 'W' : b.status === 'lost' ? 'L' : b.status === 'cashout' ? 'C' : 'R'}
             </Text>
@@ -91,9 +91,10 @@ const wl = themedStyles(() => ({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  squareW: { backgroundColor: colors.won + '18', borderColor: colors.won + '55' },
-  squareL: { backgroundColor: colors.lost + '18', borderColor: colors.lost + '55' },
-  squareR: { backgroundColor: colors.refund + '18', borderColor: colors.refund + '55' },
+  // Same wash as the bet card's W/L/R/C chips — see signalTint.
+  squareW: { backgroundColor: signalTint(colors.won, 0.094), borderColor: signalTint(colors.won, 0.333) },
+  squareL: { backgroundColor: signalTint(colors.lost, 0.094), borderColor: signalTint(colors.lost, 0.333) },
+  squareR: { backgroundColor: signalTint(colors.refund, 0.094), borderColor: signalTint(colors.refund, 0.333) },
   letter: { fontSize: SIZE.body, fontWeight: '700' },
 }));
 

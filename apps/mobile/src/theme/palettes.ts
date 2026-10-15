@@ -129,24 +129,24 @@ export const PALETTES: Record<ThemeId, Palette> = {
     bgSunken: '#15120F',
     border: '#463E35',
     borderStrong: '#5C5246',
-    accent: '#A9C47A',
-    accentDim: '#A9C47A22',
+    accent: '#A8D65C',
+    accentDim: '#A8D65C22',
     purple: '#626B46',
     purpleText: '#C3CC92',
     purpleDim: '#626B4633',
-    gold: '#D9B26A',
-    red: '#E58A6E',
-    violet: '#C2AEDA',
+    gold: '#F0B445',
+    red: '#F4765A',
+    violet: '#B48BEE',
     pink: '#E59AB0',
     raspberry: '#EC7C9C',
     deposit: '#8DB4C8',
     textPrimary: '#EEE9DF',
     textSecondary: '#C7B49A',
     textMuted: '#AE9F88',
-    won: '#A9C47A',
-    lost: '#E58A6E',
-    pending: '#D9B26A',
-    refund: '#C2AEDA',
+    won: '#A8D65C',
+    lost: '#F4765A',
+    pending: '#F0B445',
+    refund: '#B48BEE',
     onAccent: '#1C1915',
     onGold: '#1C1915',
     onLost: '#1C1915',
@@ -161,36 +161,49 @@ export const PALETTES: Record<ThemeId, Palette> = {
     bgSunken: '#0A1018',
     border: '#2C3D54',
     borderStrong: '#41566F',
-    accent: '#7FD1AE',
-    accentDim: '#7FD1AE22',
+    accent: '#4FE0A5',
+    accentDim: '#4FE0A522',
     purple: '#6A7040',
     purpleText: '#D4B47E',
     purpleDim: '#6A704033',
-    gold: '#D4B47E',
-    red: '#F08A8A',
-    violet: '#B9A8E3',
+    gold: '#F2BC4E',
+    red: '#FF6467',
+    violet: '#A98CF5',
     pink: '#E89AC0',
     raspberry: '#F07FA1',
     deposit: '#8AB4F8',
     textPrimary: '#EEEAE2',
     textSecondary: '#B4BCC8',
     textMuted: '#97A2B2',
-    won: '#7FD1AE',
-    lost: '#F08A8A',
-    pending: '#D4B47E',
-    refund: '#B9A8E3',
+    won: '#4FE0A5',
+    lost: '#FF6467',
+    pending: '#F2BC4E',
+    refund: '#A98CF5',
     onAccent: '#0E1621',
     onGold: '#0E1621',
     onLost: '#0E1621',
   },
 };
 
-/** What the system chrome around the app needs to know. */
-export const THEME_META: Record<ThemeId, { dark: boolean }> = {
-  dark: { dark: true },
-  light: { dark: false },
-  olive: { dark: true },
-  navy: { dark: true },
+/**
+ * What the system chrome around the app needs to know, and how hard a status
+ * tint has to press to read on this theme's cards.
+ *
+ * `tint` scales the wash behind status badges and result chips. A 9–13% wash
+ * is plenty on the near-black dark card, but on the mid-tone chocolate and
+ * navy cards it came out as the same mud for every status — W, L, R and C
+ * read as one grey row, and "Поражение" barely left the card.
+ *
+ * `ink` moves the label on that wash toward `textPrimary`: a stronger wash of
+ * the same hue eats the label's contrast (terracotta on a terracotta wash was
+ * 3.4:1). On the light theme the move is toward dark ink and lifts the amber
+ * "Ожидание" badge over AA. The dark theme stays exactly as it always was.
+ */
+export const THEME_META: Record<ThemeId, { dark: boolean; tint: number; ink: number }> = {
+  dark: { dark: true, tint: 1, ink: 0 },
+  light: { dark: false, tint: 1, ink: 0.15 },
+  olive: { dark: true, tint: 2.2, ink: 0.45 },
+  navy: { dark: true, tint: 2.2, ink: 0.45 },
 };
 
 export const THEME_IDS = Object.keys(PALETTES) as ThemeId[];

@@ -8,7 +8,7 @@ import { formatOdds, parseMoneyInput, betPnl } from '@sharklog/core';
 import { sportLabel, betTypeLabel, pickLabel } from '../../utils/labels';
 import { useFormatMoney } from '../../utils/useFormatMoney';
 import { bankSharesFor, formatBankShare } from '../../utils/bankShares';
-import { colors } from '../../theme/colors';
+import { colors, signalInk, signalTint } from '../../theme/colors';
 import { numeric, SIZE } from '../../theme/typography';
 import { StatusBadge, STATUS_COLORS } from '../../components/StatusBadge';
 import { useBetsStore } from '../../store/betsStore';
@@ -99,8 +99,12 @@ export const BetCard = React.memo(function BetCard({
       activeOpacity={cashoutOpen ? 1 : 0.8}
     >
       {/* The right edge carries the outcome — green won, red lost, amber pending,
-          violet refund/cashout — so a scroll reads without stopping at the badge. */}
-      <View pointerEvents="none" style={[styles.edge, { backgroundColor: accent }]} />
+          violet refund/cashout — so a scroll reads without stopping at the badge.
+          Drawn as a piece of the card's own outline, round the right-hand
+          corners, not as a bar: bars on cards stacked one under another lined
+          up into one coloured stripe down the screen, and the eye stopped
+          seeing where one card ended. */}
+      <View pointerEvents="none" style={[styles.edge, { borderColor: accent }]} />
 
       <View style={styles.row}>
         <View style={styles.left}>
@@ -154,7 +158,7 @@ export const BetCard = React.memo(function BetCard({
             onPress={() => handleQuickResult('won')}
             activeOpacity={0.75}
           >
-            <Text style={[styles.chipText, { color: colors.won }]}>W</Text>
+            <Text style={[styles.chipText, { color: signalInk(colors.won) }]}>W</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.resultChip, styles.chipLost]}
@@ -162,7 +166,7 @@ export const BetCard = React.memo(function BetCard({
             onPress={() => handleQuickResult('lost')}
             activeOpacity={0.75}
           >
-            <Text style={[styles.chipText, { color: colors.lost }]}>L</Text>
+            <Text style={[styles.chipText, { color: signalInk(colors.lost) }]}>L</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.resultChip, styles.chipRefund]}
@@ -170,7 +174,7 @@ export const BetCard = React.memo(function BetCard({
             onPress={() => handleQuickResult('refund')}
             activeOpacity={0.75}
           >
-            <Text style={[styles.chipText, { color: colors.refund }]}>R</Text>
+            <Text style={[styles.chipText, { color: signalInk(colors.refund) }]}>R</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.resultChip, styles.chipRefund]}
@@ -178,7 +182,7 @@ export const BetCard = React.memo(function BetCard({
             onPress={() => { haptic.selection(); onRequestCashout?.(); }}
             activeOpacity={0.75}
           >
-            <Text style={[styles.chipText, { color: colors.refund }]}>C</Text>
+            <Text style={[styles.chipText, { color: signalInk(colors.refund) }]}>C</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -222,6 +226,11 @@ export const BetCard = React.memo(function BetCard({
   );
 });
 
+/** How far the status outline runs along the top and bottom edges, from the right. */
+const EDGE_REACH = 72;
+/** Thicker than the 1 px card border it replaces, so the colour reads at a glance. */
+const EDGE_LINE = 2;
+
 const styles = themedStyles(() => ({
   card: {
     ...cardSurface,
@@ -231,10 +240,11 @@ const styles = themedStyles(() => ({
   },
   edge: {
     position: 'absolute',
-    right: 0, top: 0, bottom: 0, width: SPACE.xs,
-    // Card radius − 1 (the border) so the rail follows the corner instead of
-    // cutting across it. Tied to RADIUS.lg: change the card and this follows.
-    borderTopRightRadius: RADIUS.lg - 1, borderBottomRightRadius: RADIUS.lg - 1,
+    // Laid over the card's 1 px border, so on this stretch the coloured line
+    // IS the outline. Same radius as the card: change the card and this follows.
+    top: -1, right: -1, bottom: -1, width: EDGE_REACH,
+    borderTopWidth: EDGE_LINE, borderRightWidth: EDGE_LINE, borderBottomWidth: EDGE_LINE, borderLeftWidth: 0,
+    borderTopRightRadius: RADIUS.lg, borderBottomRightRadius: RADIUS.lg,
   },
   row: { flexDirection: 'row', justifyContent: 'space-between' },
   left: { flex: 1, marginRight: SPACE.md },
@@ -276,9 +286,9 @@ const styles = themedStyles(() => ({
     justifyContent: 'center',
     borderWidth: 1,
   },
-  chipWon: { backgroundColor: colors.won + '18', borderColor: colors.won + '55' },
-  chipLost: { backgroundColor: colors.lost + '18', borderColor: colors.lost + '55' },
-  chipRefund: { backgroundColor: colors.refund + '18', borderColor: colors.refund + '55' },
+  chipWon: { backgroundColor: signalTint(colors.won, 0.094), borderColor: signalTint(colors.won, 0.333) },
+  chipLost: { backgroundColor: signalTint(colors.lost, 0.094), borderColor: signalTint(colors.lost, 0.333) },
+  chipRefund: { backgroundColor: signalTint(colors.refund, 0.094), borderColor: signalTint(colors.refund, 0.333) },
   chipText: { fontSize: SIZE.body, fontWeight: '700' },
   cashoutRow: {
     flexDirection: 'row',
@@ -308,7 +318,7 @@ const styles = themedStyles(() => ({
     justifyContent: 'center',
     borderWidth: 1,
   },
-  cashoutConfirm: { backgroundColor: colors.won + '18', borderColor: colors.won + '55' },
+  cashoutConfirm: { backgroundColor: signalTint(colors.won, 0.094), borderColor: signalTint(colors.won, 0.333) },
   cashoutCancel: { backgroundColor: colors.bgElevated, borderColor: colors.border },
   cashoutBtnText: { fontSize: SIZE.lead, fontWeight: '700' },
   notes: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: SPACE.xs, fontStyle: 'italic' },

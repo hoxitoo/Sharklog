@@ -3,12 +3,12 @@ import { SPACE, RADIUS } from '../theme/layout';
 import { View, StyleSheet } from 'react-native';
 import { AppText as Text } from './AppText';
 import type { BetStatus } from '@sharklog/core';
-import { colors } from '../theme/colors';
+import { colors, signalInk, signalTint } from '../theme/colors';
 import { useTranslation } from 'react-i18next';
 import { SIZE } from '../theme/typography';
 import { themedStyles } from '../theme/themed';
 
-/** Shared so the card's edge rail always matches the badge. Getters: the active theme's colours. */
+/** Shared so the card's status outline always matches the badge. Getters: the active theme's colours. */
 export const STATUS_COLORS: Record<BetStatus, string> = {
   get pending() { return colors.pending; },
   get won() { return colors.won; },
@@ -21,8 +21,8 @@ export function StatusBadge({ status }: { status: BetStatus }) {
   const { t } = useTranslation();
   const color = STATUS_COLORS[status];
   return (
-    <View style={[styles.badge, { backgroundColor: color + '22' }]}>
-      <Text style={[styles.text, { color }]}>{t(`status.${status}`)}</Text>
+    <View style={[styles.badge, { backgroundColor: signalTint(color, 0.133) }]}>
+      <Text style={[styles.text, { color: signalInk(color) }]}>{t(`status.${status}`)}</Text>
     </View>
   );
 }
