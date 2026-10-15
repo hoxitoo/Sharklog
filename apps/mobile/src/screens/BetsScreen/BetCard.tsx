@@ -99,8 +99,12 @@ export const BetCard = React.memo(function BetCard({
       activeOpacity={cashoutOpen ? 1 : 0.8}
     >
       {/* The right edge carries the outcome — green won, red lost, amber pending,
-          violet refund/cashout — so a scroll reads without stopping at the badge. */}
-      <View pointerEvents="none" style={[styles.edge, { backgroundColor: accent }]} />
+          violet refund/cashout — so a scroll reads without stopping at the badge.
+          Drawn as a piece of the card's own outline, round the right-hand
+          corners, not as a bar: bars on cards stacked one under another lined
+          up into one coloured stripe down the screen, and the eye stopped
+          seeing where one card ended. */}
+      <View pointerEvents="none" style={[styles.edge, { borderColor: accent }]} />
 
       <View style={styles.row}>
         <View style={styles.left}>
@@ -222,6 +226,11 @@ export const BetCard = React.memo(function BetCard({
   );
 });
 
+/** How far the status outline runs along the top and bottom edges, from the right. */
+const EDGE_REACH = 72;
+/** Thicker than the 1 px card border it replaces, so the colour reads at a glance. */
+const EDGE_LINE = 2;
+
 const styles = themedStyles(() => ({
   card: {
     ...cardSurface,
@@ -231,10 +240,11 @@ const styles = themedStyles(() => ({
   },
   edge: {
     position: 'absolute',
-    right: 0, top: 0, bottom: 0, width: SPACE.xs,
-    // Card radius − 1 (the border) so the rail follows the corner instead of
-    // cutting across it. Tied to RADIUS.lg: change the card and this follows.
-    borderTopRightRadius: RADIUS.lg - 1, borderBottomRightRadius: RADIUS.lg - 1,
+    // Laid over the card's 1 px border, so on this stretch the coloured line
+    // IS the outline. Same radius as the card: change the card and this follows.
+    top: -1, right: -1, bottom: -1, width: EDGE_REACH,
+    borderTopWidth: EDGE_LINE, borderRightWidth: EDGE_LINE, borderBottomWidth: EDGE_LINE, borderLeftWidth: 0,
+    borderTopRightRadius: RADIUS.lg, borderBottomRightRadius: RADIUS.lg,
   },
   row: { flexDirection: 'row', justifyContent: 'space-between' },
   left: { flex: 1, marginRight: SPACE.md },
