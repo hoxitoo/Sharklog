@@ -7,7 +7,7 @@
 <p align="center">
   Профессиональный трекер ставок для рынка СНГ.<br/>
   Мобильное приложение (iOS + Android) и десктоп (Windows / macOS / Linux).<br/>
-  <strong>Freemium:</strong> бесплатно до 50 ставок · Pro 199 ₽/мес или 990 ₽/год
+  <strong>Freemium:</strong> бесплатно до 50 ставок · 7 дней Pro для новых · Pro навсегда — 399 ₽ (RuStore)
 </p>
 
 <p align="center">
@@ -105,7 +105,7 @@ cd apps/desktop && npx tauri dev
 cd packages/core && npx vitest run       # 235 unit-тестов
 cd apps/desktop  && npm test             # 40 smoke-тестов
 cd apps/desktop  && npx playwright test  # 22 E2E-тестов
-cd apps/mobile   && npm test             # 201 тест, включая стражей дизайна, тем и переводов
+cd apps/mobile   && npm test             # 225 тестов, включая стражей дизайна, тем и переводов
 ```
 
 ### Проверка типов
@@ -166,7 +166,7 @@ eas submit -p ios
 | Состояние | Zustand + AsyncStorage | Zustand + SQLite / localStorage |
 | Графики | react-native-gifted-charts | Recharts |
 | Шрифты | DM Sans + DM Mono | DM Sans + DM Mono |
-| Оплата | RevenueCat | — (планируется LemonSqueezy) |
+| Оплата | Робокасса + сервер лицензий (RuStore); RevenueCat — для Google Play позже | — (планируется LemonSqueezy) |
 | Обновления | EAS OTA | Tauri updater (подписанные, GitHub Releases) |
 | Тесты | Jest (25 smoke) | Vitest (98 core + 40 smoke) + Playwright (22 E2E) |
 | Язык | TypeScript strict | TypeScript strict |
@@ -232,7 +232,13 @@ EXPO_PUBLIC_ENV=production
 EXPO_PUBLIC_SENTRY_DSN=...      # без неё Sentry выключен
 EXPO_PUBLIC_POSTHOG_KEY=...     # без неё аналитика событий выключена
 EXPO_PUBLIC_SUPPORT_URL=...     # «Написать автору»; без неё строки нет
+EXPO_PUBLIC_BILLING=robokassa   # robokassa (RuStore, по умолчанию) | revenuecat (Google Play)
+EXPO_PUBLIC_LICENSE_URL=...     # адрес сервера лицензий; без него покупка недоступна
+EXPO_PUBLIC_LICENSE_PUBKEY=...  # публичный ключ Ed25519 для проверки лицензий
 ```
+
+Сервер лицензий (Cloudflare Worker для Робокассы) в репозитории не хранится — как и бот
+поддержки. Как устроена оплата — CLAUDE.md, «Оплата и Pro».
 
 `EXPO_PUBLIC_SUPPORT_URL` намеренно не хранится в репозитории (он публичный) — только в
 локальном `.env.local` и в переменных EAS.

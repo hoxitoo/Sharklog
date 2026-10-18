@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
+import { APP_VERSION } from '../utils/appVersion';
 
 const HOST = process.env['EXPO_PUBLIC_POSTHOG_HOST'] ?? 'https://eu.posthog.com';
 const KEY = process.env['EXPO_PUBLIC_POSTHOG_KEY'] ?? '';
@@ -32,7 +33,7 @@ export async function trackEvent(event: string, props?: Record<string, unknown>)
         properties: {
           $os: Platform.OS,
           $os_version: String(Platform.Version),
-          app_version: process.env['EXPO_PUBLIC_APP_VERSION'] ?? '1.0.0',
+          app_version: APP_VERSION,
           ...props,
         },
         timestamp: new Date().toISOString(),

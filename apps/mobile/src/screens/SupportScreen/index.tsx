@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { AppText as Text } from '../../components/AppText';
 import { cardSurface } from '../../components/Card';
 import { PaywallSheet } from '../../components/PaywallSheet';
-import { useBetsStore } from '../../store/betsStore';
+import { useBetsStore, ownsPro } from '../../store/betsStore';
 import { Analytics } from '../../services/analytics';
 import { LANDING_URL, storeReviewUrls, supportUrl } from '../../utils/storeLinks';
 import { colors, alpha } from '../../theme/colors';
@@ -52,7 +52,8 @@ function Row({ icon, tint, title, sub, onPress }: {
 export function SupportScreen() {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
-  const isPro = useBetsStore((s) => s.settings.isPro);
+  // Bought, not merely on: during the trial this row must still sell.
+  const isPro = useBetsStore((s) => ownsPro(s.settings));
   const [paywall, setPaywall] = useState(false);
   const closePaywall = useCallback(() => setPaywall(false), []);
   const review = storeReviewUrls(Platform.OS);

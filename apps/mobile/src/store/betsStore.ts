@@ -6,6 +6,8 @@ import {
   sendTiltNotification, scheduleBetResultReminder,
   cancelBetResultReminder, cancelAllBetResultReminders,
 } from '../utils/notifications';
+import { verifyLicense, resolvePro, trialEnd } from '../utils/license';
+import { LICENSE_PUBKEY } from '../services/billing';
 
 const STORAGE_KEY = '@sharklog/data';
 
@@ -92,6 +94,16 @@ interface BetsStore {
   clearAll: () => void;
 
   canAddBet: () => boolean;
+
+  /**
+   * Recompute Pro from every source (licence, trial, store). `storeEntitled` is
+   * what RevenueCat answered — null when it was not asked or not reached.
+   */
+  refreshPro: (storeEntitled?: boolean | null) => void;
+  /** Store a licence if it checks out; false (and nothing changed) if it does not. */
+  applyLicense: (token: string) => boolean;
+  /** Seven days of Pro for a new user. Never twice, never over a licence. */
+  startTrial: () => void;
 }
 
 const IS_OWNER_PRO = process.env.EXPO_PUBLIC_OWNER_PRO === 'true';
@@ -116,6 +128,15 @@ export const defaultSettings: AppSettings = {
  */
 export function effectiveReminderHour(s: Pick<AppSettings, 'isPro' | 'reminderHour'>): number {
   return s.isPro ? s.reminderHour : defaultSettings.reminderHour;
+}
+
+/**
+ * Pro that was BOUGHT — a licence, or store / older-build Pro with no trial
+ * date behind it. Not the same as `isPro`: a trial user is Pro and still has
+ * to be offered the purchase. Used where the screen must tell the two apart.
+ */
+export function ownsPro(s: Pick<AppSettings, 'isPro' | 'license' | 'proExpiresAt'>): boolean {
+  return !!s.license || (s.isPro && !s.proExpiresAt);
 }
 
 export const defaultBankroll: Bankroll = {
@@ -143,10 +164,17 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
         return;
       }
       const schema = migrate(JSON.parse(raw));
-      const savedSettings = schema.settings ?? {};
-      // Expire a lapsed free-trial / subscription so PRO gates don't stay open forever.
-      const trialExpired = savedSettings.proExpiresAt != null
-        && new Date(savedSettings.proExpiresAt) < new Date();
+      const savedSettings: Partial<AppSettings> = schema.settings ?? {};
+      // The stored flag is a cache. Pro is decided again on every launch from
+      // what can actually grant it: a run-out trial closes the gates, and a
+      // licence is believed only if its signature checks out.
+      const isPro = resolvePro({
+        owner: IS_OWNER_PRO,
+        licenseValid: verifyLicense(savedSettings.license, LICENSE_PUBKEY) !== null,
+        trialEndsAt: savedSettings.proExpiresAt,
+        storeEntitled: null,
+        previous: savedSettings.isPro ?? false,
+      });
       set({
         bets: schema.bets ?? [],
         settings: {
@@ -154,7 +182,7 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
           ...savedSettings,
           // Existing users (data already present) shouldn't be re-onboarded on upgrade.
           onboardingComplete: savedSettings.onboardingComplete ?? true,
-          ...(trialExpired && !IS_OWNER_PRO ? { isPro: false } : {}),
+          isPro,
         },
         bankroll: { ...defaultBankroll, ...schema.bankroll },
         diary: schema.diary ?? [],
@@ -256,6 +284,42 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
       bankroll: { ...defaultBankroll, createdAt: new Date().toISOString() },
       settings: { ...s.settings, onboardingComplete: true },
     }));
+    get().persist();
+  },
+
+  refreshPro: (storeEntitled = null) => {
+    const { settings } = get();
+    const isPro = resolvePro({
+      owner: IS_OWNER_PRO,
+      licenseValid: verifyLicense(settings.license, LICENSE_PUBKEY) !== null,
+      trialEndsAt: settings.proExpiresAt,
+      storeEntitled,
+      previous: settings.isPro,
+    });
+    // A store purchase outlives the trial it may have started in: drop the
+    // trial date, or an offline launch after the trial would read as "ran out".
+    const clearTrial = storeEntitled === true && settings.proExpiresAt !== undefined;
+    if (isPro === settings.isPro && !clearTrial) return;
+    set((s) => {
+      // Omitted, not set to undefined: exactOptionalPropertyTypes.
+      const { proExpiresAt: _trial, ...rest } = s.settings;
+      return { settings: clearTrial ? { ...rest, isPro } : { ...s.settings, isPro } };
+    });
+    get().persist();
+  },
+
+  applyLicense: (token) => {
+    const trimmed = token.trim();
+    if (verifyLicense(trimmed, LICENSE_PUBKEY) === null) return false;
+    set((s) => ({ settings: { ...s.settings, license: trimmed, isPro: true } }));
+    get().persist();
+    return true;
+  },
+
+  startTrial: () => {
+    const { settings } = get();
+    if (settings.proExpiresAt || settings.license || settings.isPro) return;
+    set((s) => ({ settings: { ...s.settings, isPro: true, proExpiresAt: trialEnd() } }));
     get().persist();
   },
 

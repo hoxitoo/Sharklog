@@ -11,7 +11,6 @@
 | `apps/mobile/app.json` | `version` | `"1.1.0"` |
 | `apps/mobile/app.json` | `android.versionCode` | `2` (целое, +1 каждый раз) |
 | `apps/mobile/app.json` | `ios.buildNumber` | `"2"` (строка, +1 каждый раз) |
-| `apps/mobile/src/screens/SettingsScreen/index.tsx:108` | `APP_VERSION` | `'1.1.0'` |
 | `apps/desktop/src-tauri/tauri.conf.json` | `version` | `"1.1.0"` |
 | `apps/desktop/package.json` | `version` | `"1.1.0"` |
 
@@ -32,10 +31,8 @@
 }
 ```
 
-**`apps/mobile/src/screens/SettingsScreen/index.tsx` — строка 108**
-```ts
-const APP_VERSION = '1.1.0';
-```
+Версию в приложении (строка «Версия» в Настройках, аналитика) отдельно менять не нужно:
+`utils/appVersion.ts` читает её из `app.json`.
 
 **`apps/desktop/src-tauri/tauri.conf.json`**
 ```json
@@ -71,7 +68,6 @@ cd apps/desktop  && npx tsc --noEmit
 
 ```bash
 git add apps/mobile/app.json \
-        apps/mobile/src/screens/SettingsScreen/index.tsx \
         apps/desktop/src-tauri/tauri.conf.json \
         apps/desktop/package.json
 
@@ -98,7 +94,11 @@ git push origin main
 ### 5. Мобильная сборка через EAS (когда нужен стор)
 
 ```bash
-# Android
+# RuStore — APK, оплата через Робокассу (EXPO_PUBLIC_BILLING=robokassa)
+eas build -p android --profile rustore
+# готовый APK загрузить в консоль RuStore вручную
+
+# Google Play (позже) — подписки через RevenueCat: задать EXPO_PUBLIC_BILLING=revenuecat
 eas build -p android --profile production
 eas submit -p android
 
@@ -109,12 +109,8 @@ eas submit -p ios
 
 Или вручную: **Actions → EAS Build → Run workflow** → выбери платформу и профиль.
 
-**OTA-обновление** (только JS-изменения, без нативного кода):
-```bash
-eas update --branch production --message "Fix: описание"
-```
-
-> OTA не работает при изменениях в `app.json` (новые плагины, permissions) — нужна полная пересборка.
+**OTA-обновлений нет**: `expo-updates` не установлен, `eas update` ничего не доставит. Любое
+изменение — новая сборка. Подключить OTA — отдельная задача (пакет, канал в `eas.json`, новая сборка).
 
 ---
 
@@ -140,13 +136,24 @@ v2.0.0  — смена формата данных / major redesign
 
 Делается один раз:
 
-- [ ] Apple Developer аккаунт → App ID для `app.sharklog`
-- [ ] Google Play Console → новое приложение
-- [ ] RevenueCat проект → iOS / Android API keys в EAS Secrets
-- [ ] `EXPO_TOKEN` в GitHub Secrets
-- [ ] Privacy Policy опубликована: `https://hoxitoo.github.io/Sharklog/privacy.html`
-- [ ] Скриншоты: 6.5" iPhone, 12.9" iPad, Pixel 7
-- [ ] Описания: краткое (80 символов) + полное (4000 символов)
+**RuStore (первый релиз):**
+
+- [ ] Аккаунт разработчика RuStore, приложение `app.sharklog.mobile`
+- [ ] Робокасса: магазин прошёл модерацию, «Робочеки СМЗ» подключены
+- [ ] Сервер лицензий развёрнут (README в папке Worker, хранится у автора, не в репозитории)
+- [ ] EAS Environment variables (production): `EXPO_PUBLIC_LICENSE_URL`, `EXPO_PUBLIC_LICENSE_PUBKEY`
+- [ ] Тестовая оплата прошла на телефоне; затем `IS_TEST` убран, пароли боевые
+- [ ] Политика: `https://hoxitoo.github.io/Sharklog/privacy.html`
+- [ ] Скриншоты телефона, описание, возрастной рейтинг 18+
+- [ ] `EXPO_TOKEN` в GitHub Secrets (если сборка из Actions)
+
+**Google Play / App Store (позже):**
+
+- [ ] `targetSdkVersion` 36 (требование Google Play с 31.08.2026)
+- [ ] Apple Developer → App ID `app.sharklog.mobile`; Google Play Console → новое приложение
+- [ ] RevenueCat: продукты и ключи `EXPO_PUBLIC_RC_IOS_KEY` / `EXPO_PUBLIC_RC_ANDROID_KEY`, `EXPO_PUBLIC_BILLING=revenuecat`
+- [ ] Пейвол подписок: ссылки на условия и политику, текст об автопродлении
+- [ ] Скриншоты: 6.5" iPhone, Pixel (iPad не нужен — `supportsTablet: false`)
 - [ ] Иконка: 1024×1024 PNG без прозрачности (App Store)
 
 ---

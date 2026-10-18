@@ -46,6 +46,7 @@ export function OnboardingScreen() {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const updateSettings = useBetsStore((s) => s.updateSettings);
+  const startTrial = useBetsStore((s) => s.startTrial);
   const updateBankroll = useBetsStore((s) => s.updateBankroll);
   const bankroll = useBetsStore((s) => s.bankroll);
 
@@ -70,6 +71,9 @@ export function OnboardingScreen() {
   function handleFinish() {
     const bkList = selectedBookmakers.length > 0 ? selectedBookmakers : ['1xBet', 'Parimatch', 'Fonbet'];
     updateSettings({ bookmakers: bkList, onboardingComplete: true });
+    // Seven days of Pro, starting now: the business rule, and the only moment
+    // a user is new. `startTrial` never grants it twice or over a licence.
+    startTrial();
 
     const amount = parseMoneyInput(depositInput);
     if (amount > 0) {

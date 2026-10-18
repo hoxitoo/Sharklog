@@ -10,6 +10,7 @@
     "allowJs": true,
     "strict": true,
     "skipLibCheck": true,
+    "resolveJsonModule": true,
     "paths": {
       "@sharklog/core": ["../../packages/core/src/index.ts"]
     }
