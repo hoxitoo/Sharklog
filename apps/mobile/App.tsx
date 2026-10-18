@@ -19,7 +19,8 @@ import {
   setBetPendingResolver, syncBetResultReminders,
 } from './src/utils/notifications';
 import { initRevenueCat, syncEntitlement } from './src/services/revenueCat';
-import { resumePendingPayment } from './src/services/purchase';
+import { resumePendingPayment, takePaidNotice } from './src/services/purchase';
+import { BILLING } from './src/services/billing';
 import { initSentry } from './src/services/sentry';
 import { Analytics } from './src/services/analytics';
 import './src/i18n/index';
@@ -164,12 +165,15 @@ export default function App() {
 
   useEffect(() => {
     initSentry();
-    initRevenueCat();
+    // RevenueCat only in the build that sells through it: in the RuStore build
+    // its "no" would take away Pro that an older build left behind.
+    if (BILLING === 'revenuecat') initRevenueCat();
     Analytics.appOpen();
     load().then(async () => {
       // Pro from every source, not the store's word alone: a "no" from
       // RevenueCat used to switch off a running trial or a licence with it.
-      useBetsStore.getState().refreshPro(await syncEntitlement());
+      const entitled = BILLING === 'revenuecat' ? await syncEntitlement() : null;
+      useBetsStore.getState().refreshPro(entitled);
     });
   }, []);
 
@@ -182,7 +186,9 @@ export default function App() {
     const check = () => {
       useBetsStore.getState().refreshPro(null);
       resumePendingPayment().then((r) => {
-        if (r === 'paid') Alert.alert(i18n.t('proGate.paidTitle'), i18n.t('proGate.paid'));
+        if (r === 'paid' && takePaidNotice()) {
+          requestAnimationFrame(() => Alert.alert(i18n.t('proGate.paidTitle'), i18n.t('proGate.paid')));
+        }
       });
     };
     check();

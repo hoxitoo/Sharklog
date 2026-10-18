@@ -127,6 +127,29 @@ export function verifyLicense(
 }
 
 /**
+ * The licence inside whatever was pasted. People keep the code in Telegram or
+ * Notes, and the shared message wraps it in a sentence; the messenger may wrap
+ * the line too. So: drop all whitespace, then take the first thing shaped like
+ * a licence. Text with nothing licence-shaped comes back as it was (trimmed),
+ * and fails verification on its own.
+ */
+export function extractLicense(text: string): string {
+  const compact = text.replace(/\s+/g, '');
+  const m = /SL1\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/.exec(compact);
+  return m ? m[0] : text.trim();
+}
+
+/**
+ * Whether a STORED licence counts. Its signature was checked on the way in
+ * (`applyLicense` is the only writer: restore code, backup, licence server);
+ * checking it again on every launch cost ~100 ms of plain-JS Ed25519 on the
+ * JS thread and protected nothing — the same storage holds `isPro` itself.
+ */
+export function hasLicense(token: string | undefined | null): boolean {
+  return typeof token === 'string' && token.startsWith(`${LICENSE_PREFIX}.`);
+}
+
+/**
  * Whether Pro is on, from every source that can grant it. Pure, so the rules
  * live in one place and under test instead of in three `updateSettings` calls.
  *

@@ -7,6 +7,7 @@ import { LICENSE_URL } from './billing';
  *   GET  /offer                    → { price, currency, plan }
  *   POST /create                   → { inv, nonce, url }   — url is Robokassa's payment page
  *   GET  /license?inv=…&nonce=…    → { status: 'paid', license } | { status: 'pending' }
+ *                                    | { status: 'unknown' } (not this phone's invoice)
  *
  * The price comes from the server, not from this file: the number on the
  * button and the number Robokassa charges are then one number, set in one place.
@@ -31,7 +32,7 @@ export interface PendingPayment {
   createdAt: string;
 }
 
-export type LicenseAnswer = { status: 'paid'; license: string } | { status: 'pending' };
+export type LicenseAnswer = { status: 'paid'; license: string } | { status: 'pending' } | { status: 'unknown' };
 
 export function licenseServerConfigured(): boolean {
   return LICENSE_URL.length > 0;
@@ -58,8 +59,24 @@ export async function getOffer(): Promise<Offer | null> {
   return { price: r.price, currency: 'RUB', plan: 'lifetime' };
 }
 
-/** Opens an invoice on the server and remembers it, so a killed app can pick it up again. */
-export async function createPayment(): Promise<PendingPayment | null> {
+let creating: Promise<PendingPayment | null> | null = null;
+
+/**
+ * The invoice to pay: the one already waiting, or a new one, remembered so a
+ * killed app can pick it up again.
+ *
+ * Never a second invoice over a waiting one. There is one slot, and several
+ * paywalls can be alive at once (screens stay mounted in the drawer): buying
+ * from a stale one used to overwrite an invoice the user had just paid, whose
+ * nonce — the only way to collect its licence — was then gone. A double tap
+ * did the same. "Cancel payment" is the way to a fresh invoice.
+ */
+export function createPayment(): Promise<PendingPayment | null> {
+  creating ??= (async () => (await getPendingPayment()) ?? openInvoice())().finally(() => { creating = null; });
+  return creating;
+}
+
+async function openInvoice(): Promise<PendingPayment | null> {
   const r = await call('/create', { method: 'POST' }) as Partial<PendingPayment> | null;
   if (!r || typeof r.inv !== 'string' || typeof r.nonce !== 'string' || typeof r.url !== 'string') return null;
   // Only ever hand the user Robokassa's own page.
@@ -75,6 +92,7 @@ export async function fetchLicense(p: Pick<PendingPayment, 'inv' | 'nonce'>): Pr
   if (!r) return null;
   if (r.status === 'paid' && typeof r.license === 'string') return { status: 'paid', license: r.license };
   if (r.status === 'pending') return { status: 'pending' };
+  if (r.status === 'unknown') return { status: 'unknown' };
   return null;
 }
 

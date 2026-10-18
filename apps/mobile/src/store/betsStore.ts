@@ -6,7 +6,7 @@ import {
   sendTiltNotification, scheduleBetResultReminder,
   cancelBetResultReminder, cancelAllBetResultReminders,
 } from '../utils/notifications';
-import { verifyLicense, resolvePro, trialEnd } from '../utils/license';
+import { verifyLicense, resolvePro, trialEnd, extractLicense, hasLicense } from '../utils/license';
 import { LICENSE_PUBKEY } from '../services/billing';
 
 const STORAGE_KEY = '@sharklog/data';
@@ -132,11 +132,11 @@ export function effectiveReminderHour(s: Pick<AppSettings, 'isPro' | 'reminderHo
 
 /**
  * Pro that was BOUGHT — a licence, or store / older-build Pro with no trial
- * date behind it. Not the same as `isPro`: a trial user is Pro and still has
+ * date behind it. (A stored licence was verified on the way in: hasLicense.) Not the same as `isPro`: a trial user is Pro and still has
  * to be offered the purchase. Used where the screen must tell the two apart.
  */
 export function ownsPro(s: Pick<AppSettings, 'isPro' | 'license' | 'proExpiresAt'>): boolean {
-  return !!s.license || (s.isPro && !s.proExpiresAt);
+  return hasLicense(s.license) || (s.isPro && !s.proExpiresAt);
 }
 
 export const defaultBankroll: Bankroll = {
@@ -166,11 +166,11 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
       const schema = migrate(JSON.parse(raw));
       const savedSettings: Partial<AppSettings> = schema.settings ?? {};
       // The stored flag is a cache. Pro is decided again on every launch from
-      // what can actually grant it: a run-out trial closes the gates, and a
-      // licence is believed only if its signature checks out.
+      // what can actually grant it: a run-out trial closes the gates. (The
+      // licence was verified when it was stored — see hasLicense.)
       const isPro = resolvePro({
         owner: IS_OWNER_PRO,
-        licenseValid: verifyLicense(savedSettings.license, LICENSE_PUBKEY) !== null,
+        licenseValid: hasLicense(savedSettings.license),
         trialEndsAt: savedSettings.proExpiresAt,
         storeEntitled: null,
         previous: savedSettings.isPro ?? false,
@@ -291,7 +291,7 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
     const { settings } = get();
     const isPro = resolvePro({
       owner: IS_OWNER_PRO,
-      licenseValid: verifyLicense(settings.license, LICENSE_PUBKEY) !== null,
+      licenseValid: hasLicense(settings.license),
       trialEndsAt: settings.proExpiresAt,
       storeEntitled,
       previous: settings.isPro,
@@ -308,10 +308,15 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
     get().persist();
   },
 
-  applyLicense: (token) => {
-    const trimmed = token.trim();
-    if (verifyLicense(trimmed, LICENSE_PUBKEY) === null) return false;
-    set((s) => ({ settings: { ...s.settings, license: trimmed, isPro: true } }));
+  applyLicense: (text) => {
+    // The ONE place a licence enters the device — so the one place it is verified.
+    const token = extractLicense(text);
+    if (verifyLicense(token, LICENSE_PUBKEY) === null) return false;
+    set((s) => {
+      // Bought: the trial date no longer means anything (omitted, not undefined).
+      const { proExpiresAt: _trial, ...rest } = s.settings;
+      return { settings: { ...rest, license: token, isPro: true } };
+    });
     get().persist();
     return true;
   },

@@ -53,6 +53,19 @@ describe('startTrial', () => {
 });
 
 describe('applyLicense', () => {
+  it('takes the code out of the shared message, line breaks and all', () => {
+    const code = licence();
+    const pasted = `Код восстановления SharkLog Pro (никому не показывай): ${code.slice(0, 40)}\n${code.slice(40)}`;
+    expect(useBetsStore.getState().applyLicense(pasted)).toBe(true);
+    expect(settings().license).toBe(code);
+  });
+
+  it('drops the trial date once Pro is bought', () => {
+    useBetsStore.getState().startTrial();
+    useBetsStore.getState().applyLicense(licence());
+    expect(settings().proExpiresAt).toBeUndefined();
+  });
+
   it('keeps a licence that verifies and turns Pro on', () => {
     expect(useBetsStore.getState().applyLicense(`  ${licence()}  `)).toBe(true);
     expect(settings().isPro).toBe(true);
@@ -105,9 +118,10 @@ describe('load', () => {
     return settings();
   }
 
-  it('believes a stored licence only if it verifies', async () => {
+  it('trusts a stored licence — it was verified on the way in', async () => {
     expect((await loadWith({ isPro: false, license: licence() })).isPro).toBe(true);
-    expect((await loadWith({ isPro: true, license: 'SL1.x.y', proExpiresAt: new Date(0).toISOString() })).isPro).toBe(false);
+    // Not licence-shaped at all: no Pro from it.
+    expect((await loadWith({ isPro: true, license: 'hello', proExpiresAt: new Date(0).toISOString() })).isPro).toBe(false);
   });
 
   it('keeps Pro from an older build that left no trace of where it came from', async () => {

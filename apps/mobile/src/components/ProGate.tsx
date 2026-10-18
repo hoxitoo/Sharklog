@@ -17,7 +17,7 @@ import {
   getOffer, createPayment, getPendingPayment, clearPendingPayment,
   type Offer, type PendingPayment,
 } from '../services/licenseServer';
-import { resumePendingPayment } from '../services/purchase';
+import { resumePendingPayment, takePaidNotice } from '../services/purchase';
 import { Analytics } from '../services/analytics';
 import { formatMoney } from '@sharklog/core';
 import { dateLocale } from '../i18n';
@@ -106,7 +106,8 @@ function RobokassaCheckout() {
   async function buy() {
     setPhase('opening');
     Analytics.proUpgradeStarted('robokassa');
-    const p = await createPayment();
+    // Returns the invoice already waiting, if another paywall opened one.
+    const p = await createPayment().catch(() => null);
     if (!p) {
       setPhase('ready');
       Alert.alert(t('common.error'), t('proGate.createError'));
@@ -121,8 +122,12 @@ function RobokassaCheckout() {
     setPhase('checking');
     const r = await resumePendingPayment();
     if (r === 'paid') {
-      // The gate opens by itself (isPro); say why it did.
-      Alert.alert(t('proGate.paidTitle'), t('proGate.paid'));
+      // The gate opens by itself (isPro) and a sheet around it closes; say why,
+      // once, a frame later — an alert raised from a closing Modal can vanish
+      // with it on iOS.
+      if (takePaidNotice()) {
+        requestAnimationFrame(() => Alert.alert(t('proGate.paidTitle'), t('proGate.paid')));
+      }
       return;
     }
     if (r === 'none') {

@@ -164,9 +164,10 @@ export interface AppSettings {
   /** End of the local free trial (mobile). Past it, the trial no longer holds Pro. */
   proExpiresAt?: string;
   /**
-   * Signed Pro licence from a one-time purchase (mobile, Robokassa). Checked
-   * against the licence server's public key on every launch — the flag alone is
-   * never trusted. Travels with a JSON backup, so Pro survives a new phone.
+   * Signed Pro licence from a one-time purchase (mobile, Robokassa). Verified
+   * against the licence server's public key when it enters the device (restore
+   * code, backup, server) — the only way it is written. Travels with a JSON
+   * backup, so Pro survives a new phone.
    */
   license?: string;
   onboardingComplete: boolean;

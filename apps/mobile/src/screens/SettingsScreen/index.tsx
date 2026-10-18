@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { SPACE, RADIUS, TOUCH, hitSlopFor } from '../../theme/layout';
 import {
   View, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Share,
@@ -27,8 +27,8 @@ import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
 import { PaywallSheet } from '../../components/PaywallSheet';
 import { RestoreCodeSheet } from '../../components/RestoreCodeSheet';
-import { BILLING, LICENSE_PUBKEY } from '../../services/billing';
-import { verifyLicense } from '../../utils/license';
+import { BILLING } from '../../services/billing';
+import { hasLicense } from '../../utils/license';
 import { APP_VERSION } from '../../utils/appVersion';
 import { ThemePicker } from './ThemePicker';
 import { restorePurchases } from '../../services/revenueCat';
@@ -245,9 +245,7 @@ export function SettingsScreen() {
   const isPro = settings.isPro;
   // What holds Pro, so the row can say it: a bought licence, a running trial,
   // or the store / an older build (the plain "Pro" row).
-  // Memoised on the code: Ed25519 in plain JS is not free on Hermes, and this
-  // screen re-renders on every keystroke in the bookmaker field.
-  const licensed = useMemo(() => verifyLicense(settings.license, LICENSE_PUBKEY) !== null, [settings.license]);
+  const licensed = hasLicense(settings.license);
   const trialEnds = settings.proExpiresAt ? new Date(settings.proExpiresAt) : null;
   const inTrial = !licensed && isPro && trialEnds !== null && trialEnds.getTime() > Date.now();
   const openPaywall = () => setShowPaywall(true);
