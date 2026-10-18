@@ -27,6 +27,7 @@ import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
 import { PaywallSheet } from '../../components/PaywallSheet';
 import { RestoreCodeSheet } from '../../components/RestoreCodeSheet';
+import { useTourStore } from '../../components/tour/tour';
 import { BILLING } from '../../services/billing';
 import { hasLicense } from '../../utils/license';
 import { APP_VERSION } from '../../utils/appVersion';
@@ -864,6 +865,13 @@ export function SettingsScreen() {
               hint={t('settings.updateHowTo')}
             />
           )}
+          {/* The first-run tour, again — the drawer navigator takes it to the Bets screen. */}
+          <Row
+            label={t('settings.tour')}
+            hint={t('settings.tourHint')}
+            onPress={() => useTourStore.getState().start({ inTrial })}
+            chevron
+          />
         </Section>
 
         <Section>

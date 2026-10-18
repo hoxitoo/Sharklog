@@ -7,6 +7,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors } from '../theme/colors';
 import { FONTS, SIZE, sansFor } from '../theme/typography';
 import { useDrawer } from './DrawerContext';
+import { tourTarget, type TourTargetId } from './tour/tour';
 import { themedStyles } from '../theme/themed';
 
 /**
@@ -51,15 +52,23 @@ interface Props {
   title: string;
   subtitle?: string;
   rightAction?: { label: string; onPress: () => void };
+  /** Lets the first-run tour point at this screen's menu button. */
+  menuTourTarget?: TourTargetId;
 }
 
-export function ScreenHeader({ title, subtitle, rightAction }: Props) {
+export function ScreenHeader({ title, subtitle, rightAction, menuTourTarget }: Props) {
   const insets = useSafeAreaInsets();
   const { openDrawer } = useDrawer();
 
   return (
     <View style={[styles.container, { paddingTop: insets.top + 8 }]}>
-      <TouchableOpacity style={styles.hamburger} onPress={openDrawer} activeOpacity={0.7} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+      <TouchableOpacity
+        ref={menuTourTarget ? tourTarget(menuTourTarget) : undefined}
+        style={styles.hamburger}
+        onPress={openDrawer}
+        activeOpacity={0.7}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
         <Ionicons name="menu" size={24} color={colors.textSecondary} />
       </TouchableOpacity>
       <View style={styles.center}>

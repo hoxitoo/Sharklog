@@ -3,7 +3,7 @@ import { SPACE, RADIUS, TOUCH, FAB_CLEARANCE, hitSlopFor } from '../../theme/lay
 import { cardSurface } from '../../components/Card';
 import {
   View, SectionList, StyleSheet, TouchableOpacity, ScrollView, RefreshControl, Image,
-  Animated, Easing, type NativeScrollEvent, type NativeSyntheticEvent,
+  Animated, Easing, Keyboard, type NativeScrollEvent, type NativeSyntheticEvent,
 } from 'react-native';
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
 import type { TextInput as TextInputRef } from 'react-native';
@@ -24,6 +24,7 @@ import { useBetsQuery } from '../../components/BetsQueryContext';
 import { applyBetsQuery, betsVocabulary, countBetsQuery, describeBetsQuery, suggest, EMPTY_BETS_QUERY } from '../../utils/betsQuery';
 import { useBetActions } from '../../components/useBetActions';
 import { Coachmark } from '../../components/Coachmark';
+import { tourTarget, useTourStore } from '../../components/tour/tour';
 import { haptic } from '../../utils/haptics';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { useTranslation } from 'react-i18next';
@@ -152,7 +153,12 @@ export function BetsScreen({ filter, onClearFilter }: {
   }, [setCollapsed]);
 
   /** Tapping the tray returns to the top, where the full panel lives. */
-  const searchRef = useRef<TextInputRef>(null);
+  const searchRef = useRef<TextInputRef | null>(null);
+  // One node, two holders: the focus logic and the tour's arrow.
+  const setSearchRef = useCallback((node: TextInputRef | null) => {
+    searchRef.current = node;
+    tourTarget('search')(node as unknown as View | null);
+  }, []);
   const expandFromTray = useCallback((focusSearch?: boolean) => {
     haptic.selection();
     listRef.current?.getScrollResponder()?.scrollTo({ y: 0, animated: true });
@@ -161,6 +167,17 @@ export function BetsScreen({ filter, onClearFilter }: {
     // land in the field — not merely show it.
     if (focusSearch) requestAnimationFrame(() => searchRef.current?.focus());
   }, [setCollapsed]);
+
+  // The tour points at the panel's controls, so the panel has to be there: at
+  // the top, expanded, with no keyboard over it — also when the tour is
+  // started again from Settings over a list scrolled half-way down.
+  const tourActive = useTourStore((s) => s.active);
+  useEffect(() => {
+    if (!tourActive) return;
+    Keyboard.dismiss();
+    listRef.current?.getScrollResponder()?.scrollTo({ y: 0, animated: false });
+    setCollapsed(false, true);
+  }, [tourActive, setCollapsed]);
 
   // A collapsed panel is only recoverable by scrolling up or tapping the tray,
   // so it must never be collapsed over a list that cannot scroll.
@@ -316,6 +333,7 @@ export function BetsScreen({ filter, onClearFilter }: {
   return (
     <View style={styles.container}>
       <ScreenHeader
+        menuTourTarget="menu"
         title={t('nav.bets')}
         // A real plural: number + a fixed "ставок" printed "261 ставок". And on
         // Free, the count USED, as in Settings — the same "N из 50" used to mean
@@ -427,7 +445,7 @@ export function BetsScreen({ filter, onClearFilter }: {
             </TouchableOpacity>
           )}
 
-          <View style={styles.todayStrip}>
+          <View ref={tourTarget('summary')} style={styles.todayStrip}>
             <View style={styles.todayCell}>
               <Text style={styles.todayLabel}>{t('dashboard.today')}</Text>
               <Text style={[
@@ -466,7 +484,7 @@ export function BetsScreen({ filter, onClearFilter }: {
           </View>
 
           <TextInput
-            ref={searchRef}
+            ref={setSearchRef}
             style={styles.search}
             placeholder={t('bet.searchPlaceholder')}
             placeholderTextColor={colors.textMuted}
@@ -500,7 +518,7 @@ export function BetsScreen({ filter, onClearFilter }: {
             </View>
           )}
 
-          <View style={styles.filterRow}>
+          <View ref={tourTarget('filters')} style={styles.filterRow}>
             {/* Status is the narrower of the two: its longest value is one
                 word, sort's is a word plus an arrow. */}
             <FilterPicker
@@ -519,6 +537,7 @@ export function BetsScreen({ filter, onClearFilter }: {
               active={sort !== 'date_desc'}
             />
             <TouchableOpacity
+              ref={tourTarget('advFilter')}
               style={[styles.advBtn, queryCount > 0 && styles.advBtnActive]}
               onPress={() => { haptic.selection(); navigation.navigate('BetsFilter'); }}
               activeOpacity={0.75}
@@ -610,12 +629,15 @@ export function BetsScreen({ filter, onClearFilter }: {
         </View>
       )}
 
-      <Coachmark
-        storageKey="@sharklog/tip_bets_seen"
-        title={t('nav.bets')}
-        body={t('bet.tipWheel')}
-        position="bottom"
-      />
+      {/* The tour covers what this one bubble says; both at once would stack. */}
+      {!tourActive && (
+        <Coachmark
+          storageKey="@sharklog/tip_bets_seen"
+          title={t('nav.bets')}
+          body={t('bet.tipWheel')}
+          position="bottom"
+        />
+      )}
 
       {betActions.element}
     </View>

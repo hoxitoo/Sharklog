@@ -519,7 +519,9 @@
     "restoreCodeApply": "Apply",
     "restoreCodeInvalid": "That code didn't work. Make sure it's copied in full, from “SL1” to the end.",
     "restoreCodeDone": "Pro forever restored",
-    "restoreCodeShareMsg": "SharkLog Pro restore code (keep it to yourself): {{code}}"
+    "restoreCodeShareMsg": "SharkLog Pro restore code (keep it to yourself): {{code}}",
+    "tour": "How to use the app",
+    "tourHint": "Show the tips for the Bets screen again"
   },
   "onboarding": {
     "welcome": "Welcome",
@@ -1029,5 +1031,27 @@
     "write": "Message the author",
     "writeSub": "A question, an idea or a bug — the reply comes in Telegram",
     "linkFailed": "Couldn’t open the link"
+  },
+  "tour": {
+    "skip": "Skip",
+    "next": "Next",
+    "done": "Got it",
+    "counter": "{{n}} of {{total}}",
+    "menuTitle": "Menu",
+    "menuBody": "All sections live here: dashboard, insights, analytics, discipline, bankroll and settings.",
+    "summaryTitle": "Summary",
+    "summaryBody": "Today's result, money in open bets and your current bank. “In play” and “Bank” are tappable: they open your unsettled bets and the bankroll.",
+    "searchTitle": "Search",
+    "searchBody": "Find bets by event, team or tournament — suggestions come from your own bets.",
+    "filtersTitle": "Status and sorting",
+    "filtersBody": "Show only pending, won or lost bets and sort by date, odds or stake.",
+    "advFilterTitle": "Advanced filter",
+    "advFilterBody": "Tournament, team, odds and date ranges. The number on the button is how many conditions are on.",
+    "fabTitle": "New bet",
+    "fabBody": "Add a bet: event, pick, odds and stake. When the match is over, a reminder asks you to record the result.",
+    "cardTitle": "Bet card",
+    "cardBody": "Tap a card for the action wheel: result, copy, edit, delete. The W / L / R / C buttons set the result in one tap: won, lost, refund, cash-out. Swipe left to delete.",
+    "trialTitle": "7 days of Pro, free",
+    "trialBody": "Everything is open now: advanced analytics, bankroll, strategies, unlimited bets. After 7 days the free version stays, and Pro can be bought in Settings."
   }
 }

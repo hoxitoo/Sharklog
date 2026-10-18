@@ -184,6 +184,15 @@ export function resolvePro(input: {
   return input.previous;
 }
 
+/** Whether the local trial is what holds Pro right now (no licence, end date ahead). */
+export function trialRunning(
+  s: { license?: string | undefined; proExpiresAt?: string | undefined },
+  now: Date = new Date(),
+): boolean {
+  if (hasLicense(s.license) || !s.proExpiresAt) return false;
+  return new Date(s.proExpiresAt).getTime() > now.getTime();
+}
+
 /** Seven days of Pro for a new user, from the moment onboarding finishes. */
 export const TRIAL_DAYS = 7;
 

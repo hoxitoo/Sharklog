@@ -220,3 +220,11 @@ describe('settings and bankroll updates', () => {
     expect(useBetsStore.getState().bankroll.currency).toBe('RUB');
   });
 });
+
+// ─── Defaults ─────────────────────────────────────────────────────────────────
+
+describe('defaults for a new install', () => {
+  it('leaves the pre-bet checklist off — it is opt-in', () => {
+    expect(defaultSettings.disableChecklist).toBe(true);
+  });
+});

@@ -28,6 +28,7 @@ function uuid(): string {
   });
 }
 import { useBetsStore } from '../../store/betsStore';
+import { markTourPending } from '../../components/tour/tour';
 import { colors, currentTheme } from '../../theme/colors';
 import { THEME_META } from '../../theme/palettes';
 import { SIZE, GLYPH } from '../../theme/typography';
@@ -74,6 +75,8 @@ export function OnboardingScreen() {
     // Seven days of Pro, starting now: the business rule, and the only moment
     // a user is new. `startTrial` never grants it twice or over a licence.
     startTrial();
+    // ...and the tour of the main screen right after.
+    markTourPending();
 
     const amount = parseMoneyInput(depositInput);
     if (amount > 0) {

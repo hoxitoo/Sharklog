@@ -117,7 +117,10 @@ export const defaultSettings: AppSettings = {
   reminderHour: 20,
   schemaVersion: CURRENT_SCHEMA_VERSION,
   roundAmounts: false,
-  disableChecklist: false,
+  // Off for a new install: the pre-bet checklist is opt-in. New users are Pro
+  // for their first seven days, and a five-question gate on the very first bet
+  // was the first thing they met. Stored settings keep whatever they hold.
+  disableChecklist: true,
 };
 
 /**

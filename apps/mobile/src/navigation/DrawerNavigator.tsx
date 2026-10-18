@@ -16,6 +16,9 @@ import { useBetsStore } from '../store/betsStore';
 import { FREE_LIMITS } from '@sharklog/core';
 import { Freeze } from 'react-freeze';
 import { DrawerContext, type BetsFilter } from '../components/DrawerContext';
+import { TourOverlay } from '../components/tour/TourOverlay';
+import { tourTarget, useTourStore, isTourPending } from '../components/tour/tour';
+import { trialRunning } from '../utils/license';
 import { BetsScreen } from '../screens/BetsScreen';
 import { DashboardScreen } from '../screens/DashboardScreen';
 import { InsightsScreen } from '../screens/InsightsScreen';
@@ -131,6 +134,27 @@ export function DrawerNavigator() {
   const settings = useBetsStore((s) => s.settings);
   const canAddBet = useBetsStore((s) => s.canAddBet);
 
+  // The first-run tour: owed after onboarding (and until finished or skipped,
+  // so a kill mid-way shows it again), or asked for again in Settings.
+  useEffect(() => {
+    let alive = true;
+    isTourPending().then((pending) => {
+      if (!alive || !pending || useTourStore.getState().active) return;
+      useTourStore.getState().start({ inTrial: trialRunning(useBetsStore.getState().settings) });
+    });
+    return () => { alive = false; };
+  }, []);
+
+  // It walks the Bets screen, so a start from anywhere else brings the user
+  // there — with the drawer out of the way.
+  const tourActive = useTourStore((s) => s.active);
+  useEffect(() => {
+    if (!tourActive) return;
+    if (drawerVisibleRef.current) closeDrawer();
+    if (lastScreen !== 'Bets') showScreen('Bets');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tourActive]);
+
   // Bumped on every open. The close callback checks it rather than `finished`:
   // only a re-OPEN should cancel a pending navigation, but a second close —
   // Android back pressed within the 200ms — reports unfinished too, and used
@@ -235,6 +259,8 @@ export function DrawerNavigator() {
       // on every screen switch, so it outranked the stack's: Back on Support
       // silently flipped the hidden screen to Bets instead of closing Support.
       if (!navigation.isFocused()) return false;
+      // The tour is the top layer: back leaves it, as "skip" does.
+      if (useTourStore.getState().active) { useTourStore.getState().finish(); return true; }
       if (drawerVisibleRef.current) { closeDrawer(); return true; }
       if (betsFilter) { setBetsFilter(null); return true; }
       if (screen !== 'Bets') { showScreen('Bets'); return true; }
@@ -320,6 +346,7 @@ export function DrawerNavigator() {
         {/* FAB — Add Bet (only on Bets screen) */}
         {screen === 'Bets' && (
           <TouchableOpacity
+            ref={tourTarget('fab')}
             style={[styles.fab, { bottom: insets.bottom + FAB_BOTTOM }]}
             onPress={handleAddBet}
             activeOpacity={0.85}
@@ -327,6 +354,9 @@ export function DrawerNavigator() {
             <Text style={styles.fabText}>+</Text>
           </TouchableOpacity>
         )}
+
+        {/* First-run tour — over everything here, the FAB and the drawer included. */}
+        <TourOverlay />
       </View>
     </DrawerContext.Provider>
   );
