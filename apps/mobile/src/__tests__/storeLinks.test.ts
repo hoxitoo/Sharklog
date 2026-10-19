@@ -59,4 +59,13 @@ describe('EAS build profiles', () => {
     // Google Play: its own billing only — an outside payment there breaks Play's rules.
     expect(profiles['production']?.env).toMatchObject({ EXPO_PUBLIC_DISTRIBUTION: 'store', EXPO_PUBLIC_BILLING: 'revenuecat' });
   });
+
+  it('never switch on owner Pro — set in a profile, it would give Pro to everyone who installs that build', () => {
+    // The owner's own Pro comes from apps/mobile/.env.local (local builds) or an
+    // EAS variable of the "preview" environment — never from eas.json, and never
+    // the "production" environment, which the rustore profile also uses.
+    for (const [name, p] of Object.entries(profiles)) {
+      expect(`${name}: ${p.env?.['EXPO_PUBLIC_OWNER_PRO'] ?? 'unset'}`).toBe(`${name}: unset`);
+    }
+  });
 });

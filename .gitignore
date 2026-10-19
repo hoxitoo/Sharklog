@@ -6,6 +6,17 @@ build/
 *.tsbuildinfo
 .env
 .env.local
+# Any env variant (.env.production, .env.preview…) — but examples stay in git.
+.env.*
+!.env*.example
+# Signing material and store credentials (EAS local credentials hold keystore passwords).
+*.keystore
+*.pem
+credentials.json
+credentials/
+# Cloudflare Workers' local secrets and state — the Workers themselves live outside this repo.
+.dev.vars
+.wrangler/
 .DS_Store
 *.log
 ios/
