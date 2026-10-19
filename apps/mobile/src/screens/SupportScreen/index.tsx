@@ -69,15 +69,15 @@ export function SupportScreen() {
     Analytics.supportAction('rate');
     // Not canOpenURL: on Android 11+ it answers false for `market://` unless
     // the manifest declares the query, and the fallback would never be tried.
-    try {
-      await Linking.openURL(review[0]);
-    } catch {
+    for (const url of review) {
       try {
-        await Linking.openURL(review[1]);
+        await Linking.openURL(url);
+        return;
       } catch {
-        Alert.alert(t('common.error'), t('support.openFailed'));
+        // The next one: the store's own scheme first, its web page after.
       }
     }
+    Alert.alert(t('common.error'), t('support.openFailed'));
   }
 
   function write() {

@@ -60,15 +60,14 @@ export function storeReviewUrls(
   os: string,
   dist: Distribution = distribution(),
   appStoreId = APP_STORE_ID,
-): [string, string] | null {
+): readonly string[] | null {
   if (os === 'android') {
     if (dist === 'rustore') {
-      // The deeplink mirrors the web address, as RuStore's documented
-      // `rustore://apps.rustore.ru/developer/{id}` does.
-      return [
-        `rustore://apps.rustore.ru/app/${ANDROID_PACKAGE}`,
-        `https://apps.rustore.ru/app/${ANDROID_PACKAGE}`,
-      ];
+      // The app's page by its web address only. A `rustore://` deeplink to an
+      // app card is a guess (only the developer page's form is documented), and
+      // RuStore takes ANY rustore:// link — a wrong path would open its home
+      // screen, and the fallback would never be tried.
+      return [`https://apps.rustore.ru/app/${ANDROID_PACKAGE}`];
     }
     if (dist === 'store') {
       return [
@@ -78,7 +77,7 @@ export function storeReviewUrls(
     }
     return null;
   }
-  if (os === 'ios' && appStoreId) {
+  if (os === 'ios' && dist === 'store' && appStoreId) {
     return [
       `itms-apps://apps.apple.com/app/id${appStoreId}?action=write-review`,
       `https://apps.apple.com/app/id${appStoreId}?action=write-review`,

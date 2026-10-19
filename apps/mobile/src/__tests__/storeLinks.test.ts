@@ -7,11 +7,8 @@ describe('store links', () => {
     expect(ANDROID_PACKAGE).toBe(appJson.expo.android.package);
   });
 
-  it('send a RuStore build to RuStore, not to Google Play where the app is not', () => {
-    expect(storeReviewUrls('android', 'rustore')).toEqual([
-      `rustore://apps.rustore.ru/app/${ANDROID_PACKAGE}`,
-      `https://apps.rustore.ru/app/${ANDROID_PACKAGE}`,
-    ]);
+  it('send a RuStore build to its RuStore page, not to Google Play where the app is not', () => {
+    expect(storeReviewUrls('android', 'rustore')).toEqual([`https://apps.rustore.ru/app/${ANDROID_PACKAGE}`]);
   });
 
   it('open the Play Store app first in a store build, the web page as the fallback', () => {
@@ -28,6 +25,8 @@ describe('store links', () => {
   it('send nowhere on iOS until there is an App Store id', () => {
     expect(storeReviewUrls('ios', 'store', '')).toBeNull();
     expect(storeReviewUrls('ios', 'store', '123')?.[0]).toBe('itms-apps://apps.apple.com/app/id123?action=write-review');
+    // A development build is not from the App Store either.
+    expect(storeReviewUrls('ios', 'direct', '123')).toBeNull();
   });
 
   it('read the distribution channel strictly; anything unknown is a hand-installed APK', () => {

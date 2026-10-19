@@ -867,7 +867,7 @@ export function AddBetScreen() {
                   name="odds"
                   render={({ field: { onChange, value } }) => (
                     <TextInput
-                      style={[inputStyle, styles.halfInput]}
+                      style={inputStyle}
                       placeholder="1.85"
                       placeholderTextColor={colors.textMuted}
                       value={value}
@@ -884,7 +884,7 @@ export function AddBetScreen() {
                   name="stake"
                   render={({ field: { onChange, value } }) => (
                     <TextInput
-                      style={[inputStyle, styles.halfInput]}
+                      style={inputStyle}
                       placeholder="1000"
                       placeholderTextColor={colors.textMuted}
                       value={value}
@@ -1351,7 +1351,7 @@ export function AddBetScreen() {
                   name="date"
                   render={({ field: { onChange, value } }) => (
                     <TextInput
-                      style={[inputStyle, styles.halfInput]}
+                      style={inputStyle}
                       placeholder={t('addBet.datePh')}
                       placeholderTextColor={colors.textMuted}
                       value={value}
@@ -1367,7 +1367,7 @@ export function AddBetScreen() {
                   name="time"
                   render={({ field: { onChange, value } }) => (
                     <TextInput
-                      style={[inputStyle, styles.halfInput]}
+                      style={inputStyle}
                       placeholder={t('addBet.timePh')}
                       placeholderTextColor={colors.textMuted}
                       value={value}
@@ -1507,7 +1507,6 @@ const styles = themedStyles(() => ({
   // A field in a row takes its half. Without it the field was as wide as its
   // label on Android ("СУММА (₽) *") and ran off the screen on the web.
   half: { flex: 1 },
-  halfInput: { flex: 1 },
 
   betModeRow: {
     flexDirection: 'row',
