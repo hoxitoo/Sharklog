@@ -68,4 +68,11 @@ describe('EAS build profiles', () => {
       expect(`${name}: ${p.env?.['EXPO_PUBLIC_OWNER_PRO'] ?? 'unset'}`).toBe(`${name}: unset`);
     }
   });
+
+  it('name the EAS environment of every profile, so the owner variable of "preview" never reaches a store build', () => {
+    const env = (name: string) => (profiles[name] as { environment?: string } | undefined)?.environment;
+    expect(env('preview')).toBe('preview');
+    expect(env('development')).toBe('development');
+    expect(env('rustore')).toBe('production');
+  });
 });

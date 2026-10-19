@@ -142,6 +142,7 @@ v2.0.0  — смена формата данных / major redesign
 - [ ] Робокасса: магазин прошёл модерацию, «Робочеки СМЗ» подключены
 - [ ] Сервер лицензий развёрнут (README в папке Worker, хранится у автора, не в репозитории) — ДО сборки: его адрес и ключ вшиваются в APK
 - [ ] EAS Environment variables (production): `EXPO_PUBLIC_LICENSE_URL`, `EXPO_PUBLIC_LICENSE_PUBKEY`, `EXPO_PUBLIC_SUPPORT_URL` (ссылка на бота)
+- [ ] Свой Pro для тестовых сборок: EAS → Environment variables → `EXPO_PUBLIC_OWNER_PRO` = `true`, **только окружение `preview`** (не `production` — его берёт и `rustore`)
 - [ ] Ключ подписи скачан и сохранён (`eas credentials` → Android → keystore): без него приложение в RuStore не обновить
 - [ ] Тестовая оплата прошла на телефоне; затем `IS_TEST` убран, пароли боевые
 - [ ] Политика: `https://hoxitoo.github.io/Sharklog/privacy.html`, почта поддержки `sharklog_help@mail.ru`
