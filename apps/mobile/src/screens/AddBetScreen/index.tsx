@@ -20,6 +20,7 @@ import { useFormatMoney } from '../../utils/useFormatMoney';
 import { sportLabel, betTypeLabel, strategyLabel, disciplineLabel } from '../../utils/labels';
 import { colors } from '../../theme/colors';
 import { useBetsStore } from '../../store/betsStore';
+import { askForRemindersOnce } from '../../utils/reminderPermission';
 import { haptic } from '../../utils/haptics';
 import { Analytics } from '../../services/analytics';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
@@ -763,6 +764,8 @@ export function AddBetScreen() {
     }
 
     haptic.success();
+    // The first bet waiting for a result is when its reminder starts to matter.
+    if (!editBet && data.status === 'pending') askForRemindersOnce();
     navigation.goBack();
   } catch (e) {
     Alert.alert(t('common.error'), e instanceof Error ? e.message : String(e));

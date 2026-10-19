@@ -65,12 +65,23 @@ describe('tourLayout', () => {
     expect(l.cardTop).toBeCloseTo((phone.height - CARD) / 2, 0);
   });
 
-  it('falls back to the side with more room on a short screen', () => {
-    const short = { width: 320, height: 420 };
-    const mid: Box = { x: 16, y: 150, width: 288, height: 60 };
-    const l = tourLayout(mid, short, 260);
-    expect(['below', 'above']).toContain(l.placement);
-    expect(l.cardTop).toBeGreaterThanOrEqual(SIDE);
+  it('on a short screen takes the roomier side, caps the card and still never covers the control', () => {
+    // A small phone with a large system font: the card fits on neither side.
+    for (const [screen, target, card] of [
+      [{ width: 320, height: 420 }, { x: 16, y: 150, width: 288, height: 60 }, 260],
+      [{ width: 360, height: 640 }, { x: 16, y: 300, width: 328, height: 54 }, 300],
+    ] as const) {
+      const l = tourLayout(target, screen, card);
+      const shown = l.cardMaxHeight ?? card;
+      expect(l.cardMaxHeight).toBeDefined();
+      expect(overlaps(holeFor(target), l.cardTop, shown)).toBe(false);
+      expect(l.cardTop).toBeGreaterThanOrEqual(SIDE - 0.5);
+      expect(l.cardTop + shown).toBeLessThanOrEqual(screen.height - SIDE + 0.5);
+      // The arrow still runs from the card towards the control, not inside the card.
+      const [, , sy] = l.shaft.split(' ').map(Number);
+      const ey = Number(l.shaft.split(' ').at(-1));
+      expect(l.placement === 'below' ? ey < sy : ey > sy).toBe(true);
+    }
   });
 });
 
@@ -106,6 +117,22 @@ describe('tour steps', () => {
     useTourStore.getState().finish();
     expect(useTourStore.getState().active).toBe(false);
     expect(await isTourPending()).toBe(false);
+  });
+
+  it('retires the old card tip only once the tour has shown the card step', async () => {
+    const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+    await AsyncStorage.removeItem('@sharklog/tip_bets_seen');
+    await markTourPending();
+    useTourStore.getState().start({ inTrial: false });
+    useTourStore.getState().finish(); // skipped on step one
+    await Promise.resolve();
+    expect(await AsyncStorage.getItem('@sharklog/tip_bets_seen')).toBeNull();
+
+    useTourStore.getState().start({ inTrial: false });
+    const cardAt = useTourStore.getState().steps.findIndex((s) => s.key === 'card');
+    for (let i = 0; i < cardAt; i++) useTourStore.getState().next();
+    await Promise.resolve();
+    expect(await AsyncStorage.getItem('@sharklog/tip_bets_seen')).toBe('1');
   });
 
   it('every step has its words in all four languages', () => {

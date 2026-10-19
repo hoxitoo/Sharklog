@@ -106,7 +106,7 @@ cd apps/desktop && npx tauri dev
 cd packages/core && npx vitest run       # 235 unit-тестов
 cd apps/desktop  && npm test             # 40 smoke-тестов
 cd apps/desktop  && npx playwright test  # 22 E2E-тестов
-cd apps/mobile   && npm test             # 249 тестов, включая стражей дизайна, тем и переводов
+cd apps/mobile   && npm test             # 251 тест, включая стражей дизайна, тем и переводов
 ```
 
 ### Проверка типов

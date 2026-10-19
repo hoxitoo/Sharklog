@@ -65,8 +65,12 @@ export const useTourStore = create<TourState>((set, get) => ({
   },
   next: () => {
     const { index, steps } = get();
-    if (index + 1 >= steps.length) get().finish();
-    else set({ index: index + 1 });
+    if (index + 1 >= steps.length) { get().finish(); return; }
+    set({ index: index + 1 });
+    // The old one-bubble tip says what the card step says. Retire it only once
+    // the tour has actually said it — a skip on step one used to retire it too,
+    // and the action wheel was then explained nowhere.
+    if (steps[index + 1]?.key === 'card') AsyncStorage.setItem(BETS_TIP_KEY, '1').catch(() => {});
   },
   finish: () => {
     pendingNow = false;
@@ -79,7 +83,7 @@ export const useTourStore = create<TourState>((set, get) => ({
 export async function markTourPending(): Promise<void> {
   pendingNow = true;
   try {
-    await Promise.all([AsyncStorage.setItem(PENDING_KEY, '1'), AsyncStorage.setItem(BETS_TIP_KEY, '1')]);
+    await AsyncStorage.setItem(PENDING_KEY, '1');
   } catch {
     // A tour that never runs is no harm; a crash here would be.
   }

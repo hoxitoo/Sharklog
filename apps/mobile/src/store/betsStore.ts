@@ -185,6 +185,9 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
           ...savedSettings,
           // Existing users (data already present) shouldn't be re-onboarded on upgrade.
           onboardingComplete: savedSettings.onboardingComplete ?? true,
+          // Settings saved before the key existed meant "checklist on"; the new
+          // default (off) is for new installs only, not a change to theirs.
+          disableChecklist: savedSettings.disableChecklist ?? false,
           isPro,
         },
         bankroll: { ...defaultBankroll, ...schema.bankroll },

@@ -1051,7 +1051,7 @@
     "fabBody": "Add a bet: event, pick, odds and stake. When the match is over, a reminder asks you to record the result.",
     "cardTitle": "Bet card",
     "cardBody": "Tap a card for the action wheel: result, copy, edit, delete. The W / L / R / C buttons set the result in one tap: won, lost, refund, cash-out. Swipe left to delete.",
-    "trialTitle": "7 days of Pro, free",
-    "trialBody": "Everything is open now: advanced analytics, bankroll, strategies, unlimited bets. After 7 days the free version stays, and Pro can be bought in Settings."
+    "trialTitle": "Pro free until {{date}}",
+    "trialBody": "Everything is open now: advanced analytics, bankroll, strategies, unlimited bets. After that the free version stays, and Pro can be bought in Settings."
   }
 }
