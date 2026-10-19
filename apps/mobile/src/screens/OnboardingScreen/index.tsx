@@ -28,6 +28,7 @@ function uuid(): string {
   });
 }
 import { useBetsStore } from '../../store/betsStore';
+import { markTourPending } from '../../components/tour/tour';
 import { colors, currentTheme } from '../../theme/colors';
 import { THEME_META } from '../../theme/palettes';
 import { SIZE, GLYPH } from '../../theme/typography';
@@ -46,6 +47,7 @@ export function OnboardingScreen() {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const updateSettings = useBetsStore((s) => s.updateSettings);
+  const startTrial = useBetsStore((s) => s.startTrial);
   const updateBankroll = useBetsStore((s) => s.updateBankroll);
   const bankroll = useBetsStore((s) => s.bankroll);
 
@@ -70,6 +72,11 @@ export function OnboardingScreen() {
   function handleFinish() {
     const bkList = selectedBookmakers.length > 0 ? selectedBookmakers : ['1xBet', 'Parimatch', 'Fonbet'];
     updateSettings({ bookmakers: bkList, onboardingComplete: true });
+    // Seven days of Pro, starting now: the business rule, and the only moment
+    // a user is new. `startTrial` never grants it twice or over a licence.
+    startTrial();
+    // ...and the tour of the main screen right after.
+    markTourPending();
 
     const amount = parseMoneyInput(depositInput);
     if (amount > 0) {

@@ -18,14 +18,26 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_ENV": "preview"
+        "EXPO_PUBLIC_ENV": "preview",
+        "EXPO_PUBLIC_BILLING": "robokassa"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_ENV": "production",
-        "EXPO_PUBLIC_SENTRY_DSN": "REPLACE_WITH_SENTRY_DSN"
+        "EXPO_PUBLIC_BILLING": "revenuecat"
+      }
+    },
+    "rustore": {
+      "extends": "production",
+      "environment": "production",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_ENV": "production",
+        "EXPO_PUBLIC_BILLING": "robokassa"
       }
     }
   },

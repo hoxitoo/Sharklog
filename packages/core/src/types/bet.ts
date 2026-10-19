@@ -153,7 +153,7 @@ export interface GeneratedStrategy {
   answers: StrategyAnswers;
 }
 
-/** Colour themes of the mobile app. Stored in settings, so it travels with a backup. */
+/** Colour themes of the mobile app. Stored in the device's settings; restoring a backup does not change it. */
 export type AppTheme = 'dark' | 'light' | 'olive' | 'navy';
 
 export interface AppSettings {
@@ -161,7 +161,15 @@ export interface AppSettings {
   dailyBetLimit: number;
   bookmakers: string[];
   isPro: boolean;
+  /** End of the local free trial (mobile). Past it, the trial no longer holds Pro. */
   proExpiresAt?: string;
+  /**
+   * Signed Pro licence from a one-time purchase (mobile, Robokassa). Verified
+   * against the licence server's public key when it enters the device (restore
+   * code, backup, server) — the only way it is written. Travels with a JSON
+   * backup, so Pro survives a new phone.
+   */
+  license?: string;
   onboardingComplete: boolean;
   reminderHour: number;
   schemaVersion: number;

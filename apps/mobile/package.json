@@ -48,6 +48,7 @@
     "react-native-safe-area-context": "5.8.0",
     "react-native-screens": "~4.25.2",
     "react-native-svg": "15.15.5",
+    "tweetnacl": "^1.0.3",
     "zustand": "^4.5.2"
   },
   "devDependencies": {

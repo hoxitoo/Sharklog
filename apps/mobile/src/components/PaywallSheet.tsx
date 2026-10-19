@@ -1,9 +1,9 @@
 import React, { useEffect } from 'react';
-import { View, StyleSheet, Modal, Pressable, TouchableOpacity } from 'react-native';
+import { Modal, Pressable, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import { ProGate } from './ProGate';
-import { useBetsStore } from '../store/betsStore';
+import { ProOffer } from './ProGate';
+import { useBetsStore, ownsPro } from '../store/betsStore';
 import { colors } from '../theme/colors';
 import { SPACE, RADIUS, hitSlopFor } from '../theme/layout';
 import { GLYPH } from '../theme/typography';
@@ -11,11 +11,13 @@ import { themedStyles } from '../theme/themed';
 
 /**
  * The paywall as a bottom sheet, for places that offer Pro without gating a
- * screen behind it (Settings rows, "Support the author"). The sheet itself is
- * `ProGate` with nothing behind the gate.
+ * screen behind it (Settings rows, "Support the author"). Opens during the
+ * trial too — buying before it runs out must be possible — so it shows the
+ * offer itself, not `ProGate` (which would show the gated content instead).
  *
- * Closes itself once Pro turns on: the purchase lands in the store, and a sheet
- * still asking a paying user to pay is the wrong thing to leave on screen.
+ * Closes itself once Pro is BOUGHT: a licence arrived, or the store granted
+ * it (which drops the trial date). Pro alone is not the signal — a trial user
+ * is Pro and still came here to buy.
  */
 export function PaywallSheet({ visible, onClose, feature }: {
   visible: boolean;
@@ -23,11 +25,11 @@ export function PaywallSheet({ visible, onClose, feature }: {
   feature: string;
 }) {
   const { t } = useTranslation();
-  const isPro = useBetsStore((s) => s.settings.isPro);
+  const owned = useBetsStore((s) => ownsPro(s.settings));
 
   useEffect(() => {
-    if (isPro && visible) onClose();
-  }, [isPro, visible, onClose]);
+    if (owned && visible) onClose();
+  }, [owned, visible, onClose]);
 
   return (
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
@@ -42,9 +44,7 @@ export function PaywallSheet({ visible, onClose, feature }: {
           >
             <Ionicons name="close" size={GLYPH.md} color={colors.textSecondary} />
           </TouchableOpacity>
-          <ProGate feature={feature}>
-            <View />
-          </ProGate>
+          <ProOffer feature={feature} />
         </Pressable>
       </Pressable>
     </Modal>

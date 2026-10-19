@@ -1,71 +1,66 @@
 # Privacy Policy — SharkLog
 
-**Last updated: 2026-06-03**
+**Last updated: 2026-10-18**
+
+The published version (in Russian) is <https://hoxitoo.github.io/Sharklog/privacy.html>
+(branch `gh-pages`). Keep the two in step.
 
 ## 1. Overview
 
-SharkLog ("the App", "we", "our") is a personal sports-betting journal. This policy explains what data we collect, how we use it, and your rights as a user.
+SharkLog ("the App", "we", "our") is a personal sports-betting journal. This policy explains what data the App handles, where it goes and how to delete it.
 
-## 2. Data We Collect
+## 2. Data on your device
 
-### 2.1 Data stored locally on your device
+Bet records, bankroll history, diary notes, settings and the Pro licence ("restore code") are stored **only on your device** — in the app's storage on the phone, or localStorage / SQLite on the desktop. A JSON backup is made only when you ask for it and goes wherever you send it. We have no access to this data. There are no accounts.
 
-All bet records, bankroll entries, diary notes, and settings are stored **only on your device** using AsyncStorage (mobile) or localStorage (desktop). We have no access to this data.
+## 3. Buying Pro
 
-### 2.2 Data sent to third parties
+In the RuStore version Pro is a **one-time payment** — no subscription, no automatic charges. Payment happens on the page of the payment service **Robokassa**; card or SBP details are entered there and are never passed to us.
 
-| Service | Purpose | Data shared |
-|---------|---------|-------------|
-| **RevenueCat** | Subscription management | Anonymous device ID, purchase receipt |
-| **Sentry** (if enabled) | Crash reporting | Stack traces, OS/app version (no bet data) |
-| **PostHog** (if configured) | Anonymous usage analytics | Anonymous device ID, event name, OS/app version (no bet data, no PII) |
-| **Apple / Google** | In-App Purchase processing | Standard purchase flow |
+To grant Pro without an account, a licence server runs on Cloudflare. It receives the invoice number, amount and payment status from Robokassa and keeps them, to issue the licence and to restore it if needed. The App contacts the server only with the invoice number and a one-time code — no betting data, no device data. Unpaid invoices are deleted automatically after 14 days.
 
-We do **not** collect names, email addresses, betting history, or any financial information on our servers.
+An e-mail address, if you enter one on the payment page, is used by Robokassa to send the receipt. Our server does not store it.
 
-### 2.3 Usage analytics
+The licence is kept on the device and in the backup. To move Pro to a new phone, use the restore code (Settings → "Restore code").
 
-If configured, we collect anonymous usage events (e.g. "app opened", "bet added", "export triggered") to improve the product. Events contain only:
-- A randomly-generated anonymous device ID (not linked to any personal information)
-- Event name and category (e.g. "bet_added", sport type, bet type)
-- OS name and app version
+In Google Play / App Store versions (if released), Pro is bought through the store and the purchase status is checked by RevenueCat.
 
-**No bet amounts, outcomes, event names, or any personally identifiable information is ever sent.** The analytics key is an environment variable — if not set, all analytics calls are no-ops.
+## 4. Third-party services
 
-## 3. Purchases and Subscriptions
+| Service | Purpose | Data |
+|---------|---------|------|
+| **Robokassa** | Accepting the Pro payment | Payment details you enter on its page; e-mail for the receipt, if you give one |
+| **Cloudflare** | Licence server | Invoice number, amount, payment status and date; technical request data (e.g. IP address) processed by Cloudflare to deliver the request |
+| **Sentry** (if enabled) | Crash reports | Error description, device model, OS and app version — no betting data |
+| **PostHog** (if enabled) | Anonymous usage statistics | See section 5 |
+| **RevenueCat, Apple, Google** | Purchases in Google Play / App Store versions | Anonymous purchaser ID, purchase receipt |
 
-SharkLog Pro subscriptions are processed by Apple App Store or Google Play. Payment data is handled entirely by Apple/Google and RevenueCat. We only receive a boolean entitlement status ("is user Pro?").
+## 5. Usage statistics
 
-Subscriptions auto-renew unless cancelled at least 24 hours before the end of the current period. You can manage or cancel subscriptions in your device's subscription settings.
+If analytics is enabled in the build, the App sends anonymised events: app opened; bet added — with sport, bet type, bookmaker name and bet status (pending, won, lost, …); Pro purchase started and completed; actions in "Support the author". Each event carries a random identifier created on the device (not linked to your identity), and the OS and app version.
 
-## 4. Notifications
+**Never sent:** stake amounts and odds, event and team names, notes, diary, bankroll data.
 
-We send local push notifications for:
-- Daily betting journal reminders (20:00, opt-in)
-- Tilt-alert warnings (configurable)
+## 6. Notifications
 
-Notifications are scheduled locally on your device. No notification content is transmitted to our servers.
+The App shows local notifications: a daily journal reminder, a tilt warning, and a reminder to record a bet's result (with "Won / Lost" buttons). They are scheduled on the device; their content goes nowhere. They can be turned off in the App's or the phone's settings.
 
-## 5. Data Retention
+## 7. Retention and deletion
 
-Bet data lives on your device indefinitely until you delete the app or clear app data. We have no retention obligations because we never receive your data.
+Data on the device stays until you delete it: Settings → "Clear all data", or uninstalling the App. Records of paid invoices on the licence server are kept so a purchase can be restored; they can be deleted on request to support with the invoice number.
 
-## 6. Children
+## 8. Age
 
-The App is not intended for users under 18. Sports betting is an activity for adults. We do not knowingly collect data from minors.
+The App is intended for people over 18. We do not knowingly collect data from minors.
 
-## 7. Changes to This Policy
+## 9. Changes
 
-We may update this policy when we add new features. The "Last updated" date at the top will reflect the most recent revision. Continued use of the App constitutes acceptance of the updated policy.
+This policy may be updated with the App. The date of the latest revision is at the top.
 
-## 8. Partner Links
+## 10. Contact
 
-The "Partners" section in the app contains referral links to bookmakers. When you follow a link and register, we may receive a commission. These links open in an external browser; the bookmaker's own privacy policy governs data collected on their site. We do not receive any information about whether you registered or deposited.
-
-## 9. Contact
-
-Questions? Reach us at: **support@sharklog.app**
+Questions about data and purchases: **support@sharklog.app**
 
 ---
 
-*SharkLog is not affiliated with any bookmaker. Gamble responsibly.*
+*SharkLog is not affiliated with any bookmaker and does not accept bets. Gamble responsibly.*

@@ -220,3 +220,21 @@ describe('settings and bankroll updates', () => {
     expect(useBetsStore.getState().bankroll.currency).toBe('RUB');
   });
 });
+
+// ─── Defaults ─────────────────────────────────────────────────────────────────
+
+describe('defaults for a new install', () => {
+  it('leaves the pre-bet checklist off — it is opt-in', () => {
+    expect(defaultSettings.disableChecklist).toBe(true);
+  });
+});
+
+describe('a changed default does not rewrite stored settings', () => {
+  it('keeps the checklist ON for settings saved before the key existed', async () => {
+    const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+    const { disableChecklist: _drop, ...old } = { ...defaultSettings, onboardingComplete: true };
+    await AsyncStorage.setItem('@sharklog/data', JSON.stringify({ bets: [], diary: [], teams: [], version: 3, settings: old }));
+    await useBetsStore.getState().load();
+    expect(useBetsStore.getState().settings.disableChecklist).toBe(false);
+  });
+});

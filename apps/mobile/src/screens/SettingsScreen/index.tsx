@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { SPACE, RADIUS, TOUCH, hitSlopFor } from '../../theme/layout';
 import {
-  View, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator,
+  View, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Share,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
@@ -15,7 +15,7 @@ import { useBetsStore, effectiveReminderHour } from '../../store/betsStore';
 import { colors, alpha, mix } from '../../theme/colors';
 import { strategyName } from '../../utils/strategyText';
 import { useTranslation } from 'react-i18next';
-import { LANGUAGES, applyLanguage, type LangCode } from '../../i18n/index';
+import { LANGUAGES, applyLanguage, dateLocale, type LangCode } from '../../i18n/index';
 import { exportBetsCSV } from '../../utils/exportCSV';
 import { importFromCSV, importFromJSON } from '../../utils/importBets';
 import {
@@ -26,6 +26,11 @@ import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
 import { PaywallSheet } from '../../components/PaywallSheet';
+import { RestoreCodeSheet } from '../../components/RestoreCodeSheet';
+import { useTourStore } from '../../components/tour/tour';
+import { BILLING } from '../../services/billing';
+import { hasLicense } from '../../utils/license';
+import { APP_VERSION } from '../../utils/appVersion';
 import { ThemePicker } from './ThemePicker';
 import { restorePurchases } from '../../services/revenueCat';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
@@ -38,7 +43,6 @@ function resyncReminders(): void {
   syncBetResultReminders(bets, settings.betResultReminders !== false);
 }
 
-const APP_VERSION = '1.0.0';
 const DAY_MS = 86_400_000;
 
 /** Stepper buttons are 30pt by design; the slop makes the touch area 44. */
@@ -235,8 +239,16 @@ export function SettingsScreen() {
   const [updateStatus, setUpdateStatus] = useState<'idle' | 'checking' | 'latest' | 'available'>('idle');
   const [latestVersion, setLatestVersion] = useState('');
   const [restoring, setRestoring] = useState(false);
+  const [showRestoreCode, setShowRestoreCode] = useState(false);
+  const refreshPro = useBetsStore((s) => s.refreshPro);
+  const applyLicense = useBetsStore((s) => s.applyLicense);
 
   const isPro = settings.isPro;
+  // What holds Pro, so the row can say it: a bought licence, a running trial,
+  // or the store / an older build (the plain "Pro" row).
+  const licensed = hasLicense(settings.license);
+  const trialEnds = settings.proExpiresAt ? new Date(settings.proExpiresAt) : null;
+  const inTrial = !licensed && isPro && trialEnds !== null && trialEnds.getTime() > Date.now();
   const openPaywall = () => setShowPaywall(true);
   const closePaywall = useCallback(() => setShowPaywall(false), []);
   const reminderHour = effectiveReminderHour(settings);
@@ -261,7 +273,7 @@ export function SettingsScreen() {
         // Not "nothing found": the store was never asked.
         Alert.alert(t('common.error'), t('errors.storeUnreachable'));
       } else if (restored) {
-        updateSettings({ isPro: true });
+        refreshPro(true);
         Alert.alert(t('common.success'), t('settings.restoreDone'));
       } else {
         Alert.alert(t('settings.restoreNoneTitle'), t('settings.restoreNoneMsg'));
@@ -269,6 +281,12 @@ export function SettingsScreen() {
     } finally {
       setRestoring(false);
     }
+  }
+
+  /** The restore code is the purchase itself — hand it to wherever the user keeps such things. */
+  function handleShareCode() {
+    if (!settings.license) return;
+    Share.share({ message: t('settings.restoreCodeShareMsg', { code: settings.license }) }).catch(() => {});
   }
 
   /**
@@ -369,6 +387,18 @@ export function SettingsScreen() {
     return FileSystem.readAsStringAsync(asset.uri, { encoding: FileSystem.EncodingType.UTF8 });
   }
 
+  /**
+   * A backup carries the licence in its settings (the rest of the settings stay
+   * as they are on this phone). Applied only if it verifies — the same rule
+   * that keeps `isPro` itself out of an imported file — and only if this phone
+   * has no licence of its own yet.
+   */
+  function restoreLicenseFrom(saved: Record<string, unknown> | undefined): boolean {
+    const code = saved?.['license'];
+    if (typeof code !== 'string' || licensed) return false;
+    return applyLicense(code);
+  }
+
   async function handleImportJSON() {
     // One picker at a time: the system document picker rejects a second
     // call while the first is open, and the row spinner only covers its own row.
@@ -392,7 +422,8 @@ export function SettingsScreen() {
             useBetsStore.setState({ bets: [...backup.bets, ...store.bets] });
             store.persist();
             resyncReminders();
-            Alert.alert(t('common.success'), t('settings.betsAdded', { count: n }));
+            const pro = restoreLicenseFrom(backup.settings);
+            Alert.alert(t('common.success'), t('settings.betsAdded', { count: n }) + (pro ? `\n${t('settings.restoreCodeDone')}` : ''));
           },
         },
         {
@@ -408,7 +439,8 @@ export function SettingsScreen() {
             });
             store.persist();
             resyncReminders(); // replaced bets: drop orphan reminders, arm the new ones
-            Alert.alert(t('common.success'), t('settings.betsRestored', { count: n }));
+            const pro = restoreLicenseFrom(backup.settings);
+            Alert.alert(t('common.success'), t('settings.betsRestored', { count: n }) + (pro ? `\n${t('settings.restoreCodeDone')}` : ''));
           },
         },
       ]);
@@ -537,6 +569,7 @@ export function SettingsScreen() {
   return (
     <>
       <PaywallSheet visible={showPaywall} onClose={closePaywall} feature={t('settings.proFeature')} />
+      <RestoreCodeSheet visible={showRestoreCode} onClose={() => setShowRestoreCode(false)} />
 
       {/* Pinned, like every other drawer screen — a hamburger that scrolls away
           takes the only route into the menu with it. */}
@@ -571,7 +604,27 @@ export function SettingsScreen() {
 
         {/* 1. What you have: one line for the plan, one to get it back. */}
         <Section title={t('settings.sectionSubscription')}>
-          {isPro ? (
+          {licensed ? (
+            <Row
+              label={t('settings.proLifetimeTitle')}
+              hint={t('settings.proLifetimeSub')}
+              tone="gold"
+              right={<Ionicons name="checkmark-circle" size={GLYPH.lg} color={colors.gold} />}
+            />
+          ) : inTrial && trialEnds ? (
+            <Row
+              label={t('settings.trialTitle')}
+              hint={t('settings.trialSub', {
+                date: trialEnds.toLocaleDateString(dateLocale(), { day: 'numeric', month: 'long' }),
+              })}
+              onPress={openPaywall}
+              right={(
+                <View style={styles.upgradeBtn}>
+                  <Text style={styles.upgradeBtnText}>{t('settings.buy')}</Text>
+                </View>
+              )}
+            />
+          ) : isPro ? (
             <Row
               label={t('settings.proTitle')}
               hint={t('settings.proSub')}
@@ -590,13 +643,29 @@ export function SettingsScreen() {
               )}
             />
           )}
-          <Row
-            label={t('settings.restorePurchases')}
-            hint={t('settings.restoreHint')}
-            onPress={handleRestorePurchases}
-            busy={restoring}
-            chevron
-          />
+          {BILLING === 'revenuecat' ? (
+            <Row
+              label={t('settings.restorePurchases')}
+              hint={t('settings.restoreHint')}
+              onPress={handleRestorePurchases}
+              busy={restoring}
+              chevron
+            />
+          ) : licensed ? (
+            <Row
+              label={t('settings.restoreCode')}
+              hint={t('settings.restoreCodeHint')}
+              onPress={handleShareCode}
+              chevron
+            />
+          ) : (
+            <Row
+              label={t('settings.restoreCodeEnter')}
+              hint={t('settings.restoreCodeEnterHint')}
+              onPress={() => setShowRestoreCode(true)}
+              chevron
+            />
+          )}
         </Section>
 
         {/* 2. How the app looks and reads. */}
@@ -796,6 +865,13 @@ export function SettingsScreen() {
               hint={t('settings.updateHowTo')}
             />
           )}
+          {/* The first-run tour, again — the drawer navigator takes it to the Bets screen. */}
+          <Row
+            label={t('settings.tour')}
+            hint={t('settings.tourHint')}
+            onPress={() => useTourStore.getState().start({ inTrial })}
+            chevron
+          />
         </Section>
 
         <Section>

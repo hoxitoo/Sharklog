@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, View } from 'react-native';
+import { Alert, AppState, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { NavigationContainer, DarkTheme, DefaultTheme, type NavigationState } from '@react-navigation/native';
@@ -19,10 +19,12 @@ import {
   setBetPendingResolver, syncBetResultReminders,
 } from './src/utils/notifications';
 import { initRevenueCat, syncEntitlement } from './src/services/revenueCat';
+import { resumePendingPayment, takePaidNotice } from './src/services/purchase';
+import { BILLING } from './src/services/billing';
 import { initSentry } from './src/services/sentry';
 import { Analytics } from './src/services/analytics';
 import './src/i18n/index';
-import { applyLanguage } from './src/i18n/index';
+import i18n, { applyLanguage } from './src/i18n/index';
 
 // Keep native splash visible until React Native is ready to render
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -65,7 +67,6 @@ export default function App() {
   // screen itself (DrawerNavigator's lastScreen).
   const themeKey = useBetsStore((s) => s.settings.theme ?? 'dark');
   const navState = useRef<NavigationState | undefined>(undefined);
-  const updateSettings = useBetsStore((s) => s.updateSettings);
   const [splashDone, setSplashDone] = useState(false);
 
   const [fontsLoaded, fontError] = useFonts({
@@ -164,13 +165,38 @@ export default function App() {
 
   useEffect(() => {
     initSentry();
-    initRevenueCat();
+    // RevenueCat only in the build that sells through it: in the RuStore build
+    // its "no" would take away Pro that an older build left behind.
+    if (BILLING === 'revenuecat') initRevenueCat();
     Analytics.appOpen();
     load().then(async () => {
-      const isPro = await syncEntitlement();
-      if (isPro !== null) updateSettings({ isPro });
+      // Pro from every source, not the store's word alone: a "no" from
+      // RevenueCat used to switch off a running trial or a licence with it.
+      const entitled = BILLING === 'revenuecat' ? await syncEntitlement() : null;
+      useBetsStore.getState().refreshPro(entitled);
     });
   }, []);
+
+  // A Robokassa payment finishes in the browser, outside the app; ask the
+  // licence server about it when the user comes back, and at launch (the app
+  // may have been killed while the browser was open). The same pass ends a
+  // trial that ran out while the app sat in memory.
+  useEffect(() => {
+    if (!isLoaded) return;
+    const check = () => {
+      useBetsStore.getState().refreshPro(null);
+      resumePendingPayment().then((r) => {
+        if (r === 'paid' && takePaidNotice()) {
+          requestAnimationFrame(() => Alert.alert(i18n.t('proGate.paidTitle'), i18n.t('proGate.paid')));
+        }
+      });
+    };
+    check();
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') check();
+    });
+    return () => sub.remove();
+  }, [isLoaded]);
 
   // A failed font load must not hang the app on the splash forever.
   const fontsSettled = fontsLoaded || !!fontError;
