@@ -87,15 +87,29 @@ export const ESPORTS_DISCIPLINES: Record<EsportsDiscipline, string> = {
   other_esports: 'Другая дисциплина',
 };
 
+/**
+ * The bookmakers onboarding offers as chips. Only ones licensed in Russia:
+ * the app is published in RuStore, which checks content against Russian law,
+ * and offering offshore brands (1xBet, BetWinner — the old list had them) by
+ * name reads as promoting illegal betting. Any other bookmaker is one tap away
+ * in the "other" field, and lists already saved on a device stay as they are.
+ */
 export const DEFAULT_BOOKMAKERS = [
-  '1xBet',
-  'Parimatch',
-  'Melbet',
-  'BetWinner',
   'Fonbet',
-  'Leon',
   'Winline',
+  'BetBoom',
+  'Лига Ставок',
+  'PARI',
+  'Marathonbet',
+  'Leon',
+  'Olimpbet',
+  'Betcity',
 ];
+
+/** Ticked in onboarding before the user chooses: the three largest. A fresh array every call. */
+export function preselectedBookmakers(): string[] {
+  return DEFAULT_BOOKMAKERS.slice(0, 3);
+}
 
 export const FREE_LIMITS = {
   MAX_BETS: 50,

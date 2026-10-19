@@ -103,10 +103,10 @@ cd apps/desktop && npx tauri dev
 ### Тесты
 
 ```bash
-cd packages/core && npx vitest run       # 235 unit-тестов
+cd packages/core && npx vitest run       # 237 unit-тестов
 cd apps/desktop  && npm test             # 40 smoke-тестов
 cd apps/desktop  && npx playwright test  # 22 E2E-тестов
-cd apps/mobile   && npm test             # 251 тест, включая стражей дизайна, тем и переводов
+cd apps/mobile   && npm test             # 261 тест, включая стражей дизайна, тем и переводов
 ```
 
 ### Проверка типов
@@ -234,6 +234,7 @@ EXPO_PUBLIC_SENTRY_DSN=...      # без неё Sentry выключен
 EXPO_PUBLIC_POSTHOG_KEY=...     # без неё аналитика событий выключена
 EXPO_PUBLIC_SUPPORT_URL=...     # «Написать автору»; без неё строки нет
 EXPO_PUBLIC_BILLING=robokassa   # robokassa (RuStore, по умолчанию) | revenuecat (Google Play)
+EXPO_PUBLIC_DISTRIBUTION=...    # rustore | store (Google Play / App Store) | direct (APK руками)
 EXPO_PUBLIC_LICENSE_URL=...     # адрес сервера лицензий; без него покупка недоступна
 EXPO_PUBLIC_LICENSE_PUBKEY=...  # публичный ключ Ed25519 для проверки лицензий
 ```

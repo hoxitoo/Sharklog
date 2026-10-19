@@ -365,5 +365,9 @@
     "importFailed": "Failed to import data",
     "noFile": "File not found",
     "invalidFile": "Invalid file format"
+  },
+  "partners": {
+    "stubTitle": "This section is in progress",
+    "stubText": "Nothing here yet — this section will come in a future update."
   }
 }

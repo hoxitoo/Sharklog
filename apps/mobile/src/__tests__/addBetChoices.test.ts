@@ -30,4 +30,16 @@ describe('bet form choices', () => {
     const re = new RegExp(`<FilterPicker\\s+label=\\{t\\('${key.replace('.', '\\.')}'\\)\\}`, 'g');
     expect(SRC.match(re)?.length ?? 0).toBe(times);
   });
+
+  it('give each of two fields in a row its half', () => {
+    // Without flex on the wrapper, a field in a row was as wide as its label on
+    // Android and ran off the screen on the web (odds + stake, date + time).
+    const rows = SRC.split('<View style={styles.row2}>').slice(1).map((r) => r.slice(0, r.indexOf('</View>\n')));
+    expect(rows.length).toBeGreaterThanOrEqual(2);
+    for (const row of rows) {
+      const fields = row.match(/<Field\b[^>]*>/g) ?? [];
+      expect(fields.length).toBe(2);
+      for (const f of fields) expect(f).toContain('style={styles.half}');
+    }
+  });
 });

@@ -338,7 +338,8 @@ const PERKS = [
   'proGate.perkAnalytics',
   'proGate.perkTilt',
   'proGate.perkChecklist',
-  'proGate.perkExport',
+  // Only what Free lacks: CSV export used to be listed here, and it is free.
+  'bankroll.proFeatureFull',
 ] as const;
 
 const styles = themedStyles(() => ({

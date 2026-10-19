@@ -1,6 +1,6 @@
 # Privacy Policy — SharkLog
 
-**Last updated: 2026-10-18**
+**Last updated: 2026-10-19**
 
 The published version (in Russian) is <https://hoxitoo.github.io/Sharklog/privacy.html>
 (branch `gh-pages`). Keep the two in step.
@@ -17,7 +17,7 @@ Bet records, bankroll history, diary notes, settings and the Pro licence ("resto
 
 In the RuStore version Pro is a **one-time payment** — no subscription, no automatic charges. Payment happens on the page of the payment service **Robokassa**; card or SBP details are entered there and are never passed to us.
 
-To grant Pro without an account, a licence server runs on Cloudflare. It receives the invoice number, amount and payment status from Robokassa and keeps them, to issue the licence and to restore it if needed. The App contacts the server only with the invoice number and a one-time code — no betting data, no device data. Unpaid invoices are deleted automatically after 14 days.
+To grant Pro without an account, a licence server runs on Cloudflare. It receives the invoice number, amount and payment status from Robokassa and keeps them, to issue the licence and to restore it if needed. The App contacts the server only with the invoice number and a one-time code — no betting data, no device data. Nothing about an invoice is stored before it is paid.
 
 An e-mail address, if you enter one on the payment page, is used by Robokassa to send the receipt. Our server does not store it.
 
@@ -59,7 +59,7 @@ This policy may be updated with the App. The date of the latest revision is at t
 
 ## 10. Contact
 
-Questions about data and purchases: **support@sharklog.app**
+Questions about data and purchases: **sharklog_help@mail.ru**
 
 ---
 

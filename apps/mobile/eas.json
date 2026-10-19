@@ -9,7 +9,8 @@
       "developmentClient": true,
       "distribution": "internal",
       "env": {
-        "EXPO_PUBLIC_ENV": "development"
+        "EXPO_PUBLIC_ENV": "development",
+        "EXPO_PUBLIC_DISTRIBUTION": "direct"
       }
     },
     "preview": {
@@ -19,14 +20,16 @@
       },
       "env": {
         "EXPO_PUBLIC_ENV": "preview",
-        "EXPO_PUBLIC_BILLING": "robokassa"
+        "EXPO_PUBLIC_BILLING": "robokassa",
+        "EXPO_PUBLIC_DISTRIBUTION": "direct"
       }
     },
     "production": {
       "autoIncrement": true,
       "env": {
         "EXPO_PUBLIC_ENV": "production",
-        "EXPO_PUBLIC_BILLING": "revenuecat"
+        "EXPO_PUBLIC_BILLING": "revenuecat",
+        "EXPO_PUBLIC_DISTRIBUTION": "store"
       }
     },
     "rustore": {
@@ -37,7 +40,8 @@
       },
       "env": {
         "EXPO_PUBLIC_ENV": "production",
-        "EXPO_PUBLIC_BILLING": "robokassa"
+        "EXPO_PUBLIC_BILLING": "robokassa",
+        "EXPO_PUBLIC_DISTRIBUTION": "rustore"
       }
     }
   },

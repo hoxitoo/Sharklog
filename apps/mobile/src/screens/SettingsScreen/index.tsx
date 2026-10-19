@@ -31,6 +31,8 @@ import { useTourStore } from '../../components/tour/tour';
 import { BILLING } from '../../services/billing';
 import { hasLicense } from '../../utils/license';
 import { APP_VERSION } from '../../utils/appVersion';
+import { distribution } from '../../utils/storeLinks';
+import { isNewerVersion, latestApkVersion } from '../../utils/appUpdates';
 import { ThemePicker } from './ThemePicker';
 import { restorePurchases } from '../../services/revenueCat';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
@@ -518,22 +520,26 @@ export function SettingsScreen() {
 
   // ── Updates ─────────────────────────────────────────────────────────────────
 
+  // Only an APK installed by hand asks GitHub. A store updates its own builds,
+  // and the latest GitHub tag is not what the store has (it may be a desktop
+  // release, or a version still in moderation).
+  const checksUpdates = distribution() === 'direct';
+
   async function handleCheckUpdate() {
     setUpdateStatus('checking');
     try {
-      const res = await fetch('https://api.github.com/repos/hoxitoo/Sharklog/releases/latest');
-      if (res.status === 404) {
+      // Every release, not /latest: that is whatever was tagged last, and most
+      // tags here are the desktop's. Only a release with an APK is for the phone.
+      const res = await fetch('https://api.github.com/repos/hoxitoo/Sharklog/releases?per_page=30');
+      if (!res.ok) throw new Error('network');
+      const remote = latestApkVersion(await res.json());
+      if (!remote) {
         setUpdateStatus('latest');
         Alert.alert(t('settings.updatesTitle'), t('settings.updateNoReleases'));
         return;
       }
-      if (!res.ok) throw new Error('network');
-      const data = await res.json() as { tag_name?: unknown };
-      const tag = typeof data?.tag_name === 'string' ? data.tag_name : '';
-      if (!tag) throw new Error('invalid_response');
-      const remote = tag.replace(/^v/, '');
       setLatestVersion(remote);
-      setUpdateStatus(remote !== APP_VERSION ? 'available' : 'latest');
+      setUpdateStatus(isNewerVersion(remote, APP_VERSION) ? 'available' : 'latest');
     } catch {
       Alert.alert(t('common.error'), t('settings.updateError'));
       setUpdateStatus('idle');
@@ -857,7 +863,7 @@ export function SettingsScreen() {
           <Row
             label={t('settings.version', { version: APP_VERSION })}
             {...(__DEV__ ? { onPress: handleDevTap } : {})}
-            right={versionRight}
+            {...(checksUpdates ? { right: versionRight } : {})}
           />
           {updateStatus === 'available' && (
             <Row

@@ -740,7 +740,6 @@
     "perkAnalytics": "Advanced analytics",
     "perkTilt": "Custom tilt alert",
     "perkChecklist": "Pre-bet discipline checklist",
-    "perkExport": "CSV export",
     "lifetime": "Pro forever — {{price}}",
     "oneTime": "One-time payment: no subscription, no auto-charges",
     "via": "Pay by card or SBP on Robokassa's page",
@@ -1014,7 +1013,7 @@
   },
   "partners": {
     "stubTitle": "This section is in progress",
-    "stubText": "Partners with offers and bonuses will appear here."
+    "stubText": "Nothing here yet — this section will come in a future update."
   },
   "support": {
     "intro": "SharkLog is made by one person. If the app helps you keep your betting under control, here is how you can help the project.",
