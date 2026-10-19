@@ -1,6 +1,6 @@
 # SharkLog — Контекст проекта
 
-Bet tracker app — мобильное (React Native + Expo) и десктопное (Tauri v2 + React) приложение для учёта ставок. Первый релиз — RuStore: Free + «Pro навсегда» за 399 ₽ разовым платежом через Робокассу. Подписки 199 ₽/мес и 990 ₽/год через RevenueCat — для Google Play позже.
+Bet tracker app — мобильное (React Native + Expo) и десктопное (Tauri v2 + React) приложение для учёта ставок. Первый релиз — RuStore: Free + «Pro навсегда» за 399 ₽ разовым платежом через Робокассу (продавец — ИП на НПД). Подписки 199 ₽/мес и 990 ₽/год через RevenueCat — для Google Play позже.
 
 ## Структура монорепо
 
@@ -8,7 +8,7 @@ Bet tracker app — мобильное (React Native + Expo) и десктопн
 apps/mobile/     — React Native 0.85 + Expo 56 (iOS + Android)
 apps/desktop/    — Tauri v2 + React + Vite (Win / Mac / Linux)
 packages/core/   — Чистая TS бизнес-логика (типы, статистика, Kelly, форматтеры, билдер стратегий)
-docs/            — ROADMAP.md, ANALYSIS.md, PRIVACY_POLICY.md
+docs/            — ROADMAP.md, ANALYSIS.md, PRIVACY_POLICY.md, RELEASE_GUIDE.md, RUSTORE_LISTING.md (тексты карточки RuStore)
 ```
 
 ## Git-ветки
@@ -113,6 +113,7 @@ docs/            — ROADMAP.md, ANALYSIS.md, PRIVACY_POLICY.md
 - **«Это баг платформы» — проверь в исходнике зависимости, прежде чем чинить.** Чуть не «исправил» чтение `process.env['EXPO_PUBLIC_…']` по всему приложению: по памяти Expo подставляет только запись через точку, а плагин `babel-preset-expo/build/plugins/inline-env-vars.js` понимает и строковый ключ. Так же проверено, что у абсолютного элемента в Yoga (`ReactCommon/yoga/.../AbsoluteLayout.cpp`) отступы считаются от внутреннего края рамки, — на этом держится контур статуса карточки. Исходник в `node_modules` — ответ; память и «так обычно» — гипотеза.
 - **Деньги — отдельное независимое ревью до мержа.** Первый вариант оплаты прошёл все тесты, а ревьюер-агент нашёл два способа потерять ОПЛАЧЕННУЮ покупку (второй счёт затирал первый; сервер забывал счёт через 14 дней) и путь к Pro за тестовый платёж. Тесты проверяют то, что придумал автор; ревью ищет то, чего он не придумал. Каждую находку ревью — тестом (`purchase.test.ts` появился так).
 - **Смена дефолта не трогает сохранённое.** `defaultSettings` действует на новые установки; у существующих пользователей в хранилище лежит ВСЁ, включая старый дефолт, и «выбрал сам» от «досталось по умолчанию» не отличить. Перезапись означала бы отменить чей-то сознательный выбор (так сделан чек-лист: новым выключен, у остальных как было).
+- **То, что обещают пейвол, лендинг и карточка магазина, — тоже код: сверяй с гейтами.** Пейвол перечислял «Экспорт CSV» среди того, за что платят, а экспорт бесплатный; лендинг обещал OTA-обновления, раздел «Партнёры» с бонусами и импорт Excel на телефоне — ничего из этого нет. За такое отвечают перед покупателем, а Робокасса и модерация RuStore проверяют совпадение сайта с продуктом. Перед тем как написать «в Pro есть X» — найди `ProGate`/`isPro` у X.
 - **Секреты и серверная часть — не в публичном репозитории.** Бот поддержки, сервер лицензий, их адреса и ключи — у автора локально, в приложение приходят переменными окружения (`EXPO_PUBLIC_*` в EAS/`.env.local`). Ключи генерирует сам автор (`keygen.html` в браузере), не я: закрытый ключ не должен проходить через эту сессию.
 
 ## Цветовая система и темы
@@ -133,7 +134,7 @@ docs/            — ROADMAP.md, ANALYSIS.md, PRIVACY_POLICY.md
 - **Тени зависят от темы**: у карточки 0.35 на тёмных и 0.08 на светлой; тень боковой шторки — только когда она открыта (спрятанная за краем, она давала серую полосу у левого края на светлом фоне).
 - **`react-navigation` получает тему** (`navigationTheme()` в App.tsx) — без неё фон стека в переходах был светло-серым DefaultTheme.
 
-**Проверить вид без устройства — веб-сборка + Playwright.** `npm install --no-save react-native-web@0.21 react-dom@<версия react мобилки> @expo/metro-runtime@~56 expo-linear-gradient@~56` в `apps/mobile` (gifted-charts на вебе нужен expo-градиент; `react-native-linear-gradient` — только нативный), симлинк `node_modules/react-native-web/node_modules/react-dom` → react-dom мобилки (иначе RNW берёт React-DOM 18 десктопа: «ReactCurrentBatchConfig of undefined»), `npx expo export --platform web`, раздать статикой, в Playwright положить данные в `localStorage['@sharklog/data']` (+ `@sharklog/tip_*_seen`, чтобы не мешали коучмарки). После — удалить пакеты и `git checkout package-lock.json` (`npm prune` его переписывает). Шрифты на вебе — запасные, раскладка в мелочах отличается от телефона; цвета и структура — те же.
+**Проверить вид без устройства — веб-сборка + Playwright.** `npm install --no-save react-native-web@0.21 react-dom@<версия react мобилки> @expo/metro-runtime@~56 expo-linear-gradient@~56` в `apps/mobile` (gifted-charts на вебе нужен expo-градиент; `react-native-linear-gradient` — только нативный), симлинк `node_modules/react-native-web/node_modules/react-dom` → react-dom мобилки (иначе RNW берёт React-DOM 18 десктопа: «ReactCurrentBatchConfig of undefined»), `npx expo export --platform web`, раздать статикой, в Playwright положить данные в `localStorage['@sharklog/data']` (+ `@sharklog/tip_*_seen`, чтобы не мешали коучмарки). После — удалить пакеты и `git checkout package-lock.json` (`npm prune` его переписывает). Раскладка в мелочах отличается от телефона; цвета и структура — те же. **DM Sans и DM Mono — без кириллицы**: на телефоне русские буквы рисует системный Roboto, а headless Chromium подставлял шрифт с засечками. Для скриншотов (и магазинных тоже) подкладывай Roboto под имена `DMSans_*`/`DMMono_*` через `@font-face` с `unicode-range: U+0400-052F` — тогда кириллица выглядит как на Android. Скриншоты для RuStore — 1080 × 1920 (вьюпорт 405 × 720, `deviceScaleFactor` 8/3), демо-данные — без офшорных букмекеров.
 
 **Тёмная тема (эталон, `PALETTES.dark`):**
 
@@ -168,7 +169,7 @@ colors.gold     = '#F59E0B'  // PRO badge
 
 Устройство, которое нельзя ломать. Код в репозитории — приложение; **сервер лицензий (Cloudflare Worker) в репозитории НЕ живёт**, как и бот поддержки: он у автора локально, его адрес и публичный ключ приходят из переменных окружения.
 
-- **Способ оплаты выбирается сборкой**: `EXPO_PUBLIC_BILLING` (`services/billing.ts`) — `robokassa` (по умолчанию, RuStore) или `revenuecat` (Google Play / App Store, позже). Задан явно в КАЖДОМ профиле `eas.json`: `rustore`/`preview` — `robokassa`, `production` (Google Play) — `revenuecat`; сборка под Play с внешней оплатой нарушила бы правила Play. RevenueCat инициализируется и спрашивается ТОЛЬКО в сборке `revenuecat`: в сборке для RuStore его «нет» отняло бы Pro, оставшийся от старой сборки. RuStore Pay закрыт для самозанятых с 1 февраля 2026, а оплата через Google Play в России не работает — поэтому Робокасса.
+- **Способ оплаты выбирается сборкой**: `EXPO_PUBLIC_BILLING` (`services/billing.ts`) — `robokassa` (по умолчанию, RuStore) или `revenuecat` (Google Play / App Store, позже). Задан явно в КАЖДОМ профиле `eas.json`: `rustore`/`preview` — `robokassa`, `production` (Google Play) — `revenuecat`; сборка под Play с внешней оплатой нарушила бы правила Play. RevenueCat инициализируется и спрашивается ТОЛЬКО в сборке `revenuecat`: в сборке для RuStore его «нет» отняло бы Pro, оставшийся от старой сборки. RuStore Pay закрыт для самозанятых с 1 февраля 2026, а оплата через Google Play в России не работает — поэтому Робокасса. Продавец — ИП на НПД: чеки через «Мой налог» («Робочеки СМЗ»), реквизиты ИП и оферта — на лендинге (`gh-pages`: подвал, `offer.html`).
 - **Откуда установлена сборка — `EXPO_PUBLIC_DISTRIBUTION`** (`utils/storeLinks.distribution()`), тоже в КАЖДОМ профиле: `rustore`, `store` (Google Play / App Store — `production`), всё прочее — `direct` (APK руками: GitHub, тестеры — `preview`, `development`). От неё зависят «Оценить» (RuStore → `rustore://apps.rustore.ru/app/<пакет>` с запасной веб-ссылкой; `direct` — строки нет) и проверка обновлений через GitHub (ТОЛЬКО у `direct`). Раньше сборка для RuStore слала оценивать в Google Play, где приложения нет, а «Доступна X» сравнивала с последним тегом GitHub — в том числе десктопным — и обещала версию, которой в RuStore ещё нет. Пару «магазин ↔ оплата» в `eas.json` держит `storeLinks.test.ts`.
 - **Ни одного пароля Робокассы в приложении.** Паролем №1 подписывается ссылка на оплату и проверяется SuccessURL: достанут из APK — сделают ссылку на 1 ₽ и подделают «оплачено». Подтверждение оплаты приходит ТОЛЬКО на сервер (ResultURL, Пароль №2). Приложение спрашивает сервер «оплачено ли» по счёту + одноразовому `nonce`, который знает только телефон, открывший счёт.
 - **Лицензия** — `SL1.<base64url(JSON)>.<base64url(Ed25519)>` (`utils/license.ts`), подпись по ASCII сегмента полезной нагрузки. Сервер подписывает закрытым ключом, приложение проверяет публичным (`EXPO_PUBLIC_LICENSE_PUBKEY`) через `tweetnacl` — чистый JS, работает на Hermes без нативного модуля (его `require('crypto')` Metro заменяет пустым модулем — для проверки подписи генератор случайных чисел не нужен). `verifyLicense` никогда не бросает: мусор вместо кода = `null`. **Проверяется ОДИН раз — на входе** (`applyLicense`: код восстановления, бэкап, ответ сервера — единственный писатель `settings.license`); дальше лицензия — обычные данные (`hasLicense`). Проверка на каждом запуске стоила ~100 мс JS (Ed25519 на чистом JS, Hermes без JIT) и не защищала ни от чего: то же хранилище держит сам `isPro`. Вставленный текст разбирается `extractLicense`: люди хранят код в Telegram, и сообщение «Код восстановления …: SL1…» с переносом строки должно подходить целиком. Совместимость с WebCrypto-подписью сервера проверяет `license.test.ts` (подписывает Node `crypto`, не tweetnacl). Последний символ base64 у 64-байтной подписи несёт два пустых бита — менять в тестах надо середину.
@@ -194,6 +195,7 @@ colors.gold     = '#F59E0B'  // PRO badge
 ## Бизнес-правила
 
 - Free лимит: **50 ставок** (`FREE_LIMITS.MAX_BETS`)
+- **Букмекеры по умолчанию — только легальные в РФ** (`DEFAULT_BOOKMAKERS` в core, отмечены заранее первые три — `preselectedBookmakers()`, свежий массив на каждый вызов). Приложение в RuStore, а он проверяет содержимое по закону РФ: офшорный бренд по имени (1xBet, BetWinner — были в списке) читается как продвижение нелегальных ставок. Любой другой вписывается руками; сохранённые списки не трогаются. Тест — `core/__tests__/bookmakers.test.ts`. Раздел «Партнёры» — заглушка на ОБОИХ приложениях (на десктопе ещё висели выдуманные бонусы и ссылка на 1xbet.com).
 - Тилт-алерт: **3 поражения подряд** (Free, фикс) / **N** (PRO, настраивается)
 - Дневной лимит: только PRO, 0 = без лимита
 - 7 дней бесплатного Pro для новых пользователей — локально, с конца онбординга (`startTrial`)
@@ -255,9 +257,9 @@ new Date(str).toLocaleDateString(locale, { day: 'numeric', month: 'short' });
 
 ```bash
 # Тесты
-cd packages/core && npx vitest run        # 235 unit-тестов core
+cd packages/core && npx vitest run        # 237 unit-тестов core
 cd apps/desktop  && npm test              # 40 smoke-тестов desktop (Vitest)
-cd apps/mobile   && npm test              # 256 тестов mobile (Jest), включая стражей дизайна, тем и переводов
+cd apps/mobile   && npm test              # 257 тестов mobile (Jest), включая стражей дизайна, тем и переводов
 
 # Type-check
 cd apps/mobile  && npx tsc --noEmit
@@ -352,6 +354,7 @@ pages/
   SettingsPage.tsx         — подписка, тилт-stepper, букмекеры, команды,
                              CSV/Excel/JSON import-export, проверка обновлений
   OnboardingPage.tsx       — 3-шаговый визард (welcome logo → букмекеры → go)
+  PartnersPage.tsx         — заглушка «Раздел в разработке», как на мобилке
 storage/
   storageService.ts        — SQLite (Tauri) / localStorage (browser) абстракция
 store/
@@ -476,6 +479,9 @@ screens/
                              вариантов за край, а перенос строк съедал шесть строк формы на два выбора.
                              П1/Ничья/П2 — кнопки нарочно: три коротких варианта быстрее так.
                              `__tests__/addBetChoices.test.ts` держит
+                             Два поля в одной строке (коэф + сумма, дата + время) — `Field style={styles.half}`:
+                             без `flex: 1` у обёртки поле было шириной в свою подпись на Android и
+                             уезжало за край на вебе
   DashboardScreen/         — ПЕРЕВЕДЕН (вместе с ExpandedDashboard и DailyChart; периоды — те же
                              `analytics.period*`, что у аналитики).
                              ПЕРЕРАБОТАН (не дублирует аналитику): сверху оборот по периоду + банкролл;

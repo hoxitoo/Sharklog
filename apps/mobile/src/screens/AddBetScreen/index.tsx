@@ -4,7 +4,7 @@ import {
   View, StyleSheet, ScrollView, TouchableOpacity, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
-import type { TextInput as TextInputRef } from 'react-native';
+import type { TextInput as TextInputRef, StyleProp, ViewStyle } from 'react-native';
 import { useForm, Controller } from 'react-hook-form';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
@@ -101,9 +101,11 @@ function nd(v: string): string {
 
 // ── Field wrapper ─────────────────────────────────────────────────────────────
 
-function Field({ label, error, children }: { label: string; error?: string; children: React.ReactNode }) {
+function Field({ label, error, style, children }: {
+  label: string; error?: string; style?: StyleProp<ViewStyle>; children: React.ReactNode;
+}) {
   return (
-    <View style={field.container}>
+    <View style={[field.container, style]}>
       <Text style={field.label}>{label}</Text>
       {children}
       {error ? <Text style={field.error}>{error}</Text> : null}
@@ -859,7 +861,7 @@ export function AddBetScreen() {
             </Field>
 
             <View style={styles.row2}>
-              <Field label={t('addBet.oddsReq')} {...(errors.odds?.message ? { error: errors.odds.message } : {})}>
+              <Field style={styles.half} label={t('addBet.oddsReq')} {...(errors.odds?.message ? { error: errors.odds.message } : {})}>
                 <Controller
                   control={control}
                   name="odds"
@@ -876,7 +878,7 @@ export function AddBetScreen() {
                 />
               </Field>
 
-              <Field label={t('addBet.stakeReq')} {...(errors.stake?.message ? { error: errors.stake.message } : {})}>
+              <Field style={styles.half} label={t('addBet.stakeReq')} {...(errors.stake?.message ? { error: errors.stake.message } : {})}>
                 <Controller
                   control={control}
                   name="stake"
@@ -1343,7 +1345,7 @@ export function AddBetScreen() {
 
             {/* ── Date + Time ─── */}
             <View style={styles.row2}>
-              <Field label={t('bet.date')}>
+              <Field style={styles.half} label={t('bet.date')}>
                 <Controller
                   control={control}
                   name="date"
@@ -1359,7 +1361,7 @@ export function AddBetScreen() {
                   )}
                 />
               </Field>
-              <Field label={t('bet.time')}>
+              <Field style={styles.half} label={t('bet.time')}>
                 <Controller
                   control={control}
                   name="time"
@@ -1502,6 +1504,9 @@ const styles = themedStyles(() => ({
   container: { flex: 1, backgroundColor: colors.bg },
   content: { padding: SPACE.lg, paddingBottom: 40 },
   row2: { flexDirection: 'row', gap: SPACE.md },
+  // A field in a row takes its half. Without it the field was as wide as its
+  // label on Android ("СУММА (₽) *") and ran off the screen on the web.
+  half: { flex: 1 },
   halfInput: { flex: 1 },
 
   betModeRow: {
