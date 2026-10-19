@@ -140,10 +140,11 @@ v2.0.0  — смена формата данных / major redesign
 
 - [ ] Аккаунт разработчика RuStore, приложение `app.sharklog.mobile`
 - [ ] Робокасса: магазин прошёл модерацию, «Робочеки СМЗ» подключены
-- [ ] Сервер лицензий развёрнут (README в папке Worker, хранится у автора, не в репозитории)
-- [ ] EAS Environment variables (production): `EXPO_PUBLIC_LICENSE_URL`, `EXPO_PUBLIC_LICENSE_PUBKEY`
+- [ ] Сервер лицензий развёрнут (README в папке Worker, хранится у автора, не в репозитории) — ДО сборки: его адрес и ключ вшиваются в APK
+- [ ] EAS Environment variables (production): `EXPO_PUBLIC_LICENSE_URL`, `EXPO_PUBLIC_LICENSE_PUBKEY`, `EXPO_PUBLIC_SUPPORT_URL` (ссылка на бота)
+- [ ] Ключ подписи скачан и сохранён (`eas credentials` → Android → keystore): без него приложение в RuStore не обновить
 - [ ] Тестовая оплата прошла на телефоне; затем `IS_TEST` убран, пароли боевые
-- [ ] Политика: `https://hoxitoo.github.io/Sharklog/privacy.html`
+- [ ] Политика: `https://hoxitoo.github.io/Sharklog/privacy.html`, почта поддержки `sharklog_help@mail.ru`
 - [ ] Скриншоты телефона, описание, возрастной рейтинг 18+
 - [ ] `EXPO_TOKEN` в GitHub Secrets (если сборка из Actions)
 

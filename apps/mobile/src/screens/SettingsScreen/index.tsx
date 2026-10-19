@@ -31,6 +31,7 @@ import { useTourStore } from '../../components/tour/tour';
 import { BILLING } from '../../services/billing';
 import { hasLicense } from '../../utils/license';
 import { APP_VERSION } from '../../utils/appVersion';
+import { distribution } from '../../utils/storeLinks';
 import { ThemePicker } from './ThemePicker';
 import { restorePurchases } from '../../services/revenueCat';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
@@ -518,6 +519,11 @@ export function SettingsScreen() {
 
   // ── Updates ─────────────────────────────────────────────────────────────────
 
+  // Only an APK installed by hand asks GitHub. A store updates its own builds,
+  // and the latest GitHub tag is not what the store has (it may be a desktop
+  // release, or a version still in moderation).
+  const checksUpdates = distribution() === 'direct';
+
   async function handleCheckUpdate() {
     setUpdateStatus('checking');
     try {
@@ -857,7 +863,7 @@ export function SettingsScreen() {
           <Row
             label={t('settings.version', { version: APP_VERSION })}
             {...(__DEV__ ? { onPress: handleDevTap } : {})}
-            right={versionRight}
+            {...(checksUpdates ? { right: versionRight } : {})}
           />
           {updateStatus === 'available' && (
             <Row
