@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Bet, AppSettings, Bankroll, DiaryEntry, Team, Sport, EsportsDiscipline } from '@sharklog/core';
-import { migrate, CURRENT_SCHEMA_VERSION, FREE_LIMITS, DEFAULT_BANKROLL_NAME, isInTilt, calcDashboard, parseEventTeams, toYmd } from '@sharklog/core';
+import { migrate, CURRENT_SCHEMA_VERSION, FREE_LIMITS, DEFAULT_BANKROLL_NAME, isInTilt, calcDashboard, parseEventTeams, toYmd, preselectedBookmakers } from '@sharklog/core';
 import {
   sendTiltNotification, scheduleBetResultReminder,
   cancelBetResultReminder, cancelAllBetResultReminders,
@@ -111,7 +111,7 @@ const IS_OWNER_PRO = process.env.EXPO_PUBLIC_OWNER_PRO === 'true';
 export const defaultSettings: AppSettings = {
   tiltThreshold: FREE_LIMITS.TILT_ALERT_THRESHOLD,
   dailyBetLimit: 0,
-  bookmakers: ['1xBet', 'Parimatch', 'Fonbet'],
+  bookmakers: preselectedBookmakers(),
   isPro: IS_OWNER_PRO,
   onboardingComplete: false,
   reminderHour: 20,

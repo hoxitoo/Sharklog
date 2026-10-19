@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { DEFAULT_BOOKMAKERS, TX_NOTE, parseMoneyInput, formatMoney } from '@sharklog/core';
+import { DEFAULT_BOOKMAKERS, TX_NOTE, parseMoneyInput, formatMoney, preselectedBookmakers } from '@sharklog/core';
 import { useTranslation } from 'react-i18next';
 
 function uuid(): string {
@@ -53,7 +53,7 @@ export function OnboardingScreen() {
 
   const [step, setStep] = useState(0);
   const [depositInput, setDepositInput] = useState('');
-  const [selectedBookmakers, setSelectedBookmakers] = useState<string[]>(['1xBet', 'Parimatch', 'Fonbet']);
+  const [selectedBookmakers, setSelectedBookmakers] = useState<string[]>(preselectedBookmakers);
   const [customBk, setCustomBk] = useState('');
 
   function toggleBookmaker(bk: string) {
@@ -70,7 +70,7 @@ export function OnboardingScreen() {
   }
 
   function handleFinish() {
-    const bkList = selectedBookmakers.length > 0 ? selectedBookmakers : ['1xBet', 'Parimatch', 'Fonbet'];
+    const bkList = selectedBookmakers.length > 0 ? selectedBookmakers : preselectedBookmakers();
     updateSettings({ bookmakers: bkList, onboardingComplete: true });
     // Seven days of Pro, starting now: the business rule, and the only moment
     // a user is new. `startTrial` never grants it twice or over a licence.

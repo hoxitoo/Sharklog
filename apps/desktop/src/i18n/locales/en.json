@@ -365,5 +365,9 @@
     "importFailed": "Failed to import data",
     "noFile": "File not found",
     "invalidFile": "Invalid file format"
+  },
+  "partners": {
+    "stubTitle": "This section is in progress",
+    "stubText": "Partners with offers and bonuses will appear here."
   }
 }

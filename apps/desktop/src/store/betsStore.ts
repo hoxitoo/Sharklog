@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { Bet, AppSettings, Bankroll, DiaryEntry, Team, Sport, EsportsDiscipline } from '@sharklog/core';
-import { migrate, CURRENT_SCHEMA_VERSION, FREE_LIMITS, isInTilt, parseEventTeams, toYmd } from '@sharklog/core';
+import { migrate, CURRENT_SCHEMA_VERSION, FREE_LIMITS, isInTilt, parseEventTeams, toYmd, preselectedBookmakers } from '@sharklog/core';
 import { loadData, saveData } from '../storage/storageService';
 
 function uuid(): string {
@@ -72,7 +72,7 @@ const OWNER_PRO = import.meta.env.VITE_OWNER_PRO === 'true';
 export const defaultSettings: AppSettings = {
   tiltThreshold: FREE_LIMITS.TILT_ALERT_THRESHOLD,
   dailyBetLimit: 0,
-  bookmakers: ['1xBet', 'Parimatch', 'Fonbet'],
+  bookmakers: preselectedBookmakers(),
   isPro: OWNER_PRO,
   onboardingComplete: false,
   reminderHour: 20,
