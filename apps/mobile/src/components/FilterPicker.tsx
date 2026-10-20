@@ -14,7 +14,7 @@ import type { GlyphName } from './icons/glyphs';
 export interface PickerOption<T extends string> {
   key: T;
   label: string;
-  /** The author's glyph for this option (sports, disciplines) — shown in the list and on the button. */
+  /** The author's glyph for this option (sports, disciplines) — shown in the sheet's list. */
   icon?: GlyphName;
 }
 
@@ -91,7 +91,9 @@ export function FilterPicker<T extends string>({ label, options, value, onChange
         onPress={() => { haptic.selection(); open_(); }}
         activeOpacity={0.75}
       >
-        {current?.icon ? <AppIcon name={current.icon} size={GLYPH.xl} color={colors.textPrimary} /> : null}
+        {/* No glyph on the button itself, only in the sheet: the button sits at
+            half width in the bet form and narrower in an express leg, and a
+            26 pt icon left "Киберспорт" ~70 pt — it broke mid-word. */}
         <View style={picker.btnText}>
           <Text style={picker.label}>{label}</Text>
           {/* Two lines: at half width in the bet form, "League of Legends" or

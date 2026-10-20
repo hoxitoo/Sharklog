@@ -16,9 +16,17 @@ export const sportLabel = (t: TFunction, s: Sport): string => t(`sports.${s}`);
 export const betTypeLabel = (t: TFunction, b: BetType): string => t(`betTypes.${b}`);
 export const strategyLabel = (t: TFunction, s: Strategy): string => t(`strategies.${s}`);
 
-/** Game titles are proper names and stay as they are; only "other" is words. */
-export function disciplineLabel(t: TFunction, d: EsportsDiscipline): string {
-  return d === 'other_esports' ? t('disciplines.other') : ESPORTS_DISCIPLINES[d];
+/**
+ * Game titles are proper names and stay as they are; only "other" is words.
+ * A value from an old backup or a hand-edited bet that names no game we know
+ * shows as stored — it used to come out `undefined`, a blank name on the row
+ * (and `toString` would have found a function on the prototype).
+ */
+export function disciplineLabel(t: TFunction, d: EsportsDiscipline | string): string {
+  if (d === 'other_esports') return t('disciplines.other');
+  return Object.prototype.hasOwnProperty.call(ESPORTS_DISCIPLINES, d)
+    ? ESPORTS_DISCIPLINES[d as EsportsDiscipline]
+    : d;
 }
 
 /** Stored pick token → its display key. Longest-first is not needed: no token is a prefix of another. */
