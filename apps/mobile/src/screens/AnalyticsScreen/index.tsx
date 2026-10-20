@@ -22,6 +22,7 @@ import type { TFunction } from 'i18next';
 
 import { cardSurface, Card, tileStyle } from '../../components/Card';
 import { PnlBars } from '../../components/PnlBars';
+import { AppIcon, sportGlyph } from '../../components/icons/AppIcon';
 import { themedStyles } from '../../theme/themed';
 
 const { width } = Dimensions.get('window');
@@ -629,7 +630,12 @@ function SportBreakdown({ stats }: { stats: SliceStats[] }) {
         return (
           <View key={s.label} style={sport.row}>
             <View style={sport.head}>
-              <Text style={sport.name} numberOfLines={1}>{s.label}</Text>
+              <View style={sport.nameRow}>
+                <AppIcon name={sportGlyph(s.label)} size={GLYPH.lg} />
+                <Text style={sport.name} numberOfLines={1}>
+                  {t(`sports.${s.label}`, { defaultValue: s.label })}
+                </Text>
+              </View>
               <Text style={[sport.money, { color: tint }]} numberOfLines={1}>
                 {s.pnl > 0 ? '+' : ''}{fmt(s.pnl)}
               </Text>
@@ -661,8 +667,9 @@ function SportBreakdown({ stats }: { stats: SliceStats[] }) {
 
 const sport = themedStyles(() => ({
   row: { marginBottom: SPACE.lg },
-  head: { flexDirection: 'row', alignItems: 'baseline', justifyContent: 'space-between' },
-  name: { flex: 1, fontSize: SIZE.body, fontWeight: '600', color: colors.textPrimary },
+  head: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  nameRow: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
+  name: { flexShrink: 1, fontSize: SIZE.body, fontWeight: '600', color: colors.textPrimary },
   money: { ...numeric, fontSize: SIZE.body, fontWeight: '700', marginLeft: SPACE.sm },
   track: {
     height: 10, marginTop: SPACE.sm, marginBottom: SPACE.xs,
@@ -703,7 +710,8 @@ function AnalyticsContent() {
   const extended = useMemo(() => ({
     // Labels in the interface language. A value with no translation (an old or
     // hand-edited one) shows as stored rather than as a raw key.
-    sport: calcByField(filteredBets, 'sport', (v) => t(`sports.${v}`, { defaultValue: String(v) })),
+    // The raw key: SportBreakdown needs it for the glyph, and names it itself.
+    sport: calcByField(filteredBets, 'sport'),
     betType: calcByField(filteredBets, 'betType', (v) => t(`betTypes.${v}`, { defaultValue: String(v) })),
     bookmaker: calcByField(filteredBets, 'bookmaker'),
     strategy: calcByField(filteredBets, 'strategy', (v) => t(`strategies.${v}`, { defaultValue: String(v) })),

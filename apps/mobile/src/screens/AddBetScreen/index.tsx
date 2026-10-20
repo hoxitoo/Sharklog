@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
 import type { TextInput as TextInputRef, StyleProp, ViewStyle } from 'react-native';
+import { sportGlyph, disciplineGlyph } from '../../components/icons/AppIcon';
 import { useForm, Controller } from 'react-hook-form';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
@@ -774,13 +775,13 @@ export function AddBetScreen() {
   } }
 
   // Core's maps give the KEYS (and their order); the label comes from the locale.
-  const sportOptions = (Object.keys(SPORTS) as Sport[]).map((k) => ({ key: k, label: sportLabel(t, k) }));
+  const sportOptions = (Object.keys(SPORTS) as Sport[]).map((k) => ({ key: k, label: sportLabel(t, k), icon: sportGlyph(k) }));
   const betTypeOptions = (Object.keys(BET_TYPES) as BetType[])
     .filter((k) => k !== 'express')
     .map((k) => ({ key: k, label: betTypeLabel(t, k) }));
   const strategyOptions = (Object.keys(STRATEGIES) as Strategy[]).map((k) => ({ key: k, label: strategyLabel(t, k) }));
   const disciplineOptions = (Object.keys(ESPORTS_DISCIPLINES) as EsportsDiscipline[])
-    .map((k) => ({ key: k, label: disciplineLabel(t, k) }));
+    .map((k) => ({ key: k, label: disciplineLabel(t, k), icon: disciplineGlyph(k) }));
 
   return (
     <KeyboardAvoidingView

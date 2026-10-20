@@ -1,0 +1,42 @@
+{
+  "dark": {
+    "label": "Тёмная",
+    "background": "#111321",
+    "body": "#B8BBD1",
+    "accent": "#9183FF",
+    "support": "#EB4784",
+    "text": "#EEEFF8",
+    "muted": "#A2A6BE",
+    "selected": "#20223B"
+  },
+  "light": {
+    "label": "Светлая",
+    "background": "#FFFFFF",
+    "body": "#515665",
+    "accent": "#514CB0",
+    "support": "#B52E67",
+    "text": "#222435",
+    "muted": "#626879",
+    "selected": "#EFEDF9"
+  },
+  "olive": {
+    "label": "Оливковая",
+    "background": "#29271E",
+    "body": "#C5BAA2",
+    "accent": "#C1CB8B",
+    "support": "#EA7EA9",
+    "text": "#EEE9DD",
+    "muted": "#BDB39E",
+    "selected": "#343227"
+  },
+  "navy-gold": {
+    "label": "Сине-золотая",
+    "background": "#192737",
+    "body": "#B7C1D0",
+    "accent": "#D9BE83",
+    "support": "#EA7EA9",
+    "text": "#ECF0F5",
+    "muted": "#A6B3C4",
+    "selected": "#263340"
+  }
+}

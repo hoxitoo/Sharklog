@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" role="img" aria-label="Баскетбол" color="#B8BBD1">
+  <title>Баскетбол</title>
+  <circle cx="24" cy="24" r="18" fill="none" stroke="var(--sl-icon-body, currentColor)" stroke-width="3.2"/><path d="M13 9 C20 19 28 28 35 38 M8 30 L40 17 M8 17 C20 17 30 10 32 8 M16 40 C16 30 28 24 41 28" fill="none" stroke="var(--sl-icon-body, currentColor)" stroke-width="2.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M31 31 L41 29 C39 35 36 39 30 41 Z" fill="var(--sl-icon-accent, #9183FF)"/>
+</svg>

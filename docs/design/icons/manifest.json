@@ -1,0 +1,340 @@
+[
+  {
+    "id": "bets",
+    "label": "Ставки",
+    "group": "menu",
+    "viewBox": "0 0 48 48",
+    "adaptive": "adaptive/menu/bets.svg",
+    "themes": {
+      "dark": "themes/dark/menu/bets.svg",
+      "light": "themes/light/menu/bets.svg",
+      "olive": "themes/olive/menu/bets.svg",
+      "navy-gold": "themes/navy-gold/menu/bets.svg"
+    }
+  },
+  {
+    "id": "dashboard",
+    "label": "Дашборд",
+    "group": "menu",
+    "viewBox": "0 0 48 48",
+    "adaptive": "adaptive/menu/dashboard.svg",
+    "themes": {
+      "dark": "themes/dark/menu/dashboard.svg",
+      "light": "themes/light/menu/dashboard.svg",
+      "olive": "themes/olive/menu/dashboard.svg",
+      "navy-gold": "themes/navy-gold/menu/dashboard.svg"
+    }
+  },
+  {
+    "id": "insights",
+    "label": "Инсайты",
+    "group": "menu",
+    "viewBox": "0 0 48 48",
+    "adaptive": "adaptive/menu/insights.svg",
+    "themes": {
+      "dark": "themes/dark/menu/insights.svg",
+      "light": "themes/light/menu/insights.svg",
+      "olive": "themes/olive/menu/insights.svg",
+      "navy-gold": "themes/navy-gold/menu/insights.svg"
+    }
+  },
+  {
+    "id": "analytics",
+    "label": "Аналитика",
+    "group": "menu",
+    "viewBox": "0 0 48 48",
+    "adaptive": "adaptive/menu/analytics.svg",
+    "themes": {
+      "dark": "themes/dark/menu/analytics.svg",
+      "light": "themes/light/menu/analytics.svg",
+      "olive": "themes/olive/menu/analytics.svg",
+      "navy-gold": "themes/navy-gold/menu/analytics.svg"
+    }
+  },
+  {
+    "id": "discipline",
+    "label": "Дисциплина",
+    "group": "menu",
+    "viewBox": "0 0 48 48",
+    "adaptive": "adaptive/menu/discipline.svg",
+    "themes": {
+      "dark": "themes/dark/menu/discipline.svg",
+      "light": "themes/light/menu/discipline.svg",
+      "olive": "themes/olive/menu/discipline.svg",
+      "navy-gold": "themes/navy-gold/menu/discipline.svg"
+    }
+  },
+  {
+    "id": "settings",
+    "label": "Настройки",
+    "group": "menu",
+    "viewBox": "0 0 48 48",
+    "adaptive": "adaptive/menu/settings.svg",
+    "themes": {
+      "dark": "themes/dark/menu/settings.svg",
+      "light": "themes/light/menu/settings.svg",
+      "olive": "themes/olive/menu/settings.svg",
+      "navy-gold": "themes/navy-gold/menu/settings.svg"
+    }
+  },
+  {
+    "id": "bankroll",
+    "label": "Банкролл",
+    "group": "menu",
+    "viewBox": "0 0 48 48",
+    "adaptive": "adaptive/menu/bankroll.svg",
+    "themes": {
+      "dark": "themes/dark/menu/bankroll.svg",
+      "light": "themes/light/menu/bankroll.svg",
+      "olive": "themes/olive/menu/bankroll.svg",
+      "navy-gold": "themes/navy-gold/menu/bankroll.svg"
+    }
+  },
+  {
+    "id": "strategy-builder",
+    "label": "Билдер стратегий",
+    "group": "menu",
+    "viewBox": "0 0 48 48",
+    "adaptive": "adaptive/menu/strategy-builder.svg",
+    "themes": {
+      "dark": "themes/dark/menu/strategy-builder.svg",
+      "light": "themes/light/menu/strategy-builder.svg",
+      "olive": "themes/olive/menu/strategy-builder.svg",
+      "navy-gold": "themes/navy-gold/menu/strategy-builder.svg"
+    }
+  },
+  {
+    "id": "partners",
+    "label": "Партнёры",
+    "group": "menu",
+    "viewBox": "0 0 48 48",
+    "adaptive": "adaptive/menu/partners.svg",
+    "themes": {
+      "dark": "themes/dark/menu/partners.svg",
+      "light": "themes/light/menu/partners.svg",
+      "olive": "themes/olive/menu/partners.svg",
+      "navy-gold": "themes/navy-gold/menu/partners.svg"
+    }
+  },
+  {
+    "id": "support-author",
+    "label": "Поддержать автора",
+    "group": "menu",
+    "viewBox": "0 0 48 48",
+    "adaptive": "adaptive/menu/support-author.svg",
+    "themes": {
+      "dark": "themes/dark/menu/support-author.svg",
+      "light": "themes/light/menu/support-author.svg",
+      "olive": "themes/olive/menu/support-author.svg",
+      "navy-gold": "themes/navy-gold/menu/support-author.svg"
+    }
+  },
+  {
+    "id": "football",
+    "label": "Футбол",
+    "group": "sports",
+    "viewBox": "0 0 48 48",
+    "adaptive": "adaptive/sports/football.svg",
+    "themes": {
+      "dark": "themes/dark/sports/football.svg",
+      "light": "themes/light/sports/football.svg",
+      "olive": "themes/olive/sports/football.svg",
+      "navy-gold": "themes/navy-gold/sports/football.svg"
+    }
+  },
+  {
+    "id": "hockey",
+    "label": "Хоккей",
+    "group": "sports",
+    "viewBox": "0 0 48 48",
+    "adaptive": "adaptive/sports/hockey.svg",
+    "themes": {
+      "dark": "themes/dark/sports/hockey.svg",
+      "light": "themes/light/sports/hockey.svg",
+      "olive": "themes/olive/sports/hockey.svg",
+      "navy-gold": "themes/navy-gold/sports/hockey.svg"
+    }
+  },
+  {
+    "id": "basketball",
+    "label": "Баскетбол",
+    "group": "sports",
+    "viewBox": "0 0 48 48",
+    "adaptive": "adaptive/sports/basketball.svg",
+    "themes": {
+      "dark": "themes/dark/sports/basketball.svg",
+      "light": "themes/light/sports/basketball.svg",
+      "olive": "themes/olive/sports/basketball.svg",
+      "navy-gold": "themes/navy-gold/sports/basketball.svg"
+    }
+  },
+  {
+    "id": "tennis",
+    "label": "Теннис",
+    "group": "sports",
+    "viewBox": "0 0 48 48",
+    "adaptive": "adaptive/sports/tennis.svg",
+    "themes": {
+      "dark": "themes/dark/sports/tennis.svg",
+      "light": "themes/light/sports/tennis.svg",
+      "olive": "themes/olive/sports/tennis.svg",
+      "navy-gold": "themes/navy-gold/sports/tennis.svg"
+    }
+  },
+  {
+    "id": "esports",
+    "label": "Киберспорт",
+    "group": "sports",
+    "viewBox": "0 0 48 48",
+    "adaptive": "adaptive/sports/esports.svg",
+    "themes": {
+      "dark": "themes/dark/sports/esports.svg",
+      "light": "themes/light/sports/esports.svg",
+      "olive": "themes/olive/sports/esports.svg",
+      "navy-gold": "themes/navy-gold/sports/esports.svg"
+    }
+  },
+  {
+    "id": "volleyball",
+    "label": "Волейбол",
+    "group": "sports",
+    "viewBox": "0 0 48 48",
+    "adaptive": "adaptive/sports/volleyball.svg",
+    "themes": {
+      "dark": "themes/dark/sports/volleyball.svg",
+      "light": "themes/light/sports/volleyball.svg",
+      "olive": "themes/olive/sports/volleyball.svg",
+      "navy-gold": "themes/navy-gold/sports/volleyball.svg"
+    }
+  },
+  {
+    "id": "baseball",
+    "label": "Бейсбол",
+    "group": "sports",
+    "viewBox": "0 0 48 48",
+    "adaptive": "adaptive/sports/baseball.svg",
+    "themes": {
+      "dark": "themes/dark/sports/baseball.svg",
+      "light": "themes/light/sports/baseball.svg",
+      "olive": "themes/olive/sports/baseball.svg",
+      "navy-gold": "themes/navy-gold/sports/baseball.svg"
+    }
+  },
+  {
+    "id": "other-sport",
+    "label": "Другое",
+    "group": "sports",
+    "viewBox": "0 0 48 48",
+    "adaptive": "adaptive/sports/other-sport.svg",
+    "themes": {
+      "dark": "themes/dark/sports/other-sport.svg",
+      "light": "themes/light/sports/other-sport.svg",
+      "olive": "themes/olive/sports/other-sport.svg",
+      "navy-gold": "themes/navy-gold/sports/other-sport.svg"
+    }
+  },
+  {
+    "id": "dota-2",
+    "label": "Dota 2",
+    "group": "esports",
+    "viewBox": "0 0 48 48",
+    "adaptive": "adaptive/esports/dota-2.svg",
+    "themes": {
+      "dark": "themes/dark/esports/dota-2.svg",
+      "light": "themes/light/esports/dota-2.svg",
+      "olive": "themes/olive/esports/dota-2.svg",
+      "navy-gold": "themes/navy-gold/esports/dota-2.svg"
+    }
+  },
+  {
+    "id": "cs2",
+    "label": "CS2",
+    "group": "esports",
+    "viewBox": "0 0 48 48",
+    "adaptive": "adaptive/esports/cs2.svg",
+    "themes": {
+      "dark": "themes/dark/esports/cs2.svg",
+      "light": "themes/light/esports/cs2.svg",
+      "olive": "themes/olive/esports/cs2.svg",
+      "navy-gold": "themes/navy-gold/esports/cs2.svg"
+    }
+  },
+  {
+    "id": "league-of-legends",
+    "label": "League of Legends",
+    "group": "esports",
+    "viewBox": "0 0 48 48",
+    "adaptive": "adaptive/esports/league-of-legends.svg",
+    "themes": {
+      "dark": "themes/dark/esports/league-of-legends.svg",
+      "light": "themes/light/esports/league-of-legends.svg",
+      "olive": "themes/olive/esports/league-of-legends.svg",
+      "navy-gold": "themes/navy-gold/esports/league-of-legends.svg"
+    }
+  },
+  {
+    "id": "valorant",
+    "label": "Valorant",
+    "group": "esports",
+    "viewBox": "0 0 48 48",
+    "adaptive": "adaptive/esports/valorant.svg",
+    "themes": {
+      "dark": "themes/dark/esports/valorant.svg",
+      "light": "themes/light/esports/valorant.svg",
+      "olive": "themes/olive/esports/valorant.svg",
+      "navy-gold": "themes/navy-gold/esports/valorant.svg"
+    }
+  },
+  {
+    "id": "pubg",
+    "label": "PUBG",
+    "group": "esports",
+    "viewBox": "0 0 48 48",
+    "adaptive": "adaptive/esports/pubg.svg",
+    "themes": {
+      "dark": "themes/dark/esports/pubg.svg",
+      "light": "themes/light/esports/pubg.svg",
+      "olive": "themes/olive/esports/pubg.svg",
+      "navy-gold": "themes/navy-gold/esports/pubg.svg"
+    }
+  },
+  {
+    "id": "rainbow-six",
+    "label": "Rainbow Six",
+    "group": "esports",
+    "viewBox": "0 0 48 48",
+    "adaptive": "adaptive/esports/rainbow-six.svg",
+    "themes": {
+      "dark": "themes/dark/esports/rainbow-six.svg",
+      "light": "themes/light/esports/rainbow-six.svg",
+      "olive": "themes/olive/esports/rainbow-six.svg",
+      "navy-gold": "themes/navy-gold/esports/rainbow-six.svg"
+    }
+  },
+  {
+    "id": "apex-legends",
+    "label": "Apex Legends",
+    "group": "esports",
+    "viewBox": "0 0 48 48",
+    "adaptive": "adaptive/esports/apex-legends.svg",
+    "themes": {
+      "dark": "themes/dark/esports/apex-legends.svg",
+      "light": "themes/light/esports/apex-legends.svg",
+      "olive": "themes/olive/esports/apex-legends.svg",
+      "navy-gold": "themes/navy-gold/esports/apex-legends.svg"
+    }
+  },
+  {
+    "id": "other-esport",
+    "label": "Другая дисциплина",
+    "group": "esports",
+    "viewBox": "0 0 48 48",
+    "adaptive": "adaptive/esports/other-esport.svg",
+    "themes": {
+      "dark": "themes/dark/esports/other-esport.svg",
+      "light": "themes/light/esports/other-esport.svg",
+      "olive": "themes/olive/esports/other-esport.svg",
+      "navy-gold": "themes/navy-gold/esports/other-esport.svg"
+    }
+  }
+]

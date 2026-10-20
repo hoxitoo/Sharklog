@@ -17,6 +17,8 @@ import { FREE_LIMITS } from '@sharklog/core';
 import { Freeze } from 'react-freeze';
 import { DrawerContext, type BetsFilter } from '../components/DrawerContext';
 import { TourOverlay } from '../components/tour/TourOverlay';
+import { AppIcon } from '../components/icons/AppIcon';
+import type { GlyphName } from '../components/icons/glyphs';
 import { tourTarget, useTourStore, isTourPending } from '../components/tour/tour';
 import { trialRunning } from '../utils/license';
 import { BetsScreen } from '../screens/BetsScreen';
@@ -30,8 +32,6 @@ import { SIZE, GLYPH } from '../theme/typography';
 import { themedStyles } from '../theme/themed';
 
 export type DrawerScreen = 'Bets' | 'Dashboard' | 'Insights' | 'Analytics' | 'Discipline' | 'Settings';
-
-type IoniconsName = React.ComponentProps<typeof Ionicons>['name'];
 
 const DRAWER_WIDTH = 272;
 
@@ -60,20 +60,23 @@ const OPEN_MS = 240;
 
 interface NavItem {
   screen: DrawerScreen;
-  icon: IoniconsName;
-  iconActive: IoniconsName;
+  /** The author's two-tone glyph (docs/design/icons): one shape, painted by the theme. */
+  icon: GlyphName;
   labelKey: string;
   pro?: boolean;
 }
 
 const MAIN_ITEMS: NavItem[] = [
-  { screen: 'Bets',       icon: 'receipt-outline',   iconActive: 'receipt',        labelKey: 'nav.bets' },
-  { screen: 'Dashboard',  icon: 'bar-chart-outline',  iconActive: 'bar-chart',      labelKey: 'nav.dashboard' },
-  { screen: 'Insights',   icon: 'bulb-outline',       iconActive: 'bulb',           labelKey: 'nav.insights' },
-  { screen: 'Analytics',  icon: 'flask-outline',      iconActive: 'flask',          labelKey: 'nav.analytics' },
-  { screen: 'Discipline', icon: 'leaf-outline',       iconActive: 'leaf',           labelKey: 'nav.discipline' },
-  { screen: 'Settings',   icon: 'settings-outline',   iconActive: 'settings',       labelKey: 'nav.settings' },
+  { screen: 'Bets',       icon: 'bets',       labelKey: 'nav.bets' },
+  { screen: 'Dashboard',  icon: 'dashboard',  labelKey: 'nav.dashboard' },
+  { screen: 'Insights',   icon: 'insights',   labelKey: 'nav.insights' },
+  { screen: 'Analytics',  icon: 'analytics',  labelKey: 'nav.analytics' },
+  { screen: 'Discipline', icon: 'discipline', labelKey: 'nav.discipline' },
+  { screen: 'Settings',   icon: 'settings',   labelKey: 'nav.settings' },
 ];
+
+/** Menu glyphs: the box carries ~15% air, so this draws them a little larger than the old 20pt icons. */
+const NAV_GLYPH = GLYPH.xl;
 
 /**
  * One extra render before the freeze takes hold.
@@ -382,8 +385,10 @@ function DrawerContent({ currentScreen, onNavigate, onClose, insets }: DrawerCon
     <View style={[styles.drawerInner, { paddingTop: insets.top + 12 }]}>
       {/* Logo */}
       <View style={styles.drawerLogo}>
-        <Image source={require('../../assets/adaptive-icon.png')} style={styles.logoImg} resizeMode="contain" />
-        <Text style={styles.logoText}>SharkLog</Text>
+        <Image source={require('../../assets/logo-mark.png')} style={styles.logoImg} resizeMode="contain" />
+        {/* "Log" in the theme accent, as on the author's sheets. A nested Text
+            sets its own weight: AppText resolves the face per element. */}
+        <Text style={styles.logoText}>Shark<Text style={styles.logoAccent}>Log</Text></Text>
       </View>
 
       <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} style={{ flex: 1 }}>
@@ -398,13 +403,12 @@ function DrawerContent({ currentScreen, onNavigate, onClose, insets }: DrawerCon
                 onPress={() => onNavigate(item.screen)}
                 activeOpacity={0.75}
               >
-                <Ionicons
-                  name={active ? item.iconActive : item.icon}
-                  size={20}
-                  // purpleText, like the label: in a theme whose primary and
-                  // link colours differ, the icon and its label disagreed.
+                {/* Active: the whole glyph takes the accent, like its label —
+                    the kit's own rule for the active state. */}
+                <AppIcon
+                  name={item.icon}
+                  size={NAV_GLYPH}
                   color={active ? colors.purpleText : colors.textSecondary}
-                  style={styles.navIcon}
                 />
                 <Text style={[styles.navLabel, active && styles.navLabelActive]}>
                   {t(item.labelKey)}
@@ -424,13 +428,13 @@ function DrawerContent({ currentScreen, onNavigate, onClose, insets }: DrawerCon
         {/* Secondary items */}
         <View style={styles.section}>
           <TouchableOpacity style={styles.navItem} onPress={() => goStack('Bankroll')} activeOpacity={0.75}>
-            <Ionicons name="wallet-outline" size={20} color={colors.textSecondary} style={styles.navIcon} />
+            <AppIcon name="bankroll" size={NAV_GLYPH} />
             <Text style={styles.navLabel}>{t('nav.bankroll')}</Text>
           </TouchableOpacity>
 
           {settings.isPro && (
             <TouchableOpacity style={styles.navItem} onPress={() => goStack('StrategyBuilder')} activeOpacity={0.75}>
-              <Ionicons name="options-outline" size={20} color={colors.textSecondary} style={styles.navIcon} />
+              <AppIcon name="strategy" size={NAV_GLYPH} />
               <Text style={styles.navLabel}>{t('nav.strategyBuilder')}</Text>
             </TouchableOpacity>
           )}
@@ -438,7 +442,7 @@ function DrawerContent({ currentScreen, onNavigate, onClose, insets }: DrawerCon
           {/* An ordinary row while the section is a placeholder — a highlighted
               card for an empty screen promised more than was there. */}
           <TouchableOpacity style={styles.navItem} onPress={() => goStack('Partners')} activeOpacity={0.75}>
-            <Ionicons name="gift-outline" size={20} color={colors.textSecondary} style={styles.navIcon} />
+            <AppIcon name="partners" size={NAV_GLYPH} />
             <Text style={styles.navLabel}>{t('nav.partners')}</Text>
             <View style={styles.soonBadge}>
               <Text style={styles.soonBadgeText}>{t('common.soon')}</Text>
@@ -454,7 +458,7 @@ function DrawerContent({ currentScreen, onNavigate, onClose, insets }: DrawerCon
           onPress={() => goStack('Support')}
           activeOpacity={0.8}
         >
-          <Ionicons name="heart" size={22} color={colors.raspberry} />
+          <AppIcon name="support" size={NAV_GLYPH} />
           <View style={{ flex: 1 }}>
             <Text style={styles.supportTitle}>{t('nav.support')}</Text>
             <Text style={styles.supportSub}>{t('nav.supportSub')}</Text>
@@ -517,19 +521,27 @@ const styles = themedStyles(() => ({
     paddingHorizontal: SPACE.lg,
     paddingBottom: SPACE.lg,
   },
+  // The brand is the drawer's headline. logo-mark.png is the mark cropped to its
+  // own edges: adaptive-icon.png carries Android's safe-zone margin, and in a
+  // 48 pt box the mark itself was 24 × 16 — smaller than the word beside it.
   logoImg: {
-    width: 36,
-    height: 36,
-    borderRadius: RADIUS.sm,
+    // The asset's own proportion (176 × 120), both sides explicit: with
+    // aspectRatio alone the box took a width of its own and left a gap.
+    width: 44,
+    height: 30,
     // The mark is white on transparent: tinted, it follows the theme instead
     // of vanishing into a white card.
     tintColor: colors.textPrimary,
   },
   logoText: {
-    fontSize: SIZE.title,
+    fontSize: SIZE.hero,
     fontWeight: '800',
     color: colors.textPrimary,
     letterSpacing: -0.5,
+  },
+  logoAccent: {
+    fontWeight: '800',
+    color: colors.purpleText,
   },
   section: {
     paddingHorizontal: SPACE.sm,
@@ -547,10 +559,6 @@ const styles = themedStyles(() => ({
   },
   navItemActive: {
     backgroundColor: colors.purple + '1A',
-  },
-  navIcon: {
-    width: 24,
-    textAlign: 'center',
   },
   navLabel: {
     flex: 1,

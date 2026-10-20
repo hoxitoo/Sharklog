@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" role="img" aria-label="Аналитика" color="#B8BBD1">
+  <title>Аналитика</title>
+  <path d="M20 5 A17 17 0 0 0 6 28 M9 34 A17 17 0 0 0 30 38 M37 27 A17 17 0 0 0 27 5" fill="none" stroke="var(--sl-icon-body, currentColor)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M30 38 A17 17 0 0 0 37 27" fill="none" stroke="var(--sl-icon-accent, #9183FF)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M36 35 L44 43" fill="none" stroke="var(--sl-icon-body, currentColor)" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/><path d="M12 28 L19 21 L25 26 L32 17" fill="none" stroke="var(--sl-icon-body, currentColor)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/><circle cx="32" cy="17" r="3.4" fill="var(--sl-icon-body, currentColor)"/>
+</svg>
