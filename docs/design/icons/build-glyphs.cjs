@@ -32,11 +32,17 @@ const NAMES = {
 };
 
 function paint(v, file) {
-  if (v === undefined || v === 'none') return 'none';
+  if (v === 'none') return 'none';
   const m = /^var\(--sl-icon-(body|accent|support)\b/.exec(v);
   if (!m) throw new Error(`${file}: unexpected colour ${v}`);
   return m[1];
 }
+
+// Everything the generated shape carries. Any other attribute — transform,
+// opacity, dasharray, clip-rule… — would be dropped and the glyph would render
+// wrong with no error, so it fails the build instead.
+const COMMON = ['fill', 'stroke', 'stroke-width', 'stroke-linecap', 'stroke-linejoin', 'fill-rule'];
+const OWN = { path: ['d'], circle: ['cx', 'cy', 'r'], ellipse: ['cx', 'cy', 'rx', 'ry'] };
 
 function attrs(tag) {
   const out = {};
@@ -54,11 +60,28 @@ for (const [rel, name] of Object.entries(NAMES)) {
     if (kind === 'svg' || kind === 'title') continue;
     if (!['path', 'circle', 'ellipse'].includes(kind)) throw new Error(`${rel}: unexpected <${kind}>`);
     const a = attrs(body);
+    for (const k of Object.keys(a)) {
+      if (!COMMON.includes(k) && !OWN[kind].includes(k)) throw new Error(`${rel}: <${kind}> ${k}="${a[k]}" is not supported`);
+    }
+    for (const k of OWN[kind]) if (a[k] === undefined) throw new Error(`${rel}: <${kind}> without ${k}`);
+    // SVG's default fill is black, which no theme role means: say it.
+    if (a.fill === undefined) throw new Error(`${rel}: <${kind}> without an explicit fill`);
     const s = { kind, fill: paint(a.fill, rel) };
     if (kind === 'path') s.d = a.d;
     else { s.cx = +a.cx; s.cy = +a.cy; if (kind === 'circle') s.r = +a.r; else { s.rx = +a.rx; s.ry = +a.ry; } }
-    if (a.stroke) { s.stroke = paint(a.stroke, rel); s.strokeWidth = +a['stroke-width']; }
-    if (a['stroke-linecap'] === 'round' || a['stroke-linejoin'] === 'round') s.round = true;
+    if (a.stroke) {
+      if (a['stroke-width'] === undefined) throw new Error(`${rel}: stroke without stroke-width`);
+      s.stroke = paint(a.stroke, rel); s.strokeWidth = +a['stroke-width'];
+    }
+    // One flag carries both: caps and joins are either both round or both default.
+    const cap = a['stroke-linecap'], join = a['stroke-linejoin'];
+    if ((cap ?? 'round') !== 'round' || (join ?? 'round') !== 'round' || (cap === undefined) !== (join === undefined)) {
+      throw new Error(`${rel}: stroke-linecap="${cap}" stroke-linejoin="${join}" — only both round, or neither`);
+    }
+    if (cap === 'round') s.round = true;
+    if (a['fill-rule'] !== undefined && a['fill-rule'] !== 'evenodd' && a['fill-rule'] !== 'nonzero') {
+      throw new Error(`${rel}: fill-rule="${a['fill-rule']}"`);
+    }
     if (a['fill-rule'] === 'evenodd') s.evenOdd = true;
     shapes.push(s);
   }

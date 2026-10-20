@@ -8,7 +8,6 @@ import { AppText as Text } from '../../components/AppText';
 import {
   calcByTournament, calcByTeam, formatPercent, toYmd,
 } from '@sharklog/core';
-import type { EsportsDiscipline } from '@sharklog/core';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { disciplineLabel } from '../../utils/labels';
@@ -49,7 +48,7 @@ const TOP_N = 3;
  * in the name and in the glyph alike. "Other game" names nothing, so the sport
  * is the better answer there.
  */
-function namedDiscipline(discipline?: string): discipline is EsportsDiscipline {
+function namedDiscipline(discipline?: string): discipline is string {
   return !!discipline && discipline !== 'other_esports';
 }
 
@@ -110,7 +109,7 @@ function HeroPair({ best, worst, onOpen }: {
         >
           <Text style={[s.heroLabel, { color: accent }]}>{label}</Text>
           <Text style={s.heroName} numberOfLines={2}>{item.name}</Text>
-          <SportLine sport={item.sport} discipline={item.discipline} size={GLYPH.sm} textStyle={s.heroSub}>
+          <SportLine sport={item.sport} discipline={item.discipline} size={GLYPH.md} textStyle={s.heroSub}>
             {sportName(t, item.sport, item.discipline)} · {t('common.betsShort', { count: item.count })}
           </SportLine>
           <Text style={[s.heroPnl, { color: accent }]} numberOfLines={1} adjustsFontSizeToFit>

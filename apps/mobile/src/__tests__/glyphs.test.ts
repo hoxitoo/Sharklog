@@ -3,6 +3,8 @@ import { join } from 'path';
 import { SPORTS, ESPORTS_DISCIPLINES } from '@sharklog/core';
 import { GLYPHS, type Shape } from '../components/icons/glyphs';
 import { sportGlyph, disciplineGlyph } from '../components/icons/glyphNames';
+import { disciplineLabel } from '../utils/labels';
+import type { TFunction } from 'i18next';
 
 /*
  * The author's icon set (docs/design/icons/adaptive), turned into shapes with
@@ -23,6 +25,15 @@ describe('author glyphs', () => {
     expect(sportGlyph('mma')).toBe('sport_other');
     expect(sportGlyph('toString')).toBe('sport_other');
     expect(disciplineGlyph('starcraft')).toBe('esp_other');
+  });
+
+  it('name an unknown discipline as stored, not as a blank', () => {
+    // The insights row printed " · 5 ставок" for one: the label was undefined.
+    const t = ((k: string) => k) as unknown as TFunction;
+    expect(disciplineLabel(t, 'starcraft')).toBe('starcraft');
+    expect(disciplineLabel(t, 'toString')).toBe('toString');
+    expect(disciplineLabel(t, 'dota2')).toBe(ESPORTS_DISCIPLINES.dota2);
+    expect(disciplineLabel(t, 'other_esports')).toBe('disciplines.other');
   });
 
   it('draw something in every glyph, and every shape is complete', () => {

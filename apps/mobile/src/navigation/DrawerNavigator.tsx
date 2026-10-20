@@ -522,8 +522,8 @@ const styles = themedStyles(() => ({
     paddingBottom: SPACE.lg,
   },
   // The brand is the drawer's headline. logo-mark.png is the mark cropped to its
-  // own edges: adaptive-icon.png carries Android's safe-zone margin, and in a
-  // 48 pt box the mark itself was 24 × 16 — smaller than the word beside it.
+  // own edges: adaptive-icon.png carries Android's safe-zone margin, and in the
+  // 36 pt box it had the mark itself was 18 × 12 — smaller than the word beside it.
   logoImg: {
     // The asset's own proportion (176 × 120), both sides explicit: with
     // aspectRatio alone the box took a width of its own and left a gap.
