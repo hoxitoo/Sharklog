@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" role="img" aria-label="CS2">
+  <title>CS2</title>
+  <path d="M9 18 A17 17 0 0 1 18 9 M30 9 A17 17 0 0 1 39 18 M39 30 A17 17 0 0 1 30 39 M18 39 A17 17 0 0 1 9 30" fill="none" stroke="#B7C1D0" stroke-width="3.7" stroke-linecap="round" stroke-linejoin="round"/><path d="M24 2 L26 10 L24 16 L22 10 Z M24 46 L22 38 L24 32 L26 38 Z M2 24 L10 22 L16 24 L10 26 Z M46 24 L38 26 L32 24 L38 22 Z" fill="#B7C1D0"/><path d="M24 18 L30 24 L24 30 L18 24 Z" fill="#D9BE83"/>
+</svg>

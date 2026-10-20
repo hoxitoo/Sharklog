@@ -9,9 +9,8 @@
 // app's AppIcon resolves at render. Only path, circle and ellipse are expected —
 // anything else fails the build rather than silently dropping out of a glyph.
 //
-// Of the kit only adaptive/, source/, manifest.json, themes.json and preview.png
-// are kept here: the per-theme static copies and the web sprite its README
-// mentions are the same shapes in fixed colours, which the app does not need.
+// The whole kit lives here, but the app is built from adaptive/ only: themes/
+// and the sprite are the same shapes in fixed colours, for Figma and the web.
 const fs = require('fs');
 const path = require('path');
 

@@ -1,0 +1,6 @@
+[data-sl-theme="dark"] { --sl-icon-body: #B8BBD1; --sl-icon-accent: #9183FF; --sl-icon-support: #EB4784; }
+[data-sl-theme="light"] { --sl-icon-body: #515665; --sl-icon-accent: #514CB0; --sl-icon-support: #B52E67; }
+[data-sl-theme="olive"] { --sl-icon-body: #C5BAA2; --sl-icon-accent: #C1CB8B; --sl-icon-support: #EA7EA9; }
+[data-sl-theme="navy-gold"] { --sl-icon-body: #B7C1D0; --sl-icon-accent: #D9BE83; --sl-icon-support: #EA7EA9; }
+.sl-icon { width: 24px; height: 24px; display: inline-block; flex-shrink: 0; vertical-align: middle; }
+.sl-icon--active { --sl-icon-body: var(--sl-icon-accent); }
