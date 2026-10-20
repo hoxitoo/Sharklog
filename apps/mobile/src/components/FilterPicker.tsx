@@ -8,10 +8,14 @@ import { SIZE, GLYPH } from '../theme/typography';
 import { SPACE, RADIUS, TOUCH } from '../theme/layout';
 import { haptic } from '../utils/haptics';
 import { themedStyles } from '../theme/themed';
+import { AppIcon } from './icons/AppIcon';
+import type { GlyphName } from './icons/glyphs';
 
 export interface PickerOption<T extends string> {
   key: T;
   label: string;
+  /** The author's glyph for this option (sports, disciplines) — shown in the list and on the button. */
+  icon?: GlyphName;
 }
 
 interface Props<T extends string> {
@@ -87,6 +91,7 @@ export function FilterPicker<T extends string>({ label, options, value, onChange
         onPress={() => { haptic.selection(); open_(); }}
         activeOpacity={0.75}
       >
+        {current?.icon ? <AppIcon name={current.icon} size={GLYPH.xl} color={colors.textPrimary} /> : null}
         <View style={picker.btnText}>
           <Text style={picker.label}>{label}</Text>
           {/* Two lines: at half width in the bet form, "League of Legends" or
@@ -121,9 +126,14 @@ export function FilterPicker<T extends string>({ label, options, value, onChange
                     onPress={() => { haptic.selection(); onChange(o.key); close(); }}
                     activeOpacity={0.75}
                   >
-                    <Text style={[picker.optionText, isCurrent && picker.optionTextCurrent]}>
-                      {o.label}
-                    </Text>
+                    <View style={picker.optionMain}>
+                      {o.icon ? (
+                        <AppIcon name={o.icon} size={GLYPH.xl} color={isCurrent ? colors.purpleText : colors.textSecondary} />
+                      ) : null}
+                      <Text style={[picker.optionText, isCurrent && picker.optionTextCurrent]}>
+                        {o.label}
+                      </Text>
+                    </View>
                     {isCurrent && <Text style={picker.check}>✓</Text>}
                   </TouchableOpacity>
                 );
@@ -189,6 +199,7 @@ const picker = themedStyles(() => ({
     borderBottomColor: colors.border,
   },
   optionCurrent: { borderBottomColor: colors.purple },
+  optionMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: SPACE.md },
   optionText: { fontSize: SIZE.lead, color: colors.textSecondary },
   optionTextCurrent: { color: colors.purpleText, fontWeight: '700' },
   check: { fontSize: SIZE.lead, color: colors.purpleText, fontWeight: '700' },

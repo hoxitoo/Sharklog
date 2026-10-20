@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" role="img" aria-label="Банкролл" color="#B8BBD1">
+  <title>Банкролл</title>
+  <path d="M7 39 V14 L20 5 M28 5 L41 14 V39" fill="none" stroke="var(--sl-icon-body, currentColor)" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/><ellipse cx="24" cy="20" rx="10" ry="4.5" fill="var(--sl-icon-accent, #9183FF)"/><path d="M14 25 C18 29 30 29 34 25 V30 C30 35 18 35 14 30 Z" fill="var(--sl-icon-body, currentColor)"/><path d="M14 35 C18 39 30 39 34 35 V40 C30 45 18 45 14 40 Z" fill="var(--sl-icon-body, currentColor)"/>
+</svg>

@@ -22,6 +22,8 @@ import { ScreenHeader } from '../../components/ScreenHeader';
 import { ProGate } from '../../components/ProGate';
 import { useFormatMoney } from '../../utils/useFormatMoney';
 import { YearBreakdown } from './YearBreakdown';
+import { AppIcon, sportGlyph, disciplineGlyph } from '../../components/icons/AppIcon';
+import type { GlyphName } from '../../components/icons/glyphs';
 import { themedStyles } from '../../theme/themed';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
@@ -38,26 +40,40 @@ const PERIOD_OPTIONS: Array<{ key: Period; label: string }> = [
 /** Bets a team needs before it is analysed — shown to the user, so one source. */
 const TEAM_MIN_BETS = 5;
 
-const SPORT_ICONS: Record<string, string> = {
-  football: '⚽', hockey: '🏒', basketball: '🏀', tennis: '🎾',
-  esports: '🎮', volleyball: '🏐', baseball: '⚾', other: '🏅',
-};
-
 /** How many rows sit under the two hero cards before the rest is folded away. */
 const TOP_N = 3;
 
 /**
  * "Киберспорт" is not an answer — CS2 and Dota are different games with
- * different edges, so the discipline replaces the sport whenever it is known.
+ * different edges, so the discipline replaces the sport whenever it is known:
+ * in the name and in the glyph alike. "Other game" names nothing, so the sport
+ * is the better answer there.
  */
-function sportLine(tr: TFunction, sport: string, discipline?: string): string {
-  const icon = SPORT_ICONS[sport] ?? '🏅';
-  // "Other game" names nothing, so the sport is the better answer there.
-  const named = discipline && discipline !== 'other_esports'
-    ? disciplineLabel(tr, discipline as EsportsDiscipline)
-    : undefined;
-  const name = named ?? tr(`sports.${sport}`, { defaultValue: sport });
-  return `${icon} ${name}`;
+function namedDiscipline(discipline?: string): discipline is EsportsDiscipline {
+  return !!discipline && discipline !== 'other_esports';
+}
+
+function sportName(tr: TFunction, sport: string, discipline?: string): string {
+  return namedDiscipline(discipline)
+    ? disciplineLabel(tr, discipline)
+    : tr(`sports.${sport}`, { defaultValue: sport });
+}
+
+function sportIcon(sport: string, discipline?: string): GlyphName {
+  return namedDiscipline(discipline) ? disciplineGlyph(discipline) : sportGlyph(sport);
+}
+
+/** The sport (or discipline) glyph, then the line it heads. Was an emoji inside the text. */
+function SportLine({ sport, discipline, size, textStyle, children }: {
+  sport: string; discipline?: string | undefined; size: number;
+  textStyle: object; children: React.ReactNode;
+}) {
+  return (
+    <View style={s.sportLine}>
+      <AppIcon name={sportIcon(sport, discipline)} size={size} color={colors.textMuted} />
+      <Text style={[textStyle, s.sportLineText]} numberOfLines={1}>{children}</Text>
+    </View>
+  );
 }
 
 function pnlColor(pnl: number): string {
@@ -94,9 +110,9 @@ function HeroPair({ best, worst, onOpen }: {
         >
           <Text style={[s.heroLabel, { color: accent }]}>{label}</Text>
           <Text style={s.heroName} numberOfLines={2}>{item.name}</Text>
-          <Text style={s.heroSub} numberOfLines={1}>
-            {sportLine(t, item.sport, item.discipline)} · {t('common.betsShort', { count: item.count })}
-          </Text>
+          <SportLine sport={item.sport} discipline={item.discipline} size={GLYPH.sm} textStyle={s.heroSub}>
+            {sportName(t, item.sport, item.discipline)} · {t('common.betsShort', { count: item.count })}
+          </SportLine>
           <Text style={[s.heroPnl, { color: accent }]} numberOfLines={1} adjustsFontSizeToFit>
             {item.pnl >= 0 ? '+' : ''}{fmt(item.pnl)}
           </Text>
@@ -121,9 +137,9 @@ const TournamentRow = React.memo(function TournamentRow({ t, onPress }: {
     <TouchableOpacity style={s.row} onPress={onPress} activeOpacity={0.7}>
       <View style={{ flex: 1, marginRight: SPACE.sm }}>
         <Text style={s.rowName} numberOfLines={1}>{t.tournament}</Text>
-        <Text style={s.rowSub} numberOfLines={1}>
-          {sportLine(tr, t.sport, t.discipline)} · {tr('common.betsCount', { count: t.count })} · {t.winRate.toFixed(0)}% WR
-        </Text>
+        <SportLine sport={t.sport} discipline={t.discipline} size={GLYPH.md} textStyle={s.rowSub}>
+          {sportName(tr, t.sport, t.discipline)} · {tr('common.betsCount', { count: t.count })} · {t.winRate.toFixed(0)}% WR
+        </SportLine>
       </View>
       <View style={{ alignItems: 'flex-end' }}>
         <Text style={[s.rowPnl, { color }]}>{t.pnl >= 0 ? '+' : ''}{fmt(t.pnl)}</Text>
@@ -145,9 +161,9 @@ const TeamRow = React.memo(function TeamRow({ team, onPress }: {
     <TouchableOpacity style={s.row} onPress={onPress} activeOpacity={0.7}>
       <View style={{ flex: 1, marginRight: SPACE.sm }}>
         <Text style={s.rowName} numberOfLines={1}>{team.name}</Text>
-        <Text style={s.rowSub} numberOfLines={1}>
-          {sportLine(t, team.sport, team.discipline)} · {t('common.betsCount', { count: team.count })} · {team.winRate.toFixed(0)}% WR
-        </Text>
+        <SportLine sport={team.sport} discipline={team.discipline} size={GLYPH.md} textStyle={s.rowSub}>
+          {sportName(t, team.sport, team.discipline)} · {t('common.betsCount', { count: team.count })} · {team.winRate.toFixed(0)}% WR
+        </SportLine>
       </View>
       <View style={{ alignItems: 'flex-end' }}>
         <Text style={[s.rowPnl, { color }]}>{team.pnl >= 0 ? '+' : ''}{fmt(team.pnl)}</Text>
@@ -374,6 +390,8 @@ const s = themedStyles(() => ({
   },
   rowName: { fontSize: SIZE.body, fontWeight: '600', color: colors.textPrimary, marginBottom: 2 },
   rowSub: { fontSize: SIZE.caption, color: colors.textMuted },
+  sportLine: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs },
+  sportLineText: { flexShrink: 1 },
   rowPnl: { ...numeric, fontSize: SIZE.body, fontWeight: '700' },
   rowRoi: { ...numeric, fontSize: SIZE.caption, fontWeight: '600' },
   chevron: { fontSize: GLYPH.lg, color: colors.textMuted, marginLeft: SPACE.xs, marginTop: -2 },
