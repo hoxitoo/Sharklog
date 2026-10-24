@@ -1,5 +1,7 @@
-import type { Bet } from '@sharklog/core';
-import { importBetsFromCSV, migrate, type ImportResult } from '@sharklog/core';
+import type { Bet, Bankroll, DiaryEntry, Team } from '@sharklog/core';
+import {
+  importBetsFromCSV, migrate, sanitizeBets, sanitizeBankroll, sanitizeDiary, sanitizeTeams, type ImportResult,
+} from '@sharklog/core';
 
 export type { ImportResult };
 
@@ -31,9 +33,12 @@ export function importFromCSV(content: string): ImportResult {
 export interface JSONBackup {
   bets: Bet[];
   settings?: Record<string, unknown>;
-  bankroll?: Record<string, unknown>;
-  diary?: unknown[];
-  teams?: unknown[];
+  /** Only the fields that checked out — merged over the phone's own bankroll. */
+  bankroll?: Partial<Bankroll>;
+  diary?: DiaryEntry[];
+  teams?: Team[];
+  /** Records left out because they were broken (sanitize.ts in core). */
+  dropped: number;
 }
 
 export function importFromJSON(content: string): JSONBackup | null {
@@ -41,14 +46,27 @@ export function importFromJSON(content: string): JSONBackup | null {
     // Through migrate(), not straight from JSON: a backup taken before a schema
     // fix must get the same correction a stored file gets on load. Restoring an
     // old backup used to reintroduce bugs the app had already migrated away.
-    const parsed = migrate(JSON.parse(content)) as unknown as Record<string, unknown>;
+    const json: unknown = JSON.parse(content);
+    // Before migrate(): it fills in an empty list, and any JSON file at all
+    // would then read as a backup of nothing.
+    if (typeof json !== 'object' || json === null || !Array.isArray((json as Record<string, unknown>)['bets'])) return null;
+    const parsed = migrate(json as Parameters<typeof migrate>[0]) as unknown as Record<string, unknown>;
     if (!Array.isArray(parsed['bets'])) return null;
+    // A backup is outside data: every record is checked before the store sees
+    // it. A handed-over file with one broken bet used to crash every screen
+    // on every launch, with no way out short of clearing all data.
+    const bets = sanitizeBets(parsed['bets']);
+    const bankroll = sanitizeBankroll(parsed['bankroll']);
+    const diary = Array.isArray(parsed['diary']) ? sanitizeDiary(parsed['diary']) : null;
+    const teams = Array.isArray(parsed['teams']) ? sanitizeTeams(parsed['teams']) : null;
+    const settings = parsed['settings'];
     return {
-      bets: parsed['bets'] as Bet[],
-      ...(parsed['settings'] ? { settings: parsed['settings'] as Record<string, unknown> } : {}),
-      ...(parsed['bankroll'] ? { bankroll: parsed['bankroll'] as Record<string, unknown> } : {}),
-      ...(parsed['diary'] ? { diary: parsed['diary'] as unknown[] } : {}),
-      ...(parsed['teams'] ? { teams: parsed['teams'] as unknown[] } : {}),
+      bets: bets.items,
+      ...(settings && typeof settings === 'object' && !Array.isArray(settings) ? { settings: settings as Record<string, unknown> } : {}),
+      ...(Object.keys(bankroll.bankroll).length > 0 ? { bankroll: bankroll.bankroll } : {}),
+      ...(diary ? { diary: diary.items } : {}),
+      ...(teams ? { teams: teams.items } : {}),
+      dropped: bets.dropped + bankroll.dropped + (diary?.dropped ?? 0) + (teams?.dropped ?? 0),
     };
   } catch {
     return null;

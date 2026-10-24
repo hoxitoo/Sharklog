@@ -33,6 +33,13 @@ export interface LicensePayload {
   iat: number;
   /** Expiry, unix seconds. Absent on a lifetime licence; kept for subscriptions later. */
   exp?: number;
+  /**
+   * Issued for a TEST payment (the server in Robokassa's test mode). Only a
+   * hand-installed build takes it: whoever knew the server's address — it is in
+   * the APK — could otherwise get a lifetime licence for a payment that moved
+   * no money while the server was being tested.
+   */
+  test?: true;
 }
 
 const B64URL = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
@@ -85,19 +92,21 @@ function isPayload(p: unknown): p is LicensePayload {
     && typeof o['id'] === 'string' && o['id'].length > 0
     && o['plan'] === 'lifetime'
     && typeof o['iat'] === 'number'
-    && (o['exp'] === undefined || typeof o['exp'] === 'number');
+    && (o['exp'] === undefined || typeof o['exp'] === 'number')
+    && (o['test'] === undefined || o['test'] === true);
 }
 
 /**
- * The licence's payload if — and only if — it is signed by `publicKeyB64` and
- * still in force at `now`. Anything else (wrong key, edited payload, expired,
- * garbage pasted into the restore field) is `null`, never a throw: this runs on
- * every launch, and a bad string must cost the user Pro, not the app.
+ * The licence's payload if — and only if — it is signed by `publicKeyB64`,
+ * still in force at `now`, and not a test licence unless `allowTest`. Anything
+ * else (wrong key, edited payload, expired, garbage pasted into the restore
+ * field) is `null`, never a throw: a bad string must cost the user Pro, not the app.
  */
 export function verifyLicense(
   token: string | undefined | null,
   publicKeyB64: string | undefined | null,
   now: Date = new Date(),
+  { allowTest = false }: { allowTest?: boolean } = {},
 ): LicensePayload | null {
   if (!token || !publicKeyB64) return null;
   const parts = token.trim().split('.');
@@ -123,7 +132,28 @@ export function verifyLicense(
   }
   if (!isPayload(payload)) return null;
   if (payload.exp !== undefined && payload.exp * 1000 <= now.getTime()) return null;
+  if (payload.test && !allowTest) return null;
   return payload;
+}
+
+/**
+ * What a STORED licence says — without checking the signature again: it was
+ * checked on the way in (see hasLicense). For the invoice number (support, the
+ * revocation check) and the test flag. Not licence-shaped → null.
+ */
+export function readLicense(token: string | undefined | null): LicensePayload | null {
+  if (!token) return null;
+  const parts = token.trim().split('.');
+  if (parts.length !== 3 || parts[0] !== LICENSE_PREFIX) return null;
+  const bytes = decodeBase64(parts[1]!);
+  const json = bytes ? bytesToAscii(bytes) : null;
+  if (json === null) return null;
+  try {
+    const payload: unknown = JSON.parse(json);
+    return isPayload(payload) ? payload : null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -158,9 +188,12 @@ export function hasLicense(token: string | undefined | null): boolean {
  * - The local 7-day trial holds Pro until it runs out; once it has run out it
  *   no longer does, whatever the cached flag says.
  * - The store saying no ends store-granted Pro.
- * - Otherwise nothing has an opinion — keep the cached flag. That is what a
- *   user upgraded from an older build has, and taking Pro away from them on an
- *   update, with no source left to give it back, would be the wrong default.
+ * - Otherwise nothing has an opinion — keep the cached flag, but only where a
+ *   legitimate Pro can exist without a trace (`keepCached`: the store build,
+ *   whose offline launch must not take a subscription away). In the Robokassa
+ *   build there is no such Pro: it is a licence, the trial or the owner build.
+ *   The cached flag there was the old APK's "seven taps → Pro", which survived
+ *   an update forever.
  */
 export function resolvePro(input: {
   owner: boolean;
@@ -171,6 +204,8 @@ export function resolvePro(input: {
   storeEntitled: boolean | null;
   /** The cached `settings.isPro`. */
   previous: boolean;
+  /** Whether the cached flag alone may keep Pro (see above). */
+  keepCached: boolean;
   now?: Date;
 }): boolean {
   const now = input.now ?? new Date();
@@ -178,10 +213,24 @@ export function resolvePro(input: {
   if (input.storeEntitled === true) return true;
   if (input.trialEndsAt) {
     const ends = new Date(input.trialEndsAt).getTime();
-    if (Number.isFinite(ends)) return ends > now.getTime();
+    if (Number.isFinite(ends)) return trialActive(ends, now);
   }
   if (input.storeEntitled === false) return false;
-  return input.previous;
+  return input.keepCached && input.previous;
+}
+
+/** Seven days of Pro for a new user, from the moment onboarding finishes. */
+export const TRIAL_DAYS = 7;
+
+/**
+ * A trial counts while its end is ahead — and no further ahead than a trial can
+ * be. Onboarding with the phone's clock set to 2036 wrote an end date in 2036;
+ * with the clock set back, that was ten years of Pro. A day of slack covers
+ * clock drift and time-zone changes.
+ */
+function trialActive(endsMs: number, now: Date): boolean {
+  const left = endsMs - now.getTime();
+  return left > 0 && left <= (TRIAL_DAYS + 1) * 86_400_000;
 }
 
 /** Whether the local trial is what holds Pro right now (no licence, end date ahead). */
@@ -190,11 +239,9 @@ export function trialRunning(
   now: Date = new Date(),
 ): boolean {
   if (hasLicense(s.license) || !s.proExpiresAt) return false;
-  return new Date(s.proExpiresAt).getTime() > now.getTime();
+  const ends = new Date(s.proExpiresAt).getTime();
+  return Number.isFinite(ends) && trialActive(ends, now);
 }
-
-/** Seven days of Pro for a new user, from the moment onboarding finishes. */
-export const TRIAL_DAYS = 7;
 
 export function trialEnd(from: Date = new Date()): string {
   return new Date(from.getTime() + TRIAL_DAYS * 86_400_000).toISOString();

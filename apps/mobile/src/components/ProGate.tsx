@@ -12,7 +12,7 @@ import {
   restorePurchases,
   type OfferingPackages,
 } from '../services/revenueCat';
-import { BILLING, PRIVACY_URL } from '../services/billing';
+import { BILLING, PRIVACY_URL, OFFER_URL } from '../services/billing';
 import {
   getOffer, createPayment, getPendingPayment, clearPendingPayment,
   type Offer, type PendingPayment,
@@ -53,8 +53,9 @@ export function ProOffer({ feature }: { feature: string }) {
       <Text style={styles.icon}>👑</Text>
       <Text style={styles.title}>SharkLog Pro</Text>
       {/* "<feature> — in Pro": a dash, not a verb, so nothing has to agree
-          with the feature's gender ("аналитика доступно" was the old result). */}
-      <Text style={styles.subtitle}>{feature} — {t('proGate.inPro')}</Text>
+          with the feature's gender ("аналитика доступно" was the old result).
+          "In the Pro subscription" only where there IS a subscription. */}
+      <Text style={styles.subtitle}>{feature} — {t(BILLING === 'robokassa' ? 'proGate.inProOnce' : 'proGate.inPro')}</Text>
 
       <View style={styles.perks}>
         {PERKS.map((p) => (
@@ -169,7 +170,7 @@ function RobokassaCheckout() {
         <TouchableOpacity style={[styles.button, styles.buttonSecondary]} onPress={loadOffer} activeOpacity={0.8}>
           <Text style={styles.buttonTextSecondary}>{t('proGate.retry')}</Text>
         </TouchableOpacity>
-        <PrivacyLink />
+        <LegalLinks />
       </>
     );
   }
@@ -207,8 +208,15 @@ function RobokassaCheckout() {
 
   // ready / opening
   const opening = phase === 'opening';
+  // Whole roubles: the price is set in roubles, and "399,00 ₽" on a button reads as a bill.
+  const price = formatMoney((offer?.price ?? 0) * 100, '₽', 0);
   return (
     <>
+      {/* What is bought and how to undo it — BEFORE the button: the refund
+          rules count on the buyer having been told (docs/legal). */}
+      <Text style={styles.note}>{t('proGate.foreverNote')}</Text>
+      <Text style={styles.note}>{t('proGate.refundNote')}</Text>
+      <Consent price={price} />
       <TouchableOpacity
         style={[styles.button, styles.buttonPrimary]}
         activeOpacity={0.8}
@@ -217,17 +225,54 @@ function RobokassaCheckout() {
       >
         {opening
           ? <ActivityIndicator color="#fff" />
-          : (
-            <Text style={styles.buttonText}>
-              {/* Whole roubles: the price is set in roubles, and "399,00 ₽" on a button reads as a bill. */}
-              {t('proGate.lifetime', { price: formatMoney((offer?.price ?? 0) * 100, '₽', 0) })}
-            </Text>
-          )}
+          : <Text style={styles.buttonText}>{t('proGate.lifetime', { price })}</Text>}
       </TouchableOpacity>
-      <Text style={styles.note}>{t('proGate.oneTime')}</Text>
       <Text style={styles.noteMuted}>{t('proGate.via')}</Text>
-      <PrivacyLink />
+      <LegalLinks />
     </>
+  );
+}
+
+/**
+ * "By tapping «Pro forever — 399 ₽» you accept the offer…" — right above the
+ * button, in the body colour, the offer a link inside the sentence. The
+ * contract is made by paying (no checkbox: a pre-ticked one is banned, and an
+ * empty one only adds a tap); this line is what tells the buyer so.
+ * `<1>…</1>` in the string marks the link: each language puts it in its own place.
+ */
+function splitConsent(text: string): [string, string, string] | null {
+  const parts = text.split(/<\/?1>/);
+  return parts.length === 3 ? [parts[0]!, parts[1]!, parts[2]!] : null;
+}
+
+function Consent({ price }: { price: string }) {
+  const { t } = useTranslation();
+  const text = t('proGate.consent', { price });
+  const parts = splitConsent(text);
+  if (!parts) return <Text style={styles.consent}>{text.replace(/<\/?1>/g, '')}</Text>;
+  const [before, link, after] = parts;
+  return (
+    <Text style={styles.consent}>
+      {before}
+      <Text style={styles.consentLink} onPress={() => Linking.openURL(OFFER_URL).catch(() => {})}>{link}</Text>
+      {after}
+    </Text>
+  );
+}
+
+/** The offer and the policy, side by side under the purchase. */
+function LegalLinks() {
+  const { t } = useTranslation();
+  return (
+    <View style={styles.legalRow}>
+      <TouchableOpacity onPress={() => Linking.openURL(OFFER_URL).catch(() => {})} style={styles.legalLink}>
+        <Text style={styles.link}>{t('proGate.offer')}</Text>
+      </TouchableOpacity>
+      <Text style={styles.noteMuted}>·</Text>
+      <TouchableOpacity onPress={() => Linking.openURL(PRIVACY_URL).catch(() => {})} style={styles.legalLink}>
+        <Text style={styles.link}>{t('proGate.privacy')}</Text>
+      </TouchableOpacity>
+    </View>
   );
 }
 
@@ -386,4 +431,9 @@ const styles = themedStyles(() => ({
   restore: { marginTop: SPACE.lg, minHeight: TOUCH, justifyContent: 'center' },
   restoreText: { fontSize: SIZE.body, color: colors.textSecondary },
   link: { fontSize: SIZE.caption, color: colors.purpleText, textDecorationLine: 'underline' },
+  consent: { fontSize: SIZE.caption, fontWeight: '400', color: colors.textPrimary, textAlign: 'center', lineHeight: 18, marginBottom: SPACE.md },
+  // A nested Text sets its own weight: AppText resolves the face per element.
+  consentLink: { fontSize: SIZE.caption, fontWeight: '600', color: colors.purpleText, textDecorationLine: 'underline' },
+  legalRow: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm, marginTop: SPACE.md },
+  legalLink: { minHeight: TOUCH, justifyContent: 'center' },
 }));

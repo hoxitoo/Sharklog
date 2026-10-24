@@ -5,6 +5,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import { AppText as Text, AppTextInput as TextInput } from './AppText';
 import { useBetsStore } from '../store/betsStore';
+import { checkLicenseStanding } from '../services/purchase';
 import { colors } from '../theme/colors';
 import { SPACE, RADIUS, TOUCH } from '../theme/layout';
 import { SIZE, numeric } from '../theme/typography';
@@ -35,6 +36,9 @@ export function RestoreCodeSheet({ visible, onClose }: { visible: boolean; onClo
       setInvalid(true);
       return;
     }
+    // A code refunded and revoked must not hold Pro until the next launch on a
+    // phone that has never seen it revoked. Off the main path: no answer, no change.
+    checkLicenseStanding();
     onClose();
     // After the modal is gone: an alert raised by an unmounting modal can be lost.
     requestAnimationFrame(() => Alert.alert(t('common.success'), t('settings.restoreCodeDone')));

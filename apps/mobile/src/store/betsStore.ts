@@ -1,15 +1,21 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Bet, AppSettings, Bankroll, DiaryEntry, Team, Sport, EsportsDiscipline } from '@sharklog/core';
-import { migrate, CURRENT_SCHEMA_VERSION, FREE_LIMITS, DEFAULT_BANKROLL_NAME, isInTilt, calcDashboard, parseEventTeams, toYmd, preselectedBookmakers } from '@sharklog/core';
+import {
+  migrate, CURRENT_SCHEMA_VERSION, FREE_LIMITS, DEFAULT_BANKROLL_NAME, isInTilt, calcDashboard, parseEventTeams, toYmd,
+  preselectedBookmakers, sanitizeBets, sanitizeBankroll, sanitizeDiary, sanitizeTeams,
+} from '@sharklog/core';
 import {
   sendTiltNotification, scheduleBetResultReminder,
   cancelBetResultReminder, cancelAllBetResultReminders,
 } from '../utils/notifications';
-import { verifyLicense, resolvePro, trialEnd, extractLicense, hasLicense } from '../utils/license';
-import { LICENSE_PUBKEY } from '../services/billing';
+import { verifyLicense, resolvePro, trialEnd, extractLicense, hasLicense, readLicense } from '../utils/license';
+import { BILLING, LICENSE_PUBKEY } from '../services/billing';
+import { distribution } from '../utils/storeLinks';
 
 const STORAGE_KEY = '@sharklog/data';
+/** The stored file as it was, when loading had to leave records out. */
+const QUARANTINE_KEY = '@sharklog/data_quarantine';
 
 // Serialize all writes through a single chain so rapid successive mutations
 // (e.g. quick W/L taps) can't race and clobber each other's snapshot.
@@ -44,7 +50,7 @@ function extractTeamNames(event: string): string[] {
 
 // A clean team name never contains the express encoding chars. Drop entries that
 // were polluted by the old extractTeamNames (e.g. "Yellow submarine|1.45 / Reconix").
-function sanitizeTeams(teams: Team[]): Team[] {
+function sanitizeTeamNames(teams: Team[]): Team[] {
   return teams.filter((t) => !t.name.includes('|') && !t.name.includes(' / '));
 }
 
@@ -102,11 +108,38 @@ interface BetsStore {
   refreshPro: (storeEntitled?: boolean | null) => void;
   /** Store a licence if it checks out; false (and nothing changed) if it does not. */
   applyLicense: (token: string) => boolean;
+  /**
+   * The server revoked this invoice's licence (a refund): drop the licence if it
+   * is the stored one, remember the number, recompute Pro.
+   */
+  revokeLicense: (invoiceId: string) => void;
   /** Seven days of Pro for a new user. Never twice, never over a licence. */
   startTrial: () => void;
 }
 
 const IS_OWNER_PRO = process.env.EXPO_PUBLIC_OWNER_PRO === 'true';
+
+/**
+ * Only the store build (RevenueCat) has a Pro that can sit in the cached flag
+ * with nothing behind it — an offline launch of a subscriber. In the Robokassa
+ * build Pro is a licence, the trial or the owner build; see resolvePro.
+ */
+const KEEP_CACHED_PRO = BILLING === 'revenuecat';
+
+/** Test-mode licences are for builds installed by hand (testers, the owner), never a store build. */
+const ACCEPTS_TEST_LICENSES = distribution() === 'direct';
+
+/**
+ * Whether a stored licence counts on this build: licence-shaped, not a test
+ * licence carried into a store build (installed over a test build), not revoked.
+ */
+function licenseCounts(token: string | undefined, revoked: readonly string[] | undefined): token is string {
+  if (!hasLicense(token)) return false;
+  const p = readLicense(token);
+  if (!p) return false;
+  if (p.test && !ACCEPTS_TEST_LICENSES) return false;
+  return !(revoked ?? []).includes(p.id);
+}
 
 export const defaultSettings: AppSettings = {
   tiltThreshold: FREE_LIMITS.TILT_ALERT_THRESHOLD,
@@ -168,21 +201,38 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
       }
       const schema = migrate(JSON.parse(raw));
       const savedSettings: Partial<AppSettings> = schema.settings ?? {};
+      // A licence that does not count on this build (a test licence in a store
+      // build, a revoked one) is dropped, not just ignored.
+      const { license: storedLicense, ...savedRest } = savedSettings;
+      const license = licenseCounts(storedLicense, savedSettings.revokedLicenses) ? storedLicense : undefined;
       // The stored flag is a cache. Pro is decided again on every launch from
       // what can actually grant it: a run-out trial closes the gates. (The
       // licence was verified when it was stored — see hasLicense.)
       const isPro = resolvePro({
         owner: IS_OWNER_PRO,
-        licenseValid: hasLicense(savedSettings.license),
+        licenseValid: license !== undefined,
         trialEndsAt: savedSettings.proExpiresAt,
         storeEntitled: null,
         previous: savedSettings.isPro ?? false,
+        keepCached: KEEP_CACHED_PRO,
       });
+      // Only what would crash a screen is dropped (sanitize.ts, 'stored' mode);
+      // anything the app wrote loosely in an older version stays as it was.
+      const bets = sanitizeBets(schema.bets, 'stored');
+      const bank = sanitizeBankroll(schema.bankroll, 'stored');
+      const diary = sanitizeDiary(schema.diary, 'stored');
+      const teams = sanitizeTeams(schema.teams);
+      if (bets.dropped + bank.dropped + diary.dropped + teams.dropped > 0) {
+        // The next write would make the loss final: keep the file as it was,
+        // so support can still get those records back.
+        AsyncStorage.setItem(QUARANTINE_KEY, raw).catch(() => {});
+      }
       set({
-        bets: schema.bets ?? [],
+        bets: bets.items,
         settings: {
           ...defaultSettings,
-          ...savedSettings,
+          ...savedRest,
+          ...(license !== undefined ? { license } : {}),
           // Existing users (data already present) shouldn't be re-onboarded on upgrade.
           onboardingComplete: savedSettings.onboardingComplete ?? true,
           // Settings saved before the key existed meant "checklist on"; the new
@@ -190,9 +240,9 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
           disableChecklist: savedSettings.disableChecklist ?? false,
           isPro,
         },
-        bankroll: { ...defaultBankroll, ...schema.bankroll },
-        diary: schema.diary ?? [],
-        teams: sanitizeTeams(schema.teams ?? []),
+        bankroll: { ...defaultBankroll, ...bank.bankroll },
+        diary: diary.items,
+        teams: sanitizeTeamNames(teams.items),
         isLoaded: true,
       });
     } catch {
@@ -297,10 +347,11 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
     const { settings } = get();
     const isPro = resolvePro({
       owner: IS_OWNER_PRO,
-      licenseValid: hasLicense(settings.license),
+      licenseValid: licenseCounts(settings.license, settings.revokedLicenses),
       trialEndsAt: settings.proExpiresAt,
       storeEntitled,
       previous: settings.isPro,
+      keepCached: KEEP_CACHED_PRO,
     });
     // A store purchase outlives the trial it may have started in: drop the
     // trial date, or an offline launch after the trial would read as "ran out".
@@ -317,7 +368,11 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
   applyLicense: (text) => {
     // The ONE place a licence enters the device — so the one place it is verified.
     const token = extractLicense(text);
-    if (verifyLicense(token, LICENSE_PUBKEY) === null) return false;
+    const payload = verifyLicense(token, LICENSE_PUBKEY, new Date(), { allowTest: ACCEPTS_TEST_LICENSES });
+    if (payload === null) return false;
+    // Refunded: the same code from the user's Telegram must not bring Pro back,
+    // online or off.
+    if ((get().settings.revokedLicenses ?? []).includes(payload.id)) return false;
     set((s) => {
       // Bought: the trial date no longer means anything (omitted, not undefined).
       const { proExpiresAt: _trial, ...rest } = s.settings;
@@ -325,6 +380,24 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
     });
     get().persist();
     return true;
+  },
+
+  revokeLicense: (invoiceId) => {
+    set((s) => {
+      const revoked = s.settings.revokedLicenses ?? [];
+      const { license, ...rest } = s.settings;
+      const drop = readLicense(license)?.id === invoiceId;
+      return {
+        settings: {
+          ...(drop ? rest : s.settings),
+          revokedLicenses: revoked.includes(invoiceId) ? revoked : [...revoked, invoiceId],
+          // Whatever the licence held is gone; refreshPro asks the other sources.
+          ...(drop ? { isPro: false } : {}),
+        },
+      };
+    });
+    get().refreshPro(null);
+    get().persist();
   },
 
   startTrial: () => {
