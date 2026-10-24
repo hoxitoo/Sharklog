@@ -69,6 +69,18 @@ describe('load of a damaged store', () => {
     expect(extra).toHaveLength(1);
     expect(await AsyncStorage.getItem(extra[0]!)).toBe('{"bets": [{"id": "b1"');
   });
+
+  it('does not add a copy on every launch while the same damaged file sits there', async () => {
+    const { useBetsStore } = require('../store/betsStore') as typeof import('../store/betsStore');
+    const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+    const count = async () => ((await AsyncStorage.getAllKeys()) as string[]).filter((k) => k.startsWith('@sharklog/data_quarantine')).length;
+    const before = await count();
+    for (let i = 0; i < 3; i++) {
+      await useBetsStore.getState().load();
+      await flush();
+    }
+    expect(await count()).toBe(before);
+  });
 });
 
 const flush = () => new Promise((r) => setTimeout(r, 0));

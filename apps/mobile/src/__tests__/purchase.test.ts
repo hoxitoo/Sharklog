@@ -182,15 +182,34 @@ describe('applyRestoreCode — a revoke can be undone', () => {
     expect(settings().revokedLicenses).toEqual([]);
   });
 
-  it('checks a code just entered even while a check of the old licence is in flight', async () => {
+  it('checks a licence that replaced another while the old one\'s check is in flight', async () => {
     useBetsStore.getState().applyLicense(licence('43'));
     const old = checkLicenseStanding(); // for 43, still in flight
+    useBetsStore.getState().applyLicense(licence('44'));
     checkById = { '44': { status: 'revoked' } };
-    expect(await applyRestoreCode(licence('44'))).toBe('ok');
-    await old;
-    await new Promise((r) => setTimeout(r, 0));
-    // 44 was refunded: its own check dropped it — the in-flight one for 43 did not answer for it.
+    // Its own request, not the one already running for 43.
+    const fresh = checkLicenseStanding();
+    expect(fresh).not.toBe(old);
+    expect(await fresh).toBe('revoked');
+    expect(await old).toBe('ok');
     expect(settings().license).toBeUndefined();
     expect(settings().revokedLicenses).toContain('44');
+  });
+
+  it('asks before applying: a refunded code does not wipe a running trial or say "restored"', async () => {
+    useBetsStore.getState().startTrial();
+    const trial = settings().proExpiresAt;
+    checkById = { '45': { status: 'revoked' } };
+    expect(await applyRestoreCode(licence('45'))).toBe('revoked');
+    expect(settings().proExpiresAt).toBe(trial);
+    expect(settings().isPro).toBe(true); // still the trial
+    expect(settings().license).toBeUndefined();
+    expect(settings().revokedLicenses).toContain('45');
+  });
+
+  it('takes a code it could not ask about, if this phone never saw it revoked — a payer offline keeps Pro', async () => {
+    checkAnswer = null;
+    expect(await applyRestoreCode(licence('46'))).toBe('ok');
+    expect(settings().isPro).toBe(true);
   });
 });

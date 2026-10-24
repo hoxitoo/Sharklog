@@ -198,7 +198,9 @@ function mapRow(raw: Record<string, string>, newId: () => string): Bet | null {
   const strategy: Strategy = STRATEGY_MAP[g('strategy').toLowerCase()] ?? 'other';
   const discipline = DISCIPLINE_MAP[g('discipline').toLowerCase()];
 
-  const time = /^\d{1,2}:\d{2}/.test(g('time')) ? g('time').slice(0, 5) : '00:00';
+  // The matched HH:MM itself, not the first five characters: "7:05:30" sliced
+  // gave "7:05:".
+  const time = /^\d{1,2}:\d{2}/.exec(g('time'))?.[0] ?? '00:00';
   const now = new Date().toISOString();
 
   return {

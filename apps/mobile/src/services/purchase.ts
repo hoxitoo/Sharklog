@@ -70,23 +70,28 @@ export function checkLicenseStanding(): Promise<StandingResult> {
 export type CodeResult = 'ok' | 'invalid' | 'revoked' | 'unreachable';
 
 /**
- * A restore code entered by hand or carried in a backup. A code this phone saw
- * revoked is not simply "invalid": a revoke can be a mistake undone on the
- * server (`/unrevoke`), and then the phone must take the code back — so it asks.
+ * A restore code entered by hand or carried in a backup. The server is asked
+ * BEFORE the code is applied: applying first dropped a running trial and said
+ * "Pro restored", and the check a moment later took Pro away — a refunded code
+ * cost the user the trial they still had.
+ *
+ * A code this phone saw revoked is not simply "invalid" either: a revoke can be
+ * a mistake undone on the server (`/unrevoke`), and the phone takes it back.
+ * No answer: a code never seen revoked is taken (the next launch online checks
+ * it — a paying user offline keeps Pro); one seen revoked waits for an answer.
  */
 export async function applyRestoreCode(text: string): Promise<CodeResult> {
-  if (useBetsStore.getState().applyLicense(text)) {
-    // A code refunded and revoked must not hold Pro until the next launch on a
-    // phone that has never seen it revoked.
-    void checkLicenseStanding();
-    return 'ok';
-  }
   const payload = verifyCode(text);
-  if (!payload || !(useBetsStore.getState().settings.revokedLicenses ?? []).includes(payload.id)) return 'invalid';
+  if (!payload) return 'invalid';
+  const seenRevoked = (useBetsStore.getState().settings.revokedLicenses ?? []).includes(payload.id);
   const revoked = await isRevoked(payload.id);
-  if (revoked === null) return 'unreachable';
-  if (revoked) return 'revoked';
-  useBetsStore.getState().forgetRevocation(payload.id);
+  if (revoked === true) {
+    // Remembered, so the same code is refused offline too.
+    useBetsStore.getState().revokeLicense(payload.id);
+    return 'revoked';
+  }
+  if (revoked === null && seenRevoked) return 'unreachable';
+  if (revoked === false && seenRevoked) useBetsStore.getState().forgetRevocation(payload.id);
   return useBetsStore.getState().applyLicense(text) ? 'ok' : 'invalid';
 }
 

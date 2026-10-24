@@ -397,12 +397,23 @@ export function SettingsScreen() {
    * that keeps `isPro` itself out of an imported file — and only if this phone
    * has no licence of its own yet.
    */
-  async function restoreLicenseFrom(saved: Record<string, unknown> | undefined): Promise<boolean> {
+  async function licenseNoteFrom(saved: Record<string, unknown> | undefined): Promise<string> {
     const code = saved?.['license'];
-    if (typeof code !== 'string' || licensed) return false;
-    // The same path as a code typed in: a refunded code in an old backup is
-    // checked now, not at the next launch.
-    return (await applyRestoreCode(code)) === 'ok';
+    // The store, not the render's `licensed`: this runs after awaits.
+    if (typeof code !== 'string' || hasLicense(useBetsStore.getState().settings.license)) return '';
+    // The same path as a code typed in: the server is asked first (a refunded
+    // code in an old backup must not wipe a running trial), so show that we wait.
+    setImporting('json');
+    try {
+      const r = await applyRestoreCode(code);
+      // Every outcome is said — a backup whose code did not come back is not "success" for Pro.
+      return r === 'ok' ? `\n${t('settings.restoreCodeDone')}`
+        : r === 'revoked' ? `\n${t('settings.restoreCodeRevoked')}`
+        : r === 'unreachable' ? `\n${t('settings.restoreCodeOffline')}`
+        : '';
+    } finally {
+      setImporting(null);
+    }
   }
 
   /**
@@ -452,8 +463,8 @@ export function SettingsScreen() {
             useBetsStore.setState({ bets: [...fresh, ...store.bets] });
             store.persist();
             resyncReminders();
-            const pro = await restoreLicenseFrom(backup.settings);
-            Alert.alert(t('common.success'), t('settings.betsAdded', { count: fresh.length }) + skipped + (pro ? `\n${t('settings.restoreCodeDone')}` : ''));
+            const pro = await licenseNoteFrom(backup.settings);
+            Alert.alert(t('common.success'), t('settings.betsAdded', { count: fresh.length }) + skipped + pro);
           },
         },
         {
@@ -469,8 +480,8 @@ export function SettingsScreen() {
             });
             store.persist();
             resyncReminders(); // replaced bets: drop orphan reminders, arm the new ones
-            const pro = await restoreLicenseFrom(backup.settings);
-            Alert.alert(t('common.success'), t('settings.betsRestored', { count: n }) + skipped + (pro ? `\n${t('settings.restoreCodeDone')}` : ''));
+            const pro = await licenseNoteFrom(backup.settings);
+            Alert.alert(t('common.success'), t('settings.betsRestored', { count: n }) + skipped + pro);
           },
         },
       ]);

@@ -93,7 +93,7 @@ export function sanitizeBet(raw: unknown, mode: SanitizeMode = 'import'): Bet | 
   const fallbackTs = `${date}T00:00:00`;
   const okTs = strict ? isTimestamp : str;
   const time = str(b['time'])
-    ? (strict && /^\d{1,2}:\d{2}/.test(b['time']) ? b['time'].slice(0, 5) : b['time'])
+    ? (strict ? /^\d{1,2}:\d{2}/.exec(b['time'])?.[0] ?? b['time'] : b['time'])
     // A missing time is no reason to lose a bet: "00:00" puts it at the start
     // of its day, which is where an unknown time belongs.
     : '00:00';

@@ -6,5 +6,8 @@ export default {
   removeItem: jest.fn(async (key: string) => { delete store[key]; }),
   clear: jest.fn(async () => { store = {}; }),
   getAllKeys: jest.fn(async () => Object.keys(store)),
-  multiGet: jest.fn(async (keys: string[]) => keys.map((k) => [k, store[k] ?? null])),
+  // The v3 API the app is built against (package.json pins 3.x): getMany, not
+  // the old multiGet — a mock with the old name let code that calls it pass
+  // here and fail on the phone.
+  getMany: jest.fn(async (keys: string[]) => Object.fromEntries(keys.map((k) => [k, store[k] ?? null]))),
 };
