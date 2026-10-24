@@ -19,13 +19,18 @@ const QUARANTINE_KEY = '@sharklog/data_quarantine';
 
 /**
  * Keep a damaged file. Never over an earlier copy: a second damage event must
- * not overwrite the first (the same file seen again is not a new copy).
+ * not overwrite the first. And never the same file twice: the damaged file
+ * stays until the app next writes, and a launch that only reads would
+ * otherwise add a full copy each time — until AsyncStorage's 6 MB on Android
+ * runs out and every later save fails silently.
  */
 function quarantine(raw: string): void {
   (async () => {
-    const existing = await AsyncStorage.getItem(QUARANTINE_KEY);
-    if (existing === raw) return;
-    await AsyncStorage.setItem(existing === null ? QUARANTINE_KEY : `${QUARANTINE_KEY}:${Date.now()}`, raw);
+    const keys = (await AsyncStorage.getAllKeys())
+      .filter((k) => k === QUARANTINE_KEY || k.startsWith(`${QUARANTINE_KEY}:`));
+    const copies = await AsyncStorage.getMany(keys);
+    if (Object.values(copies).some((v) => v === raw)) return;
+    await AsyncStorage.setItem(keys.includes(QUARANTINE_KEY) ? `${QUARANTINE_KEY}:${Date.now()}` : QUARANTINE_KEY, raw);
   })().catch(() => {});
 }
 
@@ -160,6 +165,9 @@ function licenseCounts(token: string | undefined, revoked: readonly string[] | u
   const p = readLicense(token);
   if (!p) return false;
   if (p.test && !ACCEPTS_TEST_LICENSES) return false;
+  // Expiry is checked on every launch, not only on the way in: a 30-day test
+  // licence (and a subscription later) must run out on a phone that keeps it.
+  if (p.exp !== undefined && p.exp * 1000 <= Date.now()) return false;
   return !(revoked ?? []).includes(p.id);
 }
 

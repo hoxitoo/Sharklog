@@ -178,6 +178,17 @@ describe('test-mode licences', () => {
     expect(useBetsStore.getState().applyLicense(licence('5', { test: true }))).toBe(true);
   });
 
+  it('they run out on a phone that keeps one: expiry is checked at every launch, not only on entry', async () => {
+    const lapsed = licence('9', { test: true, exp: Math.floor(Date.now() / 1000) - 60 });
+    await AsyncStorage.setItem('@sharklog/data', JSON.stringify({
+      bets: [], diary: [], teams: [], version: 3,
+      settings: { ...defaultSettings, onboardingComplete: true, isPro: true, license: lapsed },
+    }));
+    await useBetsStore.getState().load();
+    expect(settings().isPro).toBe(false);
+    expect(settings().license).toBeUndefined();
+  });
+
   it('a RuStore build refuses them, and drops one left by a test build installed underneath', async () => {
     const { store, storage } = isolatedStore({ EXPO_PUBLIC_DISTRIBUTION: 'rustore' });
     const { useBetsStore: rustore, defaultSettings: defaults } = store;

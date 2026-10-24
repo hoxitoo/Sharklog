@@ -22,6 +22,10 @@ const migrations: Record<number, MigrationFn> = {
     return {
       ...data,
       bets: bets.map((b) => {
+        // A broken entry (null, a string) passes through untouched: sanitize.ts
+        // drops it later on its own. Reading `null['betType']` here threw, and
+        // the whole file or backup was refused for one bad record.
+        if (typeof b !== 'object' || b === null) return b;
         if (b['betType'] !== 'express' || typeof b['odds'] !== 'number') return b;
         const rounded = Math.round(b['odds'] * 100) / 100;
         return rounded === b['odds'] ? b : { ...b, odds: rounded };

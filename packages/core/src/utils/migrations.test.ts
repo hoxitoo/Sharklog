@@ -22,4 +22,13 @@ describe('migrate', () => {
     expect(result['version']).toBe(CURRENT_SCHEMA_VERSION);
     expect((result['settings'] as Record<string, unknown>)['reminderHour']).toBe(20);
   });
+
+  it('passes a broken bet entry through instead of refusing the whole file', () => {
+    // An old (v2) file or backup with one null bet: migration 3 read
+    // null['betType'] and threw, and the whole thing was refused; sanitize
+    // drops the one entry later.
+    const good = { id: 'b', betType: 'express', odds: 2.337 };
+    const result = migrate({ version: 2, bets: [null, 'junk', good] }) as { bets: unknown[] };
+    expect(result.bets).toEqual([null, 'junk', { ...good, odds: 2.34 }]);
+  });
 });
