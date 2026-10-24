@@ -29,8 +29,8 @@ import { PaywallSheet } from '../../components/PaywallSheet';
 import { RestoreCodeSheet } from '../../components/RestoreCodeSheet';
 import { useTourStore } from '../../components/tour/tour';
 import { BILLING, PRIVACY_URL, OFFER_URL } from '../../services/billing';
-import { checkLicenseStanding } from '../../services/purchase';
-import { hasLicense, readLicense } from '../../utils/license';
+import { applyRestoreCode } from '../../services/purchase';
+import { hasLicense, readLicense, trialEnd } from '../../utils/license';
 import { APP_VERSION } from '../../utils/appVersion';
 import { distribution, supportUrl } from '../../utils/storeLinks';
 import { isNewerVersion, latestApkVersion } from '../../utils/appUpdates';
@@ -244,7 +244,6 @@ export function SettingsScreen() {
   const [restoring, setRestoring] = useState(false);
   const [showRestoreCode, setShowRestoreCode] = useState(false);
   const refreshPro = useBetsStore((s) => s.refreshPro);
-  const applyLicense = useBetsStore((s) => s.applyLicense);
 
   const isPro = settings.isPro;
   // What holds Pro, so the row can say it: a bought licence, a running trial,
@@ -308,8 +307,10 @@ export function SettingsScreen() {
     setDevTapCount(next);
     if (next >= 7) {
       setDevTapCount(0);
-      updateSettings({ isPro: true });
-      Alert.alert('Developer Pro', 'Pro enabled (dev build only)');
+      // A trial, not the bare flag: the Robokassa build no longer takes the flag
+      // on its word (resolvePro, keepCached).
+      updateSettings({ isPro: true, proExpiresAt: trialEnd() });
+      Alert.alert('Developer Pro', 'Pro for 7 days (dev build only)');
     } else {
       devTapTimer.current = setTimeout(() => setDevTapCount(0), 2000);
     }
@@ -396,13 +397,12 @@ export function SettingsScreen() {
    * that keeps `isPro` itself out of an imported file — and only if this phone
    * has no licence of its own yet.
    */
-  function restoreLicenseFrom(saved: Record<string, unknown> | undefined): boolean {
+  async function restoreLicenseFrom(saved: Record<string, unknown> | undefined): Promise<boolean> {
     const code = saved?.['license'];
     if (typeof code !== 'string' || licensed) return false;
-    const ok = applyLicense(code);
-    // A refunded code in an old backup: ask now, not at the next launch.
-    if (ok) checkLicenseStanding();
-    return ok;
+    // The same path as a code typed in: a refunded code in an old backup is
+    // checked now, not at the next launch.
+    return (await applyRestoreCode(code)) === 'ok';
   }
 
   /**
@@ -443,7 +443,7 @@ export function SettingsScreen() {
         { text: t('common.cancel'), style: 'cancel' },
         {
           text: t('settings.restoreAppend'),
-          onPress: () => {
+          onPress: async () => {
             const store = useBetsStore.getState();
             // The same backup restored twice must not double every bet: two
             // records under one id make each edit hit both.
@@ -452,14 +452,14 @@ export function SettingsScreen() {
             useBetsStore.setState({ bets: [...fresh, ...store.bets] });
             store.persist();
             resyncReminders();
-            const pro = restoreLicenseFrom(backup.settings);
+            const pro = await restoreLicenseFrom(backup.settings);
             Alert.alert(t('common.success'), t('settings.betsAdded', { count: fresh.length }) + skipped + (pro ? `\n${t('settings.restoreCodeDone')}` : ''));
           },
         },
         {
           text: t('settings.restoreReplace'),
           style: 'destructive',
-          onPress: () => {
+          onPress: async () => {
             const store = useBetsStore.getState();
             useBetsStore.setState({
               bets: backup.bets,
@@ -469,7 +469,7 @@ export function SettingsScreen() {
             });
             store.persist();
             resyncReminders(); // replaced bets: drop orphan reminders, arm the new ones
-            const pro = restoreLicenseFrom(backup.settings);
+            const pro = await restoreLicenseFrom(backup.settings);
             Alert.alert(t('common.success'), t('settings.betsRestored', { count: n }) + skipped + (pro ? `\n${t('settings.restoreCodeDone')}` : ''));
           },
         },

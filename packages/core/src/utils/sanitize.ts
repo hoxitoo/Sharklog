@@ -8,13 +8,16 @@ import { CURRENT_SCHEMA_VERSION } from '../constants/index';
  * number; one record with `event: null` crashed each screen that splits the
  * event into teams, on every launch, with no way out short of clearing all data.
  *
- * Two strictnesses:
- * - `import` (a backup file — outside data): a record must make sense. Dates
- *   are brought to YYYY-MM-DD or the record goes; amounts must be amounts.
- * - `stored` (the app's own file at launch): only what would CRASH a screen is
- *   dropped, nothing else is touched. Older versions stored some values
- *   loosely (the CSV import kept a date it could not read as it was), and
- *   "cleaning" those at launch would delete a user's bets on the next write.
+ * Either way only what would CRASH a screen is dropped (not a string where a
+ * string is read, not a number where one is counted, a status the app does
+ * not know). Older versions stored some values loosely — the CSV import kept a
+ * date it could not read as it was, the old desktop import left an empty sport
+ * — and the user's OWN backup carries them to a new phone: refusing them there
+ * would lose bets the old phone shows fine. The two modes differ in mending:
+ * - `import` (a backup file): dates in a recognisable form become YYYY-MM-DD,
+ *   an empty sport / bet type / strategy becomes "other", a broken timestamp
+ *   gets the day's start, a non-positive odds or negative stake is refused;
+ * - `stored` (the app's own file at launch): nothing is touched at all.
  *
  * Either way a record without what makes it a record is DROPPED and counted,
  * so the caller can say how many; a broken OPTIONAL field is removed and the
@@ -82,22 +85,15 @@ export function sanitizeBet(raw: unknown, mode: SanitizeMode = 'import'): Bet | 
   if (!num(b['odds']) || !num(b['stake'])) return null;
   if (strict && (b['odds'] <= 0 || b['stake'] < 0)) return null;
   if (!str(b['event'])) return null;
-  for (const k of ['sport', 'betType', 'strategy'] as const) if (!str(b[k]) || (strict && b[k] === '')) return null;
-
-  let date: string;
-  if (strict) {
-    const day = normalizeDay(b['date']);
-    if (!day) return null;
-    date = day;
-  } else {
-    if (!str(b['date'])) return null;
-    date = b['date'];
-  }
+  for (const k of ['sport', 'betType', 'strategy'] as const) if (!str(b[k])) return null;
+  if (!str(b['date'])) return null;
+  const date = (strict ? normalizeDay(b['date']) : null) ?? b['date'];
+  const orOther = (v: string) => (strict && v === '' ? 'other' : v);
 
   const fallbackTs = `${date}T00:00:00`;
   const okTs = strict ? isTimestamp : str;
   const time = str(b['time'])
-    ? (strict ? (/^\d{1,2}:\d{2}/.test(b['time']) ? b['time'].slice(0, 5) : '00:00') : b['time'])
+    ? (strict && /^\d{1,2}:\d{2}/.test(b['time']) ? b['time'].slice(0, 5) : b['time'])
     // A missing time is no reason to lose a bet: "00:00" puts it at the start
     // of its day, which is where an unknown time belongs.
     : '00:00';
@@ -107,15 +103,15 @@ export function sanitizeBet(raw: unknown, mode: SanitizeMode = 'import'): Bet | 
     updatedAt: okTs(b['updatedAt']) ? b['updatedAt'] : fallbackTs,
     date,
     time,
-    sport: b['sport'],
+    sport: orOther(b['sport'] as string),
     bookmaker: str(b['bookmaker']) ? b['bookmaker'] : '',
     event: b['event'],
-    betType: b['betType'],
+    betType: orOther(b['betType'] as string),
     pick: str(b['pick']) ? b['pick'] : '',
     odds: b['odds'],
     stake: b['stake'],
     status: b['status'],
-    strategy: b['strategy'],
+    strategy: orOther(b['strategy'] as string),
     schemaVersion: num(b['schemaVersion']) ? b['schemaVersion'] : CURRENT_SCHEMA_VERSION,
   };
   optional(b, out, {
@@ -129,33 +125,39 @@ export function sanitizeBet(raw: unknown, mode: SanitizeMode = 'import'): Bet | 
 }
 
 /**
- * Bets that can be shown. Duplicate ids keep the first: two records under one
- * id make every edit hit both, and React's list keys collide.
+ * Bets that can be shown. Of two records under one id — two make every edit
+ * hit both, and React's list keys collide — the one edited LAST stays: the old
+ * "add to current" restore put the backup's copies first, so the first copy
+ * was often the stale pending one of a bet settled since.
  */
 export function sanitizeBets(raw: unknown, mode: SanitizeMode = 'import'): Sanitized<Bet> {
   if (!Array.isArray(raw)) return { items: [], dropped: 0 };
-  const seen = new Set<string>();
+  const at = new Map<string, number>();
   const items: Bet[] = [];
   let dropped = 0;
   for (const r of raw) {
     const bet = sanitizeBet(r, mode);
-    if (!bet || seen.has(bet.id)) { dropped++; continue; }
-    seen.add(bet.id);
-    items.push(bet);
+    if (!bet) { dropped++; continue; }
+    const i = at.get(bet.id);
+    if (i === undefined) {
+      at.set(bet.id, items.length);
+      items.push(bet);
+      continue;
+    }
+    dropped++;
+    if (Date.parse(bet.updatedAt) > Date.parse(items[i]!.updatedAt)) items[i] = bet;
   }
   return { items, dropped };
 }
 
-export function sanitizeTransaction(raw: unknown, mode: SanitizeMode = 'import'): BankrollTransaction | null {
+/** The same in both modes: an old negative withdrawal stays — dropping it would move the bank. */
+export function sanitizeTransaction(raw: unknown): BankrollTransaction | null {
   if (!isObj(raw)) return null;
   const t = raw;
-  const strict = mode === 'import';
   if (!str(t['id']) || t['id'] === '') return null;
   if (!TX_TYPES.includes(t['type'] as BankrollTransaction['type'])) return null;
   if (!num(t['amount'])) return null;
-  // Deposits and withdrawals carry their sign in the type; only an adjustment is signed.
-  if (strict && t['type'] !== 'adjustment' && t['amount'] < 0) return null;
-  if (!(strict ? isTimestamp(t['date']) : str(t['date']))) return null;
+  if (!str(t['date'])) return null;
   const out: Obj = { id: t['id'], type: t['type'], amount: t['amount'], date: t['date'] };
   optional(t, out, { note: str });
   return out as unknown as BankrollTransaction;
@@ -165,7 +167,7 @@ export function sanitizeTransaction(raw: unknown, mode: SanitizeMode = 'import')
  * The fields of a bankroll that check out, to merge over the current one —
  * never a whole object from the file.
  */
-export function sanitizeBankroll(raw: unknown, mode: SanitizeMode = 'import'): { bankroll: Partial<Bankroll>; dropped: number } {
+export function sanitizeBankroll(raw: unknown): { bankroll: Partial<Bankroll>; dropped: number } {
   if (!isObj(raw)) return { bankroll: {}, dropped: 0 };
   const out: Partial<Bankroll> = {};
   let dropped = 0;
@@ -178,7 +180,7 @@ export function sanitizeBankroll(raw: unknown, mode: SanitizeMode = 'import'): {
     const seen = new Set<string>();
     const txs: BankrollTransaction[] = [];
     for (const r of raw['transactions']) {
-      const tx = sanitizeTransaction(r, mode);
+      const tx = sanitizeTransaction(r);
       if (!tx || seen.has(tx.id)) { dropped++; continue; }
       seen.add(tx.id);
       txs.push(tx);
@@ -193,7 +195,7 @@ export function sanitizeDiary(raw: unknown, mode: SanitizeMode = 'import'): Sani
   const items: DiaryEntry[] = [];
   let dropped = 0;
   for (const r of raw) {
-    const day = isObj(r) ? (mode === 'import' ? normalizeDay(r['date']) : str(r['date']) ? r['date'] : null) : null;
+    const day = isObj(r) && str(r['date']) ? (mode === 'import' ? normalizeDay(r['date']) : null) ?? r['date'] : null;
     if (!isObj(r) || !str(r['id']) || !day || ![1, 2, 3, 4, 5].includes(r['mood'] as number)) { dropped++; continue; }
     const out: Obj = { id: r['id'], date: day, mood: r['mood'] };
     optional(r, out, { text: str });

@@ -20,7 +20,7 @@ const { useBetsStore, defaultSettings } = require('../store/betsStore') as typeo
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const server = require('../services/licenseServer') as typeof import('../services/licenseServer');
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const { resumePendingPayment, takePaidNotice, checkLicenseStanding } = require('../services/purchase') as typeof import('../services/purchase');
+const { resumePendingPayment, takePaidNotice, checkLicenseStanding, applyRestoreCode } = require('../services/purchase') as typeof import('../services/purchase');
 
 function licence(id: string): string {
   const seg = Buffer.from(JSON.stringify({ v: 1, id, plan: 'lifetime', iat: 1 }), 'ascii').toString('base64url');
@@ -31,8 +31,14 @@ let invoices = 0;
 let licenseAnswer: object = { status: 'pending' };
 /** /check — null makes the server unreachable. */
 let checkAnswer: object | null = { status: 'ok' };
+/** Per-invoice /check answers, over checkAnswer. */
+let checkById: Record<string, object> = {};
 const fetchMock = jest.fn(async (url: string) => {
   const path = new URL(url).pathname;
+  if (path === '/check' && checkById[new URL(url).searchParams.get('inv') ?? '']) {
+    const body = checkById[new URL(url).searchParams.get('inv')!];
+    return { ok: true, json: async () => body } as Response;
+  }
   if (path === '/check' && checkAnswer === null) throw new Error('offline');
   const body = path === '/create'
     ? { inv: String(++invoices), nonce: `n${invoices}`, url: `https://auth.robokassa.ru/Merchant/Index.aspx?InvId=${invoices}` }
@@ -47,6 +53,7 @@ beforeEach(async () => {
   invoices = 0;
   licenseAnswer = { status: 'pending' };
   checkAnswer = { status: 'ok' };
+  checkById = {};
   fetchMock.mockClear();
   useBetsStore.setState({ settings: { ...defaultSettings, onboardingComplete: true }, isLoaded: true });
 });
@@ -147,5 +154,43 @@ describe('checkLicenseStanding', () => {
     expect(await pending).toBe('revoked');
     expect(settings().isPro).toBe(true);
     expect(settings().license).toBe(licence('35'));
+  });
+});
+
+describe('applyRestoreCode — a revoke can be undone', () => {
+  const settings = () => useBetsStore.getState().settings;
+
+  it('takes a valid code, and refuses one that is not a licence', async () => {
+    expect(await applyRestoreCode(licence('41'))).toBe('ok');
+    expect(await applyRestoreCode('hello')).toBe('invalid');
+  });
+
+  it('asks the server again about a code this phone saw revoked, and takes it back once undone', async () => {
+    useBetsStore.getState().applyLicense(licence('42'));
+    useBetsStore.getState().revokeLicense('42');
+    // Still revoked on the server: said so, not "invalid".
+    checkAnswer = { status: 'revoked' };
+    expect(await applyRestoreCode(licence('42'))).toBe('revoked');
+    // Offline: cannot tell — said so, nothing changed.
+    checkAnswer = null;
+    expect(await applyRestoreCode(licence('42'))).toBe('unreachable');
+    expect(settings().isPro).toBe(false);
+    // The owner sent /unrevoke: the same code works again.
+    checkAnswer = { status: 'ok' };
+    expect(await applyRestoreCode(licence('42'))).toBe('ok');
+    expect(settings().isPro).toBe(true);
+    expect(settings().revokedLicenses).toEqual([]);
+  });
+
+  it('checks a code just entered even while a check of the old licence is in flight', async () => {
+    useBetsStore.getState().applyLicense(licence('43'));
+    const old = checkLicenseStanding(); // for 43, still in flight
+    checkById = { '44': { status: 'revoked' } };
+    expect(await applyRestoreCode(licence('44'))).toBe('ok');
+    await old;
+    await new Promise((r) => setTimeout(r, 0));
+    // 44 was refunded: its own check dropped it — the in-flight one for 43 did not answer for it.
+    expect(settings().license).toBeUndefined();
+    expect(settings().revokedLicenses).toContain('44');
   });
 });

@@ -14,8 +14,8 @@ describe('sanitizeBet', () => {
 
   it('drops a bet without what makes it a bet', () => {
     for (const broken of [
-      { ...good, id: '' }, { ...good, id: 7 }, { ...good, status: 'void' }, { ...good, date: '2026-02-30' },
-      { ...good, date: 'yesterday' }, { ...good, odds: 'x' }, { ...good, odds: 0 }, { ...good, stake: -1 },
+      { ...good, id: '' }, { ...good, id: 7 }, { ...good, status: 'void' }, { ...good, date: 20261001 },
+      { ...good, date: null }, { ...good, odds: 'x' }, { ...good, odds: 0 }, { ...good, stake: -1 },
       { ...good, stake: Infinity }, { ...good, event: null }, { ...good, sport: undefined }, null, 'bet', [],
     ]) {
       expect(sanitizeBet(broken)).toBeNull();
@@ -27,7 +27,7 @@ describe('sanitizeBet', () => {
       ...good, time: undefined, pick: 42, bookmaker: null, createdAt: 'yesterday', schemaVersion: 'x',
       closingOdds: 'high', cashoutAmount: 5000, notes: { evil: true }, tournament: 'РПЛ', isFreebet: 'yes',
     })!;
-    expect(b.time).toBe('00:00');
+    expect(b.time).toBe('00:00'); // missing → start of the day
     expect(b.pick).toBe('');
     expect(b.bookmaker).toBe('');
     expect(b.createdAt).toBe('2026-10-01T00:00:00');
@@ -43,26 +43,33 @@ describe('sanitizeBet', () => {
     expect(sanitizeBet({ ...good, sport: 'mma', strategy: 'gut' })?.sport).toBe('mma');
   });
 
-  it('brings an imported date to YYYY-MM-DD', () => {
+  it('brings an imported date to YYYY-MM-DD, and keeps one it cannot read as it was', () => {
     expect(sanitizeBet({ ...good, date: '1.10.2026' })?.date).toBe('2026-10-01');
     expect(sanitizeBet({ ...good, date: '2026-10-01T19:30:00' })?.date).toBe('2026-10-01');
     expect(sanitizeBet({ ...good, time: '19:30:15' })?.time).toBe('19:30');
+    // What an older CSV import stored: the user's own backup must carry it to a new phone.
+    expect(sanitizeBet({ ...good, date: '2026/10/01' })?.date).toBe('2026/10/01');
+    expect(sanitizeBet({ ...good, date: '45200' })?.date).toBe('45200');
+  });
+
+  it('turns the empty sport the old desktop import left into "other" instead of refusing the bet', () => {
+    const b = sanitizeBet({ ...good, sport: '', betType: '', strategy: '' })!;
+    expect([b.sport, b.betType, b.strategy]).toEqual(['other', 'other', 'other']);
   });
 });
 
 describe('stored mode — the app\'s own file at launch', () => {
   it('drops only what would crash a screen, and touches nothing else', () => {
     // What an older CSV import may have left: a date it could not read, kept as it was.
-    const loose = { ...good, date: '1.10.2026 19:30', time: '7:5', odds: 0, createdAt: 'when' };
+    const loose = { ...good, date: '1.10.2026 19:30', time: '7:5', odds: 0, createdAt: 'when', sport: '' };
     expect(sanitizeBet(loose, 'stored')).toEqual(loose);
-    expect(sanitizeBet(loose)).toBeNull(); // the same record from a backup file is refused
     for (const crash of [{ ...good, event: null }, { ...good, odds: 'x' }, { ...good, date: 5 }, { ...good, status: 'void' }]) {
       expect(sanitizeBet(crash, 'stored')).toBeNull();
     }
   });
 
   it('keeps an old negative withdrawal as it was: dropping it would move the bank', () => {
-    const r = sanitizeBankroll({ transactions: [{ id: 't', type: 'withdrawal', amount: -100, date: '2026-10-01' }] }, 'stored');
+    const r = sanitizeBankroll({ transactions: [{ id: 't', type: 'withdrawal', amount: -100, date: '2026-10-01' }] });
     expect(r.bankroll.transactions).toHaveLength(1);
     expect(r.dropped).toBe(0);
   });
@@ -79,10 +86,12 @@ describe('normalizeDay', () => {
 });
 
 describe('sanitizeBets', () => {
-  it('counts what it drops, and keeps the first of two bets under one id', () => {
-    const r = sanitizeBets([good, { ...good, event: null }, { ...good, stake: 1 }, { ...good, id: 'b2' }]);
-    expect(r.items.map((b) => b.id)).toEqual(['b1', 'b2']);
-    expect(r.items[0]!.stake).toBe(100_000);
+  it('counts what it drops, and of two bets under one id keeps the one edited last', () => {
+    // The old "add to current" restore put the backup's stale pending copy first.
+    const stale = { ...good, status: 'pending', updatedAt: '2026-10-01T09:00:00.000Z' };
+    const settled = { ...good, status: 'won', updatedAt: '2026-10-02T09:00:00.000Z' };
+    const r = sanitizeBets([stale, { ...good, id: 'x', event: null }, settled, { ...good, id: 'b2' }]);
+    expect(r.items.map((b) => [b.id, b.status])).toEqual([['b1', 'won'], ['b2', 'won']]);
     expect(r.dropped).toBe(2);
   });
 
@@ -98,7 +107,7 @@ describe('sanitizeBankroll', () => {
       transactions: [
         { id: 't1', type: 'deposit', amount: 500_000, date: '2026-10-01T10:00:00.000Z' },
         { id: 't2', type: 'adjustment', amount: -2_500, date: '2026-10-02T10:00:00.000Z', note: 'Сверка' },
-        { id: 't3', type: 'withdrawal', amount: -100, date: '2026-10-02T10:00:00.000Z' },
+        { id: 't3', type: 'withdrawal', amount: 'all', date: '2026-10-02T10:00:00.000Z' },
         { id: 't4', type: 'gift', amount: 100, date: '2026-10-02T10:00:00.000Z' },
         { id: 't1', type: 'deposit', amount: 1, date: '2026-10-03T10:00:00.000Z' },
       ],

@@ -1,4 +1,4 @@
-import { useBetsStore } from '../store/betsStore';
+import { useBetsStore, verifyCode } from '../store/betsStore';
 import { readLicense } from '../utils/license';
 import { Analytics } from './analytics';
 import { clearPendingPayment, fetchLicense, getPendingPayment, isRevoked } from './licenseServer';
@@ -53,16 +53,44 @@ export function takePaidNotice(): boolean {
 
 export type StandingResult = 'ok' | 'revoked' | 'none' | 'unreachable';
 
-let standing: Promise<StandingResult> | null = null;
+/** One request per licence: a check for the OLD licence must not answer for a code just entered. */
+const standing = new Map<string, Promise<StandingResult>>();
 
 export function checkLicenseStanding(): Promise<StandingResult> {
-  standing ??= checkStanding().finally(() => { standing = null; });
-  return standing;
+  const id = readLicense(useBetsStore.getState().settings.license)?.id;
+  if (!id) return Promise.resolve('none');
+  let p = standing.get(id);
+  if (!p) {
+    p = checkStanding(id).finally(() => { standing.delete(id); });
+    standing.set(id, p);
+  }
+  return p;
 }
 
-async function checkStanding(): Promise<StandingResult> {
-  const id = readLicense(useBetsStore.getState().settings.license)?.id;
-  if (!id) return 'none';
+export type CodeResult = 'ok' | 'invalid' | 'revoked' | 'unreachable';
+
+/**
+ * A restore code entered by hand or carried in a backup. A code this phone saw
+ * revoked is not simply "invalid": a revoke can be a mistake undone on the
+ * server (`/unrevoke`), and then the phone must take the code back — so it asks.
+ */
+export async function applyRestoreCode(text: string): Promise<CodeResult> {
+  if (useBetsStore.getState().applyLicense(text)) {
+    // A code refunded and revoked must not hold Pro until the next launch on a
+    // phone that has never seen it revoked.
+    void checkLicenseStanding();
+    return 'ok';
+  }
+  const payload = verifyCode(text);
+  if (!payload || !(useBetsStore.getState().settings.revokedLicenses ?? []).includes(payload.id)) return 'invalid';
+  const revoked = await isRevoked(payload.id);
+  if (revoked === null) return 'unreachable';
+  if (revoked) return 'revoked';
+  useBetsStore.getState().forgetRevocation(payload.id);
+  return useBetsStore.getState().applyLicense(text) ? 'ok' : 'invalid';
+}
+
+async function checkStanding(id: string): Promise<StandingResult> {
   const revoked = await isRevoked(id);
   if (revoked === null) return 'unreachable';
   if (!revoked) return 'ok';

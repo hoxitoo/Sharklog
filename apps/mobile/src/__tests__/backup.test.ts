@@ -50,6 +50,25 @@ describe('load of a damaged store', () => {
     const ids = useBetsStore.getState().bets.map((b) => b.id);
     expect(ids).toEqual(['b1', 'old']);
     expect(useBetsStore.getState().bets[1]!.date).toBe('2.10.2026 19:30');
+    await flush();
     expect(await AsyncStorage.getItem('@sharklog/data_quarantine')).toBe(raw);
   });
+
+  it('keeps an unreadable file instead of letting the first write replace it, and never overwrites an earlier copy', async () => {
+    const { useBetsStore } = require('../store/betsStore') as typeof import('../store/betsStore');
+    const AsyncStorage = require('@react-native-async-storage/async-storage').default;
+    const first = await AsyncStorage.getItem('@sharklog/data_quarantine');
+    await AsyncStorage.setItem('@sharklog/data', '{"bets": [{"id": "b1"');
+    await useBetsStore.getState().load();
+    await flush();
+    expect(useBetsStore.getState().isLoaded).toBe(true);
+    // The earlier copy stays; this one goes next to it.
+    expect(await AsyncStorage.getItem('@sharklog/data_quarantine')).toBe(first);
+    const keys: string[] = await AsyncStorage.getAllKeys();
+    const extra = keys.filter((k) => k.startsWith('@sharklog/data_quarantine:'));
+    expect(extra).toHaveLength(1);
+    expect(await AsyncStorage.getItem(extra[0]!)).toBe('{"bets": [{"id": "b1"');
+  });
 });
+
+const flush = () => new Promise((r) => setTimeout(r, 0));

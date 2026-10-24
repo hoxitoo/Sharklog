@@ -1,11 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import {
-  Modal, Pressable, View, TouchableOpacity, KeyboardAvoidingView, Platform, Alert,
+  Modal, Pressable, View, TouchableOpacity, KeyboardAvoidingView, Platform, Alert, ActivityIndicator,
 } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AppText as Text, AppTextInput as TextInput } from './AppText';
-import { useBetsStore } from '../store/betsStore';
-import { checkLicenseStanding } from '../services/purchase';
+import { applyRestoreCode, type CodeResult } from '../services/purchase';
 import { colors } from '../theme/colors';
 import { SPACE, RADIUS, TOUCH } from '../theme/layout';
 import { SIZE, numeric } from '../theme/typography';
@@ -19,26 +18,27 @@ import { themedStyles } from '../theme/themed';
  */
 export function RestoreCodeSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
   const { t } = useTranslation();
-  const applyLicense = useBetsStore((s) => s.applyLicense);
   const [code, setCode] = useState('');
-  const [invalid, setInvalid] = useState(false);
+  // Why the code was not taken — "invalid" is not the only answer: a code this
+  // phone saw revoked is asked about again (a mistaken revoke can be undone).
+  const [problem, setProblem] = useState<Exclude<CodeResult, 'ok'> | null>(null);
+  const [busy, setBusy] = useState(false);
 
   // A fresh field every time it opens: a half-pasted code from last time is noise.
   useEffect(() => {
     if (visible) {
       setCode('');
-      setInvalid(false);
+      setProblem(null);
     }
   }, [visible]);
 
-  function apply() {
-    if (!applyLicense(code)) {
-      setInvalid(true);
+  async function apply() {
+    setBusy(true);
+    const result = await applyRestoreCode(code).finally(() => setBusy(false));
+    if (result !== 'ok') {
+      setProblem(result);
       return;
     }
-    // A code refunded and revoked must not hold Pro until the next launch on a
-    // phone that has never seen it revoked. Off the main path: no answer, no change.
-    checkLicenseStanding();
     onClose();
     // After the modal is gone: an alert raised by an unmounting modal can be lost.
     requestAnimationFrame(() => Alert.alert(t('common.success'), t('settings.restoreCodeDone')));
@@ -52,9 +52,9 @@ export function RestoreCodeSheet({ visible, onClose }: { visible: boolean; onClo
             <Text style={styles.title}>{t('settings.restoreCode')}</Text>
             <Text style={styles.prompt}>{t('settings.restoreCodePrompt')}</Text>
             <TextInput
-              style={[styles.input, invalid && styles.inputInvalid]}
+              style={[styles.input, problem && styles.inputInvalid]}
               value={code}
-              onChangeText={(v) => { setCode(v); setInvalid(false); }}
+              onChangeText={(v) => { setCode(v); setProblem(null); }}
               placeholder="SL1.…"
               placeholderTextColor={colors.textMuted}
               autoCapitalize="none"
@@ -62,20 +62,30 @@ export function RestoreCodeSheet({ visible, onClose }: { visible: boolean; onClo
               multiline
               autoFocus
             />
-            {invalid && <Text style={styles.error}>{t('settings.restoreCodeInvalid')}</Text>}
+            {problem && (
+              <Text style={styles.error}>
+                {t(problem === 'revoked' ? 'settings.restoreCodeRevoked'
+                  : problem === 'unreachable' ? 'settings.restoreCodeOffline'
+                  : 'settings.restoreCodeInvalid')}
+              </Text>
+            )}
             <View style={styles.actions}>
               <TouchableOpacity style={[styles.btn, styles.btnGhost]} onPress={onClose} activeOpacity={0.8}>
                 <Text style={styles.btnGhostText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.btn, styles.btnPrimary, !code.trim() && styles.btnOff]}
+                style={[styles.btn, styles.btnPrimary, (!code.trim() || busy) && styles.btnOff]}
                 onPress={apply}
-                disabled={!code.trim()}
+                disabled={!code.trim() || busy}
                 activeOpacity={0.8}
               >
-                <Text style={[styles.btnPrimaryText, !code.trim() && styles.btnOffText]}>
-                  {t('settings.restoreCodeApply')}
-                </Text>
+                {busy
+                  ? <ActivityIndicator color={colors.textMuted} />
+                  : (
+                    <Text style={[styles.btnPrimaryText, !code.trim() && styles.btnOffText]}>
+                      {t('settings.restoreCodeApply')}
+                    </Text>
+                  )}
               </TouchableOpacity>
             </View>
           </Pressable>

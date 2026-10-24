@@ -9,13 +9,25 @@ import {
   sendTiltNotification, scheduleBetResultReminder,
   cancelBetResultReminder, cancelAllBetResultReminders,
 } from '../utils/notifications';
-import { verifyLicense, resolvePro, trialEnd, extractLicense, hasLicense, readLicense } from '../utils/license';
+import { verifyLicense, resolvePro, trialEnd, extractLicense, hasLicense, readLicense, type LicensePayload } from '../utils/license';
 import { BILLING, LICENSE_PUBKEY } from '../services/billing';
 import { distribution } from '../utils/storeLinks';
 
 const STORAGE_KEY = '@sharklog/data';
 /** The stored file as it was, when loading had to leave records out. */
 const QUARANTINE_KEY = '@sharklog/data_quarantine';
+
+/**
+ * Keep a damaged file. Never over an earlier copy: a second damage event must
+ * not overwrite the first (the same file seen again is not a new copy).
+ */
+function quarantine(raw: string): void {
+  (async () => {
+    const existing = await AsyncStorage.getItem(QUARANTINE_KEY);
+    if (existing === raw) return;
+    await AsyncStorage.setItem(existing === null ? QUARANTINE_KEY : `${QUARANTINE_KEY}:${Date.now()}`, raw);
+  })().catch(() => {});
+}
 
 // Serialize all writes through a single chain so rapid successive mutations
 // (e.g. quick W/L taps) can't race and clobber each other's snapshot.
@@ -113,6 +125,8 @@ interface BetsStore {
    * is the stored one, remember the number, recompute Pro.
    */
   revokeLicense: (invoiceId: string) => void;
+  /** The server says this invoice is fine again (a mistaken revoke undone): accept its code. */
+  forgetRevocation: (invoiceId: string) => void;
   /** Seven days of Pro for a new user. Never twice, never over a licence. */
   startTrial: () => void;
 }
@@ -128,6 +142,14 @@ const KEEP_CACHED_PRO = BILLING === 'revenuecat';
 
 /** Test-mode licences are for builds installed by hand (testers, the owner), never a store build. */
 const ACCEPTS_TEST_LICENSES = distribution() === 'direct';
+
+/**
+ * The payload of a pasted code if it is a licence THIS build accepts (signed
+ * by our key; a test licence only in a hand-installed build) — revocation aside.
+ */
+export function verifyCode(text: string): LicensePayload | null {
+  return verifyLicense(extractLicense(text), LICENSE_PUBKEY, new Date(), { allowTest: ACCEPTS_TEST_LICENSES });
+}
 
 /**
  * Whether a stored licence counts on this build: licence-shaped, not a test
@@ -193,13 +215,21 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
   isLoaded: false,
 
   load: async () => {
+    let raw: string | null = null;
     try {
-      const raw = await AsyncStorage.getItem(STORAGE_KEY);
+      raw = await AsyncStorage.getItem(STORAGE_KEY);
       if (!raw) {
         set({ isLoaded: true });
         return;
       }
-      const schema = migrate(JSON.parse(raw));
+      const parsed: unknown = JSON.parse(raw);
+      // A list that is not a list is damage too, even before anything is dropped.
+      const shapeBroken = typeof parsed !== 'object' || parsed === null
+        || (['bets', 'diary', 'teams'] as const).some((k) => {
+          const v = (parsed as Record<string, unknown>)[k];
+          return v !== undefined && !Array.isArray(v);
+        });
+      const schema = migrate(parsed as Parameters<typeof migrate>[0]);
       const savedSettings: Partial<AppSettings> = schema.settings ?? {};
       // A licence that does not count on this build (a test licence in a store
       // build, a revoked one) is dropped, not just ignored.
@@ -219,13 +249,13 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
       // Only what would crash a screen is dropped (sanitize.ts, 'stored' mode);
       // anything the app wrote loosely in an older version stays as it was.
       const bets = sanitizeBets(schema.bets, 'stored');
-      const bank = sanitizeBankroll(schema.bankroll, 'stored');
+      const bank = sanitizeBankroll(schema.bankroll);
       const diary = sanitizeDiary(schema.diary, 'stored');
       const teams = sanitizeTeams(schema.teams);
-      if (bets.dropped + bank.dropped + diary.dropped + teams.dropped > 0) {
+      if (shapeBroken || bets.dropped + bank.dropped + diary.dropped + teams.dropped > 0) {
         // The next write would make the loss final: keep the file as it was,
         // so support can still get those records back.
-        AsyncStorage.setItem(QUARANTINE_KEY, raw).catch(() => {});
+        quarantine(raw);
       }
       set({
         bets: bets.items,
@@ -246,6 +276,9 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
         isLoaded: true,
       });
     } catch {
+      // Unreadable (a crash mid-write): the app starts empty, and its first
+      // write replaces the file — with the bets AND the licence in it. Keep it.
+      if (raw) quarantine(raw);
       set({ isLoaded: true });
     }
   },
@@ -368,7 +401,7 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
   applyLicense: (text) => {
     // The ONE place a licence enters the device — so the one place it is verified.
     const token = extractLicense(text);
-    const payload = verifyLicense(token, LICENSE_PUBKEY, new Date(), { allowTest: ACCEPTS_TEST_LICENSES });
+    const payload = verifyCode(token);
     if (payload === null) return false;
     // Refunded: the same code from the user's Telegram must not bring Pro back,
     // online or off.
@@ -397,6 +430,13 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
       };
     });
     get().refreshPro(null);
+    get().persist();
+  },
+
+  forgetRevocation: (invoiceId) => {
+    const revoked = get().settings.revokedLicenses ?? [];
+    if (!revoked.includes(invoiceId)) return;
+    set((s) => ({ settings: { ...s.settings, revokedLicenses: revoked.filter((id) => id !== invoiceId) } }));
     get().persist();
   },
 
