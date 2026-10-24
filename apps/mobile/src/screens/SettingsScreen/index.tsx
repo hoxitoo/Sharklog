@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { SPACE, RADIUS, TOUCH, hitSlopFor } from '../../theme/layout';
 import {
-  View, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Share,
+  View, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Share, Linking,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
@@ -28,10 +28,11 @@ import * as DocumentPicker from 'expo-document-picker';
 import { PaywallSheet } from '../../components/PaywallSheet';
 import { RestoreCodeSheet } from '../../components/RestoreCodeSheet';
 import { useTourStore } from '../../components/tour/tour';
-import { BILLING } from '../../services/billing';
-import { hasLicense } from '../../utils/license';
+import { BILLING, PRIVACY_URL, OFFER_URL } from '../../services/billing';
+import { checkLicenseStanding } from '../../services/purchase';
+import { hasLicense, readLicense } from '../../utils/license';
 import { APP_VERSION } from '../../utils/appVersion';
-import { distribution } from '../../utils/storeLinks';
+import { distribution, supportUrl } from '../../utils/storeLinks';
 import { isNewerVersion, latestApkVersion } from '../../utils/appUpdates';
 import { ThemePicker } from './ThemePicker';
 import { restorePurchases } from '../../services/revenueCat';
@@ -398,7 +399,28 @@ export function SettingsScreen() {
   function restoreLicenseFrom(saved: Record<string, unknown> | undefined): boolean {
     const code = saved?.['license'];
     if (typeof code !== 'string' || licensed) return false;
-    return applyLicense(code);
+    const ok = applyLicense(code);
+    // A refunded code in an old backup: ask now, not at the next launch.
+    if (ok) checkLicenseStanding();
+    return ok;
+  }
+
+  /**
+   * How to get the money back: the rules in two sentences, the invoice number
+   * support will ask for (it is inside the licence), and the way to reach them.
+   */
+  function showRefundHow() {
+    const invoice = readLicense(settings.license)?.id;
+    const contact = supportUrl();
+    Alert.alert(
+      t('settings.refundTitle'),
+      t('settings.refundHow') + (invoice ? `\n\n${t('settings.refundInvoice', { inv: invoice })}` : ''),
+      [
+        ...(contact ? [{ text: t('support.write'), onPress: () => { Linking.openURL(contact).catch(() => {}); } }] : []),
+        { text: t('proGate.offer'), onPress: () => { Linking.openURL(OFFER_URL).catch(() => {}); } },
+        { text: t('common.ok'), style: 'cancel' as const },
+      ],
+    );
   }
 
   async function handleImportJSON() {
@@ -415,17 +437,23 @@ export function SettingsScreen() {
         return;
       }
       const n = backup.bets.length;
+      // Records the file had but that could not be kept — said, not swallowed.
+      const skipped = backup.dropped > 0 ? `\n${t('settings.restoreSkipped', { n: backup.dropped })}` : '';
       Alert.alert(t('settings.restoreTitle'), t('settings.restoreMsg', { count: n }), [
         { text: t('common.cancel'), style: 'cancel' },
         {
           text: t('settings.restoreAppend'),
           onPress: () => {
             const store = useBetsStore.getState();
-            useBetsStore.setState({ bets: [...backup.bets, ...store.bets] });
+            // The same backup restored twice must not double every bet: two
+            // records under one id make each edit hit both.
+            const have = new Set(store.bets.map((b) => b.id));
+            const fresh = backup.bets.filter((b) => !have.has(b.id));
+            useBetsStore.setState({ bets: [...fresh, ...store.bets] });
             store.persist();
             resyncReminders();
             const pro = restoreLicenseFrom(backup.settings);
-            Alert.alert(t('common.success'), t('settings.betsAdded', { count: n }) + (pro ? `\n${t('settings.restoreCodeDone')}` : ''));
+            Alert.alert(t('common.success'), t('settings.betsAdded', { count: fresh.length }) + skipped + (pro ? `\n${t('settings.restoreCodeDone')}` : ''));
           },
         },
         {
@@ -435,14 +463,14 @@ export function SettingsScreen() {
             const store = useBetsStore.getState();
             useBetsStore.setState({
               bets: backup.bets,
-              ...(backup.bankroll ? { bankroll: { ...store.bankroll, ...backup.bankroll } as typeof store.bankroll } : {}),
-              ...(backup.diary ? { diary: backup.diary as typeof store.diary } : {}),
-              ...(backup.teams ? { teams: backup.teams as typeof store.teams } : {}),
+              ...(backup.bankroll ? { bankroll: { ...store.bankroll, ...backup.bankroll } } : {}),
+              ...(backup.diary ? { diary: backup.diary } : {}),
+              ...(backup.teams ? { teams: backup.teams } : {}),
             });
             store.persist();
             resyncReminders(); // replaced bets: drop orphan reminders, arm the new ones
             const pro = restoreLicenseFrom(backup.settings);
-            Alert.alert(t('common.success'), t('settings.betsRestored', { count: n }) + (pro ? `\n${t('settings.restoreCodeDone')}` : ''));
+            Alert.alert(t('common.success'), t('settings.betsRestored', { count: n }) + skipped + (pro ? `\n${t('settings.restoreCodeDone')}` : ''));
           },
         },
       ]);
@@ -878,6 +906,14 @@ export function SettingsScreen() {
             onPress={() => useTourStore.getState().start({ inTrial })}
             chevron
           />
+          {/* The documents a buyer can be held to, and the way back out. */}
+          <Row label={t('proGate.privacy')} onPress={() => Linking.openURL(PRIVACY_URL).catch(() => {})} chevron />
+          {BILLING === 'robokassa' && (
+            <Row label={t('proGate.offer')} onPress={() => Linking.openURL(OFFER_URL).catch(() => {})} chevron />
+          )}
+          {BILLING === 'robokassa' && (
+            <Row label={t('settings.refundTitle')} hint={t('settings.refundHint')} onPress={showRefundHow} chevron />
+          )}
         </Section>
 
         <Section>

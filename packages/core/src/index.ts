@@ -7,4 +7,5 @@ export * from './utils/kelly';
 export * from './utils/formatters';
 export * from './utils/betsCsv';
 export * from './utils/migrations';
+export * from './utils/sanitize';
 export * from './utils/strategyBuilder';

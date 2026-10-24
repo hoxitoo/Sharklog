@@ -20,7 +20,7 @@ const { useBetsStore, defaultSettings } = require('../store/betsStore') as typeo
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const server = require('../services/licenseServer') as typeof import('../services/licenseServer');
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const { resumePendingPayment, takePaidNotice } = require('../services/purchase') as typeof import('../services/purchase');
+const { resumePendingPayment, takePaidNotice, checkLicenseStanding } = require('../services/purchase') as typeof import('../services/purchase');
 
 function licence(id: string): string {
   const seg = Buffer.from(JSON.stringify({ v: 1, id, plan: 'lifetime', iat: 1 }), 'ascii').toString('base64url');
@@ -29,11 +29,14 @@ function licence(id: string): string {
 
 let invoices = 0;
 let licenseAnswer: object = { status: 'pending' };
+/** /check — null makes the server unreachable. */
+let checkAnswer: object | null = { status: 'ok' };
 const fetchMock = jest.fn(async (url: string) => {
   const path = new URL(url).pathname;
+  if (path === '/check' && checkAnswer === null) throw new Error('offline');
   const body = path === '/create'
     ? { inv: String(++invoices), nonce: `n${invoices}`, url: `https://auth.robokassa.ru/Merchant/Index.aspx?InvId=${invoices}` }
-    : licenseAnswer;
+    : path === '/check' ? checkAnswer : licenseAnswer;
   return { ok: true, json: async () => body } as Response;
 });
 (globalThis as { fetch: unknown }).fetch = fetchMock;
@@ -43,6 +46,7 @@ beforeEach(async () => {
   takePaidNotice();
   invoices = 0;
   licenseAnswer = { status: 'pending' };
+  checkAnswer = { status: 'ok' };
   fetchMock.mockClear();
   useBetsStore.setState({ settings: { ...defaultSettings, onboardingComplete: true }, isLoaded: true });
 });
@@ -101,5 +105,47 @@ describe('resumePendingPayment', () => {
     expect(await resumePendingPayment()).toBe('unreachable');
     expect(await server.getPendingPayment()).not.toBeNull();
     expect(useBetsStore.getState().settings.isPro).toBe(false);
+  });
+});
+
+describe('checkLicenseStanding', () => {
+  const settings = () => useBetsStore.getState().settings;
+
+  it('drops a licence the server revoked after a refund', async () => {
+    useBetsStore.getState().applyLicense(licence('31'));
+    checkAnswer = { status: 'revoked' };
+    expect(await checkLicenseStanding()).toBe('revoked');
+    expect(settings().isPro).toBe(false);
+    expect(settings().license).toBeUndefined();
+    expect(String(fetchMock.mock.calls.at(-1)![0])).toBe('https://licence.example/check?inv=31');
+  });
+
+  it('never reads "could not ask" as revoked — a paying user offline keeps Pro', async () => {
+    useBetsStore.getState().applyLicense(licence('32'));
+    checkAnswer = null;
+    expect(await checkLicenseStanding()).toBe('unreachable');
+    checkAnswer = { status: 'something' };
+    expect(await checkLicenseStanding()).toBe('unreachable');
+    expect(settings().isPro).toBe(true);
+  });
+
+  it('keeps a licence in good standing, and asks nothing without one', async () => {
+    useBetsStore.getState().applyLicense(licence('33'));
+    expect(await checkLicenseStanding()).toBe('ok');
+    expect(settings().isPro).toBe(true);
+    useBetsStore.setState({ settings: { ...defaultSettings, onboardingComplete: true } });
+    fetchMock.mockClear();
+    expect(await checkLicenseStanding()).toBe('none');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('does not drop a licence that replaced the revoked one while the server was asked', async () => {
+    useBetsStore.getState().applyLicense(licence('34'));
+    checkAnswer = { status: 'revoked' };
+    const pending = checkLicenseStanding();
+    useBetsStore.getState().applyLicense(licence('35'));
+    expect(await pending).toBe('revoked');
+    expect(settings().isPro).toBe(true);
+    expect(settings().license).toBe(licence('35'));
   });
 });

@@ -8,6 +8,7 @@ import { LICENSE_URL } from './billing';
  *   POST /create                   → { inv, nonce, url }   — url is Robokassa's payment page
  *   GET  /license?inv=…&nonce=…    → { status: 'paid', license } | { status: 'pending' }
  *                                    | { status: 'unknown' } (not this phone's invoice)
+ *   GET  /check?inv=…              → { status: 'ok' | 'revoked' } — revoked after a refund
  *
  * The price comes from the server, not from this file: the number on the
  * button and the number Robokassa charges are then one number, set in one place.
@@ -93,6 +94,18 @@ export async function fetchLicense(p: Pick<PendingPayment, 'inv' | 'nonce'>): Pr
   if (r.status === 'paid' && typeof r.license === 'string') return { status: 'paid', license: r.license };
   if (r.status === 'pending') return { status: 'pending' };
   if (r.status === 'unknown') return { status: 'unknown' };
+  return null;
+}
+
+/**
+ * Whether the licence of this invoice was revoked (a refund). true / false
+ * when the server answered, null when it could not be asked — which must never
+ * be read as "revoked": a paying user offline keeps Pro.
+ */
+export async function isRevoked(invoiceId: string): Promise<boolean | null> {
+  const r = await call(`/check?inv=${encodeURIComponent(invoiceId)}`) as Partial<{ status: string }> | null;
+  if (r?.status === 'revoked') return true;
+  if (r?.status === 'ok') return false;
   return null;
 }
 

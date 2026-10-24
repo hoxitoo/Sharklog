@@ -472,6 +472,7 @@
     "restoreReplace": "Replace everything",
     "betsAdded": "Bets added: {{count}}",
     "betsRestored": "Bets restored: {{count}}",
+    "restoreSkipped": "Damaged records skipped: {{n}}",
     "exportCSV": "Export to CSV",
     "exportCSVHint": "A sheet for Excel or Google Sheets",
     "importCSV": "Import from CSV",
@@ -521,7 +522,11 @@
     "restoreCodeDone": "Pro forever restored",
     "restoreCodeShareMsg": "SharkLog Pro restore code (keep it to yourself): {{code}}",
     "tour": "How to use the app",
-    "tourHint": "Show the tips for the Bets screen again"
+    "tourHint": "Show the tips for the Bets screen again",
+    "refundTitle": "How to get a refund",
+    "refundHint": "Within 7 days of purchase — no reason needed",
+    "refundHow": "Within 7 days of purchase — no reason needed; later — if Pro does not work. Write to support with the invoice number from Robokassa’s email. The money comes back the same way within 10 days, and Pro turns off after the refund.",
+    "refundInvoice": "Your invoice number: {{inv}}"
   },
   "onboarding": {
     "welcome": "Welcome",
@@ -741,7 +746,6 @@
     "perkTilt": "Custom tilt alert",
     "perkChecklist": "Pre-bet discipline checklist",
     "lifetime": "Pro forever — {{price}}",
-    "oneTime": "One-time payment: no subscription, no auto-charges",
     "via": "Pay by card or SBP on Robokassa's page",
     "unavailable": "Payment is unavailable right now. Check your connection and try again.",
     "retry": "Retry",
@@ -754,13 +758,18 @@
     "cancelConfirmMsg": "If you have already paid, don't cancel — wait for the confirmation, or Pro will have to be restored through support.",
     "keepWaiting": "Keep waiting",
     "paidTitle": "Pro forever",
-    "paid": "Payment received, Pro is on. Thank you!",
+    "paid": "Payment received, Pro is on. Thank you! Your restore code is in Settings — keep it: it moves Pro to another phone.",
     "notYet": "The payment hasn't arrived yet. If you've paid, wait a minute and check again.",
     "createError": "Couldn't open the payment. Check your connection and try again.",
     "privacy": "Privacy policy",
     "trialEnded": "Your 7-day trial has ended. All your bets stay with you.",
     "trialUntil": "Pro trial until {{date}}",
-    "checkError": "Couldn't check the payment. Check your connection and try again."
+    "checkError": "Couldn't check the payment. Check your connection and try again.",
+    "inProOnce": "in Pro",
+    "foreverNote": "One-time payment, no subscription or auto-charges. Pro turns on right after payment and stays forever — on this phone and on others with the restore code.",
+    "refundNote": "Change your mind? Write to us within 7 days of purchase: we’ll refund you, and Pro will turn off.",
+    "consent": "By tapping “Pro forever — {{price}}” you accept the <1>offer terms</1> and ask for Pro to be turned on right after payment.",
+    "offer": "Offer terms"
   },
   "monthsShort": {
     "1": "Jan",
@@ -1029,7 +1038,8 @@
     "openFailed": "Couldn’t open the store",
     "write": "Message the author",
     "writeSub": "A question, an idea or a bug — the reply comes in Telegram",
-    "linkFailed": "Couldn’t open the link"
+    "linkFailed": "Couldn’t open the link",
+    "proSubOnce": "Pro forever is the best way to help: the purchase pays for the app’s development"
   },
   "tour": {
     "skip": "Skip",

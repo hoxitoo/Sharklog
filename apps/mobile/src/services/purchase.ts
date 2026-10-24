@@ -1,6 +1,7 @@
 import { useBetsStore } from '../store/betsStore';
+import { readLicense } from '../utils/license';
 import { Analytics } from './analytics';
-import { clearPendingPayment, fetchLicense, getPendingPayment } from './licenseServer';
+import { clearPendingPayment, fetchLicense, getPendingPayment, isRevoked } from './licenseServer';
 
 /*
  * Picking up a Robokassa payment after the browser.
@@ -40,6 +41,35 @@ export function takePaidNotice(): boolean {
   if (!paidNotice) return false;
   paidNotice = false;
   return true;
+}
+
+/*
+ * A refund takes the code back. The author revokes the invoice on the licence
+ * server (`/revoke` in the support bot); the app asks about its own licence at
+ * launch and when it comes back to the foreground, and drops it if revoked.
+ * Without this every refund was a lifetime of free Pro. "Could not ask" is
+ * never "revoked": an offline user who paid keeps Pro.
+ */
+
+export type StandingResult = 'ok' | 'revoked' | 'none' | 'unreachable';
+
+let standing: Promise<StandingResult> | null = null;
+
+export function checkLicenseStanding(): Promise<StandingResult> {
+  standing ??= checkStanding().finally(() => { standing = null; });
+  return standing;
+}
+
+async function checkStanding(): Promise<StandingResult> {
+  const id = readLicense(useBetsStore.getState().settings.license)?.id;
+  if (!id) return 'none';
+  const revoked = await isRevoked(id);
+  if (revoked === null) return 'unreachable';
+  if (!revoked) return 'ok';
+  // The licence may have changed while the server was being asked (a restore
+  // code entered meanwhile): revokeLicense drops it only if it is this invoice's.
+  useBetsStore.getState().revokeLicense(id);
+  return 'revoked';
 }
 
 async function run(): Promise<ResumeResult> {

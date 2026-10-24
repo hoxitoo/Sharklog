@@ -170,6 +170,11 @@ export interface AppSettings {
    * backup, so Pro survives a new phone.
    */
   license?: string;
+  /**
+   * Invoice numbers whose licence the server revoked (a refund). Kept so the
+   * same code pasted again is refused offline too, not only at the next check.
+   */
+  revokedLicenses?: string[];
   onboardingComplete: boolean;
   reminderHour: number;
   schemaVersion: number;

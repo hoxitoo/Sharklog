@@ -19,7 +19,7 @@ import {
   setBetPendingResolver, syncBetResultReminders,
 } from './src/utils/notifications';
 import { initRevenueCat, syncEntitlement } from './src/services/revenueCat';
-import { resumePendingPayment, takePaidNotice } from './src/services/purchase';
+import { resumePendingPayment, takePaidNotice, checkLicenseStanding } from './src/services/purchase';
 import { BILLING } from './src/services/billing';
 import { initSentry } from './src/services/sentry';
 import { Analytics } from './src/services/analytics';
@@ -180,7 +180,8 @@ export default function App() {
   // A Robokassa payment finishes in the browser, outside the app; ask the
   // licence server about it when the user comes back, and at launch (the app
   // may have been killed while the browser was open). The same pass ends a
-  // trial that ran out while the app sat in memory.
+  // trial that ran out while the app sat in memory, and asks whether the
+  // licence was revoked after a refund.
   useEffect(() => {
     if (!isLoaded) return;
     const check = () => {
@@ -190,6 +191,7 @@ export default function App() {
           requestAnimationFrame(() => Alert.alert(i18n.t('proGate.paidTitle'), i18n.t('proGate.paid')));
         }
       });
+      if (BILLING === 'robokassa') checkLicenseStanding();
     };
     check();
     const sub = AppState.addEventListener('change', (state) => {

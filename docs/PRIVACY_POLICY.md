@@ -1,6 +1,6 @@
 # Privacy Policy — SharkLog
 
-**Last updated: 2026-10-19**
+**Last updated: 2026-10-24**
 
 The published version (in Russian) is <https://hoxitoo.github.io/Sharklog/privacy.html>
 (branch `gh-pages`). Keep the two in step.
@@ -17,7 +17,7 @@ Bet records, bankroll history, diary notes, settings and the Pro licence ("resto
 
 In the RuStore version Pro is a **one-time payment** — no subscription, no automatic charges. Payment happens on the page of the payment service **Robokassa**; card or SBP details are entered there and are never passed to us.
 
-To grant Pro without an account, a licence server runs on Cloudflare. It receives the invoice number, amount and payment status from Robokassa and keeps them, to issue the licence and to restore it if needed. The App contacts the server only with the invoice number and a one-time code — no betting data, no device data. Nothing about an invoice is stored before it is paid.
+To grant Pro without an account, a licence server runs on Cloudflare. It receives the invoice number, amount and payment status from Robokassa and keeps them, to issue the licence and to restore it if needed. The App contacts the server only with the invoice number and a one-time code — no betting data, no device data. Nothing about an invoice is stored before it is paid. With Pro bought, the App also sends the invoice number at launch to check that the code has not been revoked after a refund.
 
 An e-mail address, if you enter one on the payment page, is used by Robokassa to send the receipt. Our server does not store it.
 
@@ -30,7 +30,7 @@ In Google Play / App Store versions (if released), Pro is bought through the sto
 | Service | Purpose | Data |
 |---------|---------|------|
 | **Robokassa** | Accepting the Pro payment | Payment details you enter on its page; e-mail for the receipt, if you give one |
-| **Cloudflare** | Licence server | Invoice number, amount, payment status and date; technical request data (e.g. IP address) processed by Cloudflare to deliver the request |
+| **Cloudflare** | Licence server | Invoice number, amount, payment status and date, when the code was issued and which version of the offer was in force; technical request data (e.g. IP address) processed by Cloudflare to deliver the request |
 | **Sentry** (if enabled) | Crash reports | Error description, device model, OS and app version — no betting data |
 | **PostHog** (if enabled) | Anonymous usage statistics | See section 5 |
 | **RevenueCat, Apple, Google** | Purchases in Google Play / App Store versions | Anonymous purchaser ID, purchase receipt |
@@ -47,7 +47,7 @@ The App shows local notifications: a daily journal reminder, a tilt warning, and
 
 ## 7. Retention and deletion
 
-Data on the device stays until you delete it: Settings → "Clear all data", or uninstalling the App. Records of paid invoices on the licence server are kept so a purchase can be restored; they can be deleted on request to support with the invoice number.
+Data on the device stays until you delete it: Settings → "Clear all data", or uninstalling the App. Records of paid invoices on the licence server are kept so a purchase can be restored; after a refund the record is marked as refunded and the code stops working. They can be deleted on request to support with the invoice number.
 
 ## 8. Age
 

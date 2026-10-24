@@ -1,6 +1,7 @@
 import appJson from '../../app.json';
 import easJson from '../../eas.json';
-import { ANDROID_PACKAGE, distribution, storeReviewUrls, supportUrl } from '../utils/storeLinks';
+import { ANDROID_PACKAGE, LANDING_URL, distribution, storeReviewUrls, supportUrl } from '../utils/storeLinks';
+import { OFFER_URL, PRIVACY_URL } from '../services/billing';
 
 describe('store links', () => {
   it('use the package the app is actually published under', () => {
@@ -34,6 +35,15 @@ describe('store links', () => {
     expect(distribution(' store ')).toBe('store');
     expect(distribution(undefined)).toBe('direct');
     expect(distribution('RuStore')).toBe('direct');
+  });
+
+  it('keep the offer, the policy and the landing on one site, so a move takes all three', () => {
+    // When the site leaves GitHub Pages, a page left behind would be a dead
+    // link in a shipped APK — the offer one under the buy button.
+    const origin = (u: string) => new URL(u).origin;
+    expect(origin(OFFER_URL)).toBe(origin(PRIVACY_URL));
+    expect(origin(LANDING_URL)).toBe(origin(PRIVACY_URL));
+    for (const u of [OFFER_URL, PRIVACY_URL, LANDING_URL]) expect(u.startsWith('https://')).toBe(true);
   });
 
   it('take the support contact from the environment only, and drop anything that is not an https link', () => {

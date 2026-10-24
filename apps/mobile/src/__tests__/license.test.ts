@@ -1,5 +1,5 @@
 import { generateKeyPairSync, sign, type KeyObject } from 'crypto';
-import { verifyLicense, resolvePro, decodeBase64, trialEnd, TRIAL_DAYS } from '../utils/license';
+import { verifyLicense, readLicense, resolvePro, trialRunning, decodeBase64, trialEnd, TRIAL_DAYS } from '../utils/license';
 
 /*
  * The licence is signed by the Worker with WebCrypto's Ed25519 and checked by
@@ -64,6 +64,16 @@ describe('verifyLicense', () => {
     expect(verifyLicense(issue(privateKey, { v: 2, id: '7', plan: 'lifetime', iat: 1 }), publicB64)).toBeNull();
   });
 
+  it('refuses a test-mode licence unless the build allows it', () => {
+    // The server in Robokassa's test mode marks what it issues; a store build
+    // must not take a licence for a payment that moved no money.
+    const test = issue(privateKey, { ...lifetime, test: true });
+    expect(verifyLicense(test, publicB64)).toBeNull();
+    expect(verifyLicense(test, publicB64, new Date(), { allowTest: true })?.test).toBe(true);
+    // Only `true` is a test flag; anything else in that field is not a licence.
+    expect(verifyLicense(issue(privateKey, { ...lifetime, test: 'no' }), publicB64, new Date(), { allowTest: true })).toBeNull();
+  });
+
   it('honours an expiry, for the subscriptions that may come later', () => {
     const now = new Date('2026-10-18T12:00:00Z');
     const exp = Math.floor(now.getTime() / 1000);
@@ -83,11 +93,20 @@ describe('decodeBase64', () => {
   });
 });
 
+describe('readLicense', () => {
+  it('reads a stored licence without the key — the invoice number for support and the revocation check', () => {
+    expect(readLicense(issue(privateKey, lifetime))?.id).toBe('184467');
+    expect(readLicense('hello')).toBeNull();
+    expect(readLicense(undefined)).toBeNull();
+  });
+});
+
 describe('resolvePro', () => {
   const now = new Date('2026-10-18T12:00:00Z');
   const future = new Date(now.getTime() + 86_400_000).toISOString();
   const past = new Date(now.getTime() - 86_400_000).toISOString();
-  const base = { owner: false, licenseValid: false, storeEntitled: null, previous: false, now } as const;
+  // The store build's rules; the Robokassa build differs only in keepCached.
+  const base = { owner: false, licenseValid: false, storeEntitled: null, previous: false, keepCached: true, now } as const;
 
   it('a licence or the owner build always means Pro', () => {
     expect(resolvePro({ ...base, licenseValid: true, trialEndsAt: past, storeEntitled: false })).toBe(true);
@@ -113,6 +132,24 @@ describe('resolvePro', () => {
   it('an older build\'s Pro is kept when nothing else has an opinion', () => {
     expect(resolvePro({ ...base, previous: true })).toBe(true);
     expect(resolvePro({ ...base, previous: false })).toBe(false);
+  });
+
+  it('the Robokassa build does not take the cached flag on its word', () => {
+    // The old APK's "seven taps → Pro" left exactly this: the flag and nothing behind it.
+    expect(resolvePro({ ...base, previous: true, keepCached: false })).toBe(false);
+    expect(resolvePro({ ...base, previous: true, keepCached: false, licenseValid: true })).toBe(true);
+    expect(resolvePro({ ...base, previous: true, keepCached: false, trialEndsAt: future })).toBe(true);
+  });
+
+  it('a trial ending further out than a trial can is not a trial — the clock was moved', () => {
+    // Onboarded with the phone set to 2036, then the clock put back.
+    const in2036 = new Date('2036-01-01T00:00:00Z').toISOString();
+    expect(resolvePro({ ...base, trialEndsAt: in2036, previous: true })).toBe(false);
+    // A full trial plus a day of slack still counts.
+    const edge = new Date(now.getTime() + (TRIAL_DAYS + 1) * 86_400_000).toISOString();
+    expect(resolvePro({ ...base, trialEndsAt: edge })).toBe(true);
+    expect(trialRunning({ proExpiresAt: in2036 }, now)).toBe(false);
+    expect(trialRunning({ proExpiresAt: future }, now)).toBe(true);
   });
 });
 

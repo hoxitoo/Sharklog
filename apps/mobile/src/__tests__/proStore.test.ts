@@ -16,8 +16,8 @@ const { useBetsStore, defaultSettings, ownsPro } = require('../store/betsStore')
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const AsyncStorage = require('@react-native-async-storage/async-storage').default;
 
-function licence(id = '4242'): string {
-  const seg = Buffer.from(JSON.stringify({ v: 1, id, plan: 'lifetime', iat: 1_760_000_000 }), 'ascii').toString('base64url');
+function licence(id = '4242', extra: object = {}): string {
+  const seg = Buffer.from(JSON.stringify({ v: 1, id, plan: 'lifetime', iat: 1_760_000_000, ...extra }), 'ascii').toString('base64url');
   return `SL1.${seg}.${sign(null, Buffer.from(seg, 'ascii'), privateKey).toString('base64url')}`;
 }
 
@@ -99,14 +99,28 @@ describe('refreshPro', () => {
     expect(settings().isPro).toBe(true);
   });
 
-  it('drops the trial date once the store grants Pro, so offline launches keep it', () => {
-    useBetsStore.setState({ settings: { ...settings(), isPro: true, proExpiresAt: new Date(Date.now() + 86_400_000).toISOString() } });
-    useBetsStore.getState().refreshPro(true);
-    expect(settings().proExpiresAt).toBeUndefined();
-    useBetsStore.getState().refreshPro(null);
-    expect(settings().isPro).toBe(true);
+  it('drops the trial date once the store grants Pro, so offline launches keep it (Google Play build)', () => {
+    const { useBetsStore: play, defaultSettings: defaults } = isolatedStore({ EXPO_PUBLIC_BILLING: 'revenuecat' }).store;
+    play.setState({ settings: { ...defaults, onboardingComplete: true, isPro: true, proExpiresAt: new Date(Date.now() + 86_400_000).toISOString() } });
+    play.getState().refreshPro(true);
+    expect(play.getState().settings.proExpiresAt).toBeUndefined();
+    play.getState().refreshPro(null);
+    expect(play.getState().settings.isPro).toBe(true);
   });
 });
+
+/** The store as another build sees it: env read at import, so a fresh module registry. */
+function isolatedStore(env: Record<string, string>) {
+  let store!: typeof import('../store/betsStore');
+  let storage!: { setItem: (k: string, v: string) => Promise<void> };
+  jest.isolateModules(() => {
+    Object.assign(process.env, env);
+    store = require('../store/betsStore');
+    storage = require('@react-native-async-storage/async-storage').default;
+  });
+  for (const k of Object.keys(env)) delete process.env[k];
+  return { store, storage };
+}
 
 describe('load', () => {
   async function loadWith(saved: object) {
@@ -124,8 +138,60 @@ describe('load', () => {
     expect((await loadWith({ isPro: true, license: 'hello', proExpiresAt: new Date(0).toISOString() })).isPro).toBe(false);
   });
 
-  it('keeps Pro from an older build that left no trace of where it came from', async () => {
-    expect((await loadWith({ isPro: true })).isPro).toBe(true);
+  it('does not keep a bare Pro flag in the Robokassa build — that was the old APK\'s seven taps', async () => {
+    expect((await loadWith({ isPro: true })).isPro).toBe(false);
+  });
+
+  it('a trial dated past what a trial can be is not Pro', async () => {
+    expect((await loadWith({ isPro: true, proExpiresAt: '2036-01-01T00:00:00.000Z' })).isPro).toBe(false);
+  });
+
+  it('drops a revoked licence it still holds', async () => {
+    const s = await loadWith({ isPro: true, license: licence('77'), revokedLicenses: ['77'] });
+    expect(s.isPro).toBe(false);
+    expect(s.license).toBeUndefined();
+  });
+});
+
+describe('revokeLicense', () => {
+  it('takes Pro away and refuses the same code afterwards, offline too', () => {
+    const code = licence('91');
+    useBetsStore.getState().applyLicense(code);
+    useBetsStore.getState().revokeLicense('91');
+    expect(settings().isPro).toBe(false);
+    expect(settings().license).toBeUndefined();
+    expect(useBetsStore.getState().applyLicense(code)).toBe(false);
+    // Another purchase is untouched.
+    expect(useBetsStore.getState().applyLicense(licence('92'))).toBe(true);
+  });
+
+  it('leaves the stored licence alone when another invoice is revoked', () => {
+    useBetsStore.getState().applyLicense(licence('93'));
+    useBetsStore.getState().revokeLicense('94');
+    expect(settings().isPro).toBe(true);
+    expect(settings().revokedLicenses).toEqual(['94']);
+  });
+});
+
+describe('test-mode licences', () => {
+  it('a hand-installed build (testers, the owner) takes them', () => {
+    expect(useBetsStore.getState().applyLicense(licence('5', { test: true }))).toBe(true);
+  });
+
+  it('a RuStore build refuses them, and drops one left by a test build installed underneath', async () => {
+    const { store, storage } = isolatedStore({ EXPO_PUBLIC_DISTRIBUTION: 'rustore' });
+    const { useBetsStore: rustore, defaultSettings: defaults } = store;
+
+    await storage.setItem('@sharklog/data', JSON.stringify({
+      bets: [], diary: [], teams: [], version: 3,
+      settings: { ...defaults, onboardingComplete: true, isPro: true, license: licence('8', { test: true }) },
+    }));
+    await rustore.getState().load();
+    expect(rustore.getState().settings.isPro).toBe(false);
+    expect(rustore.getState().settings.license).toBeUndefined();
+
+    expect(rustore.getState().applyLicense(licence('6', { test: true }))).toBe(false);
+    expect(rustore.getState().applyLicense(licence('7'))).toBe(true);
   });
 });
 

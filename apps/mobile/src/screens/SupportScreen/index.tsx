@@ -8,6 +8,7 @@ import { cardSurface } from '../../components/Card';
 import { PaywallSheet } from '../../components/PaywallSheet';
 import { useBetsStore, ownsPro } from '../../store/betsStore';
 import { Analytics } from '../../services/analytics';
+import { BILLING } from '../../services/billing';
 import { LANDING_URL, storeReviewUrls, supportUrl } from '../../utils/storeLinks';
 import { colors, alpha } from '../../theme/colors';
 import { SPACE, RADIUS, TOUCH } from '../../theme/layout';
@@ -56,6 +57,9 @@ export function SupportScreen() {
   const isPro = useBetsStore((s) => ownsPro(s.settings));
   const [paywall, setPaywall] = useState(false);
   const closePaywall = useCallback(() => setPaywall(false), []);
+  // "A subscription is the best way to help" — only where there is one. The
+  // RuStore build sells Pro once.
+  const proSub = t(BILLING === 'robokassa' ? 'support.proSubOnce' : 'support.proSub');
   const review = storeReviewUrls(Platform.OS);
   const contact = supportUrl();
 
@@ -104,8 +108,8 @@ export function SupportScreen() {
         <Text style={styles.intro}>{t('support.intro')}</Text>
 
         {isPro
-          ? <Row icon="star" tint={colors.gold} title={t('support.proActive')} sub={t('support.proSub')} />
-          : <Row icon="star-outline" tint={colors.gold} title={t('support.pro')} sub={t('support.proSub')} onPress={openPro} />}
+          ? <Row icon="star" tint={colors.gold} title={t('support.proActive')} sub={proSub} />
+          : <Row icon="star-outline" tint={colors.gold} title={t('support.pro')} sub={proSub} onPress={openPro} />}
 
         {review && (
           <Row icon="thumbs-up-outline" tint={colors.accent} title={t('support.rate')} sub={t('support.rateSub')} onPress={rate} />

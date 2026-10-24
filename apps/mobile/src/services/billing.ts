@@ -27,3 +27,11 @@ export const LICENSE_PUBKEY = process.env['EXPO_PUBLIC_LICENSE_PUBKEY'] ?? '';
 
 /** Where the privacy policy lives — shown under the purchase button. */
 export const PRIVACY_URL = 'https://hoxitoo.github.io/Sharklog/privacy.html';
+
+/**
+ * The public offer — the purchase terms, with the 7-day refund. Linked in the
+ * consent line above the buy button and in Settings. Same site as the policy:
+ * when the site moves, both move (storeLinks.test.ts holds them together). The
+ * page must be published before a build ships — see ROADMAP, "Оплата".
+ */
+export const OFFER_URL = 'https://hoxitoo.github.io/Sharklog/offer.html';
