@@ -526,7 +526,9 @@
     "refundTitle": "How to get a refund",
     "refundHint": "Within 7 days of purchase — no reason needed",
     "refundHow": "Within 7 days of purchase — no reason needed; later — if Pro does not work. Write to support with the invoice number from Robokassa’s email. The money comes back the same way within 10 days, and Pro turns off after the refund.",
-    "refundInvoice": "Your invoice number: {{inv}}"
+    "refundInvoice": "Your invoice number: {{inv}}",
+    "restoreCodeRevoked": "This code was revoked: its purchase was refunded. If that is a mistake, write to support.",
+    "restoreCodeOffline": "Could not check the code — an internet connection is needed. Try again."
   },
   "onboarding": {
     "welcome": "Welcome",
