@@ -71,6 +71,10 @@ export function SupportScreen() {
   async function rate() {
     if (!review) return;
     Analytics.supportAction('rate');
+    if (review === 'soon') {
+      Alert.alert(t('support.rate'), t('support.rateSoon'));
+      return;
+    }
     // Not canOpenURL: on Android 11+ it answers false for `market://` unless
     // the manifest declares the query, and the fallback would never be tried.
     for (const url of review) {
@@ -112,7 +116,10 @@ export function SupportScreen() {
           : <Row icon="star-outline" tint={colors.gold} title={t('support.pro')} sub={proSub} onPress={openPro} />}
 
         {review && (
-          <Row icon="thumbs-up-outline" tint={colors.accent} title={t('support.rate')} sub={t('support.rateSub')} onPress={rate} />
+          <Row
+            icon="thumbs-up-outline" tint={colors.accent} title={t('support.rate')}
+            sub={t(review === 'soon' ? 'support.rateSoonSub' : 'support.rateSub')} onPress={rate}
+          />
         )}
 
         <Row icon="share-social-outline" tint={colors.purpleText} title={t('support.share')} sub={t('support.shareSub')} onPress={share} />

@@ -1,6 +1,17 @@
 import type { Bet, BankrollTransaction, EsportsDiscipline } from '../types/bet';
 import { ODDS_RANGES } from '../constants/index';
 
+/**
+ * Chronological order of bets: by when the match was played (date + time), and
+ * by when the row was typed in only between bets of the same minute. A bet
+ * entered after the fact sorted by `createdAt` lands at the end — out of step
+ * with the bets list — and a run of wins or a drawdown counted that way is not
+ * the run the user sees in the list.
+ */
+export function byPlayedAt(a: Bet, b: Bet): number {
+  return (`${a.date}T${a.time}`).localeCompare(`${b.date}T${b.time}`) || a.createdAt.localeCompare(b.createdAt);
+}
+
 export interface SliceStats {
   label: string;
   count: number;
@@ -81,8 +92,7 @@ export function calcDashboard(bets: Bet[]): DashboardStats {
     // Ordered by when the match happened, not when the row was typed in: a bet
     // entered after the fact would otherwise land at the end of the curve and
     // put it out of step with the bets list, the dashboard and the bank curve.
-    .sort((a, b) => (`${a.date}T${a.time}`).localeCompare(`${b.date}T${b.time}`)
-      || a.createdAt.localeCompare(b.createdAt));
+    .sort(byPlayedAt);
 
   const pendingCount = bets.filter((b) => b.status === 'pending').length;
   const totalStaked = stats.totalStaked;

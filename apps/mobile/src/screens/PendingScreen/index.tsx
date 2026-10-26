@@ -13,6 +13,7 @@ import { BetCard } from '../BetsScreen/BetCard';
 import { useBetActions } from '../../components/useBetActions';
 import { SIZE, GLYPH } from '../../theme/typography';
 import { themedStyles } from '../../theme/themed';
+import { useBottomPad } from '../../utils/useBottomPad';
 
 /** Kick-off timestamp, parsed as LOCAL time (a bare date string would read as UTC). */
 function startedAt(bet: Bet): number {
@@ -31,6 +32,7 @@ function agoLabel(ms: number, t: TFunction): string {
 }
 
 export function PendingScreen() {
+  const bottomPad = useBottomPad(SPACE.xxl);
   // Same wheel as the bets list — one menu, one set of wedge positions.
   const betActions = useBetActions();
   const bets = useBetsStore((s) => s.bets);
@@ -91,7 +93,7 @@ export function PendingScreen() {
         keyExtractor={(b) => b.id}
         keyboardShouldPersistTaps="handled"
         windowSize={9}
-        contentContainerStyle={s.list}
+        contentContainerStyle={[s.list, { paddingBottom: bottomPad }]}
         ListEmptyComponent={
           <View style={s.empty}>
             <Text style={s.emptyIcon}>✅</Text>

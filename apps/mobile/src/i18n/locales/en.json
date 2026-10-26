@@ -1041,7 +1041,9 @@
     "write": "Message the author",
     "writeSub": "A question, an idea or a bug — the reply comes in Telegram",
     "linkFailed": "Couldn’t open the link",
-    "proSubOnce": "Pro forever is the best way to help: the purchase pays for the app’s development"
+    "proSubOnce": "Pro forever is the best way to help: the purchase pays for the app’s development",
+    "rateSoonSub": "Coming to RuStore soon",
+    "rateSoon": "SharkLog is coming to RuStore soon — then you’ll be able to rate it here. Thanks for wanting to help!"
   },
   "tour": {
     "skip": "Skip",

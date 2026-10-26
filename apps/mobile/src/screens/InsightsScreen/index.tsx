@@ -24,6 +24,7 @@ import { YearBreakdown } from './YearBreakdown';
 import { AppIcon, sportGlyph, disciplineGlyph } from '../../components/icons/AppIcon';
 import type { GlyphName } from '../../components/icons/glyphs';
 import { themedStyles } from '../../theme/themed';
+import { useBottomPad } from '../../utils/useBottomPad';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
@@ -192,6 +193,7 @@ function MoreToggle({ count, open, onToggle }: {
 // ── Screen ───────────────────────────────────────────────────────────────────
 
 export function InsightsScreen() {
+  const bottomPad = useBottomPad(SPACE.xxl);
   const bets = useBetsStore((s) => s.bets);
   const { goToBets } = useDrawer();
   const [period, setPeriod] = useState<Period>('all');
@@ -252,7 +254,7 @@ export function InsightsScreen() {
   return (
     <View style={s.root}>
       <ScreenHeader title={tr('nav.insights')} subtitle={tr('insights.subtitle')} />
-      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[s.scroll, { paddingBottom: bottomPad }]} showsVerticalScrollIndicator={false}>
         <View style={s.periodRow}>
           {PERIOD_OPTIONS.map((p) => (
             <TouchableOpacity

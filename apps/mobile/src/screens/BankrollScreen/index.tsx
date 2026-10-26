@@ -50,6 +50,7 @@ import { FONTS, numeric, SIZE, GLYPH } from '../../theme/typography';
 import { BalanceChart } from '../../components/BalanceChart';
 import { SERIES } from '../../theme/chartColors';
 import { themedStyles } from '../../theme/themed';
+import { useBottomPad } from '../../utils/useBottomPad';
 
 const STEP_SLOP = hitSlopFor(28);
 
@@ -357,6 +358,7 @@ const tx_ = themedStyles(() => ({
 // ── Main content ──────────────────────────────────────────────────────────────
 
 function BankrollContent() {
+  const bottomPad = useBottomPad();
   const fmt = useFormatMoney();
   const { t } = useTranslation();
   const bets = useBetsStore((s) => s.bets);
@@ -485,7 +487,7 @@ function BankrollContent() {
   const hiddenTxCount = orderedTx.length - shownTx.length;
 
   return (
-    <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: SPACE.xl }}>
+    <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: bottomPad }}>
 
       {/* Summary card */}
       <View style={bk.summaryCard}>

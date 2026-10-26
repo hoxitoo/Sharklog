@@ -16,8 +16,10 @@ import { ProGate } from '../../components/ProGate';
 import { haptic } from '../../utils/haptics';
 import { SIZE, GLYPH } from '../../theme/typography';
 import { themedStyles } from '../../theme/themed';
+import { useBottomPad } from '../../utils/useBottomPad';
 
 function ResultScreen({ strategy, onReset }: { strategy: GeneratedStrategy; onReset: () => void }) {
+  const bottomPad = useBottomPad(40);
   const updateSettings = useBetsStore((s) => s.updateSettings);
   const { t } = useTranslation();
   // Words come from the answers in the CURRENT language — the strings stored
@@ -41,7 +43,7 @@ function ResultScreen({ strategy, onReset }: { strategy: GeneratedStrategy; onRe
   }
 
   return (
-    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.scroll}>
+    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[s.scroll, { paddingBottom: bottomPad }]}>
       <View style={s.badge}>
         <Text style={s.badgeText}>{t('strategy.ready')}</Text>
       </View>
@@ -128,6 +130,7 @@ function ResultScreen({ strategy, onReset }: { strategy: GeneratedStrategy; onRe
 }
 
 function WizardScreen({ onDone }: { onDone: (strategy: GeneratedStrategy) => void }) {
+  const bottomPad = useBottomPad(40);
   const { t } = useTranslation();
   const questions = strategyQuestions(t);
   const total = questions.length;
@@ -151,7 +154,7 @@ function WizardScreen({ onDone }: { onDone: (strategy: GeneratedStrategy) => voi
   const progress = step / total;
 
   return (
-    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={s.scroll}>
+    <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[s.scroll, { paddingBottom: bottomPad }]}>
       {/* Progress */}
       <View style={s.progressWrap}>
         <View style={[s.progressFill, { width: `${Math.round(progress * 100)}%` as any }]} />

@@ -47,10 +47,20 @@ export function distribution(raw: string | undefined = process.env['EXPO_PUBLIC_
 export const APP_STORE_ID = '';
 
 /**
+ * Whether SharkLog is published in RuStore yet. Flip to `true` once its page
+ * is live (ROADMAP, "После публикации"): until then a hand-installed build
+ * shows "Rate" as "coming to RuStore" instead of opening a page that does not
+ * exist. The RuStore build itself does not ask — whoever has it got it from
+ * RuStore, so the page is there.
+ */
+export const RUSTORE_LIVE = false;
+
+/**
  * The review page in the store: the native scheme first (opens the store app),
- * the web page as the fallback for a device without it. `null` when there is
- * nowhere to send the user yet — an APK installed by hand has no store page
- * to rate it on.
+ * the web page as the fallback for a device without it. `'soon'` for an APK
+ * installed by hand before the app is in RuStore — the row stays, and says so,
+ * rather than vanishing (it read as a missing feature). `null` where there is
+ * nowhere at all: iOS without an App Store id.
  *
  * A button opens the store page instead of the in-app review prompt on
  * purpose: the system rate-limits that prompt and may show nothing at all,
@@ -60,22 +70,23 @@ export function storeReviewUrls(
   os: string,
   dist: Distribution = distribution(),
   appStoreId = APP_STORE_ID,
-): readonly string[] | null {
+  rustoreLive = RUSTORE_LIVE,
+): readonly string[] | 'soon' | null {
   if (os === 'android') {
-    if (dist === 'rustore') {
-      // The app's page by its web address only. A `rustore://` deeplink to an
-      // app card is a guess (only the developer page's form is documented), and
-      // RuStore takes ANY rustore:// link — a wrong path would open its home
-      // screen, and the fallback would never be tried.
-      return [`https://apps.rustore.ru/app/${ANDROID_PACKAGE}`];
-    }
+    // The app's page by its web address only. A `rustore://` deeplink to an
+    // app card is a guess (only the developer page's form is documented), and
+    // RuStore takes ANY rustore:// link — a wrong path would open its home
+    // screen, and the fallback would never be tried.
+    const rustorePage = [`https://apps.rustore.ru/app/${ANDROID_PACKAGE}`];
+    if (dist === 'rustore') return rustorePage;
     if (dist === 'store') {
       return [
         `market://details?id=${ANDROID_PACKAGE}`,
         `https://play.google.com/store/apps/details?id=${ANDROID_PACKAGE}`,
       ];
     }
-    return null;
+    // Installed by hand (testers, the owner): RuStore is where the app lives.
+    return rustoreLive ? rustorePage : 'soon';
   }
   if (os === 'ios' && dist === 'store' && appStoreId) {
     return [

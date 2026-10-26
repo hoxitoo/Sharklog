@@ -27,6 +27,7 @@ import { Analytics } from '../../services/analytics';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { SIZE, GLYPH } from '../../theme/typography';
 import { themedStyles } from '../../theme/themed';
+import { useBottomPad } from '../../utils/useBottomPad';
 
 const STEP_SLOP = hitSlopFor(32);
 
@@ -468,6 +469,7 @@ const kl = themedStyles(() => ({
 export function AddBetScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<Route>();
+  const bottomPad = useBottomPad(40);
   const bets = useBetsStore((s) => s.bets);
   const addBet = useBetsStore((s) => s.addBet);
   const updateBet = useBetsStore((s) => s.updateBet);
@@ -791,7 +793,7 @@ export function AddBetScreen() {
       <ScrollView
         ref={scrollRef}
         style={styles.container}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingBottom: bottomPad }]}
         showsVerticalScrollIndicator={false}
         keyboardShouldPersistTaps="handled"
       >
