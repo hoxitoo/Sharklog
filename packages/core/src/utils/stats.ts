@@ -127,9 +127,12 @@ export function calcDashboard(bets: Bet[]): DashboardStats {
 }
 
 function calcStreak(bets: Bet[]): DashboardStats['currentStreak'] {
+  // Latest MATCH first, as `calcStreaks` counts: by `createdAt`, three old
+  // losses typed in after today's win read as a fresh tilt here while
+  // Analytics showed the win as the current run.
   const settled = [...bets]
     .filter((b) => b.status === 'won' || b.status === 'lost')
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt)); // newest first
+    .sort((a, b) => byPlayedAt(b, a)); // newest first
 
   if (settled.length === 0) return { type: 'none', count: 0 };
 

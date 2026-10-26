@@ -31,4 +31,13 @@ describe('migrate', () => {
     const result = migrate({ version: 2, bets: [null, 'junk', good] }) as { bets: unknown[] };
     expect(result.bets).toEqual([null, 'junk', { ...good, odds: 2.34 }]);
   });
+
+  it('pads an imported "9:05" so a morning match sorts before "23:00", and touches nothing else', () => {
+    const result = migrate({
+      version: 3,
+      bets: [{ id: 'a', time: '9:05' }, { id: 'b', time: '23:00' }, { id: 'c', time: 'вечер' }, { id: 'd' }, null],
+    }) as { bets: Array<Record<string, unknown> | null>; version: number };
+    expect(result.version).toBe(CURRENT_SCHEMA_VERSION);
+    expect(result.bets.map((b) => b?.['time'])).toEqual(['09:05', '23:00', 'вечер', undefined, undefined]);
+  });
 });

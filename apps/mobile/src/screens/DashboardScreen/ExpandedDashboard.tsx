@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useLayoutEffect, useMemo, useState } from 'react';
 import { SPACE, RADIUS, TOUCH, hitSlopFor } from '../../theme/layout';
 import {
   View, TouchableOpacity, Modal, ScrollView, SectionList, useWindowDimensions,
@@ -81,7 +81,13 @@ export function ExpandedDashboard({ visible, days, onClose }: Props) {
   }, [days, hideEmpty, hideNoResult]);
 
   const summary = useMemo(() => summarizeDays(shown), [shown]);
-  const sections = useMemo(() => (shown.length > 0 ? [{ key: 'days', data: shown }] : []), [shown]);
+  // Newest first: the table is read for the last days, and oldest-first put
+  // them a year of rows down — a recent day picked on the chart lit a row
+  // nobody could see.
+  const sections = useMemo(
+    () => (shown.length > 0 ? [{ key: 'days', data: [...shown].reverse() }] : []),
+    [shown],
+  );
   const selIndex = selected != null ? shown.findIndex((d) => d.date === selected) : -1;
   const sel = selIndex >= 0 ? shown[selIndex] ?? null : null;
   const spot = sel != null;
@@ -90,8 +96,12 @@ export function ExpandedDashboard({ visible, days, onClose }: Props) {
     haptic.selection();
     setSelected((cur) => (cur === date ? null : date));
   };
-  // Reopening should not greet the user with a darkened screen.
-  const close = () => { setSelected(null); onClose(); };
+  // Reopening should not greet the user with a darkened screen. Cleared on
+  // OPEN, before the first frame, not on close: iOS keeps drawing the modal
+  // through its fade-out, and a reset there lit the screen up mid-fade.
+  useLayoutEffect(() => {
+    if (visible) setSelected(null);
+  }, [visible]);
 
   // Landscape canvas: swap W/H and rotate. Avoids a native orientation dependency
   // (adding one would force a fresh native build).
@@ -163,7 +173,7 @@ export function ExpandedDashboard({ visible, days, onClose }: Props) {
       visible={visible}
       animationType="fade"
       // Android "back" first lets go of the chosen day, then closes.
-      onRequestClose={() => (spot ? setSelected(null) : close())}
+      onRequestClose={() => (spot ? setSelected(null) : onClose())}
       supportedOrientations={['portrait', 'landscape']}
     >
       <View style={{ flex: 1, backgroundColor: spot ? mix('#000000', colors.bg, SCRIM_ALPHA) : colors.bg }}>
@@ -234,7 +244,7 @@ export function ExpandedDashboard({ visible, days, onClose }: Props) {
                 <Chip active={toggles.cash} color={SERIES.deposit} label={t('dashboard.cashFlows')} onPress={() => setToggles((prev) => ({ ...prev, cash: !prev.cash }))} />
               </ScrollView>
             )}
-            <TouchableOpacity onPress={close} style={ex.closeBtn} activeOpacity={0.75}>
+            <TouchableOpacity onPress={onClose} style={ex.closeBtn} activeOpacity={0.75}>
               <Text style={ex.closeText}>✕ {t('common.collapse')}</Text>
               {spot ? <View pointerEvents="none" style={ex.veilFrame} /> : null}
             </TouchableOpacity>
@@ -339,7 +349,7 @@ const ex = themedStyles(() => ({
   dayDate: { backgroundColor: colors.purple, borderRadius: RADIUS.xs, paddingHorizontal: SPACE.sm, paddingVertical: SPACE.xs },
   // White is a palette rule on `purple` (theme.test holds it at 4.4+ on every theme).
   dayDateText: { fontSize: SIZE.caption, fontWeight: '800', color: '#fff', ...numeric },
-  dayItems: { flexDirection: 'row', alignItems: 'center', gap: SPACE.lg, paddingRight: SPACE.sm },
+  dayItems: { flexDirection: 'row', alignItems: 'center', gap: SPACE.md, paddingRight: SPACE.sm },
   dayClear: { width: TOUCH, alignSelf: 'stretch', alignItems: 'center', justifyContent: 'center' },
   dayClearText: { fontSize: SIZE.body, fontWeight: '700', color: colors.textSecondary },
   selItem: { fontSize: SIZE.caption, color: colors.textMuted },

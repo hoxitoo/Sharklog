@@ -1,5 +1,6 @@
 import type { Bet, BetStatus, Bankroll, BankrollTransaction, DiaryEntry, Team } from '../types/bet';
 import { CURRENT_SCHEMA_VERSION } from '../constants/index';
+import { normalizeTime } from './daily';
 
 /*
  * Data that did not come from the app's own writes — a JSON backup someone
@@ -93,7 +94,7 @@ export function sanitizeBet(raw: unknown, mode: SanitizeMode = 'import'): Bet | 
   const fallbackTs = `${date}T00:00:00`;
   const okTs = strict ? isTimestamp : str;
   const time = str(b['time'])
-    ? (strict ? /^\d{1,2}:\d{2}/.exec(b['time'])?.[0] ?? b['time'] : b['time'])
+    ? (strict ? normalizeTime(b['time']) ?? b['time'] : b['time'])
     // A missing time is no reason to lose a bet: "00:00" puts it at the start
     // of its day, which is where an unknown time belongs.
     : '00:00';

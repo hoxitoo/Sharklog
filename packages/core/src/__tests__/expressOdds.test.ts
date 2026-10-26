@@ -1,3 +1,4 @@
+import { CURRENT_SCHEMA_VERSION } from '../constants/index';
 import { describe, it, expect } from 'vitest';
 import { combineExpressOdds } from '../utils/formatters';
 import { migrate } from '../utils/migrations';
@@ -60,8 +61,8 @@ describe('migration v2 → v3', () => {
   });
 
   it('runs from a fresh install and from an empty store without throwing', () => {
-    expect(migrate({}).version).toBe(3);
-    expect(migrate({ version: 2 }).version).toBe(3);
+    expect(migrate({}).version).toBe(CURRENT_SCHEMA_VERSION);
+    expect(migrate({ version: 2 }).version).toBe(CURRENT_SCHEMA_VERSION);
   });
 
   it('does not re-run once applied', () => {

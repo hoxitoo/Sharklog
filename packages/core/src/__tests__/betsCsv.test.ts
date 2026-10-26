@@ -104,9 +104,10 @@ describe('importBetsFromCSV', () => {
     expect(b!.tournament).toBe('IEM');
   });
 
-  it('takes the HH:MM of a time with seconds, not its first five characters', () => {
+  it('takes the HH:MM of a time with seconds, not its first five characters — and pads the hour', () => {
+    // Padded because times are ordered as strings: "7:05" sorted after "23:00".
     const csv = ['Дата;Время;Событие;Коэф.;Ставка', '2026-02-01;7:05:30;A vs B;1.85;1000'].join('\n');
-    expect(importBetsFromCSV(csv, newId).bets[0]!.time).toBe('7:05');
+    expect(importBetsFromCSV(csv, newId).bets[0]!.time).toBe('07:05');
   });
 
   it('skips rows without a usable event, odds or stake', () => {

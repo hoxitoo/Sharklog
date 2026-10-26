@@ -225,6 +225,7 @@
     "bestStreak": "Best winning streak",
     "worstStreak": "Worst streak",
     "currentStreak": "Current",
+    "currentStreakFull": "Current streak",
     "winsInRow_one": "win in a row",
     "winsInRow_other": "wins in a row",
     "lossesInRow_one": "loss in a row",

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { calcDashboard, isInTilt } from './stats';
+import { calcStreaks } from './analytics';
 import type { Bet } from '../types/bet';
 
 function makeBet(overrides: Partial<Bet> & { status: Bet['status'] }): Bet {
@@ -105,5 +106,20 @@ describe('isInTilt', () => {
       makeBet({ status: 'lost', createdAt: '2024-01-01T12:00:00Z' }),
     ];
     expect(isInTilt(bets, 2)).toBe(false);
+  });
+
+  it('reads the run in match order, as Analytics does — old losses typed in late are not a fresh tilt', () => {
+    // A win played on the 24th is entered first; three losses played on the
+    // 20th–22nd are typed in afterwards. Sorted by `createdAt`, the dashboard
+    // and the tilt banner saw "3 losses" while Analytics showed "1 win".
+    const bets = [
+      makeBet({ status: 'won', date: '2026-10-24', createdAt: '2026-10-24T20:00:00Z' }),
+      makeBet({ status: 'lost', date: '2026-10-20', createdAt: '2026-10-25T09:00:00Z' }),
+      makeBet({ status: 'lost', date: '2026-10-21', createdAt: '2026-10-25T09:01:00Z' }),
+      makeBet({ status: 'lost', date: '2026-10-22', createdAt: '2026-10-25T09:02:00Z' }),
+    ];
+    expect(isInTilt(bets, 3)).toBe(false);
+    expect(calcDashboard(bets).currentStreak).toEqual({ type: 'win', count: 1 });
+    expect(calcStreaks(bets).current).toMatchObject({ type: 'win', count: 1 });
   });
 });

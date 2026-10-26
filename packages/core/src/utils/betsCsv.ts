@@ -1,7 +1,7 @@
 import type { Bet, BetStatus, Sport, BetType, Strategy, EsportsDiscipline } from '../types/bet';
 import { SPORTS, BET_TYPES, STRATEGIES, ESPORTS_DISCIPLINES, CURRENT_SCHEMA_VERSION } from '../constants/index';
 import { betPnl } from './stats';
-import { toYmd } from './daily';
+import { toYmd, normalizeTime } from './daily';
 
 // Mobile and desktop each grew their own copy of this parser and drifted: one
 // learned "турнир"/"время"/"фрибет", the other learned "кф"/"btts"/"✅", one
@@ -198,9 +198,7 @@ function mapRow(raw: Record<string, string>, newId: () => string): Bet | null {
   const strategy: Strategy = STRATEGY_MAP[g('strategy').toLowerCase()] ?? 'other';
   const discipline = DISCIPLINE_MAP[g('discipline').toLowerCase()];
 
-  // The matched HH:MM itself, not the first five characters: "7:05:30" sliced
-  // gave "7:05:".
-  const time = /^\d{1,2}:\d{2}/.exec(g('time'))?.[0] ?? '00:00';
+  const time = normalizeTime(g('time')) ?? '00:00';
   const now = new Date().toISOString();
 
   return {
