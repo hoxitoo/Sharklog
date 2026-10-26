@@ -1,4 +1,4 @@
-import { formatOddsAs, parseOdds, type OddsFormat } from '@sharklog/core';
+import { formatOddsAs, parseOdds, rangeFormat, type OddsFormat } from '@sharklog/core';
 
 /*
  * Odds fields in the user's format. The bet keeps decimal odds; the field
@@ -8,8 +8,9 @@ import { formatOddsAs, parseOdds, type OddsFormat } from '@sharklog/core';
 
 /** The text an odds field opens with for a stored (decimal) price. */
 export function oddsFieldText(decimal: number, format: OddsFormat): string {
-  // Decimal as stored, to the last digit typed: 2.375 stays 2.375.
-  return format === 'decimal' ? String(decimal) : formatOddsAs(decimal, format);
+  // Decimal as typed — 2.375 stays 2.375 — capped at 4 places: a price typed
+  // as American "-110" is 1.9090909091, not a number to retype.
+  return format === 'decimal' ? String(Number(decimal.toFixed(4))) : formatOddsAs(decimal, format);
 }
 
 /**
@@ -23,21 +24,26 @@ export function readOddsField(text: string, format: OddsFormat, original?: numbe
   return parseOdds(text, format);
 }
 
-/**
- * An accumulator leg's decimal price, as it will be stored ("event|1.91"):
- * two decimals for a converted quote, so the total built from the legs is the
- * total an edit rebuilds from what was stored. A decimal leg stays as typed.
- */
-export function legOdds(text: string, format: OddsFormat): number {
-  const d = parseOdds(text, format);
-  if (d == null) return 0;
-  return format === 'decimal' ? d : Math.round(d * 100) / 100;
-}
-
 /** The leg's field text from its stored decimal ("1.91" → "-110"). */
 export function legFieldText(stored: string, format: OddsFormat): string {
   const d = Number(stored);
   return format === 'decimal' || !(d > 1) ? stored : formatOddsAs(d, format);
+}
+
+/**
+ * An accumulator leg's decimal price; 0 when it is not one. A leg still
+ * showing what it opened with is its STORED price: a stored 2.50 opens in
+ * Malay as "-0.67", which reads back as 2.4925 — every edit or copy of the
+ * accumulator moved the leg to 2.49 and the total from 4.50 to 4.48. A typed
+ * leg is kept as precise as it was typed ("event|1.952"): stored at two
+ * decimals, it rebuilt a different total than the one saved.
+ */
+export function readLegField(text: string, format: OddsFormat, stored?: string): number {
+  if (stored != null && text === legFieldText(stored, format)) {
+    const d = Number(stored);
+    return d > 1 ? d : 0;
+  }
+  return parseOdds(text, format) ?? 0;
 }
 
 /** The price on a card: "× 2.03" in decimal; a bare quote in any other format ("+103"). */
@@ -54,7 +60,9 @@ export const oddsExample = (format: OddsFormat, decimal = 1.85) => formatOddsAs(
  * stay decimal: a format changes the words, not which bets fall where.
  */
 export function oddsRangeLabel(format: OddsFormat): ((min: number, max: number) => string) | undefined {
-  if (format === 'decimal') return undefined;
-  const f = (d: number) => formatOddsAs(d, format);
+  // Malay ranges read backwards across even money: they stay decimal (rangeFormat).
+  const shown = rangeFormat(format);
+  if (shown === 'decimal') return undefined;
+  const f = (d: number) => formatOddsAs(d, shown);
   return (min, max) => (min <= 1 ? `< ${f(max)}` : max === Infinity ? `> ${f(min)}` : `${f(min)} – ${f(max)}`);
 }

@@ -13,8 +13,11 @@ import type { OddsFormat } from '../types/bet';
  *   malay       -0.67    0.50     ≤ 2.00: profit per 1; above: −1 / profit
  *   indo        +1.50    -2.00    ≥ 2.00: profit per 1; below: −1 / profit
  *
- * A typed price is converted exactly and kept unrounded: "-110" is 1.90909…,
- * and 110 staked must return exactly 210, as the bookmaker pays it.
+ * A typed price is converted exactly: "-110" is 1.90909…, and 110 staked
+ * must return exactly 210, as the bookmaker pays it. Only float noise is
+ * trimmed (to 10 decimals): Hong Kong "0.57" is 1 + 0.57 = 1.5699999999999998
+ * in floating point, which paid a kopeck less than the same price typed as
+ * decimal 1.57 and leaked into the edit field and the CSV.
  */
 
 export const ODDS_FORMATS: readonly OddsFormat[] = ['decimal', 'fractional', 'american', 'hongkong', 'malay', 'indo'];
@@ -41,10 +44,12 @@ export function parseOdds(input: string, format: OddsFormat = 'decimal'): number
   switch (format) {
     case 'fractional': {
       if (/^(evs|evens)$/i.test(s)) { d = 2; break; }
-      const m = /^(\d+(?:\.\d+)?)(?:\/(\d+(?:\.\d+)?))?$/.exec(s);
+      // The slash is required: a bare "1.85" read as 1.85/1 would be odds of
+      // 2.85 — a decimal price typed out of habit, silently changed.
+      const m = /^(\d+(?:\.\d+)?)\/(\d+(?:\.\d+)?)$/.exec(s);
       if (!m) return null;
       const top = Number(m[1]);
-      const bottom = m[2] != null ? Number(m[2]) : 1;
+      const bottom = Number(m[2]);
       if (!(top > 0) || !(bottom > 0)) return null;
       d = 1 + top / bottom;
       break;
@@ -75,12 +80,25 @@ export function parseOdds(input: string, format: OddsFormat = 'decimal'): number
       break;
     }
     default: {
+      // No sign in decimal: "+150" is an American quote, not odds of 150.
+      if (/^[+-]/.test(s)) return null;
       const n = num(s);
       if (!(n > 1)) return null;
       d = n;
     }
   }
-  return Number.isFinite(d) && d > 1 ? d : null;
+  if (!Number.isFinite(d)) return null;
+  d = Math.round(d * 1e10) / 1e10;
+  return d > 1 ? d : null;
+}
+
+/**
+ * The format to write a RANGE of prices in. Malay is not monotonic — 0.80 is
+ * 1.80 and -0.83 is 2.20 — so "0.80 – -0.83" or "-0.67 и выше" would say the
+ * opposite of what they mean; its ranges are written in decimal.
+ */
+export function rangeFormat(format: OddsFormat): OddsFormat {
+  return format === 'malay' ? 'decimal' : format;
 }
 
 /**

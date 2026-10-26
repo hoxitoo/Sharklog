@@ -457,7 +457,13 @@ export function SettingsScreen() {
       const n = backup.bets.length;
       // Records the file had but that could not be kept — said, not swallowed.
       const skipped = backup.dropped > 0 ? `\n${t('settings.restoreSkipped', { n: backup.dropped })}` : '';
-      Alert.alert(t('settings.restoreTitle'), t('settings.restoreMsg', { count: n }), [
+      // The amounts are in the backup's currency. Replacing takes it over;
+      // adding to a book in another one would relabel them — said up front.
+      const otherCurrency = backup.currency !== currency;
+      const signs = { file: CURRENCIES[backup.currency].symbol, book: CURRENCIES[currency].symbol };
+      const restoreMsg = t('settings.restoreMsg', { count: n })
+        + (otherCurrency ? `\n\n${t('settings.restoreCurrencyMismatch', signs)}` : '');
+      Alert.alert(t('settings.restoreTitle'), restoreMsg, [
         { text: t('common.cancel'), style: 'cancel' },
         {
           text: t('settings.restoreAppend'),
@@ -479,6 +485,7 @@ export function SettingsScreen() {
           style: 'destructive',
           onPress: async () => {
             const store = useBetsStore.getState();
+            if (otherCurrency) store.updateSettings({ currency: backup.currency });
             useBetsStore.setState({
               bets: backup.bets,
               ...(backup.bankroll ? { bankroll: { ...store.bankroll, ...backup.bankroll } } : {}),
@@ -488,7 +495,8 @@ export function SettingsScreen() {
             store.persist();
             resyncReminders(); // replaced bets: drop orphan reminders, arm the new ones
             const pro = await licenseNoteFrom(backup.settings);
-            Alert.alert(t('common.success'), t('settings.betsRestored', { count: n }) + skipped + pro);
+            const cur = otherCurrency ? `\n${t('settings.restoreCurrencySet', { currency: signs.file })}` : '';
+            Alert.alert(t('common.success'), t('settings.betsRestored', { count: n }) + skipped + cur + pro);
           },
         },
       ]);
@@ -522,7 +530,7 @@ export function SettingsScreen() {
     try {
       const content = await pickFile(['text/csv', 'text/plain', 'text/comma-separated-values', '*/*']);
       if (content == null) return;
-      const { bets: imported, skipped } = importFromCSV(content);
+      const { bets: imported, skipped, currency: fileCurrency } = importFromCSV(content);
       if (imported.length === 0) {
         Alert.alert(t('settings.importNothingTitle'), t('settings.importNothingMsg'));
         return;
@@ -530,6 +538,10 @@ export function SettingsScreen() {
       const lines = [
         t('settings.importFound', { count: imported.length }),
         skipped > 0 ? t('settings.importSkipped', { count: skipped }) : null,
+        // "Ставка ($)" into a ₽ book: imported as is, so $100 reads 100 ₽ — say it.
+        fileCurrency && fileCurrency !== currency
+          ? t('settings.importCurrencyMismatch', { file: CURRENCIES[fileCurrency].symbol, book: CURRENCIES[currency].symbol })
+          : null,
         t('settings.importAsk'),
       ].filter(Boolean).join('\n');
       Alert.alert(t('settings.importCSV'), lines, [

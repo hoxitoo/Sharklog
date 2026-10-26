@@ -95,7 +95,7 @@ export function BetsScreen({ filter, onClearFilter }: {
   const [refreshing, setRefreshing] = useState(false);
   const { query, setQuery } = useBetsQuery();
   const oddsFormat = useOddsFormat();
-  const queryCount = countBetsQuery(query);
+  const queryCount = countBetsQuery(query, oddsFormat);
   const fmt = useFormatMoney();
 
   // The filter bar rides above the list rather than pushing it down, and when

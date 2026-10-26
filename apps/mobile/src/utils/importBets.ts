@@ -1,6 +1,6 @@
-import type { Bet, Bankroll, DiaryEntry, Team } from '@sharklog/core';
+import type { Bet, Bankroll, CurrencyCode, DiaryEntry, Team } from '@sharklog/core';
 import {
-  importBetsFromCSV, migrate, sanitizeBets, sanitizeBankroll, sanitizeDiary, sanitizeTeams, type ImportResult,
+  importBetsFromCSV, migrate, sanitizeBets, sanitizeBankroll, sanitizeDiary, sanitizeTeams, isCurrencyCode, type ImportResult,
 } from '@sharklog/core';
 
 export type { ImportResult };
@@ -39,6 +39,11 @@ export interface JSONBackup {
   teams?: Team[];
   /** Records left out because they were broken (sanitize.ts in core). */
   dropped: number;
+  /**
+   * The currency the backup's amounts are in: its settings say so, and a backup
+   * from before the setting is roubles. Amounts mean nothing without it.
+   */
+  currency: CurrencyCode;
 }
 
 export function importFromJSON(content: string): JSONBackup | null {
@@ -67,6 +72,9 @@ export function importFromJSON(content: string): JSONBackup | null {
       ...(diary ? { diary: diary.items } : {}),
       ...(teams ? { teams: teams.items } : {}),
       dropped: bets.dropped + bankroll.dropped + (diary?.dropped ?? 0) + (teams?.dropped ?? 0),
+      currency: isCurrencyCode((settings as Record<string, unknown> | undefined)?.['currency'])
+        ? (settings as Record<string, CurrencyCode>)['currency']!
+        : 'RUB',
     };
   } catch {
     return null;

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseOdds, formatOddsAs, ODDS_FORMATS, isOddsFormat } from '../utils/oddsFormat';
+import { parseOdds, formatOddsAs, ODDS_FORMATS, isOddsFormat, rangeFormat } from '../utils/oddsFormat';
 import { betPnl } from '../utils/stats';
 import type { Bet, OddsFormat } from '../types/bet';
 
@@ -86,6 +86,35 @@ describe('odds formats', () => {
     expect(formatOddsAs(1.005, 'fractional')).toBe('1/200');
     expect(formatOddsAs(1, 'decimal')).toBe('—');
     expect(formatOddsAs(NaN, 'american')).toBe('—');
+  });
+
+  it('stores a typed price without float noise — the same kopeck as the same price typed in decimal', () => {
+    // 1 + 0.57 is 1.5699999999999998 in floating point: 100.50 at HK 0.57 won
+    // 57.28, against 57.29 for decimal 1.57.
+    expect(parseOdds('0.57', 'hongkong')).toBe(1.57);
+    expect(parseOdds('57/100', 'fractional')).toBe(1.57);
+    expect(parseOdds('+0.57', 'malay')).toBe(1.57);
+    const hk = { status: 'won', stake: 100_50, odds: parseOdds('0.57', 'hongkong')!, isFreebet: false } as Bet;
+    const dec = { ...hk, odds: parseOdds('1.57', 'decimal')! } as Bet;
+    expect(betPnl(hk)).toBe(betPnl(dec));
+    for (let c = 1; c <= 500; c++) {
+      const hkd = parseOdds((c / 100).toFixed(2), 'hongkong')!;
+      expect(String(hkd)).toBe(String(Number((1 + c / 100).toFixed(2))));
+    }
+  });
+
+  it('refuses a price typed in another format\'s habit rather than reading it as something else', () => {
+    // Fractional needs its slash: "1.85" as 1.85/1 would be odds of 2.85.
+    expect(parseOdds('1.85', 'fractional')).toBeNull();
+    expect(parseOdds('2', 'fractional')).toBeNull();
+    // Decimal has no sign: "+150" is an American quote, not odds of 150.
+    expect(parseOdds('+150', 'decimal')).toBeNull();
+    expect(parseOdds('-1.5', 'decimal')).toBeNull();
+  });
+
+  it('writes ranges of Malay prices in decimal — Malay jumps sign at even money', () => {
+    expect(rangeFormat('malay')).toBe('decimal');
+    expect(rangeFormat('american')).toBe('american');
   });
 
   it('knows its formats and nothing else', () => {

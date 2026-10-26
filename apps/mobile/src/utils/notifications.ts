@@ -1,6 +1,8 @@
 import * as Notifications from 'expo-notifications';
 import i18n from '../i18n';
 import { pickLabel } from './labels';
+import { oddsBadge } from './oddsField';
+import type { OddsFormat } from '@sharklog/core';
 
 /*
  * Every string here is resolved at the moment a notification is SCHEDULED, and
@@ -9,6 +11,16 @@ import { pickLabel } from './labels';
  * App.tsx applies the language before any of this runs, and re-issues it all
  * when the language changes (see `syncBetResultReminders(..., { rearm })`).
  */
+
+/**
+ * The user's odds format, for the reminder text. Set from App.tsx before the
+ * reminders are re-issued — the text is baked in when scheduled, so a format
+ * change re-arms them (the same effect as a language change).
+ */
+let reminderOddsFormat: OddsFormat = 'decimal';
+export function setReminderOddsFormat(format: OddsFormat): void {
+  reminderOddsFormat = format;
+}
 
 /** Set by App.tsx — avoids importing the store here (the store imports this file). */
 let isBetStillPending: (betId: string) => boolean = () => true;
@@ -216,7 +228,9 @@ export async function scheduleBetResultReminder(bet: Bet): Promise<void> {
         identifier: reminderId(bet.id), // replaces any existing reminder for this bet
         content: {
           title: i18n.t('notifications.resultTitle'),
-          body: `${displayEvent(bet.event)} · ${pickLabel(i18n.t, bet.pick)} × ${bet.odds}`,
+          // As on the card: "× 1.91" in decimal, a bare "-110" in American —
+          // never the stored float ("× 1.9090909091").
+          body: `${displayEvent(bet.event)} · ${pickLabel(i18n.t, bet.pick)} ${oddsBadge(bet.odds, reminderOddsFormat)}`,
           categoryIdentifier: BET_RESULT_CATEGORY,
           data: { type: 'bet_result', betId: bet.id },
         },

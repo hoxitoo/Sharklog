@@ -19,7 +19,7 @@ import { useTranslation } from 'react-i18next';
 import { FilterPicker } from '../../components/FilterPicker';
 import { useFormatMoney, useCurrencySymbol } from '../../utils/useFormatMoney';
 import { useOddsFormat, oddsKeyboard } from '../../utils/useOdds';
-import { oddsFieldText, readOddsField, legOdds, legFieldText, oddsExample } from '../../utils/oddsField';
+import { oddsFieldText, readOddsField, readLegField, legFieldText, oddsExample } from '../../utils/oddsField';
 import { sportLabel, betTypeLabel, strategyLabel, disciplineLabel } from '../../utils/labels';
 import { colors } from '../../theme/colors';
 import { useBetsStore } from '../../store/betsStore';
@@ -71,6 +71,8 @@ interface FormData {
 }
 
 interface ExpressLeg {
+  /** The leg's stored decimal ("1.91") when it came from a saved bet — see readLegField. */
+  stored?: string;
   team1: string;
   team2: string;
   odds: string;
@@ -499,6 +501,7 @@ export function AddBetScreen() {
             team1: t[0]?.trim() ?? '',
             team2: t[1]?.trim() ?? '',
             odds: storedOdds ? legFieldText(storedOdds, oddsFormat) : '',
+            ...(storedOdds ? { stored: storedOdds } : {}),
             pick: pickParts[i] ?? '',
             sport: defSport,
             discipline: defDiscipline,
@@ -513,6 +516,13 @@ export function AddBetScreen() {
   };
 
   const [legs, setLegs] = useState<ExpressLeg[]>(buildInitialLegs);
+  const storedLegCount = useRef(legs.filter((l) => l.stored != null).length).current;
+  const legPrice = (l: ExpressLeg) => readLegField(l.odds || '', oddsFormat, l.stored);
+  const legUntouched = (l: ExpressLeg) => l.stored != null && l.odds === legFieldText(l.stored, oddsFormat);
+  // An accumulator nobody re-priced keeps the total it was saved with — rebuilt
+  // from legs stored at two decimals, it could come out a cent different.
+  const legsUntouched = source?.betType === 'express' && storedLegCount >= 2
+    && legs.length === storedLegCount && legs.every(legUntouched);
 
   const editBetType = (source?.betType && source.betType !== 'express') ? source.betType : '1X2';
   const editPickParsed = source ? parseEditPick(editBetType, source.pick ?? '') : null;
@@ -575,7 +585,7 @@ export function AddBetScreen() {
 
   // Same rounding the bet is saved with, so the preview cannot promise a payout
   // the stored bet will not produce.
-  const expressOdds = combineExpressOdds(legs.map((l) => legOdds(l.odds || '', oddsFormat)));
+  const expressOdds = legsUntouched && source ? source.odds : combineExpressOdds(legs.map(legPrice));
 
   const activeOdds = isSingle ? singleOdds : expressOdds;
   const potentialProfit = activeOdds > 1 && stakeKopecks > 0
@@ -612,7 +622,17 @@ export function AddBetScreen() {
       return;
     }
 
-    const closingOddsVal = readOddsField(data.closingOdds, oddsFormat, source?.closingOdds) ?? NaN;
+    const oddsError = () => (oddsFormat === 'decimal'
+      ? t('addBet.errOdds')
+      : t('addBet.errOddsFormat', { format: t(`oddsFormat.${oddsFormat}`), example: oddsExample(oddsFormat) }));
+    // Typed but not a price in this format: said, not dropped — on an edit,
+    // dropping it ERASED the stored closing odds without a word.
+    const closingRead = readOddsField(data.closingOdds, oddsFormat, source?.closingOdds);
+    if (data.closingOdds.trim() && closingRead == null) {
+      Alert.alert(t('common.error'), oddsError());
+      return;
+    }
+    const closingOddsVal = closingRead ?? NaN;
     const extras = {
       ...(data.sport === 'esports' ? { discipline: data.discipline } : {}),
       ...(data.notes ? { notes: data.notes } : {}),
@@ -643,9 +663,7 @@ export function AddBetScreen() {
       // Untouched, the stored price comes back as it was (see readOddsField).
       const oddsVal = readOddsField(data.odds, oddsFormat, source?.odds);
       if (oddsVal == null) {
-        Alert.alert(t('common.error'), oddsFormat === 'decimal'
-          ? t('addBet.errOdds')
-          : t('addBet.errOddsFormat', { format: t(`oddsFormat.${oddsFormat}`), example: oddsExample(oddsFormat) }));
+        Alert.alert(t('common.error'), oddsError());
         return;
       }
       const event = [data.team1.trim(), data.team2.trim()].filter(Boolean).join(' vs ');
@@ -675,19 +693,29 @@ export function AddBetScreen() {
         Analytics.betAdded({ sport: data.sport, betType: data.betType, bookmaker: data.bookmaker, status: data.status });
       }
     } else {
-      const validLegs = legs.filter((l) => {
-        return l.team1.trim() && legOdds(l.odds || '', oddsFormat) > 1;
-      });
+      // A leg with anything in it must be a whole leg. Dropping a mistyped one
+      // saved a two-leg accumulator out of three, its teams and pick gone.
+      const validLegs = legs.filter((l) => l.team1.trim() || l.team2.trim() || l.odds.trim() || l.pick.trim());
+      const broken = validLegs.find((l) => !l.team1.trim() || !(legPrice(l) > 1));
+      if (broken) {
+        Alert.alert(
+          t('common.error'),
+          t('addBet.errExpressLeg', { n: legs.indexOf(broken) + 1 })
+            + (broken.odds.trim() && !(legPrice(broken) > 1) ? `\n${oddsError()}` : ''),
+        );
+        return;
+      }
       if (validLegs.length < 2) {
         Alert.alert(t('common.error'), t('addBet.errExpress'));
         return;
       }
-      const combinedOdds = combineExpressOdds(validLegs.map((l) => legOdds(l.odds, oddsFormat)));
+      const combinedOdds = legsUntouched && source ? source.odds : combineExpressOdds(validLegs.map(legPrice));
       // Store odds per leg in event: "M80 vs NRG|1.10 / Team Liquid vs Heroic|1.88"
       const event = validLegs
         .map((l) => {
           const evStr = [l.team1.trim(), l.team2.trim()].filter(Boolean).join(' vs ');
-          return `${evStr}|${legOdds(l.odds, oddsFormat).toFixed(2)}`;
+          // As stored if untouched; else as precise as typed (see readLegField).
+          return `${evStr}|${legUntouched(l) ? l.stored : String(legPrice(l))}`;
         })
         .join(' / ');
       // Store per-leg picks in pick field: "П1 / ТБ 2.5"

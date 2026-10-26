@@ -14,9 +14,10 @@ import { useBetsStore, effectiveReminderHour } from './src/store/betsStore';
 import { colors, applyTheme, currentTheme } from './src/theme/colors';
 import { PALETTES, THEME_META } from './src/theme/palettes';
 import * as Notifications from 'expo-notifications';
+import { isOddsFormat } from '@sharklog/core';
 import {
   scheduleDailyReminder, registerBetResultCategory,
-  setBetPendingResolver, syncBetResultReminders,
+  setBetPendingResolver, syncBetResultReminders, setReminderOddsFormat,
 } from './src/utils/notifications';
 import { initRevenueCat, syncEntitlement } from './src/services/revenueCat';
 import { resumePendingPayment, takePaidNotice, checkLicenseStanding } from './src/services/purchase';
@@ -58,6 +59,7 @@ export default function App() {
   const load = useBetsStore((s) => s.load);
   const isLoaded = useBetsStore((s) => s.isLoaded);
   const language = useBetsStore((s) => s.settings.language);
+  const oddsFormat = useBetsStore((s) => s.settings.oddsFormat);
   // A number, so the selector is stable; changes with Pro status as well as the hour.
   const reminderHour = useBetsStore((s) => effectiveReminderHour(s.settings));
   const onboardingComplete = useBetsStore((s) => s.settings.onboardingComplete);
@@ -130,6 +132,8 @@ export default function App() {
   useEffect(() => {
     if (!isLoaded) return;
     applyLanguage(language); // synchronous: i18next's resources are bundled
+    // The odds are baked into the text too: a format switch re-issues them.
+    setReminderOddsFormat(isOddsFormat(oddsFormat) ? oddsFormat : 'decimal');
     const { bets, settings } = useBetsStore.getState();
     registerBetResultCategory();
     // Re-issue what is already scheduled — on a switch, AND at launch: the OS
@@ -137,7 +141,7 @@ export default function App() {
     // reminders an older build scheduled in Russian stay Russian until they
     // fire. Ids are deterministic and the cap is 50, so this is cheap.
     syncBetResultReminders(bets, settings.betResultReminders !== false, { rearm: true });
-  }, [isLoaded, language]);
+  }, [isLoaded, language, oddsFormat]);
 
   // Its own effect, declared AFTER the language one so its text is already in
   // the right language — and keyed on the effective hour, which moves when Pro

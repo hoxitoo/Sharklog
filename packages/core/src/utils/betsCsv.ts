@@ -2,6 +2,8 @@ import type { Bet, BetStatus, Sport, BetType, Strategy, EsportsDiscipline } from
 import { SPORTS, BET_TYPES, STRATEGIES, ESPORTS_DISCIPLINES, CURRENT_SCHEMA_VERSION } from '../constants/index';
 import { betPnl } from './stats';
 import { toYmd, normalizeTime } from './daily';
+import { currencyFromUnit } from './currency';
+import type { CurrencyCode } from '../types/bet';
 
 // Mobile and desktop each grew their own copy of this parser and drifted: one
 // learned "турнир"/"время"/"фрибет", the other learned "кф"/"btts"/"✅", one
@@ -135,26 +137,60 @@ function parseCSVLine(line: string, sep: string): string[] {
   return result;
 }
 
+/**
+ * A header with a CURRENCY in brackets — "Ставка ($)", "P&L (USDT)" — split
+ * into its name and the currency. Only a currency: "Odds (American)" or
+ * "Stake (returned)" are different columns, and reading them as odds or stake
+ * turned "-110" into odds of 110 and a payout into the stake.
+ */
+function currencyHeader(head: string): { name: string; currency: CurrencyCode } | null {
+  const m = /^(.*?)\s*\(([^()]*)\)$/.exec(head);
+  const currency = m ? currencyFromUnit(m[2]!) : null;
+  return m && currency ? { name: m[1]!, currency } : null;
+}
+
+/** The field a header names: by its alias, or by its name without a currency. */
+function headerField(raw: unknown): string | undefined {
+  const head = normalizeHeader(String(raw ?? ''));
+  return COL_ALIASES[head] ?? (() => {
+    const c = currencyHeader(head);
+    return c ? COL_ALIASES[c.name] : undefined;
+  })();
+}
+
 /** Header row = the one in the first 10 rows matching the most known columns. */
 function findHeaderRowIndex(rows: string[][]): number {
-  const known = new Set(Object.keys(COL_ALIASES));
   let bestIdx = 0;
   let bestScore = 0;
   for (let i = 0; i < Math.min(rows.length, 10); i++) {
-    const score = (rows[i] ?? []).filter((c) => known.has(normalizeHeader(String(c ?? '')))).length;
+    const score = (rows[i] ?? []).filter((c) => headerField(c) !== undefined).length;
     if (score > bestScore) { bestScore = score; bestIdx = i; }
   }
   return bestIdx;
 }
 
+/** The currency the stake column is labelled in ("Ставка ($)"), if any. */
+function stakeCurrency(headers: string[]): CurrencyCode | undefined {
+  for (const h of headers) {
+    const c = currencyHeader(normalizeHeader(String(h ?? '')));
+    if (c && COL_ALIASES[c.name] === 'stake') return c.currency;
+  }
+  return undefined;
+}
+
 function rowsToObjects(headers: string[], rows: string[][]): Array<Record<string, string>> {
   const fieldMap: Record<number, string> = {};
+  // A column named exactly keeps its field: "Ставка" next to "Ставка ($)"
+  // must not be overwritten by the bracketed one.
   headers.forEach((h, i) => {
-    // "Ставка (₽)", "Ставка ($)": the unit in brackets is the book's currency,
-    // and a file exported in any of them is the same column.
-    const head = normalizeHeader(String(h ?? ''));
-    const field = COL_ALIASES[head] ?? COL_ALIASES[head.replace(/\s*\([^()]*\)$/, '')];
+    const field = COL_ALIASES[normalizeHeader(String(h ?? ''))];
     if (field) fieldMap[i] = field;
+  });
+  const taken = new Set(Object.values(fieldMap));
+  headers.forEach((h, i) => {
+    if (i in fieldMap) return;
+    const field = headerField(h);
+    if (field && !taken.has(field)) { fieldMap[i] = field; taken.add(field); }
   });
   return rows
     .filter((r) => r.some((c) => c !== ''))
@@ -231,6 +267,8 @@ export interface ImportResult {
   bets: Bet[];
   skipped: number;
   total: number;
+  /** The currency the file's stake column names ("Ставка ($)"); amounts are never converted. */
+  currency?: CurrencyCode;
 }
 
 /** Table already split into cells (XLSX sheets, clipboard grids). */
@@ -245,7 +283,8 @@ export function importBetsFromRows(rows: string[][], newId: () => string): Impor
     if (bet) bets.push(bet);
     else skipped++;
   }
-  return { bets, skipped, total: objects.length };
+  const currency = stakeCurrency(rows[headerIdx] ?? []);
+  return { bets, skipped, total: objects.length, ...(currency ? { currency } : {}) };
 }
 
 /** Raw CSV/TSV text — BOM, line endings and separator are all detected. */
