@@ -271,7 +271,7 @@ new Date(str).toLocaleDateString(locale, { day: 'numeric', month: 'short' });
 # Тесты
 cd packages/core && npx vitest run        # 257 unit-тестов core
 cd apps/desktop  && npm test              # 40 smoke-тестов desktop (Vitest)
-cd apps/mobile   && npm test              # 302 теста mobile (Jest), включая стражей дизайна, тем и переводов
+cd apps/mobile   && npm test              # 307 тестов mobile (Jest), включая стражей дизайна, тем и переводов
 
 # Type-check
 cd apps/mobile  && npx tsc --noEmit
@@ -490,6 +490,11 @@ screens/
                              строкой из двух. Были две неудачи: горизонтальная лента уводила половину
                              вариантов за край, а перенос строк съедал шесть строк формы на два выбора.
                              П1/Ничья/П2 — кнопки нарочно: три коротких варианта быстрее так.
+                             ПИК — `utils/betPick.ts`: `composePick` (что форма пишет) и
+                             `parseEditPick` (как читает обратно при правке/копии) в одном
+                             модуле, под тестом полного круга `betPick.test.ts`. Линия форы —
+                             всё после токена «Ф1»/«Ф2», а НЕ первое число строки: первым числом
+                             была «1» из самого «Ф1», и правка ставки «Ф1 (-6.5)» сохраняла «Ф1 (1)»
                              `__tests__/addBetChoices.test.ts` держит
                              Два поля в одной строке (коэф + сумма, дата + время) — `Field style={styles.half}`:
                              без `flex: 1` у обёртки поле было шириной в свою подпись на Android и
