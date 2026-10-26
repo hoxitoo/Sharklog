@@ -32,6 +32,7 @@ import { dateLocale } from '../../i18n/index';
 import { SIZE, GLYPH, numeric } from '../../theme/typography';
 import { themedStyles } from '../../theme/themed';
 import { useBottomPad } from '../../utils/useBottomPad';
+import { useOddsFormat } from '../../utils/useOdds';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -93,6 +94,7 @@ export function BetsScreen({ filter, onClearFilter }: {
   const [sort, setSort] = useState<SortKey>('date_desc');
   const [refreshing, setRefreshing] = useState(false);
   const { query, setQuery } = useBetsQuery();
+  const oddsFormat = useOddsFormat();
   const queryCount = countBetsQuery(query);
   const fmt = useFormatMoney();
 
@@ -267,7 +269,7 @@ export function BetsScreen({ filter, onClearFilter }: {
     return null;
   }, [filter, bets, t]);
 
-  const queryLabel = useMemo(() => describeBetsQuery(query), [query]);
+  const queryLabel = useMemo(() => describeBetsQuery(query, oddsFormat), [query, oddsFormat]);
 
   const sections = useMemo(() => {
     let result = [...bets];
@@ -287,7 +289,7 @@ export function BetsScreen({ filter, onClearFilter }: {
     if (filter?.year) result = result.filter((b) => b.date.startsWith(String(filter.year)));
     if (filter?.noTournament) result = result.filter((b) => !(b.tournament ?? '').trim());
     if (statusFilter !== 'all') result = result.filter((b) => b.status === statusFilter);
-    result = applyBetsQuery(result, query);
+    result = applyBetsQuery(result, query, oddsFormat);
     if (search.trim()) {
       const q = search.trim().toLowerCase();
       // The tournament belongs in here. Without it, typing the name of a
@@ -338,7 +340,7 @@ export function BetsScreen({ filter, onClearFilter }: {
       const dailyPnl = data.reduce((sum, b) => sum + betPnl(b), 0);
       return { title: formatDateTitle(date, todayLabel, yesterdayLabel), date, dailyPnl, data };
     });
-  }, [bets, statusFilter, search, sort, filter, query, todayLabel, yesterdayLabel, t]);
+  }, [bets, statusFilter, search, sort, filter, query, oddsFormat, todayLabel, yesterdayLabel, t]);
 
   const betActions = useBetActions();
 

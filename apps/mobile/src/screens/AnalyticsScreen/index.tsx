@@ -13,6 +13,8 @@ import { useBetsStore } from '../../store/betsStore';
 import { ProGate } from '../../components/ProGate';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { useFormatMoney } from '../../utils/useFormatMoney';
+import { useFormatOdds, useOddsFormat } from '../../utils/useOdds';
+import { oddsRangeLabel } from '../../utils/oddsField';
 import { uses12HourClock } from '../../utils/clockFormat';
 import { haptic } from '../../utils/haptics';
 import { colors, alpha, toneSurface } from '../../theme/colors';
@@ -61,6 +63,7 @@ function bucketTitle(t: TFunction, b: PnlBucket, granularity: Granularity): stri
 
 function HeroPnl({ bets, period }: { bets: Bet[]; period: APeriodFilter }) {
   const fmt = useFormatMoney();
+  const fmtOdds = useFormatOdds();
   const { t } = useTranslation();
   const stats = useMemo(() => calcDashboard(bets), [bets]);
   const positive = stats.pnl >= 0;
@@ -103,7 +106,7 @@ function HeroPnl({ bets, period }: { bets: Bet[]; period: APeriodFilter }) {
           <Text style={hero.metaLabel}>Winrate</Text>
         </View>
         <View style={hero.metaCell}>
-          <Text style={hero.metaValue}>{stats.avgOdds.toFixed(2)}</Text>
+          <Text style={hero.metaValue}>{stats.avgOdds > 1 ? fmtOdds(stats.avgOdds) : '—'}</Text>
           <Text style={hero.metaLabel}>{t('analytics.avgOdds')}</Text>
         </View>
       </View>
@@ -740,6 +743,7 @@ function AnalyticsContent() {
   const bottomPad = useBottomPad(SPACE.xxl);
   const bets = useBetsStore((s) => s.bets);
   const { t } = useTranslation();
+  const oddsFormat = useOddsFormat();
   const [period, setPeriod] = useState<APeriodFilter>('all');
   const [extendedOpen, setExtendedOpen] = useState(false);
 
@@ -760,10 +764,11 @@ function AnalyticsContent() {
     betType: calcByField(filteredBets, 'betType', (v) => t(`betTypes.${v}`, { defaultValue: String(v) })),
     bookmaker: calcByField(filteredBets, 'bookmaker'),
     strategy: calcByField(filteredBets, 'strategy', (v) => t(`strategies.${v}`, { defaultValue: String(v) })),
-    odds: calcByOddsRange(filteredBets),
+    // The buckets are decimal; their names follow the user's odds format.
+    odds: calcByOddsRange(filteredBets, oddsRangeLabel(oddsFormat)),
     // Core would name the days in Russian on its own.
     day: calcByDayOfWeek(filteredBets, (d) => t(`weekdays.${d}`)),
-  }), [filteredBets, t]);
+  }), [filteredBets, t, oddsFormat]);
 
   return (
     <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: bottomPad }}>

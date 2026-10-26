@@ -13,11 +13,13 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { Sport, BetType, Strategy, BetStatus, EsportsDiscipline, Team, Bet } from '@sharklog/core';
 import {
   SPORTS, BET_TYPES, STRATEGIES, ESPORTS_DISCIPLINES, PICK, parseMoneyInput,
-  impliedProbability, halfKelly, expectedValue, recommendedStake, combineExpressOdds, CURRENT_SCHEMA_VERSION, FREE_LIMITS, calcDashboard, currentBank, toYmd,
+  impliedProbability, halfKelly, expectedValue, recommendedStake, combineExpressOdds, formatOddsAs, CURRENT_SCHEMA_VERSION, FREE_LIMITS, calcDashboard, currentBank, toYmd,
 } from '@sharklog/core';
 import { useTranslation } from 'react-i18next';
 import { FilterPicker } from '../../components/FilterPicker';
-import { useFormatMoney } from '../../utils/useFormatMoney';
+import { useFormatMoney, useCurrencySymbol } from '../../utils/useFormatMoney';
+import { useOddsFormat, oddsKeyboard } from '../../utils/useOdds';
+import { oddsFieldText, readOddsField, legOdds, legFieldText, oddsExample } from '../../utils/oddsField';
 import { sportLabel, betTypeLabel, strategyLabel, disciplineLabel } from '../../utils/labels';
 import { colors } from '../../theme/colors';
 import { useBetsStore } from '../../store/betsStore';
@@ -97,21 +99,17 @@ function uuid(): string {
   });
 }
 
-// Accept both comma and dot as decimal separator (Russian keyboard uses comma)
-function nd(v: string): string {
-  return v.replace(',', '.');
-}
-
 // ── Field wrapper ─────────────────────────────────────────────────────────────
 
-function Field({ label, error, style, children }: {
-  label: string; error?: string; style?: StyleProp<ViewStyle>; children: React.ReactNode;
+function Field({ label, error, hint, style, children }: {
+  label: string; error?: string; hint?: string | null; style?: StyleProp<ViewStyle>; children: React.ReactNode;
 }) {
   return (
     <View style={[field.container, style]}>
       <Text style={field.label}>{label}</Text>
       {children}
       {error ? <Text style={field.error}>{error}</Text> : null}
+      {!error && hint ? <Text style={field.hint}>{hint}</Text> : null}
     </View>
   );
 }
@@ -120,6 +118,7 @@ const field = themedStyles(() => ({
   container: { marginBottom: SPACE.lg },
   label: { fontSize: SIZE.caption, color: colors.textSecondary, marginBottom: SPACE.xs, textTransform: 'uppercase', letterSpacing: 0.5 },
   error: { fontSize: SIZE.caption, color: colors.lost, marginTop: SPACE.xs },
+  hint: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: SPACE.xs },
 }));
 
 // Getters for the colours: a plain object here would keep the theme the app
@@ -447,6 +446,9 @@ export function AddBetScreen() {
   const canAddBet = useBetsStore((s) => s.canAddBet);
   const { t } = useTranslation();
   const fmt = useFormatMoney();
+  const currency = useCurrencySymbol();
+  // Odds are typed and shown in the user's format and stored decimal.
+  const oddsFormat = useOddsFormat();
   const [kellyOpen, setKellyOpen] = useState(false);
   const team2Ref = useRef<TextInputRef>(null);
   const scrollRef = useRef<ScrollView>(null);
@@ -496,7 +498,7 @@ export function AddBetScreen() {
           return {
             team1: t[0]?.trim() ?? '',
             team2: t[1]?.trim() ?? '',
-            odds: storedOdds ?? '',
+            odds: storedOdds ? legFieldText(storedOdds, oddsFormat) : '',
             pick: pickParts[i] ?? '',
             sport: defSport,
             discipline: defDiscipline,
@@ -520,7 +522,7 @@ export function AddBetScreen() {
       betMode: initialBetMode,
       team1: initialTeam1,
       team2: initialTeam2,
-      odds: source ? String(source.odds) : '',
+      odds: source ? oddsFieldText(source.odds, oddsFormat) : '',
       stake: source ? String(source.stake / 100) : '',
       sport: source?.sport ?? 'football',
       discipline: source?.discipline ?? 'csgo',
@@ -530,7 +532,7 @@ export function AddBetScreen() {
       status: isDuplicate ? 'pending' : (source?.status ?? 'pending'),
       notes: source?.notes ?? '',
       cashoutAmount: !isDuplicate && source?.cashoutAmount != null ? String(source.cashoutAmount / 100) : '',
-      closingOdds: !isDuplicate && source?.closingOdds != null ? String(source.closingOdds) : '',
+      closingOdds: !isDuplicate && source?.closingOdds != null ? oddsFieldText(source.closingOdds, oddsFormat) : '',
       bookmaker: source?.bookmaker ?? (settings.bookmakers[0] ?? ''),
       tournament: source?.tournament ?? '',
       date: isDuplicate ? defaultDate : (source?.date ?? defaultDate),
@@ -555,7 +557,7 @@ export function AddBetScreen() {
   const watchedTeam2 = watch('team2');
   const stakeRaw = watch('stake');
   const stakeKopecks = parseMoneyInput(stakeRaw);
-  const singleOdds = parseFloat(nd(watch('odds') || '0'));
+  const singleOdds = readOddsField(watch('odds') || '', oddsFormat, source?.odds) ?? 0;
   const watchedStatus = watch('status');
   const cashoutRaw = watch('cashoutAmount');
   const cashoutKopecks = parseMoneyInput(cashoutRaw || '0');
@@ -573,7 +575,7 @@ export function AddBetScreen() {
 
   // Same rounding the bet is saved with, so the preview cannot promise a payout
   // the stored bet will not produce.
-  const expressOdds = combineExpressOdds(legs.map((l) => parseFloat(nd(l.odds || '0'))));
+  const expressOdds = combineExpressOdds(legs.map((l) => legOdds(l.odds || '', oddsFormat)));
 
   const activeOdds = isSingle ? singleOdds : expressOdds;
   const potentialProfit = activeOdds > 1 && stakeKopecks > 0
@@ -610,7 +612,7 @@ export function AddBetScreen() {
       return;
     }
 
-    const closingOddsVal = parseFloat(nd(data.closingOdds));
+    const closingOddsVal = readOddsField(data.closingOdds, oddsFormat, source?.closingOdds) ?? NaN;
     const extras = {
       ...(data.sport === 'esports' ? { discipline: data.discipline } : {}),
       ...(data.notes ? { notes: data.notes } : {}),
@@ -638,9 +640,12 @@ export function AddBetScreen() {
     const timeVal = data.time.trim() || defaultTime;
 
     if (isSingle) {
-      const oddsVal = parseFloat(nd(data.odds));
-      if (isNaN(oddsVal) || oddsVal <= 1) {
-        Alert.alert(t('common.error'), t('addBet.errOdds'));
+      // Untouched, the stored price comes back as it was (see readOddsField).
+      const oddsVal = readOddsField(data.odds, oddsFormat, source?.odds);
+      if (oddsVal == null) {
+        Alert.alert(t('common.error'), oddsFormat === 'decimal'
+          ? t('addBet.errOdds')
+          : t('addBet.errOddsFormat', { format: t(`oddsFormat.${oddsFormat}`), example: oddsExample(oddsFormat) }));
         return;
       }
       const event = [data.team1.trim(), data.team2.trim()].filter(Boolean).join(' vs ');
@@ -671,19 +676,18 @@ export function AddBetScreen() {
       }
     } else {
       const validLegs = legs.filter((l) => {
-        const o = parseFloat(nd(l.odds || '0'));
-        return l.team1.trim() && o > 1;
+        return l.team1.trim() && legOdds(l.odds || '', oddsFormat) > 1;
       });
       if (validLegs.length < 2) {
         Alert.alert(t('common.error'), t('addBet.errExpress'));
         return;
       }
-      const combinedOdds = combineExpressOdds(validLegs.map((l) => parseFloat(nd(l.odds))));
+      const combinedOdds = combineExpressOdds(validLegs.map((l) => legOdds(l.odds, oddsFormat)));
       // Store odds per leg in event: "M80 vs NRG|1.10 / Team Liquid vs Heroic|1.88"
       const event = validLegs
         .map((l) => {
           const evStr = [l.team1.trim(), l.team2.trim()].filter(Boolean).join(' vs ');
-          return `${evStr}|${parseFloat(nd(l.odds)).toFixed(2)}`;
+          return `${evStr}|${legOdds(l.odds, oddsFormat).toFixed(2)}`;
         })
         .join(' / ');
       // Store per-leg picks in pick field: "П1 / ТБ 2.5"
@@ -814,24 +818,32 @@ export function AddBetScreen() {
             </Field>
 
             <View style={styles.row2}>
-              <Field style={styles.half} label={t('addBet.oddsReq')} {...(errors.odds?.message ? { error: errors.odds.message } : {})}>
+              <Field
+                style={styles.half}
+                label={t('addBet.oddsReq')}
+                // Any format but decimal: what the typed quote is as a price.
+                hint={oddsFormat !== 'decimal' && singleOdds > 1
+                  ? t('addBet.oddsAsDecimal', { odds: singleOdds.toFixed(2), prob: `${(100 / singleOdds).toFixed(1)}%` })
+                  : null}
+                {...(errors.odds?.message ? { error: errors.odds.message } : {})}
+              >
                 <Controller
                   control={control}
                   name="odds"
                   render={({ field: { onChange, value } }) => (
                     <TextInput
                       style={inputStyle}
-                      placeholder="1.85"
+                      placeholder={oddsExample(oddsFormat)}
                       placeholderTextColor={colors.textMuted}
                       value={value}
                       onChangeText={onChange}
-                      keyboardType="decimal-pad"
+                      keyboardType={oddsKeyboard(oddsFormat)}
                     />
                   )}
                 />
               </Field>
 
-              <Field style={styles.half} label={t('addBet.stakeReq')} {...(errors.stake?.message ? { error: errors.stake.message } : {})}>
+              <Field style={styles.half} label={t('addBet.stakeReq', { currency })} {...(errors.stake?.message ? { error: errors.stake.message } : {})}>
                 <Controller
                   control={control}
                   name="stake"
@@ -913,7 +925,7 @@ export function AddBetScreen() {
                     placeholderTextColor={colors.textMuted}
                     value={leg.odds}
                     onChangeText={(v) => updateLeg(i, 'odds', v)}
-                    keyboardType="decimal-pad"
+                    keyboardType={oddsKeyboard(oddsFormat)}
                   />
                   <TextInput
                     style={[inputStyle, { flex: 2 }]}
@@ -938,11 +950,11 @@ export function AddBetScreen() {
             {expressOdds > 1 && (
               <View style={styles.expressOddsRow}>
                 <Text style={styles.expressOddsLabel}>{t('addBet.totalOdds')}</Text>
-                <Text style={styles.expressOddsValue}>{expressOdds.toFixed(2)}</Text>
+                <Text style={styles.expressOddsValue}>{formatOddsAs(expressOdds, oddsFormat)}</Text>
               </View>
             )}
 
-            <Field label={t('addBet.stakeReq')}>
+            <Field label={t('addBet.stakeReq', { currency })}>
               <Controller
                 control={control}
                 name="stake"
@@ -1350,11 +1362,11 @@ export function AddBetScreen() {
                 render={({ field: { onChange, value } }) => (
                   <TextInput
                     style={inputStyle}
-                    placeholder={t('addBet.closingOddsPh')}
+                    placeholder={t('addBet.closingOddsPh', { example: oddsExample(oddsFormat, 1.95) })}
                     placeholderTextColor={colors.textMuted}
                     value={value}
                     onChangeText={onChange}
-                    keyboardType="decimal-pad"
+                    keyboardType={oddsKeyboard(oddsFormat)}
                   />
                 )}
               />
@@ -1386,7 +1398,7 @@ export function AddBetScreen() {
               activeOpacity={0.8}
             >
               <Text style={[styles.freebetToggleText, isFreebet && styles.freebetToggleTextActive]}>
-                🎁 {isFreebet ? t('addBet.freebetOn') : t('addBet.freebetOff')}
+                🎁 {isFreebet ? t('addBet.freebetOn', { currency }) : t('addBet.freebetOff')}
               </Text>
             </TouchableOpacity>
           </>
@@ -1415,7 +1427,7 @@ export function AddBetScreen() {
 
         {editBet && watchedStatus === 'cashout' && (
           <>
-            <Field label={t('addBet.cashoutAmount')}>
+            <Field label={t('addBet.cashoutAmount', { currency })}>
               <Controller
                 control={control}
                 name="cashoutAmount"

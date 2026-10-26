@@ -171,10 +171,15 @@ export function calcByField<K extends keyof Bet>(
     .sort((a, b) => b.pnl - a.pnl);
 }
 
-export function calcByOddsRange(bets: Bet[]): SliceStats[] {
+/**
+ * `label(min, max)` names a bucket (`min` 1 = "below max", `max` Infinity =
+ * "above min"). The default is decimal, as stored; a screen showing American
+ * or fractional odds passes its own — the buckets stay decimal either way.
+ */
+export function calcByOddsRange(bets: Bet[], label?: (min: number, max: number) => string): SliceStats[] {
   return ODDS_RANGES.map((range) => {
     const group = bets.filter((b) => b.odds >= range.min && b.odds < range.max);
-    return calcSlice(group, range.label);
+    return calcSlice(group, label ? label(range.min, range.max) : range.label);
   });
 }
 

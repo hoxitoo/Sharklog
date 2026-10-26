@@ -156,6 +156,12 @@ export interface GeneratedStrategy {
 /** Colour themes of the mobile app. Stored in the device's settings; restoring a backup does not change it. */
 export type AppTheme = 'dark' | 'light' | 'olive' | 'navy';
 
+/** The currency a book is kept in. Every amount is stored in its 1/100 units. */
+export type CurrencyCode = 'RUB' | 'USD' | 'EUR' | 'KZT' | 'USDT' | 'BYN';
+
+/** How odds are typed and shown. Stored odds are always decimal. */
+export type OddsFormat = 'decimal' | 'fractional' | 'american' | 'hongkong' | 'malay' | 'indo';
+
 export interface AppSettings {
   tiltThreshold: number;
   dailyBetLimit: number;
@@ -184,6 +190,13 @@ export interface AppSettings {
   language?: 'ru' | 'en' | 'kz' | 'by';
   /** Mobile colour theme; missing = dark. The desktop ignores it. */
   theme?: AppTheme;
+  /**
+   * The currency of the whole book; missing = RUB (everything saved before the
+   * setting existed was roubles). A label: switching it converts nothing.
+   */
+  currency?: CurrencyCode;
+  /** How odds are typed and shown; missing = decimal. `Bet.odds` stays decimal. */
+  oddsFormat?: OddsFormat;
   disableChecklist?: boolean;
   betResultReminders?: boolean; // local reminder with W/L buttons when a match should be over (default: on)
 }

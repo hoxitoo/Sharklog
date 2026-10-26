@@ -12,6 +12,8 @@ import { haptic } from '../../utils/haptics';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { themedStyles } from '../../theme/themed';
+import { useOddsFormat, oddsKeyboard } from '../../utils/useOdds';
+import { oddsExample } from '../../utils/oddsField';
 
 // Getters for the colours: a plain object here would keep the theme the app
 // started with.
@@ -71,6 +73,7 @@ export function BetsFilterScreen() {
   const bets = useBetsStore((b) => b.bets);
   const { query, setQuery } = useBetsQuery();
   const { t } = useTranslation();
+  const oddsFormat = useOddsFormat();
 
   // A local draft: nothing is applied until OK, so backing out of the screen
   // leaves the list exactly as it was found.
@@ -125,19 +128,19 @@ export function BetsFilterScreen() {
             <View style={s.pair}>
               <TextInput
                 style={[inputStyle, numeric, s.pairCell]}
-                placeholder={t('filters.from')}
+                placeholder={`${t('filters.from')} ${oddsExample(oddsFormat, 1.5)}`}
                 placeholderTextColor={colors.textMuted}
                 value={draft.oddsFrom}
                 onChangeText={set('oddsFrom')}
-                keyboardType="decimal-pad"
+                keyboardType={oddsKeyboard(oddsFormat)}
               />
               <TextInput
                 style={[inputStyle, numeric, s.pairCell]}
-                placeholder={t('filters.to')}
+                placeholder={`${t('filters.to')} ${oddsExample(oddsFormat, 3)}`}
                 placeholderTextColor={colors.textMuted}
                 value={draft.oddsTo}
                 onChangeText={set('oddsTo')}
-                keyboardType="decimal-pad"
+                keyboardType={oddsKeyboard(oddsFormat)}
               />
             </View>
           </Field>

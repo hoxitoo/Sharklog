@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import { AppText as Text } from './AppText';
 import { colors } from '../theme/colors';
-import { SIZE, GLYPH } from '../theme/typography';
+import { SIZE, GLYPH, numeric } from '../theme/typography';
 import { SPACE, RADIUS, TOUCH } from '../theme/layout';
 import { haptic } from '../utils/haptics';
 import { themedStyles } from '../theme/themed';
@@ -17,6 +17,8 @@ export interface PickerOption<T extends string> {
   label: string;
   /** The author's glyph for this option (sports, disciplines) — shown in the sheet's list. */
   icon?: GlyphName;
+  /** A second, quieter line in the sheet: an example ("+150 · -200"). */
+  hint?: string;
 }
 
 interface Props<T extends string> {
@@ -30,6 +32,13 @@ interface Props<T extends string> {
   /** Share of the row. Status needs less of it than sort — its longest value
    *  is one word, sort's is a word plus an arrow. */
   flex?: number;
+  /**
+   * Draws the control that opens the sheet, instead of the boxed button — so a
+   * Settings row can open the same sheet and still look like its neighbours.
+   */
+  trigger?: (open: () => void) => React.ReactNode;
+  /** A line under the sheet's title: what choosing here does and does not do. */
+  note?: string;
 }
 
 /**
@@ -44,7 +53,7 @@ interface Props<T extends string> {
  * The bet form uses it for the same reason (sport, bet type, discipline,
  * strategy, status): one line per choice instead of rows of chips.
  */
-export function FilterPicker<T extends string>({ label, options, value, onChange, active, flex = 1 }: Props<T>) {
+export function FilterPicker<T extends string>({ label, options, value, onChange, active, flex = 1, trigger, note }: Props<T>) {
   // The sheet is drawn under the navigation bar too: the last option must clear it.
   const bottomPad = useBottomPad(40);
   const [open, setOpen] = useState(false);
@@ -89,6 +98,7 @@ export function FilterPicker<T extends string>({ label, options, value, onChange
 
   return (
     <>
+      {trigger ? trigger(() => { haptic.selection(); open_(); }) : (
       <TouchableOpacity
         style={[picker.btn, { flex }, active && picker.btnActive]}
         onPress={() => { haptic.selection(); open_(); }}
@@ -107,6 +117,7 @@ export function FilterPicker<T extends string>({ label, options, value, onChange
         </View>
         <Text style={[picker.caret, active && picker.valueActive]}>⌄</Text>
       </TouchableOpacity>
+      )}
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={close}>
         {/* Tap outside, or drag the sheet down. */}
@@ -120,6 +131,7 @@ export function FilterPicker<T extends string>({ label, options, value, onChange
                 {/* The grab area: the handle plus the title beside it. */}
                 <View style={picker.handle} />
                 <Text style={picker.sheetTitle}>{label}</Text>
+                {note ? <Text style={picker.note}>{note}</Text> : null}
               </View>
               <ScrollView keyboardShouldPersistTaps="handled" style={picker.sheetScroll}>
               {options.map((o) => {
@@ -135,9 +147,12 @@ export function FilterPicker<T extends string>({ label, options, value, onChange
                       {o.icon ? (
                         <AppIcon name={o.icon} size={GLYPH.xl} color={isCurrent ? colors.purpleText : colors.textSecondary} />
                       ) : null}
-                      <Text style={[picker.optionText, isCurrent && picker.optionTextCurrent]}>
-                        {o.label}
-                      </Text>
+                      <View style={picker.optionTexts}>
+                        <Text style={[picker.optionText, isCurrent && picker.optionTextCurrent]}>
+                          {o.label}
+                        </Text>
+                        {o.hint ? <Text style={[picker.optionHint, numeric]}>{o.hint}</Text> : null}
+                      </View>
                     </View>
                     {isCurrent && <Text style={picker.check}>✓</Text>}
                   </TouchableOpacity>
@@ -192,6 +207,7 @@ const picker = themedStyles(() => ({
     fontSize: SIZE.micro, color: colors.textMuted,
     textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: SPACE.sm,
   },
+  note: { fontSize: SIZE.caption, color: colors.textSecondary, lineHeight: 17, marginBottom: SPACE.sm },
   sheetScroll: { maxHeight: 360 },
   option: {
     minHeight: TOUCH,
@@ -205,7 +221,9 @@ const picker = themedStyles(() => ({
   },
   optionCurrent: { borderBottomColor: colors.purple },
   optionMain: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: SPACE.md },
+  optionTexts: { flex: 1 },
   optionText: { fontSize: SIZE.lead, color: colors.textSecondary },
+  optionHint: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: 2 },
   optionTextCurrent: { color: colors.purpleText, fontWeight: '700' },
   check: { fontSize: SIZE.lead, color: colors.purpleText, fontWeight: '700' },
 }));

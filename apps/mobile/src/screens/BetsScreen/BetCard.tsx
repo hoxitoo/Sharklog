@@ -4,9 +4,11 @@ import { SPACE, RADIUS, hitSlopFor } from '../../theme/layout';
 import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
 import type { Bet } from '@sharklog/core';
-import { formatOdds, parseMoneyInput, betPnl } from '@sharklog/core';
+import { parseMoneyInput, betPnl } from '@sharklog/core';
 import { sportLabel, betTypeLabel, pickLabel } from '../../utils/labels';
-import { useFormatMoney } from '../../utils/useFormatMoney';
+import { useFormatMoney, useCurrencySymbol } from '../../utils/useFormatMoney';
+import { useOddsFormat } from '../../utils/useOdds';
+import { oddsBadge } from '../../utils/oddsField';
 import { bankSharesFor, formatBankShare } from '../../utils/bankShares';
 import { colors, signalInk, signalTint } from '../../theme/colors';
 import { numeric, SIZE } from '../../theme/typography';
@@ -53,6 +55,8 @@ export const BetCard = React.memo(function BetCard({
   // Through the hook, not formatMoney: the card is the one place every amount
   // is on screen at once, and it ignored the «Округлять суммы» setting.
   const fmt = useFormatMoney();
+  const currency = useCurrencySymbol();
+  const oddsFormat = useOddsFormat();
   // Inline cashout entry: the amount is typed here rather than in the full editor.
   const [cashoutText, setCashoutText] = useState('');
 
@@ -115,7 +119,7 @@ export const BetCard = React.memo(function BetCard({
           <Text style={styles.pick}>{pickLabel(t, bet.pick)}</Text>
         </View>
         <View style={styles.right}>
-          <Text style={styles.odds}>× {formatOdds(bet.odds)}</Text>
+          <Text style={styles.odds}>{oddsBadge(bet.odds, oddsFormat)}</Text>
           <Text style={styles.stake}>{fmt(bet.stake)}</Text>
           {pnl !== 0 && (
             <Text style={[styles.pnl, { color: pnl >= 0 ? colors.won : colors.lost }]}>
@@ -191,7 +195,7 @@ export const BetCard = React.memo(function BetCard({
         <View style={styles.cashoutRow}>
           <TextInput
             style={styles.cashoutInput}
-            placeholder={t('bet.cashoutPrompt')}
+            placeholder={t('bet.cashoutPrompt', { currency })}
             placeholderTextColor={colors.textMuted}
             value={cashoutText}
             onChangeText={setCashoutText}

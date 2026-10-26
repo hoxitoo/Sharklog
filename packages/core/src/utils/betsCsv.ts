@@ -150,7 +150,10 @@ function findHeaderRowIndex(rows: string[][]): number {
 function rowsToObjects(headers: string[], rows: string[][]): Array<Record<string, string>> {
   const fieldMap: Record<number, string> = {};
   headers.forEach((h, i) => {
-    const field = COL_ALIASES[normalizeHeader(String(h ?? ''))];
+    // "Ставка (₽)", "Ставка ($)": the unit in brackets is the book's currency,
+    // and a file exported in any of them is the same column.
+    const head = normalizeHeader(String(h ?? ''));
+    const field = COL_ALIASES[head] ?? COL_ALIASES[head.replace(/\s*\([^()]*\)$/, '')];
     if (field) fieldMap[i] = field;
   });
   return rows
@@ -257,11 +260,14 @@ export function importBetsFromCSV(content: string, newId: () => string): ImportR
 
 // ── Export ───────────────────────────────────────────────────────────────────
 
-export const CSV_HEADERS = [
-  'Дата', 'Время', 'Событие', 'Выбор', 'Коэф.', 'Ставка (₽)', 'Статус',
-  'P&L (₽)', 'Спорт', 'Тип', 'Стратегия', 'Букмекер', 'Турнир', 'Дисциплина',
-  'Фрибет', 'Заметки',
-] as const;
+/** Column names of an export; the amounts are labelled with the book's currency sign. */
+export function csvHeaders(currency = '₽'): string[] {
+  return [
+    'Дата', 'Время', 'Событие', 'Выбор', 'Коэф.', `Ставка (${currency})`, 'Статус',
+    `P&L (${currency})`, 'Спорт', 'Тип', 'Стратегия', 'Букмекер', 'Турнир', 'Дисциплина',
+    'Фрибет', 'Заметки',
+  ];
+}
 
 function escapeCell(value: string | number, sep: string): string {
   let str = String(value);
@@ -278,8 +284,10 @@ function escapeCell(value: string | number, sep: string): string {
 /**
  * One CSV writer for both apps, so an export from the phone imports on the PC.
  * Returns the body only — the BOM and the file write belong to the caller.
+ * Odds are always decimal (what the bet stores), whatever the odds format;
+ * `currency` only labels the amount columns.
  */
-export function buildBetsCSV(bets: Bet[], sep = ';'): string {
+export function buildBetsCSV(bets: Bet[], sep = ';', currency = '₽'): string {
   const rows = bets.map((b) => [
     b.date,
     b.time,
@@ -301,7 +309,7 @@ export function buildBetsCSV(bets: Bet[], sep = ';'): string {
     b.notes ?? '',
   ]);
 
-  return [[...CSV_HEADERS], ...rows]
+  return [csvHeaders(currency), ...rows]
     .map((row) => row.map((cell) => escapeCell(cell, sep)).join(sep))
     .join('\n');
 }
