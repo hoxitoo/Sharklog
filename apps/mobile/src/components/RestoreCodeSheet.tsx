@@ -9,7 +9,7 @@ import { colors } from '../theme/colors';
 import { SPACE, RADIUS, TOUCH } from '../theme/layout';
 import { SIZE, numeric } from '../theme/typography';
 import { themedStyles } from '../theme/themed';
-import { useBottomPad } from '../utils/useBottomPad';
+import { useBottomPad, useKeyboardShown } from '../utils/useBottomPad';
 
 /**
  * Paste a restore code (the signed licence) to bring Pro back — on a new phone,
@@ -18,7 +18,9 @@ import { useBottomPad } from '../utils/useBottomPad';
  * server's public key before anything is saved.
  */
 export function RestoreCodeSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
-  const bottomPad = useBottomPad(SPACE.xxl);
+  const navPad = useBottomPad(SPACE.xxl);
+  // On the keyboard (it opens with one), the navigation bar is under the keys.
+  const bottomPad = useKeyboardShown() ? SPACE.xxl : navPad;
   const { t } = useTranslation();
   const [code, setCode] = useState('');
   // Why the code was not taken — "invalid" is not the only answer: a code this

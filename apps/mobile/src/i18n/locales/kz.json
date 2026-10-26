@@ -225,6 +225,7 @@
     "bestStreak": "Ең ұзақ жеңіс сериясы",
     "worstStreak": "Ең нашар серия",
     "currentStreak": "Ағымдағы",
+    "currentStreakFull": "Ағымдағы серия",
     "winsInRow_one": "қатарынан жеңіс",
     "winsInRow_other": "қатарынан жеңіс",
     "lossesInRow_one": "қатарынан жеңіліс",

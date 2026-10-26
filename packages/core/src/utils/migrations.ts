@@ -33,6 +33,22 @@ const migrations: Record<number, MigrationFn> = {
       version: 3,
     };
   },
+  // v3 → v4: the CSV import kept "9:05" as typed. Times are ordered as strings
+  // (the list, the streaks, the drawdown), so a morning match sorted after
+  // "23:00" — to the end of its day. Pad the hour; leave anything that is not
+  // a bare H:MM exactly as it was (stored data is not repaired, only aligned).
+  4: (data) => {
+    const bets = Array.isArray(data['bets']) ? (data['bets'] as Array<Record<string, unknown>>) : [];
+    return {
+      ...data,
+      bets: bets.map((b) => {
+        if (typeof b !== 'object' || b === null) return b;
+        const time = b['time'];
+        return typeof time === 'string' && /^\d:\d{2}$/.test(time) ? { ...b, time: `0${time}` } : b;
+      }),
+      version: 4,
+    };
+  },
 };
 
 export function migrate(raw: unknown): StorageSchema {

@@ -47,7 +47,7 @@ describe('sanitizeBet', () => {
     expect(sanitizeBet({ ...good, date: '1.10.2026' })?.date).toBe('2026-10-01');
     expect(sanitizeBet({ ...good, date: '2026-10-01T19:30:00' })?.date).toBe('2026-10-01');
     expect(sanitizeBet({ ...good, time: '19:30:15' })?.time).toBe('19:30');
-    expect(sanitizeBet({ ...good, time: '7:05:30' })?.time).toBe('7:05'); // not '7:05:'
+    expect(sanitizeBet({ ...good, time: '7:05:30' })?.time).toBe('07:05'); // not '7:05:', and padded to sort
     // What an older CSV import stored: the user's own backup must carry it to a new phone.
     expect(sanitizeBet({ ...good, date: '2026/10/01' })?.date).toBe('2026/10/01');
     expect(sanitizeBet({ ...good, date: '45200' })?.date).toBe('45200');

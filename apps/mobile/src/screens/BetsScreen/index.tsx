@@ -12,7 +12,7 @@ import { useFormatMoney } from '../../utils/useFormatMoney';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { Bet, BetStatus } from '@sharklog/core';
-import { isInTilt, calcDailyBreakdown, currentBank, betBacksTeam, toYmd, FREE_LIMITS } from '@sharklog/core';
+import { isInTilt, calcDailyBreakdown, currentBank, betBacksTeam, betPnl, toYmd, FREE_LIMITS } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { colors, mix, toneSurface } from '../../theme/colors';
 import type { BetsFilter } from '../../components/DrawerContext';
@@ -235,10 +235,17 @@ export function BetsScreen({ filter, onClearFilter }: {
   // drawer keeps it alive — so it still holds the offset from last time. On a
   // three-bet filter the list clamps to the bottom of its new content, and the
   // row the user tapped is off-screen above.
+  //
+  // And a drill-down shows what its tile counted. A status, a search or an
+  // advanced filter left over from before would hide part of it: with "Победа"
+  // still picked, "Худшая серия · 4" opened over an empty list.
   useEffect(() => {
     if (!filter) return;
     listRef.current?.getScrollResponder()?.scrollTo({ y: 0, animated: false });
-  }, [filter]);
+    setStatusFilter('all');
+    setSearch('');
+    setQuery(EMPTY_BETS_QUERY);
+  }, [filter, setQuery]);
 
   const filterLabel = useMemo(() => {
     const dm = (ymd: string) => ymd.split('-').reverse().slice(0, 2).join('.');
@@ -247,7 +254,9 @@ export function BetsScreen({ filter, onClearFilter }: {
     const since = filter?.from ? ` · ${t('bet.filterSince', { date: dm(filter.from) })}` : '';
     const year = filter?.year ? ` · ${filter.year}` : '';
     if (filter?.selection) {
-      const n = filter.selection.ids.length;
+      // The bets still there: one deleted from the run must not leave "· 4" over three.
+      const ids = new Set(filter.selection.ids);
+      const n = bets.reduce((k, b) => k + (ids.has(b.id) ? 1 : 0), 0);
       return n > 1 ? `${t(filter.selection.labelKey)} · ${n}` : t(filter.selection.labelKey);
     }
     if (filter?.date) return t('bet.filterOnly', { date: dm(filter.date) });
@@ -256,7 +265,7 @@ export function BetsScreen({ filter, onClearFilter }: {
     if (filter?.team) return `${t('bet.filterTeam', { name: filter.team })}${year}${since}`;
     if (filter?.year) return t('bet.filterYear', { year: filter.year });
     return null;
-  }, [filter, t]);
+  }, [filter, bets, t]);
 
   const queryLabel = useMemo(() => describeBetsQuery(query), [query]);
 
@@ -303,12 +312,9 @@ export function BetsScreen({ filter, onClearFilter }: {
           default: return 0;
         }
       });
-      const totalPnl = result.reduce((sum, b) => {
-        if (b.status === 'won') return sum + Math.round(b.stake * b.odds) - b.stake;
-        if (b.status === 'lost') return sum - b.stake;
-        if (b.status === 'cashout' && b.cashoutAmount != null) return sum + b.cashoutAmount - b.stake;
-        return sum;
-      }, 0);
+      // betPnl, not a status switch: the hand-rolled one counted a lost
+      // freebet as a loss of its whole stake.
+      const totalPnl = result.reduce((sum, b) => sum + betPnl(b), 0);
       return [{ title: t('bet.allBets'), date: '', dailyPnl: totalPnl, data: result }];
     }
 
@@ -329,12 +335,7 @@ export function BetsScreen({ filter, onClearFilter }: {
           ? (a.time ?? '').localeCompare(b.time ?? '')
           : (b.time ?? '').localeCompare(a.time ?? ''),
       );
-      const dailyPnl = data.reduce((sum, b) => {
-        if (b.status === 'won') return sum + Math.round(b.stake * b.odds) - b.stake;
-        if (b.status === 'lost') return sum - b.stake;
-        if (b.status === 'cashout' && b.cashoutAmount != null) return sum + b.cashoutAmount - b.stake;
-        return sum;
-      }, 0);
+      const dailyPnl = data.reduce((sum, b) => sum + betPnl(b), 0);
       return { title: formatDateTitle(date, todayLabel, yesterdayLabel), date, dailyPnl, data };
     });
   }, [bets, statusFilter, search, sort, filter, query, todayLabel, yesterdayLabel, t]);
@@ -411,10 +412,10 @@ export function BetsScreen({ filter, onClearFilter }: {
           ListEmptyComponent={
             <View style={styles.empty}>
               <Image source={require('../../../assets/adaptive-icon.png')} style={styles.emptyIcon} resizeMode="contain" />
-              <Text style={styles.emptyTitle}>{t('bet.noBetsYet')}</Text>
-              <Text style={styles.emptySubtitle}>
-                {search ? t('bet.notFound') : t('bet.noBetsStart')}
-              </Text>
+              {/* With bets on hand an empty list means the filters took them
+                  all — "no bets yet, tap +" read as lost data. */}
+              <Text style={styles.emptyTitle}>{bets.length > 0 ? t('bet.notFound') : t('bet.noBetsYet')}</Text>
+              {bets.length === 0 && <Text style={styles.emptySubtitle}>{t('bet.noBetsStart')}</Text>}
             </View>
           }
         />

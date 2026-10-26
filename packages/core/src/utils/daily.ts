@@ -25,6 +25,18 @@ export function toYmd(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
+/**
+ * The leading `H:MM` / `HH:MM` of a time, always as `HH:MM`; null if there is
+ * none. Times are compared as strings everywhere (the list, `byPlayedAt`), and
+ * a CSV "9:05" sorted after "23:00" — the morning match landed at the end of
+ * its day, and with it the streaks and the drawdown built on that order.
+ * The matched part, not the first five characters: "7:05:30" sliced gave "7:05:".
+ */
+export function normalizeTime(raw: string): string | null {
+  const m = /^(\d{1,2}):(\d{2})/.exec(raw.trim());
+  return m ? `${m[1]!.padStart(2, '0')}:${m[2]}` : null;
+}
+
 const MAX_DAYS = 3650; // safety cap (10 years) so a stray old date can't explode the range
 const YMD = /^\d{4}-\d{2}-\d{2}$/;
 

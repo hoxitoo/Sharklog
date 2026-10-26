@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { SPACE, RADIUS } from '../../theme/layout';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { AppText as Text } from '../../components/AppText';
 import Svg, { Polyline, Circle, Rect } from 'react-native-svg';
 import type { DayStats } from '@sharklog/core';
@@ -56,13 +56,17 @@ function monthDay(date: string): string {
   return `${d}.${m}`;
 }
 
-const LABEL_ROW = 16;
+const LABEL_ROW = 16; // the least; a larger system font grows the row (see the sizer)
 
 export function DailyChart({ days, width, height, toggles, selected, onSelect, labelEvery, spotlight, fullDates }: Props) {
   const half = Math.floor((height - 1) / 2);
   const colW = days.length > 0 ? width / days.length : width;
   const step = labelEvery ?? Math.max(1, Math.ceil(days.length / 12));
-  const labelW = fullDates ? 40 : 24;
+  // Absolute labels do not size their row or grow their box with the system
+  // font: the box widens with the font scale, the row takes its height from an
+  // invisible sizer line below.
+  const { fontScale } = useWindowDimensions();
+  const labelW = (fullDates ? 40 : 24) * Math.max(1, fontScale);
 
   // Bars: symmetric scale so wins (up) and losses (down) stay comparable.
   const maxAbs = useMemo(
@@ -179,12 +183,15 @@ export function DailyChart({ days, width, height, toggles, selected, onSelect, l
           days leaves ~3 px per column, and a label boxed into its own column
           was clipped to a sliver. A label that would touch the chosen day's
           gives way to it. */}
-      <View style={{ width, height: LABEL_ROW, marginTop: SPACE.xs }}>
+      <View style={{ width, minHeight: LABEL_ROW, marginTop: SPACE.xs }}>
+        <Text style={[ch.xLabel, ch.sizer]} accessibilityElementsHidden importantForAccessibility="no-hide-descendants">0</Text>
         {days.map((d, i) => {
           const isSel = selected === i;
           if (!isSel) {
             if (i % step !== 0) return null;
-            if (selected != null && Math.abs(i - selected) * colW < labelW) return null;
+            // Measured where the labels are DRAWN: near an edge both are pushed
+            // inwards, and two days far enough apart could still overlap.
+            if (selected != null && Math.abs(centred(i, labelW) - centred(selected, labelW)) < labelW) return null;
           }
           // In the spotlight the chosen label is drawn above the veil, below.
           if (isSel && spot != null) return null;
@@ -232,6 +239,7 @@ const ch = themedStyles(() => ({
   },
   colSelected: { backgroundColor: colors.bgElevated, borderRadius: RADIUS.sm },
   xLabelBox: { position: 'absolute', top: 0, alignItems: 'center' },
+  sizer: { opacity: 0 },
   xLabel: { fontSize: SIZE.micro, color: colors.textMuted },
   xLabelSel: { color: colors.textPrimary, fontWeight: '700' },
   // The chosen day's date in the spotlight: the same purple tag as in the bar above.

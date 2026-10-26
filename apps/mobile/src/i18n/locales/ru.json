@@ -239,6 +239,7 @@
     "bestStreak": "Лучшая серия побед",
     "worstStreak": "Худшая серия",
     "currentStreak": "Текущая",
+    "currentStreakFull": "Текущая серия",
     "winsInRow_one": "победа подряд",
     "winsInRow_few": "победы подряд",
     "winsInRow_many": "побед подряд",

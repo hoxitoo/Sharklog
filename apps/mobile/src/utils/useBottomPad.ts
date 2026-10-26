@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react';
+import { Keyboard, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SPACE } from '../theme/layout';
 
@@ -15,4 +17,23 @@ import { SPACE } from '../theme/layout';
  */
 export function useBottomPad(extra: number = SPACE.xl): number {
   return useSafeAreaInsets().bottom + extra;
+}
+
+/**
+ * Whether the software keyboard is up. A sheet lifted by a KeyboardAvoidingView
+ * sits on the keyboard, which covers the navigation bar — padding for the bar
+ * there is an empty band between the buttons and the keys (the restore-code
+ * sheet opens with the keyboard up, so that band was its only look).
+ */
+export function useKeyboardShown(): boolean {
+  const [shown, setShown] = useState(false);
+  useEffect(() => {
+    // iOS announces before the animation; Android only has the "did" events.
+    const show = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hide = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+    const a = Keyboard.addListener(show, () => setShown(true));
+    const b = Keyboard.addListener(hide, () => setShown(false));
+    return () => { a.remove(); b.remove(); };
+  }, []);
+  return shown;
 }

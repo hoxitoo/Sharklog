@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { SPACE, RADIUS, TOUCH } from '../../theme/layout';
+import { SPACE, RADIUS, TOUCH, hitSlopFor } from '../../theme/layout';
 import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Alert } from 'react-native';
 import { AppText as Text } from '../../components/AppText';
 import { PieChart } from 'react-native-gifted-charts';
@@ -197,23 +197,31 @@ function MiniTile({ label, value, color, sub, info, onPress }: {
       <Text style={[tile.sub, onPress ? tile.subTappable : null]} numberOfLines={2}>{sub ?? ''}</Text>
       {/* The only sign the tile opens something: tiles look alike otherwise. */}
       {onPress && <Text style={tile.chevron}>›</Text>}
-      {info && (
-        <TouchableOpacity
-          style={tile.infoBtn}
-          onPress={() => Alert.alert(info.title, info.text)}
-          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          activeOpacity={0.7}
-        >
-          <Text style={tile.infoBtnText}>?</Text>
-        </TouchableOpacity>
-      )}
     </>
   );
-  if (!onPress) return <View style={tile.box}>{content}</View>;
-  return (
-    <TouchableOpacity style={tile.box} onPress={onPress} activeOpacity={0.75} accessibilityRole="button">
-      {content}
+  // A sibling of the tile's touchable, not inside it: on iOS a touchable is one
+  // accessibility element and hides what it holds, so VoiceOver could not reach
+  // the "?". Full 44 pt slop — a near miss here would leave the screen.
+  const infoBtn = info && (
+    <TouchableOpacity
+      style={tile.infoBtn}
+      onPress={() => Alert.alert(info.title, info.text)}
+      hitSlop={hitSlopFor(16)}
+      accessibilityRole="button"
+      accessibilityLabel={info.title}
+      activeOpacity={0.7}
+    >
+      <Text style={tile.infoBtnText}>?</Text>
     </TouchableOpacity>
+  );
+  if (!onPress) return <View style={tile.box}>{content}{infoBtn}</View>;
+  return (
+    <View style={tile.cell}>
+      <TouchableOpacity style={tile.box} onPress={onPress} activeOpacity={0.75} accessibilityRole="button">
+        {content}
+      </TouchableOpacity>
+      {infoBtn}
+    </View>
   );
 }
 
@@ -222,6 +230,7 @@ const pressFor = (open?: () => void) => (open ? { onPress: open } : {});
 
 const tile = themedStyles(() => ({
   box: { ...tileStyle, flex: 1 },
+  cell: { flex: 1 },
   label: { fontSize: SIZE.caption, color: colors.textMuted, marginBottom: SPACE.xs, lineHeight: 15, height: 30 }, // reserve 2 lines
   labelWithInfo: { paddingRight: SPACE.lg }, // keep clear of the "?" badge
   value: { fontSize: SIZE.title, fontWeight: '800', height: 26, textAlignVertical: 'center' },
@@ -264,7 +273,7 @@ function StreaksCard({ bets }: { bets: Bet[] }) {
           label={t('analytics.currentStreak')}
           value={curLabel}
           color={curColor}
-          {...pressFor(openRun(s.currentIds, 'analytics.currentStreak'))}
+          {...pressFor(openRun(s.currentIds, 'analytics.currentStreakFull'))}
           // Agrees with the number above it: "1 победа", "3 победы", "5 побед".
           sub={cur.type === 'win' ? t('analytics.winsInRow', { count: cur.count })
             : cur.type === 'loss' ? t('analytics.lossesInRow', { count: cur.count }) : ''}
