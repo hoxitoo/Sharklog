@@ -192,7 +192,8 @@
     "chartLabel": "Графік:",
     "cashFlows": "Дэп/вывады",
     "noDays": "Няма дзён пад абраныя фільтры",
-    "betsCol": "Стаўак"
+    "betsCol": "Стаўак",
+    "clearDay": "Зняць выбар дня"
   },
   "analytics": {
     "title": "Аналітыка",

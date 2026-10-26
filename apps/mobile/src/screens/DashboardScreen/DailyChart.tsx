@@ -12,6 +12,16 @@ import { themedStyles } from '../../theme/themed';
 
 export { SERIES } from '../../theme/chartColors';
 
+/**
+ * The spotlight veil: black at this strength over everything but the chosen
+ * day. Black on every theme — the light one has to darken too, not wash out.
+ * A page under the veil is the same colour as `mix('#000000', bg, SCRIM_ALPHA)`,
+ * which is how the expanded view darkens the gaps between veiled blocks.
+ */
+export const SCRIM_ALPHA = 0.55;
+export const SCRIM = `rgba(0,0,0,${SCRIM_ALPHA})`;
+const FOCUS_MIN = 16;
+
 export interface ChartToggles {
   pnl: boolean;
   balance: boolean;
@@ -26,6 +36,14 @@ interface Props {
   selected: number | null; // index into `days`
   onSelect: (i: number) => void;
   labelEvery?: number;     // show an x label every N columns (default: auto)
+  /**
+   * Veil every column but the selected one and frame it. The chart then sits
+   * on an opaque page-coloured ground, so the veil darkens it exactly as much
+   * as the darkened page around it.
+   */
+  spotlight?: boolean;
+  /** Label days `DD.MM`, not just the day: across months a bare "7" says little. */
+  fullDates?: boolean;
 }
 
 function dayLabel(date: string): string {
@@ -33,10 +51,18 @@ function dayLabel(date: string): string {
   return String(Number(parts[2] ?? 0));
 }
 
-export function DailyChart({ days, width, height, toggles, selected, onSelect, labelEvery }: Props) {
+function monthDay(date: string): string {
+  const [, m, d] = date.split('-');
+  return `${d}.${m}`;
+}
+
+const LABEL_ROW = 16;
+
+export function DailyChart({ days, width, height, toggles, selected, onSelect, labelEvery, spotlight, fullDates }: Props) {
   const half = Math.floor((height - 1) / 2);
   const colW = days.length > 0 ? width / days.length : width;
   const step = labelEvery ?? Math.max(1, Math.ceil(days.length / 12));
+  const labelW = fullDates ? 40 : 24;
 
   // Bars: symmetric scale so wins (up) and losses (down) stay comparable.
   const maxAbs = useMemo(
@@ -69,8 +95,18 @@ export function DailyChart({ days, width, height, toggles, selected, onSelect, l
     };
   }, [days, toggles.pnl, toggles.balance, colW, height]);
 
+  // Centred on the day, wider than it, kept inside the chart.
+  const centred = (i: number, w: number) => Math.min(Math.max(i * colW + colW / 2 - w / 2, 0), Math.max(width - w, 0));
+
+  const spot = spotlight && selected != null && selected < days.length ? selected : null;
+  // A year of days leaves ~3 px per column: a frame that narrow is a hairline,
+  // not a highlight. The frame never shrinks below FOCUS_MIN; under it only the
+  // day's own column stays lit, so the neighbours inside the frame do not pass
+  // for part of it. In the label row the hole is the chosen day's label.
+  const frameW = Math.min(width, Math.max(colW, FOCUS_MIN));
+
   return (
-    <View style={{ width }}>
+    <View style={[{ width }, spotlight && ch.ground]}>
       <View style={{ height, width, position: 'relative' }}>
         {/* Columns (tappable) */}
         <View style={{ flexDirection: 'row', height }}>
@@ -139,26 +175,68 @@ export function DailyChart({ days, width, height, toggles, selected, onSelect, l
         </Svg>
       </View>
 
-      {/* X labels */}
-      <View style={{ flexDirection: 'row', width, marginTop: SPACE.xs }}>
-        {days.map((d, i) => (
-          <View key={`lbl-${d.date}`} style={{ width: colW, alignItems: 'center' }}>
-            {(i % step === 0 || selected === i) && (
-              <Text style={[ch.xLabel, selected === i && ch.xLabelSel]} numberOfLines={1}>
-                {dayLabel(d.date)}
+      {/* X labels. Each is centred on its day but wider than it: a year of
+          days leaves ~3 px per column, and a label boxed into its own column
+          was clipped to a sliver. A label that would touch the chosen day's
+          gives way to it. */}
+      <View style={{ width, height: LABEL_ROW, marginTop: SPACE.xs }}>
+        {days.map((d, i) => {
+          const isSel = selected === i;
+          if (!isSel) {
+            if (i % step !== 0) return null;
+            if (selected != null && Math.abs(i - selected) * colW < labelW) return null;
+          }
+          // In the spotlight the chosen label is drawn above the veil, below.
+          if (isSel && spot != null) return null;
+          return (
+            <View key={`lbl-${d.date}`} style={[ch.xLabelBox, { left: centred(i, labelW), width: labelW }]}>
+              <Text style={[ch.xLabel, isSel && ch.xLabelSel]} numberOfLines={1}>
+                {fullDates ? monthDay(d.date) : dayLabel(d.date)}
               </Text>
-            )}
-          </View>
-        ))}
+            </View>
+          );
+        })}
       </View>
+
+      {/* Spotlight: veil both sides of the chosen column (labels included) and
+          frame it. The veils take no touches — a dimmed day is still a tap
+          away from being the chosen one. */}
+      {spot != null && (
+        <>
+          <View pointerEvents="none" style={[ch.veil, { top: 0, height, left: 0, width: spot * colW }]} />
+          <View pointerEvents="none" style={[ch.veil, { top: 0, height, left: (spot + 1) * colW, right: 0 }]} />
+          <View pointerEvents="none" style={[ch.veil, { top: height, bottom: 0, left: 0, right: 0 }]} />
+          <View pointerEvents="none" style={[ch.focus, { top: 0, height, left: centred(spot, frameW), width: frameW }]} />
+          <View
+            pointerEvents="none"
+            style={[ch.xLabelBox, { top: height + SPACE.xs, left: centred(spot, labelW), width: labelW }]}
+          >
+            <View style={ch.xLabelPill}>
+              <Text style={[ch.xLabel, ch.xLabelSel, ch.xLabelSpot]} numberOfLines={1}>
+                {fullDates ? monthDay(days[spot]!.date) : dayLabel(days[spot]!.date)}
+              </Text>
+            </View>
+          </View>
+        </>
+      )}
     </View>
   );
 }
 
 const ch = themedStyles(() => ({
+  ground: { backgroundColor: colors.bg },
+  veil: { position: 'absolute', backgroundColor: SCRIM },
+  focus: {
+    position: 'absolute',
+    borderWidth: 2, borderColor: colors.purpleText, borderRadius: RADIUS.sm,
+  },
   colSelected: { backgroundColor: colors.bgElevated, borderRadius: RADIUS.sm },
+  xLabelBox: { position: 'absolute', top: 0, alignItems: 'center' },
   xLabel: { fontSize: SIZE.micro, color: colors.textMuted },
   xLabelSel: { color: colors.textPrimary, fontWeight: '700' },
+  // The chosen day's date in the spotlight: the same purple tag as in the bar above.
+  xLabelPill: { backgroundColor: colors.purple, borderRadius: RADIUS.xs, paddingHorizontal: 2 },
+  xLabelSpot: { color: '#fff' },
 }));
 
 /** Small colour-key row shared by the compact and expanded views. */

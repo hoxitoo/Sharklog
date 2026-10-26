@@ -178,7 +178,8 @@
     "chartLabel": "Chart:",
     "cashFlows": "Dep/withdrawals",
     "noDays": "No days match the filters",
-    "betsCol": "Bets"
+    "betsCol": "Bets",
+    "clearDay": "Clear the selected day"
   },
   "analytics": {
     "title": "Analytics",
