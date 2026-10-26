@@ -4,12 +4,13 @@ import * as Sharing from 'expo-sharing';
 import type { Bet } from '@sharklog/core';
 import { buildBetsCSV, toYmd } from '@sharklog/core';
 
-export async function exportBetsCSV(bets: Bet[]): Promise<void> {
+/** `currency` is the book's sign, for the amount columns' names. */
+export async function exportBetsCSV(bets: Bet[], currency?: string): Promise<void> {
   const bom = '﻿'; // UTF-8 BOM for Excel compatibility
   const filename = `sharklog_${toYmd(new Date())}.csv`;
   const uri = FileSystem.documentDirectory + filename;
 
-  await FileSystem.writeAsStringAsync(uri, bom + buildBetsCSV(bets), {
+  await FileSystem.writeAsStringAsync(uri, bom + buildBetsCSV(bets, ';', currency), {
     encoding: FileSystem.EncodingType.UTF8,
   });
 

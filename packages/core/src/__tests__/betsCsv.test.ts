@@ -43,6 +43,20 @@ describe('buildBetsCSV', () => {
 });
 
 describe('round trip', () => {
+  it('labels the amounts with the book\'s currency and reads a file in any currency back', () => {
+    const original = bet({ stake: 50_00, odds: 2.5 });
+    const csv = buildBetsCSV([original], ';', '$');
+    expect(csv.split('\n')[0]).toContain('Ставка ($)');
+    expect(csv.split('\n')[0]).toContain('P&L ($)');
+    // Odds stay decimal in the file, whatever format the screen shows.
+    const [back] = importBetsFromCSV(csv, newId).bets;
+    expect(back!.stake).toBe(50_00);
+    expect(back!.odds).toBe(2.5);
+    // And an old export ("Ставка (₽)") is still the same column.
+    expect(buildBetsCSV([original]).split('\n')[0]).toContain('Ставка (₽)');
+  });
+
+
   it('re-imports its own export without losing a field', () => {
     const original = bet({
       status: 'cashout', cashoutAmount: 620_000, tournament: 'IEM Katowice',

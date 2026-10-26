@@ -10,7 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { dateLocale } from '../../i18n';
 import { txNoteLabel } from '../../utils/labels';
 import type { ChartSeries } from '../../components/BalanceChart';
-import { TX_NOTE, calcDashboard, parseMoneyInput, kellyFraction, expectedValue, impliedProbability, calcDailyBreakdown, currentBank, pendingExposure } from '@sharklog/core';
+import { TX_NOTE, calcDashboard, parseMoneyInput, kellyFraction, expectedValue, parseOdds, impliedProbability, calcDailyBreakdown, currentBank, pendingExposure } from '@sharklog/core';
 
 /** How much of the history the screen shows before asking. */
 const TX_PREVIEW = 5;
@@ -41,7 +41,9 @@ function uuid(): string {
     return (ch === 'x' ? r : (r & 0x3) | 0x8).toString(16);
   });
 }
-import { useFormatMoney } from '../../utils/useFormatMoney';
+import { useFormatMoney, useCurrencySymbol } from '../../utils/useFormatMoney';
+import { useOddsFormat, oddsKeyboard } from '../../utils/useOdds';
+import { oddsExample } from '../../utils/oddsField';
 import type { BankrollTransaction, BankrollTxType } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { ProGate } from '../../components/ProGate';
@@ -59,12 +61,14 @@ const STEP_SLOP = hitSlopFor(28);
 function KellyCalculator({ bankroll }: { bankroll: number }) {
   const { t } = useTranslation();
   const fmt = useFormatMoney();
+  const oddsFormat = useOddsFormat();
   const [odds, setOdds] = useState('');
   const [prob, setProb] = useState('');
 
-  // A Russian keyboard types "2,10", and parseFloat stops at the comma: the
-  // calculator was silently working out Kelly for odds of 2.00.
-  const oddsNum = parseFloat(odds.replace(',', '.'));
+  // In the user's odds format, read to decimal; parseOdds also takes the comma
+  // a Russian keyboard types — parseFloat stopped at it and worked out Kelly
+  // for odds of 2.00 from "2,10".
+  const oddsNum = parseOdds(odds, oddsFormat) ?? NaN;
   const probNum = parseFloat(prob.replace(',', '.')) / 100;
   const kelly = !isNaN(oddsNum) && !isNaN(probNum) ? kellyFraction(oddsNum, probNum) : null;
   const ev = !isNaN(oddsNum) && !isNaN(probNum) ? expectedValue(oddsNum, probNum) : null;
@@ -92,8 +96,8 @@ function KellyCalculator({ bankroll }: { bankroll: number }) {
         <View style={{ flex: 1 }}>
           <Text style={kc.label}>{t('bet.odds')}</Text>
           <TextInput
-            style={kc.input} placeholder="2.10" placeholderTextColor={colors.textMuted}
-            value={odds} onChangeText={setOdds} keyboardType="decimal-pad"
+            style={kc.input} placeholder={oddsExample(oddsFormat, 2.1)} placeholderTextColor={colors.textMuted}
+            value={odds} onChangeText={setOdds} keyboardType={oddsKeyboard(oddsFormat)}
           />
           {implied !== null && <Text style={kc.hint}>Implied: {implied.toFixed(1)}%</Text>}
         </View>
@@ -169,6 +173,7 @@ function TxForm({
   onCancel: () => void;
 }) {
   const fmt = useFormatMoney();
+  const currency = useCurrencySymbol();
   const { t } = useTranslation();
   const [amount, setAmount] = useState('');
   const [note, setNote] = useState('');
@@ -204,8 +209,8 @@ function TxForm({
   return (
     <View style={tf.container}>
       <Text style={tf.label}>
-        {isAdjust ? t('bankroll.adjustLabel')
-          : isWithdrawal ? t('bankroll.withdrawLabel') : t('bankroll.depositLabel')}
+        {isAdjust ? t('bankroll.adjustLabel', { currency })
+          : isWithdrawal ? t('bankroll.withdrawLabel', { currency }) : t('bankroll.depositLabel', { currency })}
       </Text>
       <TextInput
         style={[tf.input, { borderColor: accent }]}

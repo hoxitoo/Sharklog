@@ -23,13 +23,24 @@ export interface StrategyQuestionView {
   options: Array<{ value: string; label: string; desc?: string }>;
 }
 
-export function strategyQuestions(t: TFunction): StrategyQuestionView[] {
+/**
+ * `money.bankroll` fills the bankroll bands ("До {{a}}", "{{a}} – {{b}}"…)
+ * with amounts in the book's currency (`BANKROLL_TIERS`): "до 5 000 ₽" read as
+ * a tiny bank to anyone counting in tenge, and as a fortune in dollars.
+ * `money.odds` fills the odds bands (1.30 / 1.70 / 2.50) in the user's format.
+ */
+export function strategyQuestions(
+  t: TFunction,
+  money?: { bankroll?: { a: string; b: string; c: string }; odds?: { lo: string; mid: string; hi: string } },
+): StrategyQuestionView[] {
+  const values = (key: string) =>
+    key === 'bankroll' ? money?.bankroll : key === 'oddsRange' ? money?.odds : undefined;
   return STRATEGY_QUESTIONS.map((q) => ({
     key: q.key,
     text: t(`strategy.q.${q.key}.text`),
     options: q.options.map((o) => ({
       value: o.value,
-      label: t(`strategy.q.${q.key}.${o.value}`),
+      label: t(`strategy.q.${q.key}.${o.value}`, values(q.key) ?? {}),
       ...(o.desc ? { desc: t(`strategy.q.${q.key}.${o.value}Desc`) } : {}),
     })),
   }));

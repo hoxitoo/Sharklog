@@ -64,7 +64,7 @@
     "pickOdds": "Odds",
     "pickOutcome": "Pick",
     "searchPlaceholder": "Event, pick or tournament...",
-    "cashoutPrompt": "Cashout amount ₽",
+    "cashoutPrompt": "Cashout amount {{currency}}",
     "notFound": "Nothing found",
     "tryOtherSearch": "Try a different query or clear filter",
     "noBetsYet": "No bets yet",
@@ -143,8 +143,6 @@
     "viewStrategy": "View strategy",
     "betsPerDay": "bets/day",
     "bankPercent": "% bankroll",
-    "pnlInfo": "P&L (Profit and Loss) — how much you have won or lost.\n\nExample: €10 stake at 2.0 odds, win → P&L = +€10",
-    "roiInfo": "ROI (Return on Investment) — return on investment in %.\n\nFormula: P&L / Total staked × 100%\n\nExample: won €5 from €20 staked → ROI = 25%",
     "lastResults_one": "Last result",
     "lastResults_other": "Last {{count}} results",
     "turnover": "Turnover",
@@ -304,7 +302,6 @@
     "deleteConfirm": "Delete transaction?",
     "equity": "Equity Curve",
     "kelly": "Kelly Calculator",
-    "kellyInfo": "Kelly Criterion helps calculate the optimal bet size.\n\nFormula: f = (p × b − q) / b\nwhere p = win probability, q = 1 − p, b = odds − 1\n\nExample: 55% probability, 2.0 odds, €100 bankroll\nf = (0.55 × 1 − 0.45) / 1 = 10% → stake €10",
     "currentBank": "Current bankroll",
     "deposited": "Deposited",
     "unit": "1 unit",
@@ -332,9 +329,9 @@
     "inSyncTitle": "All in sync",
     "inSyncMsg": "The balance already matches — no adjustment needed",
     "errAmount": "Enter a valid amount",
-    "adjustLabel": "Actual balance at the bookmaker (₽)",
-    "withdrawLabel": "Withdrawal amount (₽)",
-    "depositLabel": "Deposit amount (₽)",
+    "adjustLabel": "Actual balance at the bookmaker ({{currency}})",
+    "withdrawLabel": "Withdrawal amount ({{currency}})",
+    "depositLabel": "Deposit amount ({{currency}})",
     "expectedAtBook": "Expected at the bookmaker",
     "difference": "Difference",
     "exposureNote": "{{amount}} is in open bets right now — the bookmaker took it straight away, which is why it is subtracted. Enter the balance exactly as the bookmaker shows it.",
@@ -431,7 +428,7 @@
     "proFeature": "Pro settings",
     "language": "Language",
     "roundAmounts": "Round amounts",
-    "roundAmountsHint": "Show without cents",
+    "roundAmountsHint": "Whole amounts, no decimals",
     "tiltAlert": "Tilt alert",
     "tiltAfter_one": "after {{count}} loss in a row",
     "tiltAfter_other": "after {{count}} losses in a row",
@@ -530,7 +527,11 @@
     "refundHow": "Within 7 days of purchase — no reason needed; later — if Pro does not work. Write to support with the invoice number from Robokassa’s email. The money comes back the same way within 10 days, and Pro turns off after the refund.",
     "refundInvoice": "Your invoice number: {{inv}}",
     "restoreCodeRevoked": "This code was revoked: its purchase was refunded. If that is a mistake, write to support.",
-    "restoreCodeOffline": "Could not check the code — an internet connection is needed. Try again."
+    "restoreCodeOffline": "Could not check the code — an internet connection is needed. Try again.",
+    "currency": "Currency",
+    "currencyNote": "Only the sign changes: amounts are not converted.",
+    "oddsFormat": "Odds format",
+    "oddsFormatNote": "Each example is the same pair: an underdog and a favourite. Bets are stored in decimal; statistics do not change."
   },
   "onboarding": {
     "welcome": "Welcome",
@@ -556,7 +557,8 @@
     "skipHint": "You can skip this — the bank can be set up later in Bankroll",
     "bkTitle": "Your bookmakers",
     "bkSub": "Pick the bookmakers you use. You can change this later.",
-    "bkOther": "Another bookmaker..."
+    "bkOther": "Another bookmaker...",
+    "currency": "Account currency"
   },
   "common": {
     "ok": "OK",
@@ -683,7 +685,7 @@
     "modeExpress": "Accumulator",
     "team1Req": "Team 1 *",
     "oddsReq": "Odds *",
-    "stakeReq": "Stake (₽) *",
+    "stakeReq": "Stake ({{currency}}) *",
     "teamPh": "Team...",
     "match": "Match {{n}}",
     "legPickPh": "Pick (team, handicap, total…)",
@@ -711,11 +713,11 @@
     "timePh": "HH:MM",
     "tournamentPh": "Champions League, Premier League, CS2 Major...",
     "closingOdds": "Closing odds (CLV) — optional",
-    "closingOddsPh": "E.g. 1.95 — the odds at kick-off",
+    "closingOddsPh": "E.g. {{example}} — the odds at kick-off",
     "notesPh": "Analysis, reasons for the pick...",
-    "freebetOn": "Free bet ✓ (loss = 0 ₽)",
+    "freebetOn": "Free bet ✓ (loss = 0 {{currency}})",
     "freebetOff": "Free bet — not your own money",
-    "cashoutAmount": "Cashout amount (₽)",
+    "cashoutAmount": "Cashout amount ({{currency}})",
     "cashoutResult": "Cashout result",
     "submitEdit": "Save changes",
     "impliedProb": "Bookmaker's implied probability",
@@ -726,7 +728,9 @@
     "errOdds": "Odds must be greater than 1",
     "errEvent": "Enter a team or event name",
     "errTeam": "Enter a team or event",
-    "errExpress": "Accumulator: at least 2 events with odds above 1"
+    "errExpress": "Accumulator: at least 2 events with odds above 1",
+    "errOddsFormat": "That doesn't look like {{format}} odds. Example: {{example}}",
+    "oddsAsDecimal": "decimal {{odds}} · implied {{prob}}"
   },
   "checklist": {
     "tilt": "I'm not on tilt",
@@ -832,13 +836,13 @@
       },
       "bankroll": {
         "text": "What is your starting bankroll?",
-        "small": "Under 5 000 ₽",
+        "small": "Under {{a}}",
         "smallDesc": "A small starting bank",
-        "medium": "5 000 – 30 000 ₽",
+        "medium": "{{a}} – {{b}}",
         "mediumDesc": "A medium bank",
-        "large": "30 000 – 100 000 ₽",
+        "large": "{{b}} – {{c}}",
         "largeDesc": "A large bank",
-        "xlarge": "Over 100 000 ₽",
+        "xlarge": "Over {{c}}",
         "xlargeDesc": "A very large bank"
       },
       "risk": {
@@ -870,11 +874,11 @@
       },
       "oddsRange": {
         "text": "Which odds range do you work in?",
-        "low": "1.30 – 1.70",
+        "low": "{{lo}} – {{mid}}",
         "lowDesc": "Favourites — high probability, low return",
-        "mid": "1.70 – 2.50",
+        "mid": "{{mid}} – {{hi}}",
         "midDesc": "Mid odds — a balance of risk and return",
-        "high": "2.50 and up",
+        "high": "{{hi}} and up",
         "highDesc": "Underdogs — low probability, high potential"
       },
       "timePerDay": {
@@ -1068,5 +1072,21 @@
     "cardBody": "Tap a card for the action wheel: result, copy, edit, delete. The W / L / R / C buttons set the result in one tap: won, lost, refund, cash-out. Swipe left to delete.",
     "trialTitle": "Pro free until {{date}}",
     "trialBody": "Everything is open now: advanced analytics, bankroll, strategies, unlimited bets. After that the free version stays, and Pro can be bought in Settings."
+  },
+  "currency": {
+    "RUB": "Russian ruble",
+    "USD": "US dollar",
+    "EUR": "Euro",
+    "KZT": "Kazakhstani tenge",
+    "USDT": "Tether (USDT)",
+    "BYN": "Belarusian ruble"
+  },
+  "oddsFormat": {
+    "decimal": "Decimal",
+    "fractional": "Fractional (UK)",
+    "american": "American",
+    "hongkong": "Hong Kong",
+    "malay": "Malay",
+    "indo": "Indonesian"
   }
 }

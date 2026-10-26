@@ -3,7 +3,9 @@ import { Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { Bet, BetStatus } from '@sharklog/core';
-import { formatMoney } from '@sharklog/core';
+import { useFormatMoney } from '../utils/useFormatMoney';
+import { useOddsFormat } from '../utils/useOdds';
+import { oddsBadge } from '../utils/oddsField';
 import { useTranslation } from 'react-i18next';
 import { useBetsStore } from '../store/betsStore';
 import { colors } from '../theme/colors';
@@ -43,6 +45,9 @@ export function useBetActions() {
   const updateBet = useBetsStore((s) => s.updateBet);
   const deleteBet = useBetsStore((s) => s.deleteBet);
   const { t } = useTranslation();
+  // The book's currency and odds format, as on the card the wheel was opened from.
+  const formatMoney = useFormatMoney();
+  const oddsFormat = useOddsFormat();
 
   const [bet, setBet] = useState<Bet | null>(null);
   const [level, setLevel] = useState<'root' | 'status'>('root');
@@ -152,7 +157,7 @@ export function useBetActions() {
       visible={bet !== null}
       {...(bet ? {
         title: displayEvent(bet.event),
-        subtitle: `${bet.pick} · × ${bet.odds.toFixed(2)} · ${formatMoney(bet.stake)}`,
+        subtitle: `${bet.pick} · ${oddsBadge(bet.odds, oddsFormat)} · ${formatMoney(bet.stake)}`,
       } : {})}
       actions={actions}
       onSelect={select}

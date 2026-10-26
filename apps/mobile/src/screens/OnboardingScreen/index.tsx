@@ -5,7 +5,11 @@ import {
 } from 'react-native';
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { DEFAULT_BOOKMAKERS, TX_NOTE, parseMoneyInput, formatMoney, preselectedBookmakers } from '@sharklog/core';
+import {
+  DEFAULT_BOOKMAKERS, TX_NOTE, parseMoneyInput, formatMoney, preselectedBookmakers,
+  CURRENCIES, CURRENCY_CODES, BANKROLL_TIERS, suggestCurrency, type CurrencyCode,
+} from '@sharklog/core';
+import { getLocales } from 'expo-localization';
 import { useTranslation } from 'react-i18next';
 
 function uuid(): string {
@@ -43,9 +47,18 @@ const FEATURES = [
   { emoji: '🧘', label: 'nav.discipline', desc: 'onboarding.f4Desc' },
 ];
 
+/** The phone's own currency code, if it reports one. */
+function deviceCurrencyCode(): string | null {
+  try {
+    return getLocales()[0]?.currencyCode ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export function OnboardingScreen() {
   const insets = useSafeAreaInsets();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const updateSettings = useBetsStore((s) => s.updateSettings);
   const startTrial = useBetsStore((s) => s.startTrial);
   const updateBankroll = useBetsStore((s) => s.updateBankroll);
@@ -53,6 +66,13 @@ export function OnboardingScreen() {
 
   const [step, setStep] = useState(0);
   const [depositInput, setDepositInput] = useState('');
+  // Asked before the starting bank: the bank is typed in it. Preselected from
+  // the phone (KZT on a phone set to Kazakhstan), else from the language.
+  const [currency, setCurrency] = useState<CurrencyCode>(() => suggestCurrency(
+    deviceCurrencyCode(),
+    i18n.language === 'kk' ? 'kz' : i18n.language === 'be' ? 'by' : i18n.language,
+  ));
+  const sign = CURRENCIES[currency].symbol;
   const [selectedBookmakers, setSelectedBookmakers] = useState<string[]>(preselectedBookmakers);
   const [customBk, setCustomBk] = useState('');
 
@@ -71,7 +91,7 @@ export function OnboardingScreen() {
 
   function handleFinish() {
     const bkList = selectedBookmakers.length > 0 ? selectedBookmakers : preselectedBookmakers();
-    updateSettings({ bookmakers: bkList, onboardingComplete: true });
+    updateSettings({ bookmakers: bkList, currency, onboardingComplete: true });
     // Seven days of Pro, starting now: the business rule, and the only moment
     // a user is new. `startTrial` never grants it twice or over a licence.
     startTrial();
@@ -133,18 +153,38 @@ export function OnboardingScreen() {
         </ScrollView>
       )}
 
-      {/* Step 1: Initial bankroll */}
+      {/* Step 1: Currency and the starting bankroll */}
       {step === 1 && (
-        <View style={styles.stepContent}>
+        <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.stepContent} showsVerticalScrollIndicator={false}>
           <Text style={styles.stepEmoji}>💰</Text>
           <Text style={styles.stepTitle}>{t('onboarding.bankTitle')}</Text>
           <Text style={styles.stepSubtitle}>
             {t('onboarding.bankSub')}
           </Text>
 
+          <Text style={styles.fieldLabel}>{t('onboarding.currency')}</Text>
+          <View style={styles.bkGrid}>
+            {CURRENCY_CODES.map((c) => {
+              const active = c === currency;
+              return (
+                <TouchableOpacity
+                  key={c}
+                  style={[styles.bkChip, active && styles.bkChipActive]}
+                  onPress={() => setCurrency(c)}
+                  accessibilityLabel={t(`currency.${c}`)}
+                  accessibilityState={{ selected: active }}
+                >
+                  <Text style={[styles.bkChipText, active && styles.bkChipTextActive]}>
+                    {c === 'USDT' ? c : `${CURRENCIES[c].symbol} ${c}`}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+
           <TextInput
             style={styles.bankInput}
-            placeholder="10 000 ₽"
+            placeholder={formatMoney(BANKROLL_TIERS[currency][0] * 2 * 100, sign)}
             placeholderTextColor={colors.textMuted}
             value={depositInput}
             onChangeText={setDepositInput}
@@ -154,14 +194,14 @@ export function OnboardingScreen() {
 
           {parseMoneyInput(depositInput) > 0 && (
             <Text style={styles.bankPreview}>
-              {t('onboarding.bankPreview', { amount: formatMoney(parseMoneyInput(depositInput)) })}
+              {t('onboarding.bankPreview', { amount: formatMoney(parseMoneyInput(depositInput), sign) })}
             </Text>
           )}
 
           <Text style={styles.skipHint}>
             {t('onboarding.skipHint')}
           </Text>
-        </View>
+        </ScrollView>
       )}
 
       {/* Step 2: Bookmakers */}
@@ -289,6 +329,10 @@ const styles = themedStyles(() => ({
     borderColor: colors.purple + '66',
     textAlign: 'center',
     marginBottom: SPACE.md,
+  },
+  fieldLabel: {
+    fontSize: SIZE.caption, color: colors.textSecondary, marginBottom: SPACE.sm,
+    textTransform: 'uppercase', letterSpacing: 0.5,
   },
   bankPreview: { fontSize: SIZE.body, color: colors.accent, textAlign: 'center', marginBottom: SPACE.lg, fontWeight: '600' },
   skipHint: { fontSize: SIZE.caption, color: colors.textMuted, textAlign: 'center', marginTop: SPACE.sm, lineHeight: 18 },

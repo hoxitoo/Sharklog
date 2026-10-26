@@ -4,7 +4,7 @@ import {
   View, StyleSheet, TouchableOpacity, ScrollView, Alert,
 } from 'react-native';
 import { AppText as Text } from '../../components/AppText';
-import { buildStrategy } from '@sharklog/core';
+import { buildStrategy, BANKROLL_TIERS, isCurrencyCode } from '@sharklog/core';
 import i18n from '../../i18n';
 import type { StrategyAnswers, GeneratedStrategy } from '@sharklog/core';
 import { useTranslation } from 'react-i18next';
@@ -17,6 +17,8 @@ import { haptic } from '../../utils/haptics';
 import { SIZE, GLYPH } from '../../theme/typography';
 import { themedStyles } from '../../theme/themed';
 import { useBottomPad } from '../../utils/useBottomPad';
+import { useFormatMoney } from '../../utils/useFormatMoney';
+import { useFormatOdds } from '../../utils/useOdds';
 
 function ResultScreen({ strategy, onReset }: { strategy: GeneratedStrategy; onReset: () => void }) {
   const bottomPad = useBottomPad(40);
@@ -25,11 +27,12 @@ function ResultScreen({ strategy, onReset }: { strategy: GeneratedStrategy; onRe
   // Words come from the answers in the CURRENT language — the strings stored
   // on the strategy are in the language it was built in.
   const text = strategyTexts(t, strategy);
+  const fmtOdds = useFormatOdds();
 
   const items = [
     { icon: '📅', label: t('strategy.betsPerDay'), value: `≤ ${strategy.betsPerDay}` },
     { icon: '💰', label: t('strategy.stakeSize'),  value: t('strategy.stakeValue', { pct: strategy.stakePercent }) },
-    { icon: '📈', label: t('strategy.oddsLabel'),  value: `${strategy.oddsMin.toFixed(2)} – ${strategy.oddsMax.toFixed(2)}` },
+    { icon: '📈', label: t('strategy.oddsLabel'),  value: `${fmtOdds(strategy.oddsMin)} – ${fmtOdds(strategy.oddsMax)}` },
     { icon: '🎯', label: t('strategy.betType'),    value: text.betTypeAdvice },
     { icon: '⚽', label: t('strategy.sport'),      value: text.sportAdvice },
     { icon: '⚡', label: t('strategy.tiltStop'),   value: t('strategy.tiltValue', { count: strategy.tiltThreshold }) },
@@ -132,7 +135,16 @@ function ResultScreen({ strategy, onReset }: { strategy: GeneratedStrategy; onRe
 function WizardScreen({ onDone }: { onDone: (strategy: GeneratedStrategy) => void }) {
   const bottomPad = useBottomPad(40);
   const { t } = useTranslation();
-  const questions = strategyQuestions(t);
+  const fmt = useFormatMoney();
+  const currency = useBetsStore((st) => st.settings.currency);
+  const [ta, tb, tc] = BANKROLL_TIERS[isCurrencyCode(currency) ? currency : 'RUB'];
+  // Whole units, in the book's currency: the bands are sizes, not prices.
+  const fmtOdds = useFormatOdds();
+  // The odds bands are the builder's decimal 1.30 / 1.70 / 2.50, shown in the user's format.
+  const questions = strategyQuestions(t, {
+    bankroll: { a: fmt(ta * 100), b: fmt(tb * 100), c: fmt(tc * 100) },
+    odds: { lo: fmtOdds(1.3), mid: fmtOdds(1.7), hi: fmtOdds(2.5) },
+  });
   const total = questions.length;
   const [step, setStep] = useState(0);
   const [answers, setAnswers] = useState<Partial<StrategyAnswers>>({});

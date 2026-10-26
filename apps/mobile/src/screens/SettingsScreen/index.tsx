@@ -10,7 +10,11 @@ import { cardSurface } from '../../components/Card';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { FREE_LIMITS, CURRENT_SCHEMA_VERSION } from '@sharklog/core';
+import {
+  FREE_LIMITS, CURRENT_SCHEMA_VERSION, CURRENCIES, CURRENCY_CODES, ODDS_FORMATS, formatOddsAs, isCurrencyCode,
+} from '@sharklog/core';
+import { FilterPicker } from '../../components/FilterPicker';
+import { useOddsFormat } from '../../utils/useOdds';
 import { useBetsStore, effectiveReminderHour } from '../../store/betsStore';
 import { colors, alpha, mix } from '../../theme/colors';
 import { strategyName } from '../../utils/strategyText';
@@ -229,6 +233,9 @@ export function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const settings = useBetsStore((s) => s.settings);
+  // Missing = roubles and decimal: what every book saved before the choice was.
+  const currency = isCurrencyCode(settings.currency) ? settings.currency : 'RUB';
+  const oddsFormat = useOddsFormat();
   const updateSettings = useBetsStore((s) => s.updateSettings);
   const bets = useBetsStore((s) => s.bets);
   const clearAll = useBetsStore((s) => s.clearAll);
@@ -499,7 +506,7 @@ export function SettingsScreen() {
     }
     setExporting(true);
     try {
-      await exportBetsCSV(bets);
+      await exportBetsCSV(bets, CURRENCIES[currency].symbol);
     } catch {
       Alert.alert(t('common.error'), t('errors.exportFailed'));
     } finally {
@@ -753,6 +760,42 @@ export function SettingsScreen() {
               />
             )}
           />
+          {/* A label, not a conversion — the sheet says so before anyone picks. */}
+          <FilterPicker
+            label={t('settings.currency')}
+            note={t('settings.currencyNote')}
+            options={CURRENCY_CODES.map((c) => ({ key: c, label: t(`currency.${c}`), hint: CURRENCIES[c].symbol }))}
+            value={currency}
+            onChange={(c) => updateSettings({ currency: c })}
+            trigger={(open) => (
+              <Row
+                label={t('settings.currency')}
+                hint={t(`currency.${currency}`)}
+                onPress={open}
+                chevron
+                right={<Text style={[styles.currencySign, numeric]}>{CURRENCIES[currency].symbol}</Text>}
+              />
+            )}
+          />
+          {/* Each option shows the same underdog and favourite (2.50 and 1.50),
+              so the formats can be compared line by line. */}
+          <FilterPicker
+            label={t('settings.oddsFormat')}
+            note={t('settings.oddsFormatNote')}
+            options={ODDS_FORMATS.map((f) => ({
+              key: f, label: t(`oddsFormat.${f}`), hint: `${formatOddsAs(2.5, f)} · ${formatOddsAs(1.5, f)}`,
+            }))}
+            value={oddsFormat}
+            onChange={(f) => updateSettings({ oddsFormat: f })}
+            trigger={(open) => (
+              <Row
+                label={t('settings.oddsFormat')}
+                hint={`${t(`oddsFormat.${oddsFormat}`)} · ${formatOddsAs(2.5, oddsFormat)} / ${formatOddsAs(1.5, oddsFormat)}`}
+                onPress={open}
+                chevron
+              />
+            )}
+          />
         </Section>
 
         {/* 3. Guard rails. The same four rows for everyone: a Free user sees
@@ -966,6 +1009,7 @@ const styles = themedStyles(() => ({
   segBtn: { ...SEG, alignItems: 'center', justifyContent: 'center', borderRadius: RADIUS.xs },
   segBtnActive: { backgroundColor: colors.purple },
   segText: { fontSize: SIZE.caption, fontWeight: '700', color: colors.textMuted },
+  currencySign: { fontSize: SIZE.lead, fontWeight: '700', color: colors.purpleText },
   segTextActive: { color: '#fff' },
 
   bkBody: { paddingVertical: SPACE.md, gap: SPACE.md },

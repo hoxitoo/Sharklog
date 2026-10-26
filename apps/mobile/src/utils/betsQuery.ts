@@ -1,5 +1,5 @@
-import type { Bet } from '@sharklog/core';
-import { betBacksTeam, parseEventTeams } from '@sharklog/core';
+import type { Bet, OddsFormat } from '@sharklog/core';
+import { betBacksTeam, parseEventTeams, parseOdds } from '@sharklog/core';
 
 /**
  * The advanced bet filter — everything the status and sort pickers do not cover.
@@ -34,20 +34,32 @@ function num(raw: string): number | null {
   return Number.isFinite(v) ? v : null;
 }
 
+/**
+ * An odds bound in the user's format, as decimal (what bets store). Decimal
+ * keeps the forgiving reading it always had; "+150" or "5/2" goes through
+ * parseOdds. The bounds are compared as decimal (and swapped if reversed),
+ * so in Malay, where the quote is not monotonic, a pair still means the range
+ * between the two prices.
+ */
+function oddsBound(raw: string, format: OddsFormat): number | null {
+  if (!raw.trim()) return null;
+  return format === 'decimal' ? num(raw) : parseOdds(raw, format);
+}
+
 /** `YYYY-MM-DD` only. A half-typed date must not start hiding bets. */
 function ymd(raw: string): string {
   const v = raw.trim();
   return /^\d{4}-\d{2}-\d{2}$/.test(v) ? v : '';
 }
 
-export function applyBetsQuery(bets: Bet[], q: BetsQuery): Bet[] {
+export function applyBetsQuery(bets: Bet[], q: BetsQuery, format: OddsFormat = 'decimal'): Bet[] {
   const tournament = q.tournament.trim().toLowerCase();
   const team = q.team.trim();
 
   // Bounds entered the wrong way round are a slip, not a request for an empty
   // list: "от 3 до 1" plainly means the range between 1 and 3.
-  let lo = num(q.oddsFrom);
-  let hi = num(q.oddsTo);
+  let lo = oddsBound(q.oddsFrom, format);
+  let hi = oddsBound(q.oddsTo, format);
   if (lo != null && hi != null && lo > hi) [lo, hi] = [hi, lo];
 
   let from = ymd(q.dateFrom);
@@ -129,16 +141,18 @@ function short(ymdStr: string): string {
  * Symbols rather than words (`× ≥1.5`, `01.09 →`): the values are the point,
  * and a chip on one line has no room to spend on prose.
  */
-export function describeBetsQuery(q: BetsQuery): string | null {
+export function describeBetsQuery(q: BetsQuery, format: OddsFormat = 'decimal'): string | null {
   const parts: string[] = [];
   if (q.tournament.trim()) parts.push(q.tournament.trim());
   if (q.team.trim()) parts.push(q.team.trim());
 
   const from = q.oddsFrom.trim();
   const to = q.oddsTo.trim();
-  if (from && to) parts.push(`× ${from}–${to}`);
-  else if (from) parts.push(`× ≥${from}`);
-  else if (to) parts.push(`× ≤${to}`);
+  // "×" is the decimal multiplier; a "+150" or a "5/2" stands on its own.
+  const x = format === 'decimal' ? '× ' : '';
+  if (from && to) parts.push(`${x}${from}–${to}`);
+  else if (from) parts.push(`${x}≥${from}`);
+  else if (to) parts.push(`${x}≤${to}`);
 
   // Only complete dates are filtered on, so only complete dates are named —
   // a chip reading "2026-0 →" would describe a filter that is not applied.

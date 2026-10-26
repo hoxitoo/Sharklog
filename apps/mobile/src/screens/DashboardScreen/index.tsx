@@ -17,6 +17,8 @@ import { haptic } from '../../utils/haptics';
 import { useDrawer } from '../../components/DrawerContext';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { useFormatMoney } from '../../utils/useFormatMoney';
+import { useFormatOdds, useOddsFormat } from '../../utils/useOdds';
+import { oddsBadge } from '../../utils/oddsField';
 import { DailyChart, ChartLegend, SERIES } from './DailyChart';
 import { ExpandedDashboard } from './ExpandedDashboard';
 import { SIZE, GLYPH, numeric } from '../../theme/typography';
@@ -411,6 +413,8 @@ export function DashboardScreen() {
   const settings = useBetsStore((s) => s.settings);
   const bankroll = useBetsStore((s) => s.bankroll);
   const fmt = useFormatMoney();
+  const fmtOdds = useFormatOdds();
+  const oddsFormat = useOddsFormat();
   const { t } = useTranslation();
   const [period, setPeriod] = useState<PeriodFilter>('all');
   const [showHeatmap, setShowHeatmap] = useState(false);
@@ -518,8 +522,8 @@ export function DashboardScreen() {
               {t('dashboard.strategySub', {
                 perDay: settings.generatedStrategy.betsPerDay,
                 pct: settings.generatedStrategy.stakePercent,
-                min: settings.generatedStrategy.oddsMin.toFixed(2),
-                max: settings.generatedStrategy.oddsMax.toFixed(2),
+                min: fmtOdds(settings.generatedStrategy.oddsMin),
+                max: fmtOdds(settings.generatedStrategy.oddsMax),
               })}
             </Text>
           </View>
@@ -594,7 +598,7 @@ export function DashboardScreen() {
             >
               <View style={{ flex: 1 }}>
                 <Text style={styles.recentEvent} numberOfLines={1}>{bet.event.split(' / ').map(p => p.split('|')[0] ?? p).join(' / ')}</Text>
-                <Text style={styles.recentPick}>{pickLabel(t, bet.pick)} · ×{bet.odds}</Text>
+                <Text style={styles.recentPick}>{pickLabel(t, bet.pick)} · {oddsBadge(bet.odds, oddsFormat)}</Text>
               </View>
               <View style={[
                 styles.recentStatus,
