@@ -25,7 +25,9 @@ docs/            — ROADMAP.md, ANALYSIS.md, PRIVACY_POLICY.md, RELEASE_GUIDE.m
 
 - Деньги — **копейки (integer)**. `1000 ₽ = 100_000`. `formatMoney()` для вывода, `parseMoneyInput()` для ввода.
 - `formatMoney(kopecks, currency='₽', maxDecimals=2)` — третий аргумент управляет знаками после запятой.
-- На мобилке использовать `useFormatMoney()` (из `utils/useFormatMoney.ts`) вместо прямого `formatMoney` — он учитывает `settings.roundAmounts`. Ссылка стабильна (`useCallback` по `roundAmounts`), поэтому её МОЖНО и НУЖНО класть в зависимости `useMemo`/`useCallback`: мемоизированный заголовок секции без неё замерзал на той настройке, с которой смонтировался.
+- **Валюта счёта — подпись, а не пересчёт** (`settings.currency`: RUB/USD/EUR/KZT/USDT/BYN, нет ключа = RUB — всё сохранённое до настройки было рублями). Одна на книгу; суммы хранятся в сотых и при смене НЕ конвертируются (шит выбора так и пишет). Знак — только через `useFormatMoney()` / `useCurrencySymbol()`, в подписях полей — `{{currency}}`. Выбирается в онбординге на шаге банка (предвыбор `suggestCurrency`: валюта телефона из `expo-localization`, иначе по языку) и в Настройках. Исключение одно — **цена Pro в рублях** (`ProGate`, сервер продаёт в рублях). `__tests__/currencySign.test.ts` запрещает «₽» в коде и переводах и требует, чтобы строка с `{{переменной}}` вызывалась со значениями — иначе на экране фигурные скобки. Полосы банкролла в билдере стратегий — `BANKROLL_TIERS[валюта]` (5 000 ₽ ≈ 50 $ ≈ 25 000 ₸), CSV подписывает колонки сумм знаком валюты, а импорт читает «Ставка (любая валюта)». Смешивать валюты в одной книге нельзя — разбор в ROADMAP, «Продумано».
+- **Коэффициенты: хранится ДЕСЯТИЧНЫЙ, формат — только ввод и показ** (`settings.oddsFormat`: decimal / fractional / american / hongkong / malay / indo; нет ключа = decimal). P&L, Келли, вероятность, экспресс, фильтры и корзины аналитики считают по `Bet.odds`. Ядро — `parseOdds(текст, формат)` (null, если не цена) и `formatOddsAs(десятичный, формат)`; введённая цена переводится точно и НЕ округляется: −110 ставкой 110 обязана вернуть ровно 210. Поле на мобилке — `utils/oddsField.ts`: `readOddsField(текст, формат, сохранённый)` возвращает сохранённую цену как была, если поле не трогали (1.91 показывается как «−110», а «−110» читается как 1.909… — иначе правка ставки без касания кэфа меняла бы его); ноги экспресса — `legOdds`, 2 знака, как они хранятся в `event|1.91`. Клавиатура — `oddsKeyboard(формат)`: на iOS `numeric` = цифры БЕЗ минуса (проверено в `RCTConvert.mm`), поэтому американскому/малайскому/индонезийскому там нужна `numbers-and-punctuation`; на Android у цифровых клавиатур нет «/», дробному — обычная. На карточке «× 2.03» только в десятичном (`oddsBadge`), подписи корзин аналитики — `oddsRangeLabel`. Пояснения с примерами в прозе (`analytics.*Info`, обоснования стратегий) остаются десятичными.
+- На мобилке использовать `useFormatMoney()` (из `utils/useFormatMoney.ts`) вместо прямого `formatMoney` — он учитывает `settings.roundAmounts` и валюту счёта. Ссылка стабильна (`useCallback` по `roundAmounts`), поэтому её МОЖНО и НУЖНО класть в зависимости `useMemo`/`useCallback`: мемоизированный заголовок секции без неё замерзал на той настройке, с которой смонтировался.
 - Ставки — **UUID v4** (не timestamp). На мобилке — `uuid()` с fallback на Math.random (crypto может быть unavailable на Hermes/Android).
 - PRO-функции мобилки — `<ProGate feature="...">` компонент.
 - `packages/core` — без зависимостей на React/RN/Browser.
@@ -247,7 +249,7 @@ new Date(str).toLocaleDateString(locale, { day: 'numeric', month: 'short' });
 
 Соглашения:
 - `formatPercent()` не трогать — уже добавляет `+`; в переводах знак `+` тоже не ставить
-- Валюта `₽` захардкожена в `formatMoney()` — не переводить
+- Знак валюты не переводится и не пишется в строки: суммы — через `useFormatMoney()`, подписи — `{{currency}}` (валюта — настройка счёта, см. соглашения)
 - Все числовые суммы идут через `formatMoney()`, не вставлять в строки вручную
 - При добавлении нового UI-текста — добавлять ключ во все 4 файла сразу. **Теперь это исполняемое правило** (`apps/mobile/src/__tests__/i18n.test.ts`): ключи сверяются между файлами, `{{переменные}}` у ключа одинаковы во всех языках, пустых строк нет.
 - **Захардкоженный русский — храповик.** В том же тесте карта `UNTRANSLATED`: файл → сколько строк с кириллицей в нём ещё осталось. Число может только ПАДАТЬ: новый файл обязан быть нулевым, рост числа роняет тест, а переведённую строку тест требует вычесть из карты (иначе ослабший храповик пропустит следующую). Это и есть оставшаяся работа по переводу, файл за файлом. Исключение одно — `i18n/index.ts`: язык называется на самом себе («Қазақша», «Беларуская») и не переводится никогда.
@@ -269,9 +271,9 @@ new Date(str).toLocaleDateString(locale, { day: 'numeric', month: 'short' });
 
 ```bash
 # Тесты
-cd packages/core && npx vitest run        # 257 unit-тестов core
+cd packages/core && npx vitest run        # 272 unit-тестов core
 cd apps/desktop  && npm test              # 40 smoke-тестов desktop (Vitest)
-cd apps/mobile   && npm test              # 307 тестов mobile (Jest), включая стражей дизайна, тем и переводов
+cd apps/mobile   && npm test              # 319 тестов mobile (Jest), включая стражей дизайна, тем и переводов
 
 # Type-check
 cd apps/mobile  && npx tsc --noEmit
@@ -692,6 +694,9 @@ utils/ (из нового)
   license.ts               — формат и проверка лицензии, `extractLicense`, `hasLicense`,
                              `resolvePro`, `trialRunning`, `trialEnd` — всё чистое, под тестом
   appVersion.ts            — `APP_VERSION` из app.json
+  oddsField.ts             — поле кэфа в формате пользователя (чистое, под тестом): oddsFieldText,
+                             readOddsField, legOdds, oddsBadge, oddsRangeLabel
+  useOdds.ts               — useOddsFormat / useFormatOdds / oddsKeyboard
 assets/
   icon.png                 — 1024×1024 на тёмном фоне
   adaptive-icon.png        — 1024×1024 прозрачный фон (Android)
@@ -743,6 +748,8 @@ utils/
                         calcBetYears(bets, now) — годы из данных + текущий, новые первыми
                         betsInYear(bets, year) — срез по календарному году
   kelly.ts            — kellyFraction, halfKelly, expectedValue, impliedProbability
+  oddsFormat.ts       — parseOdds / formatOddsAs / ODDS_FORMATS: шесть форматов кэфов ↔ десятичный
+  currency.ts         — CURRENCIES (знаки), currencySymbol, suggestCurrency, BANKROLL_TIERS
   formatters.ts       — formatMoney(kopecks, currency='₽', maxDecimals=2), parseMoneyInput, formatOdds, formatPercent (adds + prefix)
   strategyBuilder.ts  — STRATEGY_QUESTIONS (10 вопросов), buildStrategy(answers)
                         strategyTextIds(answers) — КАКИЕ тексты положены профилю (id имени, предложений
