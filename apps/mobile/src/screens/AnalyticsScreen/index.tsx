@@ -24,6 +24,8 @@ import { cardSurface, Card, tileStyle } from '../../components/Card';
 import { PnlBars } from '../../components/PnlBars';
 import { AppIcon, sportGlyph } from '../../components/icons/AppIcon';
 import { themedStyles } from '../../theme/themed';
+import { useBottomPad } from '../../utils/useBottomPad';
+import { useDrawer } from '../../components/DrawerContext';
 
 const { width } = Dimensions.get('window');
 
@@ -179,16 +181,22 @@ const hero = themedStyles(() => ({
 
 interface TileInfo { title: string; text: string }
 
-function MiniTile({ label, value, color, sub, info }: {
+function MiniTile({ label, value, color, sub, info, onPress }: {
   label: string; value: string; color: string; sub?: string; info?: TileInfo;
+  /** Opens the bets behind the number (a run, a record) in the bets list. */
+  onPress?: () => void;
 }) {
   // Fixed label/value/sub bands so the value numbers align across tiles
-  // regardless of 1- vs 2-line labels (fixes the "jumping numbers" look).
-  return (
-    <View style={tile.box}>
+  // regardless of 1- vs 2-line labels (fixes the "jumping numbers" look). The
+  // sub band holds two lines: in a third of the row, "1 поражение подряд" was
+  // cut to "поражение п…".
+  const content = (
+    <>
       <Text style={[tile.label, info ? tile.labelWithInfo : null]} numberOfLines={2}>{label}</Text>
       <Text style={[tile.value, { color }]} numberOfLines={1} adjustsFontSizeToFit>{value}</Text>
-      <Text style={tile.sub} numberOfLines={1}>{sub ?? ''}</Text>
+      <Text style={[tile.sub, onPress ? tile.subTappable : null]} numberOfLines={2}>{sub ?? ''}</Text>
+      {/* The only sign the tile opens something: tiles look alike otherwise. */}
+      {onPress && <Text style={tile.chevron}>›</Text>}
       {info && (
         <TouchableOpacity
           style={tile.infoBtn}
@@ -199,16 +207,27 @@ function MiniTile({ label, value, color, sub, info }: {
           <Text style={tile.infoBtnText}>?</Text>
         </TouchableOpacity>
       )}
-    </View>
+    </>
+  );
+  if (!onPress) return <View style={tile.box}>{content}</View>;
+  return (
+    <TouchableOpacity style={tile.box} onPress={onPress} activeOpacity={0.75} accessibilityRole="button">
+      {content}
+    </TouchableOpacity>
   );
 }
+
+/** `onPress` only when there is something to open (exactOptionalPropertyTypes: no `onPress={undefined}`). */
+const pressFor = (open?: () => void) => (open ? { onPress: open } : {});
 
 const tile = themedStyles(() => ({
   box: { ...tileStyle, flex: 1 },
   label: { fontSize: SIZE.caption, color: colors.textMuted, marginBottom: SPACE.xs, lineHeight: 15, height: 30 }, // reserve 2 lines
   labelWithInfo: { paddingRight: SPACE.lg }, // keep clear of the "?" badge
   value: { fontSize: SIZE.title, fontWeight: '800', height: 26, textAlignVertical: 'center' },
-  sub: { fontSize: SIZE.micro, color: colors.textMuted, marginTop: SPACE.xs, height: 13 }, // always reserved
+  sub: { fontSize: SIZE.micro, color: colors.textMuted, marginTop: SPACE.xs, height: 26, lineHeight: 13 }, // two lines, always reserved
+  subTappable: { paddingRight: SPACE.md }, // keep clear of the chevron
+  chevron: { position: 'absolute', right: SPACE.sm, bottom: SPACE.xs, fontSize: GLYPH.md, fontWeight: '700', color: colors.textMuted },
   infoBtn: {
     position: 'absolute', top: 8, right: 8,
     width: 16, height: 16, borderRadius: RADIUS.sm,
@@ -220,21 +239,32 @@ const tile = themedStyles(() => ({
 
 function StreaksCard({ bets }: { bets: Bet[] }) {
   const { t } = useTranslation();
+  const { goToBets } = useDrawer();
   const s = useMemo(() => calcStreaks(bets), [bets]);
+  // A tile opens its own run in the bets list — nothing to open, no tap.
+  const openRun = (ids: string[], labelKey: string) =>
+    ids.length > 0 ? () => goToBets({ selection: { ids, labelKey } }) : undefined;
   const cur = s.current;
   const curLabel = cur.type === 'none' ? '—' : `${cur.count}`;
   const curColor = cur.type === 'win' ? colors.won : cur.type === 'loss' ? colors.lost : colors.textMuted;
   return (
     <Card title={t('analytics.streaks')} tone="info">
       <View style={row.wrap}>
-        <MiniTile label={t('analytics.bestStreak')} value={`${s.bestWin} W`} color={colors.won} />
+        <MiniTile
+          label={t('analytics.bestStreak')} value={`${s.bestWin} W`} color={colors.won}
+          {...pressFor(openRun(s.bestWinIds, 'analytics.bestStreak'))}
+        />
         <View style={{ width: 10 }} />
-        <MiniTile label={t('analytics.worstStreak')} value={`${s.worstLoss} L`} color={colors.lost} />
+        <MiniTile
+          label={t('analytics.worstStreak')} value={`${s.worstLoss} L`} color={colors.lost}
+          {...pressFor(openRun(s.worstLossIds, 'analytics.worstStreak'))}
+        />
         <View style={{ width: 10 }} />
         <MiniTile
           label={t('analytics.currentStreak')}
           value={curLabel}
           color={curColor}
+          {...pressFor(openRun(s.currentIds, 'analytics.currentStreak'))}
           // Agrees with the number above it: "1 победа", "3 победы", "5 побед".
           sub={cur.type === 'win' ? t('analytics.winsInRow', { count: cur.count })
             : cur.type === 'loss' ? t('analytics.lossesInRow', { count: cur.count }) : ''}
@@ -247,7 +277,10 @@ function StreaksCard({ bets }: { bets: Bet[] }) {
 function ExtremesCard({ bets }: { bets: Bet[] }) {
   const fmt = useFormatMoney();
   const { t } = useTranslation();
+  const { goToBets } = useDrawer();
   const e = useMemo(() => calcExtremes(bets), [bets]);
+  const openBet = (bet: Bet | undefined, labelKey: string) =>
+    bet ? () => goToBets({ selection: { ids: [bet.id], labelKey } }) : undefined;
   const cleanEvent = (ev: string) => ev.split(' / ')[0]?.split('|')[0]?.trim() ?? ev;
   return (
     <Card title={t('analytics.records')} tone="violet">
@@ -257,6 +290,7 @@ function ExtremesCard({ bets }: { bets: Bet[] }) {
           value={e.biggestWin ? `+${fmt(e.biggestWin.pnl)}` : '—'}
           color={colors.won}
           {...(e.biggestWin ? { sub: cleanEvent(e.biggestWin.bet.event) } : {})}
+          {...pressFor(openBet(e.biggestWin?.bet, 'analytics.biggestWin'))}
           info={{
             title: t('analytics.biggestWin'),
             text: t('analytics.biggestWinInfo'),
@@ -268,6 +302,7 @@ function ExtremesCard({ bets }: { bets: Bet[] }) {
           value={e.biggestLoss ? fmt(e.biggestLoss.pnl) : '—'}
           color={colors.lost}
           {...(e.biggestLoss ? { sub: cleanEvent(e.biggestLoss.bet.event) } : {})}
+          {...pressFor(openBet(e.biggestLoss?.bet, 'analytics.biggestLoss'))}
           info={{
             title: t('analytics.biggestLoss'),
             text: t('analytics.biggestLossInfo'),
@@ -693,6 +728,7 @@ const A_PERIOD_OPTIONS: Array<{ key: APeriodFilter; label: string }> = [
 ];
 
 function AnalyticsContent() {
+  const bottomPad = useBottomPad(SPACE.xxl);
   const bets = useBetsStore((s) => s.bets);
   const { t } = useTranslation();
   const [period, setPeriod] = useState<APeriodFilter>('all');
@@ -721,7 +757,7 @@ function AnalyticsContent() {
   }), [filteredBets, t]);
 
   return (
-    <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: SPACE.xxl }}>
+    <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: bottomPad }}>
       <View style={styles.periodRow}>
         {A_PERIOD_OPTIONS.map((p) => (
           <TouchableOpacity

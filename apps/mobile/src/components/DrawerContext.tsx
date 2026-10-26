@@ -13,6 +13,12 @@ export interface BetsFilter {
   year?: number;
   /** Bets that carry no tournament — the counterpart to `tournament`. */
   noTournament?: boolean;
+  /**
+   * Exactly these bets — a run of wins, the biggest loss: what a tapped
+   * Analytics tile is made of. `labelKey` is the tile's own title (a
+   * translation key), shown over the list so it says what it is.
+   */
+  selection?: { ids: string[]; labelKey: string };
 }
 
 interface DrawerContextValue {

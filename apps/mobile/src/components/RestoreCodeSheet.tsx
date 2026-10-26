@@ -9,6 +9,7 @@ import { colors } from '../theme/colors';
 import { SPACE, RADIUS, TOUCH } from '../theme/layout';
 import { SIZE, numeric } from '../theme/typography';
 import { themedStyles } from '../theme/themed';
+import { useBottomPad } from '../utils/useBottomPad';
 
 /**
  * Paste a restore code (the signed licence) to bring Pro back — on a new phone,
@@ -17,6 +18,7 @@ import { themedStyles } from '../theme/themed';
  * server's public key before anything is saved.
  */
 export function RestoreCodeSheet({ visible, onClose }: { visible: boolean; onClose: () => void }) {
+  const bottomPad = useBottomPad(SPACE.xxl);
   const { t } = useTranslation();
   const [code, setCode] = useState('');
   // Why the code was not taken — "invalid" is not the only answer: a code this
@@ -48,7 +50,7 @@ export function RestoreCodeSheet({ visible, onClose }: { visible: boolean; onClo
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <Pressable style={styles.bg} onPress={onClose}>
-          <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+          <Pressable style={[styles.sheet, { paddingBottom: bottomPad }]} onPress={(e) => e.stopPropagation()}>
             <Text style={styles.title}>{t('settings.restoreCode')}</Text>
             <Text style={styles.prompt}>{t('settings.restoreCodePrompt')}</Text>
             <TextInput

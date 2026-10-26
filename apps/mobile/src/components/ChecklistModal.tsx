@@ -9,6 +9,7 @@ import { SIZE, GLYPH } from '../theme/typography';
 
 import { useTranslation } from 'react-i18next';
 import { themedStyles } from '../theme/themed';
+import { useBottomPad } from '../utils/useBottomPad';
 
 const CHECKLIST = [
   { emoji: '🧠', key: 'checklist.tilt' },
@@ -25,6 +26,7 @@ interface Props {
 }
 
 export function ChecklistModal({ visible, onConfirm, onCancel }: Props) {
+  const bottomPad = useBottomPad(40);
   const { t } = useTranslation();
   const [checked, setChecked] = useState<boolean[]>(Array(CHECKLIST.length).fill(false));
 
@@ -53,7 +55,7 @@ export function ChecklistModal({ visible, onConfirm, onCancel }: Props) {
       onRequestClose={handleCancel}
     >
       <View style={styles.overlay}>
-        <View style={styles.sheet}>
+        <View style={[styles.sheet, { paddingBottom: bottomPad }]}>
           <View style={styles.handle} />
 
           <Text style={styles.title}>{t('checklist.title')}</Text>

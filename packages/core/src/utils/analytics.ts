@@ -1,5 +1,5 @@
 import type { Bet, BankrollTransaction } from '../types/bet';
-import { betPnl, calcDashboard } from './stats';
+import { betPnl, calcDashboard, byPlayedAt } from './stats';
 import { toYmd, calcDailyBreakdown } from './daily';
 
 // ── Streaks (best win / worst loss / current) ────────────────────────────────
@@ -8,38 +8,47 @@ export interface StreakStats {
   bestWin: number;    // longest run of consecutive wins
   worstLoss: number;  // longest run of consecutive losses
   current: { type: 'win' | 'loss' | 'none'; count: number };
+  /**
+   * The bets of each run, oldest first — what the list behind a tapped tile
+   * shows. Of several runs of the same length, the latest.
+   */
+  bestWinIds: string[];
+  worstLossIds: string[];
+  currentIds: string[];
 }
 
 export function calcStreaks(bets: Bet[]): StreakStats {
+  // In the order the matches were played — the order of the bets list, so a
+  // run here is a run there (see byPlayedAt).
   const settled = [...bets]
     .filter((b) => b.status === 'won' || b.status === 'lost')
-    .sort((a, b) => a.createdAt.localeCompare(b.createdAt)); // chronological
+    .sort(byPlayedAt);
 
   let bestWin = 0;
   let worstLoss = 0;
-  let curWin = 0;
-  let curLoss = 0;
-  for (const b of settled) {
-    if (b.status === 'won') {
-      curWin++; curLoss = 0;
-      if (curWin > bestWin) bestWin = curWin;
-    } else {
-      curLoss++; curWin = 0;
-      if (curLoss > worstLoss) worstLoss = curLoss;
-    }
-  }
+  let bestWinRun: [number, number] = [0, 0];
+  let worstLossRun: [number, number] = [0, 0];
+  let runStart = 0;
+  settled.forEach((b, i) => {
+    if (i > 0 && settled[i - 1]!.status !== b.status) runStart = i;
+    const len = i - runStart + 1;
+    // >= keeps the latest of equal runs: the one the user most likely remembers.
+    if (b.status === 'won' && len >= bestWin) { bestWin = len; bestWinRun = [runStart, i + 1]; }
+    if (b.status === 'lost' && len >= worstLoss) { worstLoss = len; worstLossRun = [runStart, i + 1]; }
+  });
 
   // Trailing run = current streak
-  let type: 'win' | 'loss' | 'none' = 'none';
-  let count = 0;
-  for (let i = settled.length - 1; i >= 0; i--) {
-    const s: 'win' | 'loss' = settled[i]!.status === 'won' ? 'win' : 'loss';
-    if (count === 0) { type = s; count = 1; }
-    else if (s === type) count++;
-    else break;
-  }
+  const last = settled[settled.length - 1];
+  const type: 'win' | 'loss' | 'none' = !last ? 'none' : last.status === 'won' ? 'win' : 'loss';
+  const ids = (from: number, to: number) => settled.slice(from, to).map((b) => b.id);
 
-  return { bestWin, worstLoss, current: { type, count } };
+  return {
+    bestWin, worstLoss,
+    current: { type, count: last ? settled.length - runStart : 0 },
+    bestWinIds: ids(...bestWinRun),
+    worstLossIds: ids(...worstLossRun),
+    currentIds: last ? ids(runStart, settled.length) : [],
+  };
 }
 
 // ── Biggest single win / loss ────────────────────────────────────────────────
@@ -228,7 +237,7 @@ export interface DrawdownStats {
 export function calcMaxDrawdown(bets: Bet[]): DrawdownStats {
   const settled = [...bets]
     .filter((b) => b.status === 'won' || b.status === 'lost' || (b.status === 'cashout' && b.cashoutAmount != null))
-    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+    .sort(byPlayedAt);
 
   let cum = 0;
   let peak = 0;

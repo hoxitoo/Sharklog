@@ -14,6 +14,7 @@ import { SIZE, GLYPH } from '../../theme/typography';
 import { useTranslation } from 'react-i18next';
 import { dateLocale } from '../../i18n';
 import { themedStyles } from '../../theme/themed';
+import { useBottomPad } from '../../utils/useBottomPad';
 
 // Labels are `discipline.mood<value>`.
 const MOODS: Array<{ value: 1 | 2 | 3 | 4 | 5; emoji: string }> = [
@@ -119,6 +120,7 @@ const card = themedStyles(() => ({
 }));
 
 export function DisciplineScreen() {
+  const bottomPad = useBottomPad(SPACE.xxl);
   const bets = useBetsStore((s) => s.bets);
   const diary = useBetsStore((s) => s.diary);
   const settings = useBetsStore((s) => s.settings);
@@ -155,7 +157,7 @@ export function DisciplineScreen() {
   return (
     <View style={styles.container}>
       <ScreenHeader title={t('discipline.title')} subtitle={t('discipline.subtitle')} />
-      <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: SPACE.xxl }}>
+      <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: bottomPad }}>
 
         {inTilt && (
           <View style={styles.tiltBanner}>

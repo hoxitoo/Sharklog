@@ -8,6 +8,7 @@ import { colors } from '../theme/colors';
 import { SPACE, RADIUS, hitSlopFor } from '../theme/layout';
 import { GLYPH } from '../theme/typography';
 import { themedStyles } from '../theme/themed';
+import { useBottomPad } from '../utils/useBottomPad';
 
 /**
  * The paywall as a bottom sheet, for places that offer Pro without gating a
@@ -26,6 +27,8 @@ export function PaywallSheet({ visible, onClose, feature }: {
 }) {
   const { t } = useTranslation();
   const owned = useBetsStore((s) => ownsPro(s.settings));
+  // Only the navigation bar: the offer inside has its own padding.
+  const bottomPad = useBottomPad(0);
 
   useEffect(() => {
     if (owned && visible) onClose();
@@ -35,7 +38,7 @@ export function PaywallSheet({ visible, onClose, feature }: {
     <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
       {/* Tap outside the sheet to dismiss (standard bottom-sheet behavior) */}
       <Pressable style={styles.bg} onPress={onClose}>
-        <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+        <Pressable style={[styles.sheet, { paddingBottom: bottomPad }]} onPress={(e) => e.stopPropagation()}>
           <TouchableOpacity
             style={styles.close}
             hitSlop={hitSlopFor(32)}

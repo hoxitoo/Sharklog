@@ -19,8 +19,12 @@ describe('store links', () => {
     ]);
   });
 
-  it('send nowhere from an APK installed by hand: there is no store page to rate it on', () => {
-    expect(storeReviewUrls('android', 'direct')).toBeNull();
+  it('keep the row in an APK installed by hand: "coming to RuStore" before publication, the RuStore page after', () => {
+    // A row that vanished read as a missing feature.
+    expect(storeReviewUrls('android', 'direct', '', false)).toBe('soon');
+    expect(storeReviewUrls('android', 'direct', '', true)).toEqual([`https://apps.rustore.ru/app/${ANDROID_PACKAGE}`]);
+    // The RuStore build does not wait for the flag: whoever has it got it from RuStore.
+    expect(storeReviewUrls('android', 'rustore', '', false)).toEqual([`https://apps.rustore.ru/app/${ANDROID_PACKAGE}`]);
   });
 
   it('send nowhere on iOS until there is an App Store id', () => {

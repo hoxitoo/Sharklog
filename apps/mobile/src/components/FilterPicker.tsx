@@ -10,6 +10,7 @@ import { haptic } from '../utils/haptics';
 import { themedStyles } from '../theme/themed';
 import { AppIcon } from './icons/AppIcon';
 import type { GlyphName } from './icons/glyphs';
+import { useBottomPad } from '../utils/useBottomPad';
 
 export interface PickerOption<T extends string> {
   key: T;
@@ -44,6 +45,8 @@ interface Props<T extends string> {
  * strategy, status): one line per choice instead of rows of chips.
  */
 export function FilterPicker<T extends string>({ label, options, value, onChange, active, flex = 1 }: Props<T>) {
+  // The sheet is drawn under the navigation bar too: the last option must clear it.
+  const bottomPad = useBottomPad(40);
   const [open, setOpen] = useState(false);
   const current = options.find((o) => o.key === value);
 
@@ -108,7 +111,7 @@ export function FilterPicker<T extends string>({ label, options, value, onChange
       <Modal visible={open} transparent animationType="fade" onRequestClose={close}>
         {/* Tap outside, or drag the sheet down. */}
         <Pressable style={picker.backdrop} onPress={close}>
-          <Animated.View style={[picker.sheet, { transform: [{ translateY: dragY }] }]}>
+          <Animated.View style={[picker.sheet, { paddingBottom: bottomPad, transform: [{ translateY: dragY }] }]}>
             {/* Shields the WHOLE sheet from the backdrop's dismiss. Without it,
                 a thumb landing in the sheet's own padding — the 40pt band under
                 the last option — closes it instead of choosing. */}

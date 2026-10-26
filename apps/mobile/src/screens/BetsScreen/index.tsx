@@ -31,6 +31,7 @@ import { useTranslation } from 'react-i18next';
 import { dateLocale } from '../../i18n/index';
 import { SIZE, GLYPH, numeric } from '../../theme/typography';
 import { themedStyles } from '../../theme/themed';
+import { useBottomPad } from '../../utils/useBottomPad';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -73,6 +74,8 @@ export function BetsScreen({ filter, onClearFilter }: {
   filter?: BetsFilter | null;
   onClearFilter?: () => void;
 } = {}) {
+  // Clears the floating "+" AND the system navigation bar under it.
+  const bottomPad = useBottomPad(FAB_CLEARANCE);
   const navigation = useNavigation<Nav>();
   const bets = useBetsStore((s) => s.bets);
   const settings = useBetsStore((s) => s.settings);
@@ -108,8 +111,8 @@ export function BetsScreen({ filter, onClearFilter }: {
   // A fresh array here re-applies the content style on every render, and the
   // panel toggles twice per scroll gesture.
   const listContent = useMemo(
-    () => [styles.list, { paddingTop: barHeight }],
-    [barHeight],
+    () => [styles.list, { paddingTop: barHeight, paddingBottom: bottomPad }],
+    [barHeight, bottomPad],
   );
 
   const setCollapsed = useCallback((next: boolean, instant?: boolean) => {
@@ -243,6 +246,10 @@ export function BetsScreen({ filter, onClearFilter }: {
     // Insights tile the user tapped, and a mismatched number reads as a bug.
     const since = filter?.from ? ` · ${t('bet.filterSince', { date: dm(filter.from) })}` : '';
     const year = filter?.year ? ` · ${filter.year}` : '';
+    if (filter?.selection) {
+      const n = filter.selection.ids.length;
+      return n > 1 ? `${t(filter.selection.labelKey)} · ${n}` : t(filter.selection.labelKey);
+    }
     if (filter?.date) return t('bet.filterOnly', { date: dm(filter.date) });
     if (filter?.tournament) return `${t('bet.filterTournament', { name: filter.tournament })}${year}${since}`;
     if (filter?.noTournament) return `${t('bet.filterNoTournament')}${year}${since}`;
@@ -255,6 +262,10 @@ export function BetsScreen({ filter, onClearFilter }: {
 
   const sections = useMemo(() => {
     let result = [...bets];
+    if (filter?.selection) {
+      const ids = new Set(filter.selection.ids);
+      result = result.filter((b) => ids.has(b.id));
+    }
     if (filter?.date) result = result.filter((b) => b.date === filter.date);
     if (filter?.tournament) {
       // Trimmed on both sides: calcByTournament groups on the trimmed name, so

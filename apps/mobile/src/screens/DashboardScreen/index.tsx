@@ -25,6 +25,7 @@ import { dateLocale } from '../../i18n';
 import { pickLabel } from '../../utils/labels';
 import { strategyName } from '../../utils/strategyText';
 import { themedStyles } from '../../theme/themed';
+import { useBottomPad } from '../../utils/useBottomPad';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -403,6 +404,7 @@ const dd = themedStyles(() => ({
 }));
 
 export function DashboardScreen() {
+  const bottomPad = useBottomPad();
   const navigation = useNavigation<Nav>();
   const { width } = useWindowDimensions();
   const bets = useBetsStore((s) => s.bets);
@@ -501,7 +503,7 @@ export function DashboardScreen() {
         title={t('nav.dashboard')}
         subtitle={new Date().toLocaleDateString(dateLocale(), { day: 'numeric', month: 'long' })}
       />
-    <ScrollView keyboardShouldPersistTaps="handled" style={styles.container} showsVerticalScrollIndicator={false}>
+    <ScrollView keyboardShouldPersistTaps="handled" style={styles.container} contentContainerStyle={{ paddingBottom: bottomPad }} showsVerticalScrollIndicator={false}>
 
       {settings.generatedStrategy && (
         <TouchableOpacity

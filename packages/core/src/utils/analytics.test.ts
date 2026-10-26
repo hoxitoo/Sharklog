@@ -43,6 +43,31 @@ describe('calcStreaks', () => {
     expect(s.current).toEqual({ type: 'win', count: 1 });
   });
 
+  it('names the bets of each run, the latest of equal runs, oldest first', () => {
+    // W W L W W L L  → best win run: the second W W; worst: the trailing L L
+    const bets = ['won', 'won', 'lost', 'won', 'won', 'lost', 'lost'].map((status, i) =>
+      makeBet({ status: status as Bet['status'], date: '2024-05-15', time: `1${i}:00` }));
+    const s = calcStreaks(bets);
+    expect(s.bestWinIds).toEqual([bets[3]!.id, bets[4]!.id]);
+    expect(s.worstLossIds).toEqual([bets[5]!.id, bets[6]!.id]);
+    expect(s.current).toEqual({ type: 'loss', count: 2 });
+    expect(s.currentIds).toEqual(s.worstLossIds);
+    expect(calcStreaks([])).toMatchObject({ bestWinIds: [], worstLossIds: [], currentIds: [] });
+  });
+
+  it('runs follow when the matches were played, not when the rows were typed in', () => {
+    // A win entered last but played first: it opens the run, it does not end it.
+    const late = makeBet({ status: 'won', date: '2024-05-01', time: '10:00', createdAt: '2024-06-01T00:00:00Z' });
+    const bets = [
+      makeBet({ status: 'lost', date: '2024-05-02', time: '10:00', createdAt: '2024-05-02T10:00:00Z' }),
+      makeBet({ status: 'lost', date: '2024-05-03', time: '10:00', createdAt: '2024-05-03T10:00:00Z' }),
+      late,
+    ];
+    const s = calcStreaks(bets);
+    expect(s.current).toEqual({ type: 'loss', count: 2 });
+    expect(s.bestWinIds).toEqual([late.id]);
+  });
+
   it('ignores pending/refund/cashout for streaks', () => {
     const bets = [
       makeBet({ status: 'won', createdAt: '2024-05-01T10:00:00Z' }),
@@ -53,7 +78,7 @@ describe('calcStreaks', () => {
   });
 
   it('empty → zeros and none', () => {
-    expect(calcStreaks([])).toEqual({ bestWin: 0, worstLoss: 0, current: { type: 'none', count: 0 } });
+    expect(calcStreaks([])).toMatchObject({ bestWin: 0, worstLoss: 0, current: { type: 'none', count: 0 } });
   });
 });
 
