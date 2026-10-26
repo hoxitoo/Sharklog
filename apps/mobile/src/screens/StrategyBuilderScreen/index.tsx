@@ -18,7 +18,7 @@ import { SIZE, GLYPH } from '../../theme/typography';
 import { themedStyles } from '../../theme/themed';
 import { useBottomPad } from '../../utils/useBottomPad';
 import { useFormatMoney } from '../../utils/useFormatMoney';
-import { useFormatOdds } from '../../utils/useOdds';
+import { useFormatOddsRange } from '../../utils/useOdds';
 
 function ResultScreen({ strategy, onReset }: { strategy: GeneratedStrategy; onReset: () => void }) {
   const bottomPad = useBottomPad(40);
@@ -27,7 +27,7 @@ function ResultScreen({ strategy, onReset }: { strategy: GeneratedStrategy; onRe
   // Words come from the answers in the CURRENT language — the strings stored
   // on the strategy are in the language it was built in.
   const text = strategyTexts(t, strategy);
-  const fmtOdds = useFormatOdds();
+  const fmtOdds = useFormatOddsRange();
 
   const items = [
     { icon: '📅', label: t('strategy.betsPerDay'), value: `≤ ${strategy.betsPerDay}` },
@@ -139,7 +139,7 @@ function WizardScreen({ onDone }: { onDone: (strategy: GeneratedStrategy) => voi
   const currency = useBetsStore((st) => st.settings.currency);
   const [ta, tb, tc] = BANKROLL_TIERS[isCurrencyCode(currency) ? currency : 'RUB'];
   // Whole units, in the book's currency: the bands are sizes, not prices.
-  const fmtOdds = useFormatOdds();
+  const fmtOdds = useFormatOddsRange();
   // The odds bands are the builder's decimal 1.30 / 1.70 / 2.50, shown in the user's format.
   const questions = strategyQuestions(t, {
     bankroll: { a: fmt(ta * 100), b: fmt(tb * 100), c: fmt(tc * 100) },

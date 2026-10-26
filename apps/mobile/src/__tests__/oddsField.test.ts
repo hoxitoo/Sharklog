@@ -1,6 +1,6 @@
-import { ODDS_FORMATS, calcByOddsRange, parseOdds, type Bet } from '@sharklog/core';
-import { legFieldText, legOdds, oddsBadge, oddsFieldText, oddsRangeLabel, readOddsField } from '../utils/oddsField';
-import { applyBetsQuery, describeBetsQuery, EMPTY_BETS_QUERY } from '../utils/betsQuery';
+import { ODDS_FORMATS, calcByOddsRange, combineExpressOdds, parseOdds, type Bet } from '@sharklog/core';
+import { legFieldText, readLegField, oddsBadge, oddsFieldText, oddsRangeLabel, readOddsField } from '../utils/oddsField';
+import { applyBetsQuery, countBetsQuery, describeBetsQuery, EMPTY_BETS_QUERY } from '../utils/betsQuery';
 
 const bet = (odds: number) => ({ odds, status: 'won', stake: 100_00, date: '2026-10-01' } as Bet);
 
@@ -23,18 +23,32 @@ describe('odds fields in the user\'s format', () => {
     expect(readOddsField('', 'decimal', 2)).toBeNull();
   });
 
-  it('keep decimal exactly as it was typed', () => {
+  it('keep decimal as it was typed, to four places', () => {
     expect(oddsFieldText(2.375, 'decimal')).toBe('2.375');
-    expect(legOdds('2.375', 'decimal')).toBe(2.375);
+    // A price typed as American "-110" is not 1.9090909091 to retype.
+    expect(oddsFieldText(parseOdds('-110', 'american')!, 'decimal')).toBe('1.9091');
   });
 
-  it('store a converted accumulator leg at two decimals, so an edit rebuilds the same total', () => {
-    expect(legOdds('-110', 'american')).toBe(1.91);
-    expect(legOdds('10/11', 'fractional')).toBe(1.91);
-    // The stored "1.91" opens as "-110" and is stored as 1.91 again.
-    expect(legOdds(legFieldText('1.91', 'american'), 'american')).toBe(1.91);
+  it('keep an untouched accumulator leg at its stored price — Malay used to move 2.50 to 2.49', () => {
+    // Legs 2.50 × 1.80 = 4.50. Opened in Malay they read "-0.67" and "0.80";
+    // "-0.67" parses back as 2.4925, and an edit that only added a note saved
+    // the total as 4.48.
+    const stored = ['2.50', '1.80'];
+    const fields = stored.map((x) => legFieldText(x, 'malay'));
+    expect(fields).toEqual(['-0.67', '0.80']);
+    const prices = fields.map((text, i) => readLegField(text, 'malay', stored[i]));
+    expect(prices).toEqual([2.5, 1.8]);
+    expect(combineExpressOdds(prices)).toBe(4.5);
+    // Re-typed, it is what was typed.
+    expect(readLegField('-0.5', 'malay', '2.50')).toBe(3);
+  });
+
+  it('keep a typed leg as precise as it was typed, so the total rebuilds the same', () => {
+    expect(readLegField('1.952', 'decimal')).toBe(1.952);
+    expect(combineExpressOdds([readLegField('1.952', 'decimal'), readLegField('1.952', 'decimal')])).toBe(3.81);
+    expect(readLegField('-110', 'american')).toBe(parseOdds('-110', 'american'));
+    expect(readLegField('abc', 'american')).toBe(0);
     expect(legFieldText('1.91', 'decimal')).toBe('1.91');
-    expect(legOdds('abc', 'american')).toBe(0);
   });
 
   it('show the price on a card: "×" only for decimal, where it means "times the stake"', () => {
@@ -45,6 +59,8 @@ describe('odds fields in the user\'s format', () => {
 
   it('name the analytics odds buckets in the format, keeping the buckets themselves decimal', () => {
     expect(oddsRangeLabel('decimal')).toBeUndefined();
+    // Malay jumps sign at even money ("0.80 – -0.83"): its buckets keep decimal names.
+    expect(oddsRangeLabel('malay')).toBeUndefined();
     const labels = calcByOddsRange([bet(1.91), bet(2.5)], oddsRangeLabel('american')).map((s) => s.label);
     expect(labels).toEqual(['< -200', '-200 – -125', '-125 – +120', '+120 – +180', '+180 – +300', '> +300']);
     const counts = calcByOddsRange([bet(1.91), bet(2.5)], oddsRangeLabel('american')).map((s) => s.count);
@@ -59,6 +75,21 @@ describe('odds fields in the user\'s format', () => {
     expect(applyBetsQuery(bets, q('-0.5', '0.5'), 'malay').map((b) => b.odds)).toEqual([1.5, 1.91, 2.5]);
     expect(describeBetsQuery(q('-110', ''), 'american')).toBe('≥-110');
     expect(describeBetsQuery(q('1.5', ''))).toBe('× ≥1.5');
+  });
+
+  it('name and count only bounds that filter — "1.5" in American filters nothing', () => {
+    const q = (oddsFrom: string) => ({ ...EMPTY_BETS_QUERY, oddsFrom });
+    expect(describeBetsQuery(q('1.5'), 'american')).toBeNull();
+    expect(countBetsQuery(q('1.5'), 'american')).toBe(0);
+    expect(countBetsQuery(q('-110'), 'american')).toBe(1);
+    expect(countBetsQuery({ ...EMPTY_BETS_QUERY, dateFrom: '2026-0' })).toBe(0);
+  });
+
+  it('compare a bound with the price as the card shows it', () => {
+    // 1.09 shows "-1111" (1.090009 when read back): "from -1111" must keep it.
+    const q = { ...EMPTY_BETS_QUERY, oddsFrom: '-1111' };
+    expect(applyBetsQuery([bet(1.09)], q, 'american')).toHaveLength(1);
+    expect(applyBetsQuery([bet(1.14)], { ...EMPTY_BETS_QUERY, oddsTo: '0.14' }, 'hongkong')).toHaveLength(1);
   });
 
   it('agrees with core on what a typed price is', () => {

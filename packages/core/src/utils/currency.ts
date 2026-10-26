@@ -31,6 +31,18 @@ export function currencySymbol(code: unknown): string {
 }
 
 /**
+ * The currency a unit names: "$", "usd", "₽", "usdt" (any case) — as found in
+ * a CSV column's brackets. Null for anything else ("american", "closing").
+ */
+export function currencyFromUnit(unit: string): CurrencyCode | null {
+  const u = unit.trim().toLowerCase();
+  for (const code of CURRENCY_CODES) {
+    if (code.toLowerCase() === u || CURRENCIES[code].symbol.toLowerCase() === u) return code;
+  }
+  return null;
+}
+
+/**
  * Round sizes of a bankroll in each currency, in whole units: the strategy
  * builder's "small / medium / large / very large" bands. Roubles are the
  * original 5 000 / 30 000 / 100 000; the rest are the same order of money,

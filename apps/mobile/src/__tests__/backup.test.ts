@@ -38,6 +38,16 @@ describe('importFromJSON', () => {
   });
 });
 
+describe('backup currency', () => {
+  it('says what currency the amounts are in — the settings say so, an older backup is roubles', () => {
+    const of = (settings?: object) => importFromJSON(JSON.stringify({ version: 4, bets: [bet()], ...(settings ? { settings } : {}) }))!.currency;
+    expect(of({ currency: 'USD' })).toBe('USD');
+    expect(of({ currency: 'KZT', isPro: true })).toBe('KZT');
+    expect(of()).toBe('RUB');
+    expect(of({ currency: 'toString' })).toBe('RUB');
+  });
+});
+
 describe('load of a damaged store', () => {
   it('drops only what would crash, keeps what an older version wrote loosely, and quarantines the file', async () => {
     const { useBetsStore } = require('../store/betsStore') as typeof import('../store/betsStore');

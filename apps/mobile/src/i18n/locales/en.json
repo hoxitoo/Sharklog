@@ -531,7 +531,10 @@
     "currency": "Currency",
     "currencyNote": "Only the sign changes: amounts are not converted.",
     "oddsFormat": "Odds format",
-    "oddsFormatNote": "Each example is the same pair: an underdog and a favourite. Bets are stored in decimal; statistics do not change."
+    "oddsFormatNote": "Each example is the same pair: an underdog and a favourite. Bets are stored in decimal; statistics do not change.",
+    "restoreCurrencyMismatch": "The backup is in {{file}}, the book in {{book}}. Amounts are not converted: replacing switches the book to {{file}}; adding shows the backup's bets in {{book}}.",
+    "restoreCurrencySet": "The book is now in {{currency}}, as in the backup.",
+    "importCurrencyMismatch": "Amounts in the file are in {{file}}, the book is kept in {{book}}. They are not converted: 100 {{file}} becomes 100 {{book}}."
   },
   "onboarding": {
     "welcome": "Welcome",
@@ -730,7 +733,8 @@
     "errTeam": "Enter a team or event",
     "errExpress": "Accumulator: at least 2 events with odds above 1",
     "errOddsFormat": "That doesn't look like {{format}} odds. Example: {{example}}",
-    "oddsAsDecimal": "decimal {{odds}} · implied {{prob}}"
+    "oddsAsDecimal": "decimal {{odds}} · implied {{prob}}",
+    "errExpressLeg": "Match {{n}}: it needs a team and odds."
   },
   "checklist": {
     "tilt": "I'm not on tilt",

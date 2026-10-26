@@ -17,7 +17,7 @@ import { haptic } from '../../utils/haptics';
 import { useDrawer } from '../../components/DrawerContext';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { useFormatMoney } from '../../utils/useFormatMoney';
-import { useFormatOdds, useOddsFormat } from '../../utils/useOdds';
+import { useFormatOddsRange, useOddsFormat } from '../../utils/useOdds';
 import { oddsBadge } from '../../utils/oddsField';
 import { DailyChart, ChartLegend, SERIES } from './DailyChart';
 import { ExpandedDashboard } from './ExpandedDashboard';
@@ -413,7 +413,7 @@ export function DashboardScreen() {
   const settings = useBetsStore((s) => s.settings);
   const bankroll = useBetsStore((s) => s.bankroll);
   const fmt = useFormatMoney();
-  const fmtOdds = useFormatOdds();
+  const fmtOdds = useFormatOddsRange(); // the strategy's range
   const oddsFormat = useOddsFormat();
   const { t } = useTranslation();
   const [period, setPeriod] = useState<PeriodFilter>('all');

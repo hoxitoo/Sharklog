@@ -81,7 +81,7 @@ export function BetsFilterScreen() {
   const set = (k: keyof BetsQuery) => (v: string) => setDraft((d) => ({ ...d, [k]: v }));
 
   const vocab = useMemo(() => betsVocabulary(bets), [bets]);
-  const active = countBetsQuery(draft);
+  const active = countBetsQuery(draft, oddsFormat);
 
   function apply() {
     haptic.selection();

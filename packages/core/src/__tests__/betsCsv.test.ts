@@ -42,6 +42,24 @@ describe('buildBetsCSV', () => {
   });
 });
 
+describe('columns with a unit in brackets', () => {
+  const rowsOf = (head: string, row: string) => importBetsFromCSV([head, row].join('\n'), newId);
+
+  it('read only a CURRENCY as the unit — "Odds (American)" is not the odds column', () => {
+    // Bracket stripping of any kind read American "-110" as odds of 110.
+    expect(rowsOf('Дата;Событие;Odds (American);Ставка', '2026-02-01;A vs B;-110;100').bets).toHaveLength(0);
+    expect(rowsOf('Дата;Событие;Коэф.;Odds (closing);Ставка', '2026-02-01;A vs B;2.10;1.95;100').bets[0]!.odds).toBe(2.1);
+    expect(rowsOf('Дата;Событие;Коэф.;Stake;Stake (returned)', '2026-02-01;A vs B;2.10;100;210').bets[0]!.stake).toBe(100_00);
+  });
+
+  it('report the currency the stake column names, so a mismatch can be said', () => {
+    expect(rowsOf('Дата;Событие;Коэф.;Ставка ($)', '2026-02-01;A vs B;2.10;100').currency).toBe('USD');
+    expect(rowsOf('Дата;Событие;Коэф.;Stake (USDT)', '2026-02-01;A vs B;2.10;100').currency).toBe('USDT');
+    expect(rowsOf('Дата;Событие;Коэф.;Ставка (₽)', '2026-02-01;A vs B;2.10;100').currency).toBe('RUB');
+    expect(rowsOf('Дата;Событие;Коэф.;Ставка', '2026-02-01;A vs B;2.10;100').currency).toBeUndefined();
+  });
+});
+
 describe('round trip', () => {
   it('labels the amounts with the book\'s currency and reads a file in any currency back', () => {
     const original = bet({ stake: 50_00, odds: 2.5 });

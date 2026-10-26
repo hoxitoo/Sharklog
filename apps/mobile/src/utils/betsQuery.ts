@@ -1,5 +1,5 @@
 import type { Bet, OddsFormat } from '@sharklog/core';
-import { betBacksTeam, parseEventTeams, parseOdds } from '@sharklog/core';
+import { betBacksTeam, parseEventTeams, parseOdds, formatOddsAs } from '@sharklog/core';
 
 /**
  * The advanced bet filter — everything the status and sort pickers do not cover.
@@ -22,10 +22,20 @@ export const EMPTY_BETS_QUERY: BetsQuery = {
   tournament: '', team: '', oddsFrom: '', oddsTo: '', dateFrom: '', dateTo: '',
 };
 
-/** How many criteria are set — the badge on the filter button. */
-export function countBetsQuery(q: BetsQuery): number {
-  return (Object.keys(EMPTY_BETS_QUERY) as Array<keyof BetsQuery>)
-    .filter((k) => q[k].trim() !== '').length;
+/**
+ * How many criteria actually filter — the badge on the filter button. An odds
+ * bound that is not a price in the current format ("1.5" in American) or a
+ * half-typed date filters nothing, so it is not counted.
+ */
+export function countBetsQuery(q: BetsQuery, format: OddsFormat = 'decimal'): number {
+  return [
+    q.tournament.trim() !== '',
+    q.team.trim() !== '',
+    oddsBound(q.oddsFrom, format) != null,
+    oddsBound(q.oddsTo, format) != null,
+    ymd(q.dateFrom) !== '',
+    ymd(q.dateTo) !== '',
+  ].filter(Boolean).length;
 }
 
 /** A comma is what the Russian numeric keyboard offers for a decimal point. */
@@ -74,8 +84,13 @@ export function applyBetsQuery(bets: Bet[], q: BetsQuery, format: OddsFormat = '
     // Fall 26", which was the whole bug.
     if (tournament && !(b.tournament ?? '').toLowerCase().includes(tournament)) return false;
     if (team && !betBacksTeam(b, team, { partial: true })) return false;
-    if (lo != null && b.odds < lo) return false;
-    if (hi != null && b.odds > hi) return false;
+    if (lo != null || hi != null) {
+      // Compared as the card shows it: a 1.09 reads "-1111", and "from -1111"
+      // (1.09001) must not exclude the very bet whose card says -1111.
+      const odds = format === 'decimal' ? b.odds : (parseOdds(formatOddsAs(b.odds, format), format) ?? b.odds);
+      if (lo != null && odds < lo) return false;
+      if (hi != null && odds > hi) return false;
+    }
     // Dates are `YYYY-MM-DD`, so a string compare IS a date compare — and
     // unlike `new Date(...)` it cannot drift a day across a timezone.
     if (from && b.date < from) return false;
@@ -146,8 +161,9 @@ export function describeBetsQuery(q: BetsQuery, format: OddsFormat = 'decimal'):
   if (q.tournament.trim()) parts.push(q.tournament.trim());
   if (q.team.trim()) parts.push(q.team.trim());
 
-  const from = q.oddsFrom.trim();
-  const to = q.oddsTo.trim();
+  // Only bounds that filter are named — as with dates below.
+  const from = oddsBound(q.oddsFrom, format) != null ? q.oddsFrom.trim() : '';
+  const to = oddsBound(q.oddsTo, format) != null ? q.oddsTo.trim() : '';
   // "×" is the decimal multiplier; a "+150" or a "5/2" stands on its own.
   const x = format === 'decimal' ? '× ' : '';
   if (from && to) parts.push(`${x}${from}–${to}`);
