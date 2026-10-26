@@ -28,6 +28,7 @@ import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { SIZE, GLYPH } from '../../theme/typography';
 import { themedStyles } from '../../theme/themed';
 import { useBottomPad } from '../../utils/useBottomPad';
+import { composePick, parseEditPick } from '../../utils/betPick';
 
 const STEP_SLOP = hitSlopFor(32);
 
@@ -323,38 +324,6 @@ function initPick1x2(editBet: { betType: BetType; pick?: string } | undefined, t
   if (pick === PICK.DRAW || pick === 'X') return 'draw';
   if ((team2.trim() && pick === team2.trim()) || pick === PICK.AWAY) return 'away';
   return 'home';
-}
-
-// ── Parse existing pick back into form fields ──────────────────────────────────
-
-/** A stored pick without its leading token: "ТБ 2.5" → "2.5". */
-function afterToken(pick: string, token: string): string {
-  return (pick.startsWith(token) ? pick.slice(token.length) : pick).trim();
-}
-
-function parseEditPick(betType: BetType, pick: string): {
-  handicapSide: 'home' | 'away';
-  pickValue: string;
-  bothScoreYes: boolean;
-} {
-  if (betType === 'handicap') {
-    const side: 'home' | 'away' = pick.startsWith(PICK.HANDICAP_AWAY) ? 'away' : 'home';
-    const m = pick.match(/[+\-−]?\d+(?:[.,]\d+)?/);
-    return { handicapSide: side, pickValue: m ? m[0]! : '', bothScoreYes: true };
-  }
-  if (betType === 'total_over') {
-    return { handicapSide: 'home', pickValue: afterToken(pick, PICK.OVER), bothScoreYes: true };
-  }
-  if (betType === 'total_under') {
-    return { handicapSide: 'home', pickValue: afterToken(pick, PICK.UNDER), bothScoreYes: true };
-  }
-  if (betType === 'exact_score') {
-    return { handicapSide: 'home', pickValue: pick, bothScoreYes: true };
-  }
-  if (betType === 'both_score') {
-    return { handicapSide: 'home', pickValue: '', bothScoreYes: pick !== PICK.NO };
-  }
-  return { handicapSide: 'home', pickValue: '', bothScoreYes: true };
 }
 
 // ── Kelly Helper ───────────────────────────────────────────────────────────────
@@ -679,26 +648,7 @@ export function AddBetScreen() {
         Alert.alert(t('common.error'), t('addBet.errEvent'));
         return;
       }
-      const pv = data.pickValue.trim();
-      const pick = (() => {
-        if (data.betType === '1X2') {
-          return data.pick1x2 === 'home' ? (data.team1.trim() || PICK.HOME)
-               : data.pick1x2 === 'away' ? (data.team2.trim() || PICK.AWAY)
-               : PICK.DRAW;
-        }
-        if (data.betType === 'handicap') {
-          const side = data.handicapSide === 'home' ? PICK.HANDICAP_HOME : PICK.HANDICAP_AWAY;
-          return pv ? `${side} (${pv})` : side;
-        }
-        if (data.betType === 'total_over') return pv ? `${PICK.OVER} ${pv}` : PICK.OVER;
-        if (data.betType === 'total_under') return pv ? `${PICK.UNDER} ${pv}` : PICK.UNDER;
-        if (data.betType === 'both_score') return data.bothScoreYes ? PICK.YES : PICK.NO;
-        if (data.betType === 'exact_score') return pv || '—';
-        if (data.betType === 'other' && data.customBetType.trim()) return data.customBetType.trim();
-        // Stored: a type with no finer pick saves its core (Russian) name, which
-        // pickLabel() translates for display. Never the translated name here.
-        return BET_TYPES[data.betType] ?? '—';
-      })();
+      const pick = composePick(data);
 
       if (editBet) {
         updateBet(editBet.id, {

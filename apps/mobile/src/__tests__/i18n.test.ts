@@ -330,7 +330,7 @@ const CORE_LABEL_READ =
 
 const CORE_LABELS_ALLOWED: Record<string, string> = {
   'utils/labels.ts': 'the display mapper itself',
-  'screens/AddBetScreen/index.tsx':
+  'utils/betPick.ts':
     'STORES BET_TYPES[type] as the pick of a type with no finer pick — a data format, like П1',
 };
 
