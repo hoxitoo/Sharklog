@@ -27,11 +27,11 @@ export interface StrategyQuestionView {
  * `money.bankroll` fills the bankroll bands ("До {{a}}", "{{a}} – {{b}}"…)
  * with amounts in the book's currency (`BANKROLL_TIERS`): "до 5 000 ₽" read as
  * a tiny bank to anyone counting in tenge, and as a fortune in dollars.
- * `money.odds` fills the odds bands (1.30 / 1.70 / 2.50) in the user's format.
+ * `money.odds` fills the odds bands (`STRATEGY_ODDS_BANDS`: 1.30 / 1.70 / 2.50 / 4.00) in the user's format.
  */
 export function strategyQuestions(
   t: TFunction,
-  money?: { bankroll?: { a: string; b: string; c: string }; odds?: { lo: string; mid: string; hi: string } },
+  money?: { bankroll?: { a: string; b: string; c: string }; odds?: { lo: string; mid: string; hi: string; top: string } },
 ): StrategyQuestionView[] {
   const values = (key: string) =>
     key === 'bankroll' ? money?.bankroll : key === 'oddsRange' ? money?.odds : undefined;

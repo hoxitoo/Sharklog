@@ -13,7 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { Bet, BetStatus } from '@sharklog/core';
 import { isInTilt, calcDailyBreakdown, currentBank, betBacksTeam, betPnl, toYmd, FREE_LIMITS } from '@sharklog/core';
-import { useBetsStore } from '../../store/betsStore';
+import { useBetsStore, effectiveTiltThreshold } from '../../store/betsStore';
 import { colors, mix, toneSurface } from '../../theme/colors';
 import type { BetsFilter } from '../../components/DrawerContext';
 import { ScreenHeader } from '../../components/ScreenHeader';
@@ -80,14 +80,15 @@ export function BetsScreen({ filter, onClearFilter }: {
   const navigation = useNavigation<Nav>();
   const bets = useBetsStore((s) => s.bets);
   const settings = useBetsStore((s) => s.settings);
+  const tiltThreshold = useBetsStore((s) => effectiveTiltThreshold(s.settings));
   const bankroll = useBetsStore((s) => s.bankroll);
   const deleteBet = useBetsStore((s) => s.deleteBet);
   const { t } = useTranslation();
   const todayLabel = t('dashboard.today');
   const yesterdayLabel = t('dashboard.yesterday');
   const inTilt = useMemo(
-    () => isInTilt(bets, settings.tiltThreshold),
-    [bets, settings.tiltThreshold],
+    () => isInTilt(bets, tiltThreshold),
+    [bets, tiltThreshold],
   );
   const [statusFilter, setStatusFilter] = useState<BetStatus | 'all'>('all');
   const [search, setSearch] = useState('');

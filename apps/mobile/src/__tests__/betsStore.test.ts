@@ -1,4 +1,5 @@
-import { useBetsStore, defaultSettings, defaultBankroll } from '../store/betsStore';
+import { useBetsStore, defaultSettings, defaultBankroll, effectiveTiltThreshold, effectiveDailyLimit } from '../store/betsStore';
+import { sendTiltNotification } from '../utils/notifications';
 import type { Bet } from '@sharklog/core';
 import { toYmd } from '@sharklog/core';
 
@@ -85,6 +86,24 @@ describe('canAddBet – PRO daily limit', () => {
     const bets = Array.from({ length: 100 }, () => makeBet({ date: today }));
     useBetsStore.setState({ bets, settings: { ...defaultSettings, isPro: true, dailyBetLimit: 0, onboardingComplete: true } });
     expect(useBetsStore.getState().canAddBet()).toBe(true);
+  });
+
+  it('judges a backdated bet by its own day, not by a full today', () => {
+    // A strategy's "apply all" can set the limit to 1: a forgotten bet from
+    // yesterday was refused with "today's limit" once today had one bet.
+    const yesterday = toYmd(new Date(Date.now() - 86_400_000));
+    useBetsStore.setState({
+      bets: [makeBet({ date: today })],
+      settings: { ...defaultSettings, isPro: true, dailyBetLimit: 1, onboardingComplete: true },
+    });
+    expect(useBetsStore.getState().canAddBet()).toBe(false);
+    expect(useBetsStore.getState().canAddBet(today)).toBe(false);
+    expect(useBetsStore.getState().canAddBet(yesterday)).toBe(true);
+  });
+
+  it('is Pro\'s alone — a lapsed Pro keeps the setting, Free never meets the wall', () => {
+    expect(effectiveDailyLimit({ isPro: true, dailyBetLimit: 2 })).toBe(2);
+    expect(effectiveDailyLimit({ isPro: false, dailyBetLimit: 2 })).toBe(0);
   });
 });
 
@@ -236,5 +255,53 @@ describe('a changed default does not rewrite stored settings', () => {
     await AsyncStorage.setItem('@sharklog/data', JSON.stringify({ bets: [], diary: [], teams: [], version: 3, settings: old }));
     await useBetsStore.getState().load();
     expect(useBetsStore.getState().settings.disableChecklist).toBe(false);
+  });
+});
+
+// ─── tilt threshold: what Settings shows is what the app judges by ───────────
+
+describe('effectiveTiltThreshold', () => {
+  // Settings showed a lapsed Pro user 3 while the banner, the list and the
+  // notification still waited for the 6 they had set as Pro.
+
+  it('is fixed for Free and the user\'s own for Pro', () => {
+    expect(effectiveTiltThreshold({ isPro: false, tiltThreshold: 6 })).toBe(3);
+    expect(effectiveTiltThreshold({ isPro: true, tiltThreshold: 6 })).toBe(6);
+  });
+
+  it('decides the tilt notification', () => {
+    const lose3 = () => {
+      const bets = [1, 2, 3].map((n) => makeBet({ id: `l${n}`, time: `1${n}:00` }));
+      useBetsStore.setState({ bets });
+      for (const b of bets) useBetsStore.getState().updateBet(b.id, { status: 'lost' });
+    };
+    (sendTiltNotification as jest.Mock).mockClear();
+    useBetsStore.setState({ settings: { ...defaultSettings, onboardingComplete: true, isPro: false, tiltThreshold: 6 } });
+    lose3();
+    expect(sendTiltNotification).toHaveBeenCalled();
+
+    (sendTiltNotification as jest.Mock).mockClear();
+    useBetsStore.setState({ settings: { ...defaultSettings, onboardingComplete: true, isPro: true, tiltThreshold: 6 } });
+    lose3();
+    expect(sendTiltNotification).not.toHaveBeenCalled();
+  });
+
+  it('is the only way screens read it — the Settings stepper edits the raw value', () => {
+    const fs = require('fs') as typeof import('fs');
+    const path = require('path') as typeof import('path');
+    const root = path.join(__dirname, '..');
+    const files: string[] = [];
+    const walk = (d: string) => {
+      for (const e of fs.readdirSync(d, { withFileTypes: true })) {
+        const p = path.join(d, e.name);
+        if (e.isDirectory()) { if (e.name !== '__tests__') walk(p); }
+        else if (/\.tsx?$/.test(e.name)) files.push(p);
+      }
+    };
+    walk(root);
+    const raw = files.flatMap((p) => fs.readFileSync(p, 'utf8').split('\n')
+      .filter((l) => /settings\.tiltThreshold/.test(l) && !/value=\{settings\.tiltThreshold\}/.test(l))
+      .map((l) => `${path.relative(root, p)}: ${l.trim()}`));
+    expect(raw).toEqual([]);
   });
 });

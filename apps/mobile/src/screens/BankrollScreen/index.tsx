@@ -10,7 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { dateLocale } from '../../i18n';
 import { txNoteLabel } from '../../utils/labels';
 import type { ChartSeries } from '../../components/BalanceChart';
-import { TX_NOTE, calcDashboard, parseMoneyInput, kellyFraction, expectedValue, parseOdds, impliedProbability, calcDailyBreakdown, currentBank, pendingExposure } from '@sharklog/core';
+import { TX_NOTE, calcDashboard, parseMoneyInput, kellyFraction, recommendedStake, expectedValue, parseOdds, impliedProbability, calcDailyBreakdown, currentBank, pendingExposure } from '@sharklog/core';
 
 /** How much of the history the screen shows before asking. */
 const TX_PREVIEW = 5;
@@ -60,6 +60,9 @@ const STEP_SLOP = hitSlopFor(28);
 
 function KellyCalculator({ bankroll }: { bankroll: number }) {
   const { t } = useTranslation();
+  // A saved strategy sizes by its own Kelly share, capped at its stake — the
+  // same stake the bet form's Kelly gives, so the two never disagree.
+  const plan = useBetsStore((s) => s.settings.generatedStrategy);
   const fmt = useFormatMoney();
   const oddsFormat = useOddsFormat();
   const [odds, setOdds] = useState('');
@@ -74,6 +77,9 @@ function KellyCalculator({ bankroll }: { bankroll: number }) {
   const ev = !isNaN(oddsNum) && !isNaN(probNum) ? expectedValue(oddsNum, probNum) : null;
   const implied = !isNaN(oddsNum) ? impliedProbability(oddsNum) * 100 : null;
   const halfKellyStake = kelly !== null && bankroll > 0 ? Math.round((kelly / 2) * bankroll) : null;
+  const planStake = plan && kelly !== null && bankroll > 0
+    ? recommendedStake(bankroll, oddsNum, probNum, plan.stakePercent / 100, plan.kellyMultiplier)
+    : null;
 
   return (
     <View style={kc.container}>
@@ -121,12 +127,23 @@ function KellyCalculator({ bankroll }: { bankroll: number }) {
             <Text style={kc.resultLabel}>Full Kelly</Text>
             <Text style={kc.resultValue}>{t('bankroll.ofBank', { pct: ((kelly ?? 0) * 100).toFixed(1) })}</Text>
           </View>
-          <View style={kc.resultRow}>
-            <Text style={kc.resultLabel}>{t('bankroll.halfKelly')}</Text>
-            <Text style={[kc.resultValue, { color: colors.accent }]}>
-              {halfKellyStake !== null ? fmt(halfKellyStake) : '—'}
-            </Text>
-          </View>
+          {plan ? (
+            <View style={kc.resultRow}>
+              <Text style={[kc.resultLabel, { flex: 1 }]}>
+                {t('bankroll.planKelly', { k: plan.kellyMultiplier, pct: plan.stakePercent })}
+              </Text>
+              <Text style={[kc.resultValue, { color: colors.accent }]}>
+                {planStake !== null ? fmt(planStake) : '—'}
+              </Text>
+            </View>
+          ) : (
+            <View style={kc.resultRow}>
+              <Text style={kc.resultLabel}>{t('bankroll.halfKelly')}</Text>
+              <Text style={[kc.resultValue, { color: colors.accent }]}>
+                {halfKellyStake !== null ? fmt(halfKellyStake) : '—'}
+              </Text>
+            </View>
+          )}
         </View>
       )}
     </View>

@@ -15,7 +15,7 @@ import {
 } from '@sharklog/core';
 import { FilterPicker } from '../../components/FilterPicker';
 import { useOddsFormat } from '../../utils/useOdds';
-import { useBetsStore, effectiveReminderHour } from '../../store/betsStore';
+import { useBetsStore, effectiveReminderHour, effectiveTiltThreshold } from '../../store/betsStore';
 import { colors, alpha, mix } from '../../theme/colors';
 import { strategyName } from '../../utils/strategyText';
 import { useTranslation } from 'react-i18next';
@@ -612,7 +612,7 @@ export function SettingsScreen() {
       ? t('settings.backupLastToday')
       : t('settings.backupLast', { count: daysSinceBackup });
 
-  const tiltValue = isPro ? settings.tiltThreshold : FREE_LIMITS.TILT_ALERT_THRESHOLD;
+  const tiltValue = effectiveTiltThreshold(settings);
   const limitHint = !isPro || settings.dailyBetLimit === 0
     ? t('settings.dailyLimitOff')
     : t('settings.dailyLimitOn', { count: settings.dailyBetLimit });

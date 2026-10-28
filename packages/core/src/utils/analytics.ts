@@ -1,4 +1,5 @@
-import type { Bet, BankrollTransaction } from '../types/bet';
+import type { Bet, BankrollTransaction, OddsFormat } from '../types/bet';
+import { formatOddsAs, parseOdds } from './oddsFormat';
 import { betPnl, calcDashboard, byPlayedAt } from './stats';
 import { toYmd, calcDailyBreakdown } from './daily';
 
@@ -557,6 +558,91 @@ export function calcBankShares(bets: Bet[], transactions: BankrollTransaction[])
   return out;
 }
 
+/**
+ * How far a slice of bets kept to a generated plan, in three plain shares:
+ * odds inside the plan's range, stake inside its share of the bank, days
+ * inside its bets per day. Counts of bets and days, never a share of the bank
+ * shown as a percentage — the old "plan compliance" card printed ">999%" when
+ * a stake was bigger than a bank that was never filled in.
+ *
+ * The stake rule is calcPlanCompliance's: the bank from the WHOLE history,
+ * at the start of the bet's day, and no judgement before money first came in.
+ */
+export interface PlanAdherence {
+  /** Bets with a price (all of them, in practice) and how many sat in the plan's odds range. */
+  oddsTotal: number;
+  oddsWithin: number;
+  /** Bets the stake rule could judge — own money, a bank known — and how many stayed within it. */
+  stakeTotal: number;
+  stakeWithin: number;
+  /** Days with bets, and how many went over the plan's bets per day. */
+  days: number;
+  daysOver: number;
+}
+
+/**
+ * Whether a price sits in the plan's odds range, ends included — compared as
+ * the user's format SHOWS them. The plan's 1.70 shows in American as "-143",
+ * and "-143" typed back is 1.6993: compared in decimal, the very price the
+ * screen named as the range's end read as outside it. Both the price and the
+ * ends go through the format the user reads, so what looks equal is equal.
+ * The bet form's warning and the analytics card ask this same question.
+ */
+export function inPlanOdds(
+  odds: number,
+  plan: { oddsMin: number; oddsMax: number },
+  format: OddsFormat = 'decimal',
+): boolean {
+  const shown = (d: number) => parseOdds(formatOddsAs(d, format), format) ?? d;
+  const EPS = 1e-9;
+  const o = shown(odds);
+  return o >= shown(plan.oddsMin) - EPS && o <= shown(plan.oddsMax) + EPS;
+}
+
+/**
+ * Whether a stake is over the plan's share of the bank, in whole hundredths:
+ * the share is cut to a kopeck before comparing. Compared as percentages, a
+ * stake Kelly sized to the cap (bank × 1.2%, rounded to a kopeck) read as
+ * "1.2% — over the 1.2% limit" about half the time.
+ */
+export function stakeOverPlan(stake: number, bank: number, limitPct: number): boolean {
+  return stake > Math.round((bank * limitPct) / 100);
+}
+
+export function calcPlanAdherence(
+  allBets: Bet[],
+  transactions: BankrollTransaction[],
+  plan: { oddsMin: number; oddsMax: number; stakePercent: number; betsPerDay: number },
+  opts: { evaluate?: Bet[]; format?: OddsFormat } = {},
+): PlanAdherence | null {
+  const evaluate = opts.evaluate ?? allBets;
+  if (evaluate.length === 0) return null;
+  let oddsTotal = 0;
+  let oddsWithin = 0;
+  const perDay = new Map<string, number>();
+  for (const b of evaluate) {
+    // The range is a single's price. An accumulator's total is legs multiplied:
+    // two legs of a "1.30 – 1.70" plan make 1.96, so every accumulator the plan
+    // itself recommends would read as outside it.
+    if (b.betType !== 'express' && b.odds > 1) {
+      oddsTotal += 1;
+      if (inPlanOdds(b.odds, plan, opts.format)) oddsWithin += 1;
+    }
+    perDay.set(b.date, (perDay.get(b.date) ?? 0) + 1);
+  }
+  const stake = calcPlanCompliance(allBets, transactions, plan.stakePercent, { evaluate, worstCount: 0 });
+  let daysOver = 0;
+  for (const n of perDay.values()) if (plan.betsPerDay > 0 && n > plan.betsPerDay) daysOver += 1;
+  return {
+    oddsTotal,
+    oddsWithin,
+    stakeTotal: stake?.total ?? 0,
+    stakeWithin: stake?.within ?? 0,
+    days: perDay.size,
+    daysOver,
+  };
+}
+
 export interface PlanCompliance {
   limitPct: number;
   /** Bets that could be measured (a bank was known and own money was staked). */
@@ -617,7 +703,7 @@ export function calcPlanCompliance(
     const pnl = betPnl(bet);
     shareSum += sharePct;
 
-    if (sharePct > limitPct) {
+    if (stakeOverPlan(bet.stake, bank, limitPct)) {
       over += 1;
       pnlOver += pnl;
       if (bet.status !== 'pending') settledOver += 1;

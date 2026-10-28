@@ -4,13 +4,13 @@ import {
   View, StyleSheet, TouchableOpacity, ScrollView, Alert,
 } from 'react-native';
 import { AppText as Text } from '../../components/AppText';
-import { buildStrategy, BANKROLL_TIERS, isCurrencyCode } from '@sharklog/core';
+import { buildStrategy, strategyPlan, BANKROLL_TIERS, STRATEGY_ODDS_BANDS, isCurrencyCode } from '@sharklog/core';
 import i18n from '../../i18n';
 import type { StrategyAnswers, GeneratedStrategy } from '@sharklog/core';
 import { useTranslation } from 'react-i18next';
 import { strategyQuestions, strategyTexts } from '../../utils/strategyText';
 import { betTypeLabel, strategyLabel } from '../../utils/labels';
-import { useBetsStore } from '../../store/betsStore';
+import { useBetsStore, effectiveTiltThreshold } from '../../store/betsStore';
 import { colors } from '../../theme/colors';
 import { ProGate } from '../../components/ProGate';
 import { haptic } from '../../utils/haptics';
@@ -23,26 +23,61 @@ import { useFormatOddsRange } from '../../utils/useOdds';
 function ResultScreen({ strategy, onReset }: { strategy: GeneratedStrategy; onReset: () => void }) {
   const bottomPad = useBottomPad(40);
   const updateSettings = useBetsStore((s) => s.updateSettings);
+  const savedAt = useBetsStore((s) => s.settings.generatedStrategy?.createdAt);
+  const tiltNow = useBetsStore((s) => effectiveTiltThreshold(s.settings));
+  const limitNow = useBetsStore((s) => s.settings.dailyBetLimit);
   const { t } = useTranslation();
   // Words come from the answers in the CURRENT language — the strings stored
   // on the strategy are in the language it was built in.
   const text = strategyTexts(t, strategy);
   const fmtOdds = useFormatOddsRange();
+  // The numbers the app checks bets by — odds from the answers, like the texts.
+  const plan = strategyPlan(strategy);
 
   const items = [
     { icon: '📅', label: t('strategy.betsPerDay'), value: `≤ ${strategy.betsPerDay}` },
     { icon: '💰', label: t('strategy.stakeSize'),  value: t('strategy.stakeValue', { pct: strategy.stakePercent }) },
-    { icon: '📈', label: t('strategy.oddsLabel'),  value: `${fmtOdds(strategy.oddsMin)} – ${fmtOdds(strategy.oddsMax)}` },
+    { icon: '📈', label: t('strategy.oddsLabel'),  value: `${fmtOdds(plan.oddsMin)} – ${fmtOdds(plan.oddsMax)}` },
     { icon: '🎯', label: t('strategy.betType'),    value: text.betTypeAdvice },
     { icon: '⚽', label: t('strategy.sport'),      value: text.sportAdvice },
     { icon: '⚡', label: t('strategy.tiltStop'),   value: t('strategy.tiltValue', { count: strategy.tiltThreshold }) },
     { icon: '📊', label: t('strategy.kelly'),      value: `× ${strategy.kellyMultiplier}` },
   ];
 
-  function handleSave() {
-    haptic.success();
-    updateSettings({ generatedStrategy: strategy });
-    Alert.alert(t('strategy.savedTitle'), t('strategy.savedMsg'));
+  // Saved, the strategy is the plan the bet form checks against. The tilt alert
+  // and the daily limit live in Settings and move there only when asked: the
+  // limit is a hard stop — past it the form does not save the bet.
+  const saved = savedAt === strategy.createdAt;
+  const limitsMatch = tiltNow === strategy.tiltThreshold && limitNow === strategy.betsPerDay;
+
+  function handleApply() {
+    if (limitsMatch) {
+      haptic.success();
+      updateSettings({ generatedStrategy: strategy });
+      return;
+    }
+    Alert.alert(
+      t('strategy.applyTitle'),
+      t('strategy.applyMsg', { tilt: strategy.tiltThreshold, limit: strategy.betsPerDay }),
+      [
+        { text: t('common.cancel'), style: 'cancel' },
+        ...(saved ? [] : [{
+          text: t('strategy.applyOnlySave'),
+          onPress: () => { haptic.success(); updateSettings({ generatedStrategy: strategy }); },
+        }]),
+        {
+          text: t('strategy.applyAll'),
+          onPress: () => {
+            haptic.success();
+            updateSettings({
+              generatedStrategy: strategy,
+              tiltThreshold: strategy.tiltThreshold,
+              dailyBetLimit: strategy.betsPerDay,
+            });
+          },
+        },
+      ],
+    );
   }
 
   return (
@@ -122,9 +157,21 @@ function ResultScreen({ strategy, onReset }: { strategy: GeneratedStrategy; onRe
         <Text style={s.disclaimerText}>{t('strategy.disclaimer')}</Text>
       </View>
 
-      <TouchableOpacity style={s.btnPrimary} onPress={handleSave} activeOpacity={0.8}>
-        <Text style={s.btnPrimaryText}>{t('strategy.apply')}</Text>
-      </TouchableOpacity>
+      {saved ? (
+        <View style={s.appliedBox}>
+          <Text style={s.appliedTitle}>{t(limitsMatch ? 'strategy.appliedState' : 'strategy.savedState')}</Text>
+          <Text style={s.appliedHint}>
+            {limitsMatch
+              ? t('strategy.appliedHint', { tilt: strategy.tiltThreshold, limit: strategy.betsPerDay })
+              : t('strategy.savedHint')}
+          </Text>
+        </View>
+      ) : null}
+      {!(saved && limitsMatch) ? (
+        <TouchableOpacity style={s.btnPrimary} onPress={handleApply} activeOpacity={0.8}>
+          <Text style={s.btnPrimaryText}>{t(saved ? 'strategy.moveLimits' : 'strategy.apply')}</Text>
+        </TouchableOpacity>
+      ) : null}
       <TouchableOpacity style={s.btnSecondary} onPress={onReset} activeOpacity={0.8}>
         <Text style={s.btnSecondaryText}>{t('strategy.rebuild')}</Text>
       </TouchableOpacity>
@@ -140,10 +187,12 @@ function WizardScreen({ onDone }: { onDone: (strategy: GeneratedStrategy) => voi
   const [ta, tb, tc] = BANKROLL_TIERS[isCurrencyCode(currency) ? currency : 'RUB'];
   // Whole units, in the book's currency: the bands are sizes, not prices.
   const fmtOdds = useFormatOddsRange();
-  // The odds bands are the builder's decimal 1.30 / 1.70 / 2.50, shown in the user's format.
+  // The odds bands are the plan's own (core), shown in the user's format: the
+  // question and the plan it builds name the same range.
+  const { low, mid, high } = STRATEGY_ODDS_BANDS;
   const questions = strategyQuestions(t, {
     bankroll: { a: fmt(ta * 100), b: fmt(tb * 100), c: fmt(tc * 100) },
-    odds: { lo: fmtOdds(1.3), mid: fmtOdds(1.7), hi: fmtOdds(2.5) },
+    odds: { lo: fmtOdds(low[0]), mid: fmtOdds(mid[0]), hi: fmtOdds(high[0]), top: fmtOdds(high[1]) },
   });
   const total = questions.length;
   const [step, setStep] = useState(0);
@@ -279,6 +328,12 @@ const s = themedStyles(() => ({
     borderWidth: 1, borderColor: colors.border, marginVertical: SPACE.lg,
   },
   disclaimerText: { fontSize: SIZE.caption, color: colors.textMuted, lineHeight: 20 },
+  appliedBox: {
+    backgroundColor: colors.bgCard, borderRadius: RADIUS.sm, padding: SPACE.md,
+    borderWidth: 1, borderColor: colors.accent, marginBottom: SPACE.sm,
+  },
+  appliedTitle: { fontSize: SIZE.body, fontWeight: '700', color: colors.accent },
+  appliedHint: { fontSize: SIZE.caption, color: colors.textSecondary, lineHeight: 18, marginTop: SPACE.xs },
   btnPrimary: {
     minHeight: TOUCH, justifyContent: 'center',
     backgroundColor: colors.purple, borderRadius: RADIUS.md, padding: SPACE.md,

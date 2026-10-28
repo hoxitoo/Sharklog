@@ -6,14 +6,15 @@ import { PieChart } from 'react-native-gifted-charts';
 import {
   calcByField, calcByOddsRange, calcByDayOfWeek, calcDashboard,
   calcStreaks, calcExtremes, calcTimeStats, calcCLV,
-  calcMaxDrawdown, calcEdge, calcPnlBuckets, calcLuck, RELIABLE_SAMPLE_MIN,
+  calcMaxDrawdown, calcEdge, calcPnlBuckets, calcLuck, calcPlanAdherence, strategyPlan, RELIABLE_SAMPLE_MIN,
   formatPercent, toYmd } from '@sharklog/core';
-import type { SliceStats, Bet, PnlBucket, Granularity } from '@sharklog/core';
+import type { SliceStats, Bet, PnlBucket, Granularity, GeneratedStrategy } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { ProGate } from '../../components/ProGate';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { useFormatMoney } from '../../utils/useFormatMoney';
-import { useFormatOdds, useOddsFormat } from '../../utils/useOdds';
+import { useFormatOdds, useFormatOddsRange, useOddsFormat } from '../../utils/useOdds';
+import { dateLocale } from '../../i18n';
 import { oddsRangeLabel } from '../../utils/oddsField';
 import { uses12HourClock } from '../../utils/clockFormat';
 import { haptic } from '../../utils/haptics';
@@ -374,6 +375,76 @@ function EdgeRiskCard({ bets }: { bets: Bet[] }) {
 }
 
 const edge = themedStyles(() => ({
+  caption: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: SPACE.sm, lineHeight: 16 },
+}));
+
+// ── Bets against the saved plan ──────────────────────────────────────────────
+
+/**
+ * Three counts — odds in range, stake within the plan's share, days within its
+ * bets per day — and no share of the bank shown as a percentage: the old plan
+ * card printed ">999%" when a stake outgrew a bank that was never filled in.
+ * Judged from the day the plan was built: last month's bets did not know it.
+ * The bank comes from the whole history (calcPlanAdherence), only the slice is judged.
+ */
+function PlanCard({ bets, period, strategy }: { bets: Bet[]; period: Bet[]; strategy: GeneratedStrategy }) {
+  const { t } = useTranslation();
+  const fmtOdds = useFormatOddsRange();
+  // Prices compared as the user reads them — the bet form's question (inPlanOdds).
+  const oddsFormat = useOddsFormat();
+  const transactions = useBetsStore((s) => s.bankroll.transactions);
+  const plan = useMemo(() => strategyPlan(strategy), [strategy]);
+  const since = toYmd(new Date(strategy.createdAt));
+  const evaluate = useMemo(() => period.filter((b) => b.date >= since), [period, since]);
+  const a = useMemo(
+    () => calcPlanAdherence(bets, transactions, plan, { evaluate, format: oddsFormat }),
+    [bets, transactions, plan, evaluate, oddsFormat],
+  );
+  const sinceLabel = new Date(`${since}T00:00:00`).toLocaleDateString(dateLocale(), { day: 'numeric', month: 'short' });
+  // All within reads as a win; most within is neutral; under half is a warning.
+  const tone = (within: number, total: number) =>
+    total === 0 ? colors.textMuted
+      : within === total ? colors.won
+      : within / total >= 0.5 ? colors.textPrimary : colors.pending;
+  const share = (within: number, total: number) => (total === 0 ? '—' : `${within}/${total}`);
+
+  return (
+    <Card title={t('analytics.planTitle')} tone="info">
+      {!a ? (
+        <Text style={planCard.caption}>{t('analytics.planEmpty', { date: sinceLabel })}</Text>
+      ) : (
+        <>
+          <View style={row.wrap}>
+            <MiniTile
+              label={t('analytics.planOdds')}
+              value={share(a.oddsWithin, a.oddsTotal)}
+              color={tone(a.oddsWithin, a.oddsTotal)}
+              sub={`${fmtOdds(plan.oddsMin)} – ${fmtOdds(plan.oddsMax)}`}
+            />
+            <View style={{ width: 10 }} />
+            <MiniTile
+              label={t('analytics.planStake')}
+              value={share(a.stakeWithin, a.stakeTotal)}
+              color={tone(a.stakeWithin, a.stakeTotal)}
+              sub={a.stakeTotal === 0 ? t('analytics.planNoBank') : t('analytics.planStakeSub', { pct: plan.stakePercent })}
+              info={{ title: t('analytics.planStake'), text: t('analytics.planStakeInfo') }}
+            />
+            <View style={{ width: 10 }} />
+            <MiniTile
+              label={t('analytics.planDays')}
+              value={share(a.days - a.daysOver, a.days)}
+              color={tone(a.days - a.daysOver, a.days)}
+              sub={t('analytics.planDaysSub', { n: plan.betsPerDay })}
+            />
+          </View>
+          <Text style={planCard.caption}>{t('analytics.planSince', { date: sinceLabel })}</Text>
+        </>
+      )}
+    </Card>
+  );
+}
+
+const planCard = themedStyles(() => ({
   caption: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: SPACE.sm, lineHeight: 16 },
 }));
 
@@ -742,6 +813,7 @@ const A_PERIOD_OPTIONS: Array<{ key: APeriodFilter; label: string }> = [
 function AnalyticsContent() {
   const bottomPad = useBottomPad(SPACE.xxl);
   const bets = useBetsStore((s) => s.bets);
+  const plan = useBetsStore((s) => s.settings.generatedStrategy);
   const { t } = useTranslation();
   const oddsFormat = useOddsFormat();
   const [period, setPeriod] = useState<APeriodFilter>('all');
@@ -789,6 +861,7 @@ function AnalyticsContent() {
       <StreaksCard bets={filteredBets} />
       <ExtremesCard bets={filteredBets} />
       <EdgeRiskCard bets={filteredBets} />
+      {plan && <PlanCard bets={bets} period={filteredBets} strategy={plan} />}
       <LuckCard bets={filteredBets} />
       {/* Promoted out of the collapsed section: which sport actually earns is
           a first-screen question, and the bars answer it without arithmetic. */}

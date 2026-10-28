@@ -13,16 +13,16 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { Sport, BetType, Strategy, BetStatus, EsportsDiscipline, Team, Bet } from '@sharklog/core';
 import {
   SPORTS, BET_TYPES, STRATEGIES, ESPORTS_DISCIPLINES, PICK, parseMoneyInput,
-  impliedProbability, halfKelly, expectedValue, recommendedStake, combineExpressOdds, formatOddsAs, CURRENT_SCHEMA_VERSION, FREE_LIMITS, calcDashboard, currentBank, toYmd,
+  impliedProbability, kellyFraction, expectedValue, recommendedStake, inPlanOdds, stakeOverPlan, strategyPlan, bankAtBetTime, combineExpressOdds, formatOddsAs, CURRENT_SCHEMA_VERSION, FREE_LIMITS, calcDashboard, toYmd,
 } from '@sharklog/core';
 import { useTranslation } from 'react-i18next';
 import { FilterPicker } from '../../components/FilterPicker';
 import { useFormatMoney, useCurrencySymbol } from '../../utils/useFormatMoney';
-import { useOddsFormat, oddsKeyboard } from '../../utils/useOdds';
+import { useOddsFormat, useFormatOddsRange, oddsKeyboard } from '../../utils/useOdds';
 import { oddsFieldText, readOddsField, readLegField, legFieldText, oddsExample } from '../../utils/oddsField';
 import { sportLabel, betTypeLabel, strategyLabel, disciplineLabel } from '../../utils/labels';
-import { colors } from '../../theme/colors';
-import { useBetsStore } from '../../store/betsStore';
+import { colors, signalTint, signalInk } from '../../theme/colors';
+import { useBetsStore, effectiveDailyLimit } from '../../store/betsStore';
 import { askForRemindersOnce } from '../../utils/reminderPermission';
 import { haptic } from '../../utils/haptics';
 import { Analytics } from '../../services/analytics';
@@ -329,9 +329,11 @@ function initPick1x2(editBet: { betType: BetType; pick?: string } | undefined, t
 
 // ── Kelly Helper ───────────────────────────────────────────────────────────────
 
-function KellyHelper({ odds, bankKopecks, onApply }: {
+function KellyHelper({ odds, bankKopecks, plan, onApply }: {
   odds: number;
   bankKopecks: number;
+  /** The saved strategy: its Kelly share, and its stake as the cap. */
+  plan: { kellyMultiplier: number; stakePercent: number } | undefined;
   onApply: (roubles: string) => void;
 }) {
   const { t } = useTranslation();
@@ -339,8 +341,14 @@ function KellyHelper({ odds, bankKopecks, onApply }: {
   const [prob, setProb] = useState(0.5);
   const implied = impliedProbability(odds);
   const ev = expectedValue(odds, prob);
-  const kellyPct = halfKelly(odds, prob) * 100;
-  const stake = bankKopecks > 0 ? recommendedStake(bankKopecks, odds, prob) : 0;
+  // Half Kelly capped at 5% without a plan; with one, the plan's own Kelly
+  // share capped at its stake — Kelly must not recommend a stake the line
+  // above it then flags as over the plan's limit.
+  const multiplier = plan?.kellyMultiplier ?? 0.5;
+  const capPct = plan?.stakePercent ?? 5;
+  const kellyPct = kellyFraction(odds, prob) * multiplier * 100;
+  const stake = bankKopecks > 0 ? recommendedStake(bankKopecks, odds, prob, capPct / 100, multiplier) : 0;
+  const capped = stake > 0 && kellyPct > capPct;
   const evPositive = ev > 0;
 
   function step(dir: 1 | -1) {
@@ -376,7 +384,7 @@ function KellyHelper({ odds, bankKopecks, onApply }: {
         </View>
         <View style={kl.resultCell}>
           <Text style={kl.resultValue}>{kellyPct.toFixed(1)}%</Text>
-          <Text style={kl.resultLabel}>Half-Kelly</Text>
+          <Text style={kl.resultLabel}>{plan ? `Kelly × ${multiplier}` : 'Half-Kelly'}</Text>
         </View>
         <View style={kl.resultCell}>
           <Text style={[kl.resultValue, { color: stake > 0 ? colors.accent : colors.textMuted }]}>
@@ -385,6 +393,12 @@ function KellyHelper({ odds, bankKopecks, onApply }: {
           <Text style={kl.resultLabel}>{t('addBet.recStake')}</Text>
         </View>
       </View>
+
+      {capped && (
+        <Text style={kl.capNote}>
+          {t(plan ? 'addBet.kellyCapPlan' : 'addBet.kellyCap', { pct: capPct })}
+        </Text>
+      )}
 
       {stake > 0 && (
         <TouchableOpacity style={kl.applyBtn} onPress={() => onApply(String(stake / 100))} activeOpacity={0.8}>
@@ -422,6 +436,7 @@ const kl = themedStyles(() => ({
   resultCell: { flex: 1, alignItems: 'center', gap: 3 },
   resultValue: { fontSize: SIZE.lead, fontWeight: '700', color: colors.textPrimary },
   resultLabel: { fontSize: SIZE.micro, color: colors.textMuted },
+  capNote: { fontSize: SIZE.caption, color: colors.textSecondary, textAlign: 'center' },
   applyBtn: {
     minHeight: TOUCH, justifyContent: 'center',
     backgroundColor: colors.accent + '22',
@@ -575,19 +590,55 @@ export function AddBetScreen() {
 
   // Stake as a share of the bank — discipline feedback at the moment of the decision,
   // not in a report afterwards. Compared against the generated strategy's limit if set.
-  const bankTotal = useMemo(
-    () => currentBank(bankroll.transactions, bets),
-    [bets, bankroll.transactions],
-  );
+  // The bank is the one the bet will be judged by: at the START of the bet's day
+  // (bankAtBetTime — the bet card's and the plan card's bank), none before money
+  // first came in. Measured against the bank of this minute, the form called a
+  // stake within the plan that Analytics then counted as over it, and the other
+  // way round after a same-day withdrawal.
+  const watchedDate = watch('date');
+  const bankAt = useMemo(() => bankAtBetTime(bets, bankroll.transactions), [bets, bankroll.transactions]);
+  const bankTotal = bankAt(watchedDate) ?? 0;
   const bankShare = bankTotal > 0 && stakeKopecks > 0 ? (stakeKopecks / bankTotal) * 100 : null;
-  const strategyLimit = settings.generatedStrategy?.stakePercent ?? null;
-  const overLimit = bankShare != null && strategyLimit != null && bankShare > strategyLimit;
+  // The plan's numbers — odds from the strategy's answers (strategyPlan).
+  const plan = useMemo(
+    () => (settings.generatedStrategy ? strategyPlan(settings.generatedStrategy) : undefined),
+    [settings.generatedStrategy],
+  );
+  const strategyLimit = plan?.stakePercent ?? null;
+  // A freebet is not own money: the plan does not judge it (nor does Analytics).
+  const overLimit = !isFreebet && bankShare != null && strategyLimit != null
+    && stakeOverPlan(stakeKopecks, bankTotal, strategyLimit);
+  const fmtOddsRange = useFormatOddsRange();
+  // Bets already on the chosen day: a new bet past the plan's bets per day is
+  // said before it is saved. Edits are not counted — the bet is one of them.
+  const dayCount = useMemo(
+    () => (editBet ? 0 : bets.filter((b) => b.date === watchedDate).length),
+    [bets, watchedDate, editBet],
+  );
+  // The daily limit in Settings IS a wall (canAddBet, for the same date): said
+  // up front, not first at "Save" after the whole form was filled in.
+  const dailyLimit = effectiveDailyLimit(settings);
+  const atDailyWall = !editBet && dailyLimit > 0 && dayCount >= dailyLimit;
+  // The plan judges bets from the day it was built — the card in Analytics too.
+  const planSince = settings.generatedStrategy ? toYmd(new Date(settings.generatedStrategy.createdAt)) : '';
 
   // Same rounding the bet is saved with, so the preview cannot promise a payout
   // the stored bet will not produce.
   const expressOdds = legsUntouched && source ? source.odds : combineExpressOdds(legs.map(legPrice));
 
   const activeOdds = isSingle ? singleOdds : expressOdds;
+  // The plan's other two numbers, said at the moment of the decision like the
+  // stake share: a warning, not a wall — the hard stop is the daily limit in
+  // Settings, and only when the user moved it there. The odds range is a
+  // single's price: an accumulator's total is its legs multiplied.
+  const planNotes: string[] = [];
+  const planApplies = plan != null && watchedDate >= planSince;
+  if (plan && planApplies && isSingle && activeOdds > 1 && !inPlanOdds(activeOdds, plan, oddsFormat)) {
+    planNotes.push(t('addBet.planOdds', { min: fmtOddsRange(plan.oddsMin), max: fmtOddsRange(plan.oddsMax) }));
+  }
+  if (plan && planApplies && !editBet && !atDailyWall && plan.betsPerDay > 0 && dayCount + 1 > plan.betsPerDay) {
+    planNotes.push(t('addBet.planDay', { n: dayCount + 1, max: plan.betsPerDay }));
+  }
   const potentialProfit = activeOdds > 1 && stakeKopecks > 0
     ? fmt(Math.round(stakeKopecks * activeOdds) - stakeKopecks)
     : null;
@@ -612,10 +663,10 @@ export function AddBetScreen() {
       return;
     }
 
-    if (!editBet && !canAddBet()) {
+    if (!editBet && !canAddBet(data.date)) {
       // Same two walls, same words as the "+" button in the drawer.
       if (settings.isPro) {
-        Alert.alert(t('bet.dailyLimitTitle'), t('bet.dailyLimitMsg', { count: settings.dailyBetLimit }));
+        Alert.alert(t('bet.dailyLimitTitle'), t('bet.dailyLimitMsg', { count: dailyLimit }));
       } else {
         Alert.alert(t('bet.limitTitle'), t('bet.limitMsg', { count: FREE_LIMITS.MAX_BETS }));
       }
@@ -1028,6 +1079,20 @@ export function AddBetScreen() {
           </View>
         )}
 
+        {atDailyWall && (
+          <View style={styles.dayWall}>
+            <Text style={styles.dayWallText}>{t('addBet.planDayWall', { max: dailyLimit })}</Text>
+          </View>
+        )}
+
+        {planNotes.length > 0 && (
+          <View style={styles.planNote}>
+            {planNotes.map((line) => (
+              <Text key={line} style={styles.planNoteText}>{line}</Text>
+            ))}
+          </View>
+        )}
+
         {/* ── Kelly calculator (single only) ─── */}
         {isSingle && singleOdds > 1 && (
           <TouchableOpacity
@@ -1045,6 +1110,7 @@ export function AddBetScreen() {
           <KellyHelper
             odds={singleOdds}
             bankKopecks={bankTotal}
+            plan={plan}
             onApply={(v) => { setValue('stake', v); haptic.success(); }}
           />
         )}
@@ -1650,6 +1716,16 @@ const styles = themedStyles(() => ({
   bankShareBank: { fontSize: SIZE.micro, color: colors.textMuted, marginTop: 2 },
   bankShareValue: { fontSize: SIZE.title, fontWeight: '800' },
   bankShareHint: { fontSize: SIZE.micro, color: colors.textMuted, marginTop: 2 },
+  planNote: {
+    marginBottom: SPACE.lg, padding: SPACE.md, borderRadius: RADIUS.md, gap: SPACE.xs,
+    backgroundColor: signalTint(colors.pending, 0.094), borderWidth: 1, borderColor: signalTint(colors.pending, 0.333),
+  },
+  planNoteText: { fontSize: SIZE.caption, fontWeight: '600', color: signalInk(colors.pending) },
+  dayWall: {
+    marginBottom: SPACE.lg, padding: SPACE.md, borderRadius: RADIUS.md,
+    backgroundColor: signalTint(colors.lost, 0.094), borderWidth: 1, borderColor: signalTint(colors.lost, 0.333),
+  },
+  dayWallText: { fontSize: SIZE.caption, fontWeight: '600', color: signalInk(colors.lost) },
   outcomePicker: {
     flexDirection: 'row',
     gap: SPACE.sm,

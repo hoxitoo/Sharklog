@@ -38,7 +38,7 @@ describe('strategyTextIds', () => {
   it('uses every principle and every name somewhere', () => {
     const names = new Set(answers.map((a) => strategyTextIds(a).name));
     const principles = new Set(answers.flatMap((a) => strategyTextIds(a).principles));
-    expect(names.size).toBe(6);
+    expect(names.size).toBe(7); // six, and 'underdog' for small stakes on long shots
     expect(principles.size).toBe(15);
   });
 });

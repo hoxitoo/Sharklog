@@ -42,15 +42,21 @@ export function impliedProbability(decimalOdds: number): number {
 }
 
 /**
- * Recommended stake in bankroll currency units.
- * Uses half-kelly capped at maxFraction (default 5%) for safety.
+ * Recommended stake in bankroll currency units: a share of Kelly, capped.
+ * `multiplier` is that share — half by default, the plan's own Kelly share
+ * when there is a plan. `maxFraction` is the most of the bank one bet may
+ * take: 5% by default, the plan's stake % when there is a plan, so Kelly never
+ * recommends a stake the plan itself would then flag as too big.
  */
 export function recommendedStake(
   bankroll: number,
   decimalOdds: number,
   estimatedProbability: number,
   maxFraction = 0.05,
+  multiplier = 0.5,
 ): number {
-  const fraction = Math.min(halfKelly(decimalOdds, estimatedProbability), maxFraction);
-  return Math.round(bankroll * fraction);
+  const fraction = Math.min(kellyFraction(decimalOdds, estimatedProbability) * multiplier, maxFraction);
+  // Down to a kopeck, never up: rounded up, a stake sized to the cap is a
+  // fraction of a kopeck over it, and the plan check calls it a breach.
+  return Math.floor(bankroll * fraction);
 }
