@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
 import { calcDashboard, isInTilt, toYmd } from '@sharklog/core';
-import { useBetsStore } from '../../store/betsStore';
+import { useBetsStore, effectiveTiltThreshold, effectiveDailyLimit } from '../../store/betsStore';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { colors } from '../../theme/colors';
 import { haptic } from '../../utils/haptics';
@@ -127,7 +127,8 @@ export function DisciplineScreen() {
   const addDiaryEntry = useBetsStore((s) => s.addDiaryEntry);
   const { t } = useTranslation();
   const stats = useMemo(() => calcDashboard(bets), [bets]);
-  const inTilt = isInTilt(bets, settings.tiltThreshold);
+  const inTilt = isInTilt(bets, effectiveTiltThreshold(settings));
+  const dailyLimit = effectiveDailyLimit(settings);
 
   const today = todayStr();
   const todayEntry = diary.find((d) => d.date === today);
@@ -206,13 +207,13 @@ export function DisciplineScreen() {
             <View style={styles.tiltStat}>
               <Text style={[
                 styles.tiltStatValue,
-                settings.isPro && settings.dailyBetLimit > 0 && todayBets.length >= settings.dailyBetLimit
+                dailyLimit > 0 && todayBets.length >= dailyLimit
                   ? { color: colors.lost }
-                  : settings.isPro && settings.dailyBetLimit > 0 && todayBets.length >= Math.ceil(settings.dailyBetLimit * 0.8)
+                  : dailyLimit > 0 && todayBets.length >= Math.ceil(dailyLimit * 0.8)
                   ? { color: colors.pending }
                   : {},
               ]}>
-                {todayBets.length}{settings.isPro && settings.dailyBetLimit > 0 ? `/${settings.dailyBetLimit}` : ''}
+                {todayBets.length}{dailyLimit > 0 ? `/${dailyLimit}` : ''}
               </Text>
               <Text style={styles.tiltStatLabel}>{t('discipline.betsToday')}</Text>
             </View>

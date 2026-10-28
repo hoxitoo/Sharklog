@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  STRATEGY_QUESTIONS, buildStrategy, formatMoney, STRATEGIES, BET_TYPES,
+  STRATEGY_QUESTIONS, buildStrategy, formatMoney, STRATEGIES, BET_TYPES, strategyPlan,
 } from '@sharklog/core';
 import type { StrategyAnswers, GeneratedStrategy } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
@@ -23,7 +23,7 @@ function ResultCard({ strategy, onReset }: { strategy: GeneratedStrategy; onRese
   const items: Array<{ icon: string; label: string; value: string }> = [
     { icon: '📅', label: 'Ставок в день', value: `≤ ${strategy.betsPerDay}` },
     { icon: '💰', label: 'Размер ставки', value: `${strategy.stakePercent}% от банкролла` },
-    { icon: '📈', label: 'Коэффициенты', value: `${strategy.oddsMin.toFixed(2)} – ${strategy.oddsMax.toFixed(2)}` },
+    { icon: '📈', label: 'Коэффициенты', value: `${strategyPlan(strategy).oddsMin.toFixed(2)} – ${strategyPlan(strategy).oddsMax.toFixed(2)}` },
     { icon: '🎯', label: 'Тип ставок', value: strategy.betTypeAdvice },
     { icon: '⚽', label: 'Спорт', value: strategy.sportAdvice },
     { icon: '⚡', label: 'Тилт-алерт', value: `${strategy.tiltThreshold} поражения подряд — стоп` },

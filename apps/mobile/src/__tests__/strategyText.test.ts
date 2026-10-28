@@ -67,7 +67,8 @@ describe('strategy builder text', () => {
   it('screen labels exist in every language', () => {
     const plain = ['proFeature', 'progress', 'ready', 'whyTitle', 'betsPerDay', 'stakeSize', 'stakeValue',
       'oddsLabel', 'betType', 'sport', 'tiltStop', 'kelly', 'marketsTitle', 'approachesTitle', 'oddsTitle',
-      'principlesTitle', 'disclaimer', 'apply', 'rebuild', 'savedTitle', 'savedMsg'];
+      'principlesTitle', 'disclaimer', 'apply', 'rebuild', 'applyTitle', 'applyMsg', 'applyOnlySave',
+      'applyAll', 'moveLimits', 'savedState', 'savedHint', 'appliedState', 'appliedHint'];
     for (const tree of [ru, en, kz, by] as Tree[]) {
       expect(plain.filter((k) => !has(tree, `strategy.${k}`))).toEqual([]);
       expect(hasPlural(tree, 'strategy.tiltValue')).toBe(true);

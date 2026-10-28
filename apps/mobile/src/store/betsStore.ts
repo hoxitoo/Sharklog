@@ -116,7 +116,8 @@ interface BetsStore {
   deleteTeam: (id: string) => void;
   clearAll: () => void;
 
-  canAddBet: () => boolean;
+  /** Room for one more bet — Free's 50, or Pro's daily limit on `date` (today by default). */
+  canAddBet: (date?: string) => boolean;
 
   /**
    * Recompute Pro from every source (licence, trial, store). `storeEntitled` is
@@ -194,6 +195,21 @@ export const defaultSettings: AppSettings = {
  */
 export function effectiveReminderHour(s: Pick<AppSettings, 'isPro' | 'reminderHour'>): number {
   return s.isPro ? s.reminderHour : defaultSettings.reminderHour;
+}
+
+/**
+ * The losing streak that counts as tilt. Free is fixed at 3; only Pro sets it.
+ * Settings showed 3 to a lapsed Pro user while the banner, the list and the
+ * notification still used the threshold they had set as Pro — the same split
+ * as the reminder hour. Everything that SHOWS or JUDGES tilt goes through here.
+ */
+export function effectiveTiltThreshold(s: Pick<AppSettings, 'isPro' | 'tiltThreshold'>): number {
+  return s.isPro ? s.tiltThreshold : FREE_LIMITS.TILT_ALERT_THRESHOLD;
+}
+
+/** Bets a day before the form stops saving: Pro's own limit, 0 = none. Free has the 50-bet cap instead. */
+export function effectiveDailyLimit(s: Pick<AppSettings, 'isPro' | 'dailyBetLimit'>): number {
+  return s.isPro ? s.dailyBetLimit : 0;
 }
 
 /**
@@ -335,7 +351,7 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
 
     if (updates.status === 'lost' && prevStatus !== 'lost') {
       const { bets, settings } = get();
-      if (isInTilt(bets, settings.tiltThreshold)) {
+      if (isInTilt(bets, effectiveTiltThreshold(settings))) {
         sendTiltNotification(calcDashboard(bets).currentStreak.count);
       }
     }
@@ -455,13 +471,16 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
     get().persist();
   },
 
-  canAddBet: () => {
+  canAddBet: (date) => {
     const { bets, settings } = get();
     if (!settings.isPro) return bets.length < FREE_LIMITS.MAX_BETS;
-    if (settings.dailyBetLimit > 0) {
-      const today = toYmd(new Date()); // local day — the daily limit must roll at local midnight
-      const todayCount = bets.filter((b) => b.date === today).length;
-      if (todayCount >= settings.dailyBetLimit) return false;
+    const limit = effectiveDailyLimit(settings);
+    if (limit > 0) {
+      // The bet's own day: a forgotten bet from yesterday is judged against
+      // yesterday, not refused because today is full. Without a date (the "+"
+      // that opens the form) — today, the local day, rolling at local midnight.
+      const day = date ?? toYmd(new Date());
+      if (bets.filter((b) => b.date === day).length >= limit) return false;
     }
     return true;
   },

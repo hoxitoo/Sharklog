@@ -7,7 +7,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { calcDashboard, isInTilt, calcDailyBreakdown, summarizeDays, toYmd } from '@sharklog/core';
 import type { Bet, DayStats } from '@sharklog/core';
-import { useBetsStore } from '../../store/betsStore';
+import { useBetsStore, effectiveTiltThreshold } from '../../store/betsStore';
 import { colors, signalInk, signalTint, toneSurface } from '../../theme/colors';
 import { cardSurface, tileStyle } from '../../components/Card';
 import { ScreenHeader } from '../../components/ScreenHeader';
@@ -411,6 +411,7 @@ export function DashboardScreen() {
   const { width } = useWindowDimensions();
   const bets = useBetsStore((s) => s.bets);
   const settings = useBetsStore((s) => s.settings);
+  const tiltThreshold = useBetsStore((s) => effectiveTiltThreshold(s.settings));
   const bankroll = useBetsStore((s) => s.bankroll);
   const fmt = useFormatMoney();
   const fmtOdds = useFormatOddsRange(); // the strategy's range
@@ -469,8 +470,8 @@ export function DashboardScreen() {
     [period, stats, bets],
   );
   const inTilt = useMemo(
-    () => isInTilt(bets, settings.tiltThreshold),
-    [bets, settings.tiltThreshold],
+    () => isInTilt(bets, tiltThreshold),
+    [bets, tiltThreshold],
   );
 
   useEffect(() => {
