@@ -5,7 +5,7 @@ import { AppText as Text } from '../../components/AppText';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { calcDashboard, isInTilt, calcDailyBreakdown, summarizeDays, toYmd } from '@sharklog/core';
+import { calcDashboard, isInTilt, calcDailyBreakdown, summarizeDays, toYmd, activeStrategy, strategyPlan } from '@sharklog/core';
 import type { Bet, DayStats } from '@sharklog/core';
 import { useBetsStore, effectiveTiltThreshold } from '../../store/betsStore';
 import { colors, signalInk, signalTint, toneSurface } from '../../theme/colors';
@@ -412,6 +412,9 @@ export function DashboardScreen() {
   const bets = useBetsStore((s) => s.bets);
   const settings = useBetsStore((s) => s.settings);
   const tiltThreshold = useBetsStore((s) => effectiveTiltThreshold(s.settings));
+  // A switched-off strategy is not shown as the plan; its numbers are the plan's (strategyPlan).
+  const strategy = activeStrategy(settings);
+  const strategyNums = useMemo(() => (strategy ? strategyPlan(strategy) : undefined), [strategy]);
   const bankroll = useBetsStore((s) => s.bankroll);
   const fmt = useFormatMoney();
   const fmtOdds = useFormatOddsRange(); // the strategy's range
@@ -510,7 +513,7 @@ export function DashboardScreen() {
       />
     <ScrollView keyboardShouldPersistTaps="handled" style={styles.container} contentContainerStyle={{ paddingBottom: bottomPad }} showsVerticalScrollIndicator={false}>
 
-      {settings.generatedStrategy && (
+      {strategy && strategyNums && (
         <TouchableOpacity
           style={styles.strategyBadge}
           onPress={() => { haptic.selection(); navigation.navigate('StrategyBuilder'); }}
@@ -518,13 +521,13 @@ export function DashboardScreen() {
         >
           <Text style={styles.strategyIcon}>🎯</Text>
           <View style={{ flex: 1 }}>
-            <Text style={styles.strategyName}>{t('dashboard.strategyLine', { name: strategyName(t, settings.generatedStrategy) })}</Text>
+            <Text style={styles.strategyName}>{t('dashboard.strategyLine', { name: strategyName(t, strategy) })}</Text>
             <Text style={styles.strategySub}>
               {t('dashboard.strategySub', {
-                perDay: settings.generatedStrategy.betsPerDay,
-                pct: settings.generatedStrategy.stakePercent,
-                min: fmtOdds(settings.generatedStrategy.oddsMin),
-                max: fmtOdds(settings.generatedStrategy.oddsMax),
+                perDay: strategyNums.betsPerDay,
+                pct: strategyNums.stakePercent,
+                min: fmtOdds(strategyNums.oddsMin),
+                max: fmtOdds(strategyNums.oddsMax),
               })}
             </Text>
           </View>

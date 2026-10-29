@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { Bet, BankrollTransaction, StrategyAnswers } from '../types/bet';
-import { STRATEGY_QUESTIONS, STRATEGY_ODDS_BANDS, buildStrategy, strategyPlan, strategyTextIds } from '../utils/strategyBuilder';
+import { STRATEGY_QUESTIONS, STRATEGY_ODDS_BANDS, activeStrategy, buildStrategy, strategyPlan, strategyTextIds } from '../utils/strategyBuilder';
 import { calcPlanAdherence, calcPlanCompliance, inPlanOdds, stakeOverPlan } from '../utils/analytics';
 import { parseOdds } from '../utils/oddsFormat';
 import { halfKelly, recommendedStake } from '../utils/kelly';
@@ -54,6 +54,14 @@ describe('the plan says what the question offered', () => {
     // No answers to go by: what it stored.
     const bare = { ...old, answers: undefined } as unknown as typeof old;
     expect([strategyPlan(bare).oddsMin, strategyPlan(bare).oddsMax]).toEqual([1.65, 2.4]);
+  });
+
+  it('stops checking bets when the user switches the strategy off, and keeps it', () => {
+    const g = buildStrategy(ANSWERS[0]!);
+    expect(activeStrategy({ generatedStrategy: g })).toBe(g);
+    expect(activeStrategy({ generatedStrategy: { ...g, disabled: true } })).toBeUndefined();
+    expect(activeStrategy({ generatedStrategy: { ...g, disabled: false } })).toEqual({ ...g, disabled: false });
+    expect(activeStrategy({})).toBeUndefined();
   });
 
   it('makes no claim it cannot back and promises no income', () => {

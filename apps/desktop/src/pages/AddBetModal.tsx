@@ -251,6 +251,8 @@ export function AddBetModal({ editBet, onClose }: Props) {
   const [odds, setOdds] = useState(editBet ? String(editBet.odds) : '');
   const [stake, setStake] = useState(editBet ? String(editBet.stake / 100) : '');
   const [date, setDate] = useState(editBet?.date ?? defaultDate);
+  const dayCount = useMemo(() => bets.filter((b) => b.date === date).length, [bets, date]);
+  const overDailyLimit = !editBet && settings.isPro && settings.dailyBetLimit > 0 && dayCount + 1 > settings.dailyBetLimit;
   const [time, setTime] = useState(editBet?.time ?? defaultTime);
   const [sport, setSport] = useState<Sport>(editBet?.sport ?? 'football');
   const [discipline, setDiscipline] = useState<EsportsDiscipline>(editBet?.discipline ?? 'csgo');
@@ -403,6 +405,12 @@ export function AddBetModal({ editBet, onClose }: Props) {
           {!editBet && !canAddBet() && (
             <div style={m.limitBanner}>
               🔒 Лимит {FREE_LIMITS.MAX_BETS} ставок достигнут. Перейди на Pro для безлимитного трекинга.
+            </div>
+          )}
+          {/* Pro's daily limit warns and still saves: a bet placed at the bookmaker belongs in the book. */}
+          {overDailyLimit && (
+            <div style={m.dayLimitBanner}>
+              ⚠️ Ставка № {dayCount + 1} за день — твой лимит {settings.dailyBetLimit}
             </div>
           )}
 
@@ -641,6 +649,11 @@ const m: Record<string, React.CSSProperties> = {
     backgroundColor: colors.lost + '15', border: `1px solid ${colors.lost}44`,
     borderRadius: 8, padding: '10px 14px', marginBottom: 14,
     color: colors.lost, fontSize: 13, fontWeight: 600,
+  },
+  dayLimitBanner: {
+    backgroundColor: colors.pending + '15', border: `1px solid ${colors.pending}44`,
+    borderRadius: 8, padding: '10px 14px', marginBottom: 14,
+    color: colors.pending, fontSize: 13, fontWeight: 600,
   },
   winPreview: {
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',

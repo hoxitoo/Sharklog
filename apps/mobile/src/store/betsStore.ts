@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Bet, AppSettings, Bankroll, DiaryEntry, Team, Sport, EsportsDiscipline } from '@sharklog/core';
 import {
-  migrate, CURRENT_SCHEMA_VERSION, FREE_LIMITS, DEFAULT_BANKROLL_NAME, isInTilt, calcDashboard, parseEventTeams, toYmd,
+  migrate, CURRENT_SCHEMA_VERSION, FREE_LIMITS, DEFAULT_BANKROLL_NAME, isInTilt, calcDashboard, parseEventTeams,
   preselectedBookmakers, sanitizeBets, sanitizeBankroll, sanitizeDiary, sanitizeTeams,
 } from '@sharklog/core';
 import {
@@ -116,8 +116,11 @@ interface BetsStore {
   deleteTeam: (id: string) => void;
   clearAll: () => void;
 
-  /** Room for one more bet — Free's 50, or Pro's daily limit on `date` (today by default). */
-  canAddBet: (date?: string) => boolean;
+  /**
+   * Room for one more bet: false only when Free has used its 50. Pro's daily
+   * limit is NOT a wall — the form warns past it (`effectiveDailyLimit`) and saves.
+   */
+  canAddBet: () => boolean;
 
   /**
    * Recompute Pro from every source (licence, trial, store). `storeEntitled` is
@@ -207,7 +210,11 @@ export function effectiveTiltThreshold(s: Pick<AppSettings, 'isPro' | 'tiltThres
   return s.isPro ? s.tiltThreshold : FREE_LIMITS.TILT_ALERT_THRESHOLD;
 }
 
-/** Bets a day before the form stops saving: Pro's own limit, 0 = none. Free has the 50-bet cap instead. */
+/**
+ * Bets a day before the form WARNS: Pro's own limit, 0 = none. A warning, not a
+ * wall: a bet already placed at the bookmaker belongs in the book, and refusing
+ * it made the tracker lie. Free has the 50-bet cap instead.
+ */
 export function effectiveDailyLimit(s: Pick<AppSettings, 'isPro' | 'dailyBetLimit'>): number {
   return s.isPro ? s.dailyBetLimit : 0;
 }
@@ -471,17 +478,8 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
     get().persist();
   },
 
-  canAddBet: (date) => {
+  canAddBet: () => {
     const { bets, settings } = get();
-    if (!settings.isPro) return bets.length < FREE_LIMITS.MAX_BETS;
-    const limit = effectiveDailyLimit(settings);
-    if (limit > 0) {
-      // The bet's own day: a forgotten bet from yesterday is judged against
-      // yesterday, not refused because today is full. Without a date (the "+"
-      // that opens the form) — today, the local day, rolling at local midnight.
-      const day = date ?? toYmd(new Date());
-      if (bets.filter((b) => b.date === day).length >= limit) return false;
-    }
-    return true;
+    return settings.isPro || bets.length < FREE_LIMITS.MAX_BETS;
   },
 }));

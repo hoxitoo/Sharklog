@@ -274,14 +274,9 @@ export function DrawerNavigator() {
 
   function handleAddBet() {
     if (!canAddBet()) {
-      // Two different walls behind one `false`: Free ran out of bets, or Pro
-      // hit the daily limit they set themselves. One message for both told a
-      // paying user to "upgrade to Pro".
-      if (settings.isPro) {
-        Alert.alert(t('bet.dailyLimitTitle'), t('bet.dailyLimitMsg', { count: settings.dailyBetLimit }));
-      } else {
-        Alert.alert(t('bet.limitTitle'), t('bet.limitMsg', { count: FREE_LIMITS.MAX_BETS }));
-      }
+      // The one wall: Free has used its bets. Pro's daily limit is a warning
+      // in the form, not a refusal here.
+      Alert.alert(t('bet.limitTitle'), t('bet.limitMsg', { count: FREE_LIMITS.MAX_BETS }));
       return;
     }
     if (settings.isPro && !settings.disableChecklist) {

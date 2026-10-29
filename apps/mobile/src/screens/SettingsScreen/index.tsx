@@ -846,12 +846,31 @@ export function SettingsScreen() {
           <Row
             label={t('settings.strategyBuilder')}
             hint={settings.generatedStrategy
-              ? t('settings.strategyActive', { name: strategyName(t, settings.generatedStrategy) })
+              ? t(settings.generatedStrategy.disabled ? 'settings.strategyOff' : 'settings.strategyActive',
+                { name: strategyName(t, settings.generatedStrategy) })
               : t('settings.strategyNone')}
             onPress={isPro ? () => navigation.navigate('StrategyBuilder') : openPaywall}
             right={isPro ? null : <ProBadge />}
             chevron={isPro}
           />
+          {/* A row of its own, not a switch inside the row above: on iOS a
+              touchable row is one accessibility element and would hide it. */}
+          {settings.generatedStrategy ? (
+            <Row
+              label={t('settings.strategyCheck')}
+              hint={t(settings.generatedStrategy.disabled ? 'settings.strategyCheckOff' : 'settings.strategyCheckOn')}
+              right={(
+                <Toggle
+                  label={t('settings.strategyCheck')}
+                  value={!settings.generatedStrategy.disabled}
+                  onChange={(on) => {
+                    const { disabled: _wasOff, ...g } = settings.generatedStrategy!;
+                    updateSettings({ generatedStrategy: on ? g : { ...g, disabled: true } });
+                  }}
+                />
+              )}
+            />
+          ) : null}
         </Section>
 
         {/* 4. Everything that can ping you, in one place. */}

@@ -23,7 +23,7 @@ import { useFormatOddsRange } from '../../utils/useOdds';
 function ResultScreen({ strategy, onReset }: { strategy: GeneratedStrategy; onReset: () => void }) {
   const bottomPad = useBottomPad(40);
   const updateSettings = useBetsStore((s) => s.updateSettings);
-  const savedAt = useBetsStore((s) => s.settings.generatedStrategy?.createdAt);
+  const stored = useBetsStore((s) => s.settings.generatedStrategy);
   const tiltNow = useBetsStore((s) => effectiveTiltThreshold(s.settings));
   const limitNow = useBetsStore((s) => s.settings.dailyBetLimit);
   const { t } = useTranslation();
@@ -45,15 +45,19 @@ function ResultScreen({ strategy, onReset }: { strategy: GeneratedStrategy; onRe
   ];
 
   // Saved, the strategy is the plan the bet form checks against. The tilt alert
-  // and the daily limit live in Settings and move there only when asked: the
-  // limit is a hard stop — past it the form does not save the bet.
-  const saved = savedAt === strategy.createdAt;
+  // and the daily limit live in Settings and move there only when asked. Saved
+  // and switched off, it stays here but checks nothing (activeStrategy) — read
+  // live from the store: the prop is the copy this screen opened with.
+  const saved = stored?.createdAt === strategy.createdAt;
+  const off = saved && stored?.disabled === true;
   const limitsMatch = tiltNow === strategy.tiltThreshold && limitNow === strategy.betsPerDay;
+  // Applying is switching on: the copy this screen holds may carry the old flag.
+  const { disabled: _wasOff, ...onStrategy } = strategy;
 
   function handleApply() {
     if (limitsMatch) {
       haptic.success();
-      updateSettings({ generatedStrategy: strategy });
+      updateSettings({ generatedStrategy: onStrategy });
       return;
     }
     Alert.alert(
@@ -63,14 +67,14 @@ function ResultScreen({ strategy, onReset }: { strategy: GeneratedStrategy; onRe
         { text: t('common.cancel'), style: 'cancel' },
         ...(saved ? [] : [{
           text: t('strategy.applyOnlySave'),
-          onPress: () => { haptic.success(); updateSettings({ generatedStrategy: strategy }); },
+          onPress: () => { haptic.success(); updateSettings({ generatedStrategy: onStrategy }); },
         }]),
         {
           text: t('strategy.applyAll'),
           onPress: () => {
             haptic.success();
             updateSettings({
-              generatedStrategy: strategy,
+              generatedStrategy: onStrategy,
               tiltThreshold: strategy.tiltThreshold,
               dailyBetLimit: strategy.betsPerDay,
             });
@@ -157,7 +161,21 @@ function ResultScreen({ strategy, onReset }: { strategy: GeneratedStrategy; onRe
         <Text style={s.disclaimerText}>{t('strategy.disclaimer')}</Text>
       </View>
 
-      {saved ? (
+      {off ? (
+        <>
+          <View style={s.offBox}>
+            <Text style={s.offTitle}>{t('strategy.offState')}</Text>
+            <Text style={s.appliedHint}>{t('strategy.offHint')}</Text>
+          </View>
+          <TouchableOpacity
+            style={s.btnPrimary}
+            onPress={() => { haptic.success(); updateSettings({ generatedStrategy: onStrategy }); }}
+            activeOpacity={0.8}
+          >
+            <Text style={s.btnPrimaryText}>{t('strategy.enable')}</Text>
+          </TouchableOpacity>
+        </>
+      ) : saved ? (
         <View style={s.appliedBox}>
           <Text style={s.appliedTitle}>{t(limitsMatch ? 'strategy.appliedState' : 'strategy.savedState')}</Text>
           <Text style={s.appliedHint}>
@@ -167,9 +185,20 @@ function ResultScreen({ strategy, onReset }: { strategy: GeneratedStrategy; onRe
           </Text>
         </View>
       ) : null}
-      {!(saved && limitsMatch) ? (
+      {!off && !(saved && limitsMatch) ? (
         <TouchableOpacity style={s.btnPrimary} onPress={handleApply} activeOpacity={0.8}>
           <Text style={s.btnPrimaryText}>{t(saved ? 'strategy.moveLimits' : 'strategy.apply')}</Text>
+        </TouchableOpacity>
+      ) : null}
+      {/* Off, not deleted: the plan stops checking bets and comes back with one tap.
+          The tilt alert and the limit stay in Settings as they are. */}
+      {saved && !off ? (
+        <TouchableOpacity
+          style={[s.btnSecondary, s.btnGap]}
+          onPress={() => { haptic.selection(); updateSettings({ generatedStrategy: { ...onStrategy, disabled: true } }); }}
+          activeOpacity={0.8}
+        >
+          <Text style={s.btnSecondaryText}>{t('strategy.disable')}</Text>
         </TouchableOpacity>
       ) : null}
       <TouchableOpacity style={s.btnSecondary} onPress={onReset} activeOpacity={0.8}>
@@ -333,6 +362,11 @@ const s = themedStyles(() => ({
     borderWidth: 1, borderColor: colors.accent, marginBottom: SPACE.sm,
   },
   appliedTitle: { fontSize: SIZE.body, fontWeight: '700', color: colors.accent },
+  offBox: {
+    backgroundColor: colors.bgCard, borderRadius: RADIUS.sm, padding: SPACE.md,
+    borderWidth: 1, borderColor: colors.borderStrong, marginBottom: SPACE.sm,
+  },
+  offTitle: { fontSize: SIZE.body, fontWeight: '700', color: colors.textSecondary },
   appliedHint: { fontSize: SIZE.caption, color: colors.textSecondary, lineHeight: 18, marginTop: SPACE.xs },
   btnPrimary: {
     minHeight: TOUCH, justifyContent: 'center',
@@ -346,6 +380,7 @@ const s = themedStyles(() => ({
     borderWidth: 1, borderColor: colors.border,
   },
   btnSecondaryText: { color: colors.textSecondary, fontWeight: '600', fontSize: SIZE.body },
+  btnGap: { marginBottom: SPACE.sm },
   rationaleBox: {
     backgroundColor: colors.bgCard, borderRadius: RADIUS.sm, padding: SPACE.md,
     borderWidth: 1, borderColor: colors.border, marginBottom: SPACE.md,

@@ -151,6 +151,12 @@ export interface GeneratedStrategy {
   oddsRationale?: string;          // why this odds range
   createdAt: string;
   answers: StrategyAnswers;
+  /**
+   * Switched off by the user: kept, but nothing checks bets against it — the
+   * form, Kelly and Analytics work as with no strategy. Read the strategy that
+   * applies through `activeStrategy`, never `settings.generatedStrategy` raw.
+   */
+  disabled?: boolean;
 }
 
 /** Colour themes of the mobile app. Stored in the device's settings; restoring a backup does not change it. */

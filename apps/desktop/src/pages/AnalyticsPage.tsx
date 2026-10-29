@@ -4,7 +4,7 @@ import {
 } from 'recharts';
 import {
   calcByField, calcByOddsRange, calcByDayOfWeek, calcByHour, calcDashboard,
-  calcByTournament, calcLuck, calcPlanCompliance, RELIABLE_SAMPLE_MIN,
+  calcByTournament, calcLuck, calcPlanCompliance, activeStrategy, RELIABLE_SAMPLE_MIN,
   SPORTS, BET_TYPES, STRATEGIES, formatMoney, formatPercent, toYmd } from '@sharklog/core';
 import type { SliceStats, Bet } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
@@ -176,7 +176,8 @@ function PlanCard({ bets, allBets, onNavigate }: {
 }) {
   const { t, i18n } = useTranslation();
   const { bankroll, settings } = useBetsStore();
-  const limitPct = settings.generatedStrategy?.stakePercent ?? null;
+  // A strategy the user switched off on the phone judges nothing here either.
+  const limitPct = activeStrategy(settings)?.stakePercent ?? null;
   // Full history feeds the bank, the period slice is what gets judged.
   const plan = useMemo(
     () => (limitPct
