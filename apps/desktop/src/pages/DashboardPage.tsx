@@ -3,7 +3,7 @@ import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import type { Bet, BetStatus } from '@sharklog/core';
-import { bankCash, calcDashboard, formatMoney, formatOdds, formatPercent, isInTilt, strategyPlan, toYmd } from '@sharklog/core';
+import { activeStrategy, bankCash, calcDashboard, formatMoney, formatOdds, formatPercent, isInTilt, strategyPlan, toYmd } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
 import { useToastStore } from '../store/toastStore';
 import { colors } from '../theme/colors';
@@ -194,17 +194,21 @@ export function DashboardPage({ onNavigate }: DashboardProps = {}) {
     );
   }
 
+  // The plan the app checks by: none when switched off, odds from the answers.
+  const strategy = activeStrategy(settings);
+  const strategyNums = strategy ? strategyPlan(strategy) : undefined;
+
   return (
     <div style={s.page}>
-      {settings.generatedStrategy && (
+      {strategy && strategyNums && (
         <button
           style={s.strategyBadge}
           onClick={() => onNavigate?.('strategy')}
           title={t('dashboard.viewStrategy')}
         >
           <span>🎯</span>
-          <span>{t('dashboard.strategy')}: <strong>{settings.generatedStrategy.name}</strong></span>
-          <span style={{ fontSize: 11, opacity: 0.6 }}>· {settings.generatedStrategy.betsPerDay} {t('dashboard.betsPerDay')} · {settings.generatedStrategy.stakePercent}{t('dashboard.bankPercent')} · {strategyPlan(settings.generatedStrategy).oddsMin.toFixed(2)}–{strategyPlan(settings.generatedStrategy).oddsMax.toFixed(2)}</span>
+          <span>{t('dashboard.strategy')}: <strong>{strategy.name}</strong></span>
+          <span style={{ fontSize: 11, opacity: 0.6 }}>· {strategyNums.betsPerDay} {t('dashboard.betsPerDay')} · {strategyNums.stakePercent}{t('dashboard.bankPercent')} · {strategyNums.oddsMin.toFixed(2)}–{strategyNums.oddsMax.toFixed(2)}</span>
           <span style={{ marginLeft: 'auto', opacity: 0.5, fontSize: 12 }}>→</span>
         </button>
       )}

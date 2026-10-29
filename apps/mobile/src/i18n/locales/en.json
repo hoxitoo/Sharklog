@@ -108,8 +108,6 @@
     "limitTitle": "Limit reached",
     "limitMsg_one": "The free plan holds up to {{count}} bet. Upgrade to Pro for unlimited tracking.",
     "limitMsg_other": "The free plan holds up to {{count}} bets. Upgrade to Pro for unlimited tracking.",
-    "dailyLimitTitle": "Daily limit",
-    "dailyLimitMsg": "Today's limit: {{count}}. You can add the next bet tomorrow — or change the limit in Settings.",
     "bankShare": "{{pct}} of bank"
   },
   "dashboard": {
@@ -545,7 +543,11 @@
     "oddsFormatNote": "Each example is the same pair: an underdog and a favourite. Bets are stored in decimal; statistics do not change.",
     "restoreCurrencyMismatch": "The backup is in {{file}}, the book in {{book}}. Amounts are not converted: replacing switches the book to {{file}}; adding shows the backup's bets in {{book}}.",
     "restoreCurrencySet": "The book is now in {{currency}}, as in the backup.",
-    "importCurrencyMismatch": "Amounts in the file are in {{file}}, the book is kept in {{book}}. They are not converted: 100 {{file}} becomes 100 {{book}}."
+    "importCurrencyMismatch": "Amounts in the file are in {{file}}, the book is kept in {{book}}. They are not converted: 100 {{file}} becomes 100 {{book}}.",
+    "strategyOff": "Off: {{name}}",
+    "strategyCheck": "Check bets against the strategy",
+    "strategyCheckOn": "the bet form, Kelly and Analytics follow the plan",
+    "strategyCheckOff": "off — the strategy is kept, but bets aren't checked"
   },
   "onboarding": {
     "welcome": "Welcome",
@@ -750,7 +752,7 @@
     "planDay": "Bet #{{n}} of the day — the plan allows up to {{max}}",
     "kellyCap": "Kelly suggests more — the stake is capped at {{pct}}% of the bank",
     "kellyCapPlan": "Kelly suggests more — the plan caps the stake at {{pct}}% of the bank",
-    "planDayWall": "Daily bet limit — {{max}}: the form will not save another bet for this date. You can change it in Settings."
+    "dayLimitOver": "Bet #{{n}} of the day — your limit is {{max}}"
   },
   "checklist": {
     "tilt": "I'm not on tilt",
@@ -1048,14 +1050,18 @@
     "tiltValue_one": "{{count}} loss in a row",
     "tiltValue_other": "{{count}} losses in a row",
     "applyTitle": "Apply the plan",
-    "applyMsg": "The strategy becomes your plan: the bet form will tell you when the odds, the stake or the number of bets in a day go outside it.\n\nYou can also move it into Settings now: tilt alert — losses in a row: {{tilt}}; daily bet limit — {{limit}}, past it the form will not save a bet.",
+    "applyMsg": "The strategy becomes your plan: the bet form will tell you when the odds, the stake or the number of bets in a day go outside it.\n\nYou can also move it into Settings now: tilt alert — losses in a row: {{tilt}}; daily bet limit — {{limit}}.",
     "applyOnlySave": "Plan only",
     "applyAll": "Apply all",
     "moveLimits": "Move tilt and limit to Settings",
     "savedState": "✓ Plan saved",
     "savedHint": "The bet form will tell you when the odds, the stake or the number of bets in a day go outside the plan. The tilt alert and the limit in Settings stay as they were.",
     "appliedState": "✓ Plan applied",
-    "appliedHint": "In Settings: tilt alert — losses in a row: {{tilt}}; daily bet limit — {{limit}}. The bet form will tell you when a bet goes outside the plan."
+    "appliedHint": "In Settings: tilt alert — losses in a row: {{tilt}}; daily bet limit — {{limit}}. The bet form will tell you when a bet goes outside the plan.",
+    "disable": "Turn the strategy off",
+    "enable": "Turn the strategy on",
+    "offState": "Strategy is off",
+    "offHint": "It's kept, but bets aren't checked against it: the bet form, Kelly and Analytics work as with no strategy. The tilt alert and the limit in Settings stay as they are."
   },
   "partners": {
     "stubTitle": "This section is in progress",

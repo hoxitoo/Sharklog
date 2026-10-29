@@ -6,7 +6,7 @@ import { PieChart } from 'react-native-gifted-charts';
 import {
   calcByField, calcByOddsRange, calcByDayOfWeek, calcDashboard,
   calcStreaks, calcExtremes, calcTimeStats, calcCLV,
-  calcMaxDrawdown, calcEdge, calcPnlBuckets, calcLuck, calcPlanAdherence, strategyPlan, RELIABLE_SAMPLE_MIN,
+  calcMaxDrawdown, calcEdge, calcPnlBuckets, calcLuck, calcPlanAdherence, strategyPlan, activeStrategy, RELIABLE_SAMPLE_MIN,
   formatPercent, toYmd } from '@sharklog/core';
 import type { SliceStats, Bet, PnlBucket, Granularity, GeneratedStrategy } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
@@ -813,7 +813,8 @@ const A_PERIOD_OPTIONS: Array<{ key: APeriodFilter; label: string }> = [
 function AnalyticsContent() {
   const bottomPad = useBottomPad(SPACE.xxl);
   const bets = useBetsStore((s) => s.bets);
-  const plan = useBetsStore((s) => s.settings.generatedStrategy);
+  // Only a strategy that is switched on is judged against.
+  const plan = useBetsStore((s) => activeStrategy(s.settings));
   const { t } = useTranslation();
   const oddsFormat = useOddsFormat();
   const [period, setPeriod] = useState<APeriodFilter>('all');

@@ -17,6 +17,17 @@ export const STRATEGY_ODDS_BANDS = {
   high: [2.50, 4.00],
 } as const satisfies Record<'low' | 'mid' | 'high', readonly [number, number]>;
 
+/**
+ * The strategy bets are checked against: the saved one, unless the user
+ * switched it off. A switched-off strategy stays saved (its screen shows it and
+ * turns it back on), but the form, Kelly, Analytics and the dashboard behave
+ * as with no strategy at all.
+ */
+export function activeStrategy(s: { generatedStrategy?: GeneratedStrategy | undefined }): GeneratedStrategy | undefined {
+  const g = s.generatedStrategy;
+  return g && !g.disabled ? g : undefined;
+}
+
 /** The numbers a saved strategy plans by — everything that checks bets against it reads these. */
 export interface StrategyPlan {
   oddsMin: number;

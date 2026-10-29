@@ -13,7 +13,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { Sport, BetType, Strategy, BetStatus, EsportsDiscipline, Team, Bet } from '@sharklog/core';
 import {
   SPORTS, BET_TYPES, STRATEGIES, ESPORTS_DISCIPLINES, PICK, parseMoneyInput,
-  impliedProbability, kellyFraction, expectedValue, recommendedStake, inPlanOdds, stakeOverPlan, strategyPlan, bankAtBetTime, combineExpressOdds, formatOddsAs, CURRENT_SCHEMA_VERSION, FREE_LIMITS, calcDashboard, toYmd,
+  impliedProbability, kellyFraction, expectedValue, recommendedStake, inPlanOdds, stakeOverPlan, strategyPlan, activeStrategy, bankAtBetTime, combineExpressOdds, formatOddsAs, CURRENT_SCHEMA_VERSION, FREE_LIMITS, calcDashboard, toYmd,
 } from '@sharklog/core';
 import { useTranslation } from 'react-i18next';
 import { FilterPicker } from '../../components/FilterPicker';
@@ -599,44 +599,46 @@ export function AddBetScreen() {
   const bankAt = useMemo(() => bankAtBetTime(bets, bankroll.transactions), [bets, bankroll.transactions]);
   const bankTotal = bankAt(watchedDate) ?? 0;
   const bankShare = bankTotal > 0 && stakeKopecks > 0 ? (stakeKopecks / bankTotal) * 100 : null;
-  // The plan's numbers — odds from the strategy's answers (strategyPlan).
-  const plan = useMemo(
-    () => (settings.generatedStrategy ? strategyPlan(settings.generatedStrategy) : undefined),
-    [settings.generatedStrategy],
-  );
+  // The plan's numbers — odds from the strategy's answers (strategyPlan) — and
+  // none at all when the user switched the strategy off (activeStrategy).
+  const strategy = activeStrategy(settings);
+  const plan = useMemo(() => (strategy ? strategyPlan(strategy) : undefined), [strategy]);
   const strategyLimit = plan?.stakePercent ?? null;
   // A freebet is not own money: the plan does not judge it (nor does Analytics).
   const overLimit = !isFreebet && bankShare != null && strategyLimit != null
     && stakeOverPlan(stakeKopecks, bankTotal, strategyLimit);
   const fmtOddsRange = useFormatOddsRange();
-  // Bets already on the chosen day: a new bet past the plan's bets per day is
-  // said before it is saved. Edits are not counted — the bet is one of them.
+  // Bets already on the chosen day: a new bet past a daily limit is said before
+  // it is saved. Edits are not counted — the bet is one of them.
   const dayCount = useMemo(
     () => (editBet ? 0 : bets.filter((b) => b.date === watchedDate).length),
     [bets, watchedDate, editBet],
   );
-  // The daily limit in Settings IS a wall (canAddBet, for the same date): said
-  // up front, not first at "Save" after the whole form was filled in.
+  // The daily limit in Settings is a WARNING, not a wall: a bet already placed
+  // at the bookmaker belongs in the book — refusing it made the tracker lie.
   const dailyLimit = effectiveDailyLimit(settings);
-  const atDailyWall = !editBet && dailyLimit > 0 && dayCount >= dailyLimit;
+  const overDailyLimit = !editBet && dailyLimit > 0 && dayCount + 1 > dailyLimit;
   // The plan judges bets from the day it was built — the card in Analytics too.
-  const planSince = settings.generatedStrategy ? toYmd(new Date(settings.generatedStrategy.createdAt)) : '';
+  const planSince = strategy ? toYmd(new Date(strategy.createdAt)) : '';
 
   // Same rounding the bet is saved with, so the preview cannot promise a payout
   // the stored bet will not produce.
   const expressOdds = legsUntouched && source ? source.odds : combineExpressOdds(legs.map(legPrice));
 
   const activeOdds = isSingle ? singleOdds : expressOdds;
-  // The plan's other two numbers, said at the moment of the decision like the
-  // stake share: a warning, not a wall — the hard stop is the daily limit in
-  // Settings, and only when the user moved it there. The odds range is a
-  // single's price: an accumulator's total is its legs multiplied.
+  // The day's limit and the plan's other two numbers, said at the moment of the
+  // decision like the stake share. All warnings — none stops the save. The odds
+  // range is a single's price: an accumulator's total is its legs multiplied.
   const planNotes: string[] = [];
   const planApplies = plan != null && watchedDate >= planSince;
+  if (overDailyLimit) {
+    planNotes.push(t('addBet.dayLimitOver', { n: dayCount + 1, max: dailyLimit }));
+  }
   if (plan && planApplies && isSingle && activeOdds > 1 && !inPlanOdds(activeOdds, plan, oddsFormat)) {
     planNotes.push(t('addBet.planOdds', { min: fmtOddsRange(plan.oddsMin), max: fmtOddsRange(plan.oddsMax) }));
   }
-  if (plan && planApplies && !editBet && !atDailyWall && plan.betsPerDay > 0 && dayCount + 1 > plan.betsPerDay) {
+  // One line per day, not two: the Settings limit, when it is over, says it.
+  if (plan && planApplies && !editBet && !overDailyLimit && plan.betsPerDay > 0 && dayCount + 1 > plan.betsPerDay) {
     planNotes.push(t('addBet.planDay', { n: dayCount + 1, max: plan.betsPerDay }));
   }
   const potentialProfit = activeOdds > 1 && stakeKopecks > 0
@@ -663,13 +665,9 @@ export function AddBetScreen() {
       return;
     }
 
-    if (!editBet && !canAddBet(data.date)) {
-      // Same two walls, same words as the "+" button in the drawer.
-      if (settings.isPro) {
-        Alert.alert(t('bet.dailyLimitTitle'), t('bet.dailyLimitMsg', { count: dailyLimit }));
-      } else {
-        Alert.alert(t('bet.limitTitle'), t('bet.limitMsg', { count: FREE_LIMITS.MAX_BETS }));
-      }
+    if (!editBet && !canAddBet()) {
+      // The one wall, same words as the "+" in the drawer: Free has used its bets.
+      Alert.alert(t('bet.limitTitle'), t('bet.limitMsg', { count: FREE_LIMITS.MAX_BETS }));
       return;
     }
 
@@ -1076,12 +1074,6 @@ export function AddBetScreen() {
                 </Text>
               )}
             </View>
-          </View>
-        )}
-
-        {atDailyWall && (
-          <View style={styles.dayWall}>
-            <Text style={styles.dayWallText}>{t('addBet.planDayWall', { max: dailyLimit })}</Text>
           </View>
         )}
 
@@ -1721,11 +1713,6 @@ const styles = themedStyles(() => ({
     backgroundColor: signalTint(colors.pending, 0.094), borderWidth: 1, borderColor: signalTint(colors.pending, 0.333),
   },
   planNoteText: { fontSize: SIZE.caption, fontWeight: '600', color: signalInk(colors.pending) },
-  dayWall: {
-    marginBottom: SPACE.lg, padding: SPACE.md, borderRadius: RADIUS.md,
-    backgroundColor: signalTint(colors.lost, 0.094), borderWidth: 1, borderColor: signalTint(colors.lost, 0.333),
-  },
-  dayWallText: { fontSize: SIZE.caption, fontWeight: '600', color: signalInk(colors.lost) },
   outcomePicker: {
     flexDirection: 'row',
     gap: SPACE.sm,

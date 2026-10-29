@@ -78,13 +78,13 @@ describe('canAddBet – PRO daily limit', () => {
     expect(useBetsStore.getState().canAddBet()).toBe(true);
   });
 
-  it('blocks when daily limit is reached', () => {
+  it('does not refuse a bet past the daily limit — the form warns instead', () => {
     const bets = Array.from({ length: 5 }, () => makeBet({ date: today }));
     useBetsStore.setState({
       bets,
       settings: { ...defaultSettings, isPro: true, dailyBetLimit: 5, onboardingComplete: true },
     });
-    expect(useBetsStore.getState().canAddBet()).toBe(false);
+    expect(useBetsStore.getState().canAddBet()).toBe(true);
   });
 
   it('does not count yesterday bets against today limit', () => {

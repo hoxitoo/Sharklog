@@ -59,51 +59,28 @@ describe('canAddBet – free tier', () => {
   });
 });
 
-// ─── canAddBet – PRO daily limit ─────────────────────────────────────────────
+// ─── PRO daily limit: a warning, not a wall ──────────────────────────────────
 
-describe('canAddBet – PRO daily limit', () => {
+describe('PRO daily limit', () => {
   const today = toYmd(new Date());
 
-  it('allows first bet of the day when limit is 5', () => {
-    useBetsStore.setState({ settings: { ...defaultSettings, isPro: true, dailyBetLimit: 5, onboardingComplete: true } });
-    expect(useBetsStore.getState().canAddBet()).toBe(true);
-  });
-
-  it('blocks when daily limit reached', () => {
+  it('never refuses a bet — a bet placed at the bookmaker belongs in the book', () => {
+    // It used to: past the limit the "+" refused and the form would not save,
+    // so a bet that was already placed could not be recorded at all.
     const bets = Array.from({ length: 5 }, () => makeBet({ date: today }));
-    useBetsStore.setState({ bets, settings: { ...defaultSettings, isPro: true, dailyBetLimit: 5, onboardingComplete: true } });
-    expect(useBetsStore.getState().canAddBet()).toBe(false);
-  });
-
-  it('ignores yesterday bets for today limit', () => {
-    const yesterday = toYmd(new Date(Date.now() - 86_400_000));
-    const bets = Array.from({ length: 5 }, () => makeBet({ date: yesterday }));
-    useBetsStore.setState({ bets, settings: { ...defaultSettings, isPro: true, dailyBetLimit: 5, onboardingComplete: true } });
+    useBetsStore.setState({ bets, settings: { ...defaultSettings, isPro: true, dailyBetLimit: 1, onboardingComplete: true } });
     expect(useBetsStore.getState().canAddBet()).toBe(true);
   });
 
-  it('unlimited when dailyBetLimit is 0', () => {
-    const bets = Array.from({ length: 100 }, () => makeBet({ date: today }));
-    useBetsStore.setState({ bets, settings: { ...defaultSettings, isPro: true, dailyBetLimit: 0, onboardingComplete: true } });
-    expect(useBetsStore.getState().canAddBet()).toBe(true);
-  });
-
-  it('judges a backdated bet by its own day, not by a full today', () => {
-    // A strategy's "apply all" can set the limit to 1: a forgotten bet from
-    // yesterday was refused with "today's limit" once today had one bet.
-    const yesterday = toYmd(new Date(Date.now() - 86_400_000));
-    useBetsStore.setState({
-      bets: [makeBet({ date: today })],
-      settings: { ...defaultSettings, isPro: true, dailyBetLimit: 1, onboardingComplete: true },
-    });
-    expect(useBetsStore.getState().canAddBet()).toBe(false);
-    expect(useBetsStore.getState().canAddBet(today)).toBe(false);
-    expect(useBetsStore.getState().canAddBet(yesterday)).toBe(true);
-  });
-
-  it('is Pro\'s alone — a lapsed Pro keeps the setting, Free never meets the wall', () => {
+  it('is Pro\'s alone — a lapsed Pro keeps the setting, Free never meets it', () => {
     expect(effectiveDailyLimit({ isPro: true, dailyBetLimit: 2 })).toBe(2);
     expect(effectiveDailyLimit({ isPro: false, dailyBetLimit: 2 })).toBe(0);
+  });
+
+  it('leaves the Free cap the only wall', () => {
+    const bets = Array.from({ length: 50 }, () => makeBet());
+    useBetsStore.setState({ bets, settings: { ...defaultSettings, isPro: false, dailyBetLimit: 3, onboardingComplete: true } });
+    expect(useBetsStore.getState().canAddBet()).toBe(false);
   });
 });
 

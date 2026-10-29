@@ -10,7 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { dateLocale } from '../../i18n';
 import { txNoteLabel } from '../../utils/labels';
 import type { ChartSeries } from '../../components/BalanceChart';
-import { TX_NOTE, calcDashboard, parseMoneyInput, kellyFraction, recommendedStake, expectedValue, parseOdds, impliedProbability, calcDailyBreakdown, currentBank, pendingExposure } from '@sharklog/core';
+import { TX_NOTE, calcDashboard, parseMoneyInput, kellyFraction, recommendedStake, activeStrategy, expectedValue, parseOdds, impliedProbability, calcDailyBreakdown, currentBank, pendingExposure } from '@sharklog/core';
 
 /** How much of the history the screen shows before asking. */
 const TX_PREVIEW = 5;
@@ -62,7 +62,7 @@ function KellyCalculator({ bankroll }: { bankroll: number }) {
   const { t } = useTranslation();
   // A saved strategy sizes by its own Kelly share, capped at its stake — the
   // same stake the bet form's Kelly gives, so the two never disagree.
-  const plan = useBetsStore((s) => s.settings.generatedStrategy);
+  const plan = useBetsStore((s) => activeStrategy(s.settings));
   const fmt = useFormatMoney();
   const oddsFormat = useOddsFormat();
   const [odds, setOdds] = useState('');
