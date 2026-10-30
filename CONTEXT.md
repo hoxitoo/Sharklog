@@ -2,6 +2,8 @@
 
 Read this at the start of every session. Always develop on `claude/busy-shannon-jQgRK`, never push to `main` directly.
 
+> Старый обзор. Основной и актуальный источник правил — `CLAUDE.md`; при расхождении прав он.
+
 ---
 
 ## Monorepo
@@ -48,7 +50,8 @@ apps/mobile/src/
     SettingsScreen/          — Stepper для PRO настроек, paywall modal, clearAll, export, notifications,
                                "Билдер стратегий" кнопка для PRO → navigate('StrategyBuilder')
     OnboardingScreen/        — 3 шага: welcome (logo image) → стартовый банкролл → букмекеры
-    StrategyBuilderScreen/   — PRO: прогресс-бар + 10 вопросов + результат + "Применить стратегию"
+    StrategyBuilderScreen/   — PRO: прогресс-бар + 10 вопросов + результат + "Применить стратегию" (только план / + тилт и лимит в Настройки),
+                               «Отключить / Включить стратегию»
   components/
     ErrorBoundary.tsx        — React class component; friendly RN error screen + reload button
     ProGate.tsx              — пейвол с реальными RC offerings (monthly/annual), restore
@@ -239,13 +242,13 @@ interface BankrollTransaction {
 
 interface AppSettings {
   tiltThreshold: number;          // Free: фикс 3 / PRO: stepper 2–10
-  dailyBetLimit: number;          // 0 = нет лимита (только PRO); enforced в canAddBet()
+  dailyBetLimit: number;          // 0 = нет лимита (только PRO); ПРЕДУПРЕЖДЕНИЕ в форме, ставку не блокирует
   bookmakers: string[];
   isPro: boolean;
   onboardingComplete: boolean;
   reminderHour: number;           // час ежедневного напоминания (PRO: stepper 6–23)
   roundAmounts: boolean;          // округлять суммы до целых рублей (0 знаков после запятой)
-  generatedStrategy?: GeneratedStrategy;  // PRO: сохранённая стратегия
+  generatedStrategy?: GeneratedStrategy;  // PRO: сохранённая стратегия; действующая — только activeStrategy(settings)
   schemaVersion: number;
 }
 
@@ -262,6 +265,7 @@ interface GeneratedStrategy {
   sportAdvice: string;
   createdAt: string;
   answers: StrategyAnswers;
+  disabled?: boolean;             // выключена пользователем: сохранена, но ставки с ней не сверяются
   // Rich output (6 optional fields добавлены для детального результата)
   rationale?: string;
   keyPrinciples?: string[];
@@ -307,7 +311,7 @@ interface TeamStats {
 5. **exactOptionalPropertyTypes: true**: `prop={undefined}` → ошибка. Используй `{...(x ? { prop: x } : {})}`.
 6. **PRO gate (mobile)**: любой PRO-контент через `<ProGate feature="...">`.
 7. **clearAll()**: сбрасывает bets/diary/teams/bankroll, сохраняет `onboardingComplete: true`.
-8. **canAddBet()**: false если Free && bets >= FREE_LIMITS.MAX_BETS; false если Pro && dailyBetLimit > 0 && todayBets >= limit.
+8. **canAddBet()**: false ТОЛЬКО если Free && bets >= FREE_LIMITS.MAX_BETS. Дневной лимит Pro — предупреждение в форме (`effectiveDailyLimit`), ставка сохраняется.
 9. **Period filter**: `b.date > cutoffStr` (НЕ `>=`) — иначе off-by-one (8 дней вместо 7).
 10. **formatPercent()**: уже добавляет `+` для положительных значений — не добавляй префикс вручную.
 11. **Onboarding**: новые пользователи видят OnboardingPage; существующие пользователи — `onboardingComplete ?? true` при load().
