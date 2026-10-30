@@ -3,6 +3,7 @@ import type {
   StrategyGoal, StrategyRisk, StrategyExperience,
   Strategy, BetType,
 } from '../types/bet';
+import { toYmd } from './daily';
 
 // ── Odds bands ──────────────────────────────────────────────────────────────
 //
@@ -26,6 +27,17 @@ export const STRATEGY_ODDS_BANDS = {
 export function activeStrategy(s: { generatedStrategy?: GeneratedStrategy | undefined }): GeneratedStrategy | undefined {
   const g = s.generatedStrategy;
   return g && !g.disabled ? g : undefined;
+}
+
+/**
+ * The first day the plan judges bets (YYYY-MM-DD, local): the day it was built,
+ * or the day it was last switched back on — whichever is later. Bets placed
+ * while it was off were told they are not checked; turning it on again must
+ * not count them as broken. The bet form and the analytics card ask this.
+ */
+export function strategySince(s: Pick<GeneratedStrategy, 'createdAt' | 'enabledAt'>): string {
+  const from = s.enabledAt && s.enabledAt > s.createdAt ? s.enabledAt : s.createdAt;
+  return toYmd(new Date(from));
 }
 
 /** The numbers a saved strategy plans by — everything that checks bets against it reads these. */

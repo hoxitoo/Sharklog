@@ -865,7 +865,10 @@ export function SettingsScreen() {
                   value={!settings.generatedStrategy.disabled}
                   onChange={(on) => {
                     const { disabled: _wasOff, ...g } = settings.generatedStrategy!;
-                    updateSettings({ generatedStrategy: on ? g : { ...g, disabled: true } });
+                    // Switched back on, it judges bets from now (strategySince).
+                    updateSettings({
+                      generatedStrategy: on ? { ...g, enabledAt: new Date().toISOString() } : { ...g, disabled: true },
+                    });
                   }}
                 />
               )}

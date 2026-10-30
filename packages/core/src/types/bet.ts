@@ -157,6 +157,12 @@ export interface GeneratedStrategy {
    * applies through `activeStrategy`, never `settings.generatedStrategy` raw.
    */
   disabled?: boolean;
+  /**
+   * When it was last switched back on. Bets placed while it was off were told
+   * "not checked", so the plan judges from here, not from `createdAt`
+   * (`strategySince`).
+   */
+  enabledAt?: string;
 }
 
 /** Colour themes of the mobile app. Stored in the device's settings; restoring a backup does not change it. */

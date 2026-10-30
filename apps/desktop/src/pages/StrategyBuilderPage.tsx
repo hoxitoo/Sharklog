@@ -139,12 +139,13 @@ export function StrategyBuilderPage() {
     }
   }
 
+  // Rebuilding keeps the saved strategy until a new one is applied, as on the
+  // phone: deleting it at the tap left no plan when the questions were abandoned.
   function handleReset() {
     setStep(0);
     setAnswers({});
     setResult(null);
     setBuilding(true);
-    updateSettings({ ...({} as any), generatedStrategy: undefined });
   }
 
   if (!settings.isPro) {

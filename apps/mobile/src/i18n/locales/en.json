@@ -272,8 +272,8 @@
     "planStakeInfo": "The share is taken from the bank at the start of the bet's day — as it stood when the bet was placed. Free bets and bets before the first deposit are not judged.",
     "planDays": "Days within limit",
     "planDaysSub": "per day — up to {{n}}",
-    "planSince": "Since {{date}}, when the plan was built",
-    "planEmpty": "The plan was built on {{date}} — no bets since then in this period."
+    "planSince": "Since {{date}}, when the plan took effect",
+    "planEmpty": "The plan has been in effect since {{date}} — no bets since then in this period."
   },
   "insights": {
     "title": "Insights",

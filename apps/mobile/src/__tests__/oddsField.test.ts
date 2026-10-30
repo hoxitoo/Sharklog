@@ -92,6 +92,14 @@ describe('odds fields in the user\'s format', () => {
     expect(applyBetsQuery([bet(1.14)], { ...EMPTY_BETS_QUERY, oddsTo: '0.14' }, 'hongkong')).toHaveLength(1);
   });
 
+  it('filters decimal by the price the card shows too', () => {
+    // Typed as American "-110", stored 1.9090…; switched to decimal the card
+    // reads "× 1.91", and "from 1.91" dropped it.
+    const typed = parseOdds('-110', 'american')!;
+    expect(applyBetsQuery([bet(typed)], { ...EMPTY_BETS_QUERY, oddsFrom: '1.91' })).toHaveLength(1);
+    expect(applyBetsQuery([bet(typed)], { ...EMPTY_BETS_QUERY, oddsFrom: '1.92' })).toHaveLength(0);
+  });
+
   it('agrees with core on what a typed price is', () => {
     expect(readOddsField('−200', 'american')).toBe(parseOdds('-200', 'american'));
   });
