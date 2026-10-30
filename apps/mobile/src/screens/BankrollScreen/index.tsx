@@ -10,7 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { dateLocale } from '../../i18n';
 import { txNoteLabel } from '../../utils/labels';
 import type { ChartSeries } from '../../components/BalanceChart';
-import { TX_NOTE, calcDashboard, parseMoneyInput, kellyFraction, recommendedStake, activeStrategy, expectedValue, parseOdds, impliedProbability, calcDailyBreakdown, currentBank, pendingExposure } from '@sharklog/core';
+import { TX_NOTE, calcDashboard, parseMoneyInput, kellyFraction, recommendedStake, activeStrategy, bankAtBetTime, toYmd, expectedValue, parseOdds, impliedProbability, calcDailyBreakdown, currentBank, pendingExposure } from '@sharklog/core';
 
 /** How much of the history the screen shows before asking. */
 const TX_PREVIEW = 5;
@@ -61,8 +61,17 @@ const STEP_SLOP = hitSlopFor(28);
 function KellyCalculator({ bankroll }: { bankroll: number }) {
   const { t } = useTranslation();
   // A saved strategy sizes by its own Kelly share, capped at its stake — the
-  // same stake the bet form's Kelly gives, so the two never disagree.
+  // same stake the bet form's Kelly gives, so the two never disagree. That
+  // takes the same BANK too: the form's, the start of today's (bankAtBetTime).
+  // Sized from the bank of this minute, a stake after a win the same day was
+  // one the form then called over the plan's limit.
   const plan = useBetsStore((s) => activeStrategy(s.settings));
+  const allBets = useBetsStore((s) => s.bets);
+  const transactions = useBetsStore((s) => s.bankroll.transactions);
+  const planBank = useMemo(
+    () => (plan ? bankAtBetTime(allBets, transactions)(toYmd(new Date())) ?? 0 : 0),
+    [plan, allBets, transactions],
+  );
   const fmt = useFormatMoney();
   const oddsFormat = useOddsFormat();
   const [odds, setOdds] = useState('');
@@ -77,8 +86,8 @@ function KellyCalculator({ bankroll }: { bankroll: number }) {
   const ev = !isNaN(oddsNum) && !isNaN(probNum) ? expectedValue(oddsNum, probNum) : null;
   const implied = !isNaN(oddsNum) ? impliedProbability(oddsNum) * 100 : null;
   const halfKellyStake = kelly !== null && bankroll > 0 ? Math.round((kelly / 2) * bankroll) : null;
-  const planStake = plan && kelly !== null && bankroll > 0
-    ? recommendedStake(bankroll, oddsNum, probNum, plan.stakePercent / 100, plan.kellyMultiplier)
+  const planStake = plan && kelly !== null && planBank > 0
+    ? recommendedStake(planBank, oddsNum, probNum, plan.stakePercent / 100, plan.kellyMultiplier)
     : null;
 
   return (

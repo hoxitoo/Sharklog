@@ -176,7 +176,7 @@ function PlanCard({ bets, allBets, onNavigate }: {
 }) {
   const { t, i18n } = useTranslation();
   const { bankroll, settings } = useBetsStore();
-  // A strategy the user switched off on the phone judges nothing here either.
+  // A switched-off strategy judges nothing (activeStrategy), the same rule as on the phone.
   const limitPct = activeStrategy(settings)?.stakePercent ?? null;
   // Full history feeds the bank, the period slice is what gets judged.
   const plan = useMemo(

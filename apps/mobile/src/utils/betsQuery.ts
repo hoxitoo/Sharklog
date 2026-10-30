@@ -86,8 +86,10 @@ export function applyBetsQuery(bets: Bet[], q: BetsQuery, format: OddsFormat = '
     if (team && !betBacksTeam(b, team, { partial: true })) return false;
     if (lo != null || hi != null) {
       // Compared as the card shows it: a 1.09 reads "-1111", and "from -1111"
-      // (1.09001) must not exclude the very bet whose card says -1111.
-      const odds = format === 'decimal' ? b.odds : (parseOdds(formatOddsAs(b.odds, format), format) ?? b.odds);
+      // (1.09001) must not exclude the very bet whose card says -1111. Decimal
+      // too: a price typed as "-110" is stored as 1.909…, its card reads
+      // "× 1.91", and "from 1.91" must keep it.
+      const odds = parseOdds(formatOddsAs(b.odds, format), format) ?? b.odds;
       if (lo != null && odds < lo) return false;
       if (hi != null && odds > hi) return false;
     }

@@ -6,7 +6,7 @@ import { PieChart } from 'react-native-gifted-charts';
 import {
   calcByField, calcByOddsRange, calcByDayOfWeek, calcDashboard,
   calcStreaks, calcExtremes, calcTimeStats, calcCLV,
-  calcMaxDrawdown, calcEdge, calcPnlBuckets, calcLuck, calcPlanAdherence, strategyPlan, activeStrategy, RELIABLE_SAMPLE_MIN,
+  calcMaxDrawdown, calcEdge, calcPnlBuckets, calcLuck, calcPlanAdherence, strategyPlan, strategySince, activeStrategy, RELIABLE_SAMPLE_MIN,
   formatPercent, toYmd } from '@sharklog/core';
 import type { SliceStats, Bet, PnlBucket, Granularity, GeneratedStrategy } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
@@ -394,7 +394,8 @@ function PlanCard({ bets, period, strategy }: { bets: Bet[]; period: Bet[]; stra
   const oddsFormat = useOddsFormat();
   const transactions = useBetsStore((s) => s.bankroll.transactions);
   const plan = useMemo(() => strategyPlan(strategy), [strategy]);
-  const since = toYmd(new Date(strategy.createdAt));
+  // From the day the plan took effect — built, or switched back on (strategySince).
+  const since = strategySince(strategy);
   const evaluate = useMemo(() => period.filter((b) => b.date >= since), [period, since]);
   const a = useMemo(
     () => calcPlanAdherence(bets, transactions, plan, { evaluate, format: oddsFormat }),

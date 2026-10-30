@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import type { Bet, BankrollTransaction, StrategyAnswers } from '../types/bet';
-import { STRATEGY_QUESTIONS, STRATEGY_ODDS_BANDS, activeStrategy, buildStrategy, strategyPlan, strategyTextIds } from '../utils/strategyBuilder';
-import { calcPlanAdherence, calcPlanCompliance, inPlanOdds, stakeOverPlan } from '../utils/analytics';
+import { STRATEGY_QUESTIONS, STRATEGY_ODDS_BANDS, activeStrategy, buildStrategy, strategyPlan, strategySince, strategyTextIds } from '../utils/strategyBuilder';
+import { toYmd } from '../utils/daily';
+import { bankAtBetTime, calcPlanAdherence, calcPlanCompliance, inPlanOdds, stakeOverPlan } from '../utils/analytics';
+import { currentBank } from '../utils/stats';
 import { parseOdds } from '../utils/oddsFormat';
 import { halfKelly, recommendedStake } from '../utils/kelly';
 
@@ -62,6 +64,17 @@ describe('the plan says what the question offered', () => {
     expect(activeStrategy({ generatedStrategy: { ...g, disabled: true } })).toBeUndefined();
     expect(activeStrategy({ generatedStrategy: { ...g, disabled: false } })).toEqual({ ...g, disabled: false });
     expect(activeStrategy({})).toBeUndefined();
+  });
+
+  it('judges from the day it was built, or switched back on — whichever is later', () => {
+    // Off from the 10th to the 21st, the form said bets were not checked;
+    // switched on again, Analytics counted those very bets as breaking it.
+    const built = { createdAt: '2026-10-01T10:00:00.000Z' };
+    expect(strategySince(built)).toBe(toYmd(new Date(built.createdAt)));
+    const reOn = { ...built, enabledAt: '2026-10-21T10:00:00.000Z' };
+    expect(strategySince(reOn)).toBe(toYmd(new Date(reOn.enabledAt)));
+    // A stale switch-on before a rebuild does not move the start back.
+    expect(strategySince({ createdAt: reOn.enabledAt, enabledAt: built.createdAt })).toBe(toYmd(new Date(reOn.enabledAt)));
   });
 
   it('makes no claim it cannot back and promises no income', () => {
@@ -151,6 +164,23 @@ describe('plan adherence', () => {
     const a = calcPlanAdherence([bet({ betType: 'express', odds: 1.96 }), bet({ odds: 1.5 })], [deposit(100_000_00)],
       { oddsMin: 1.3, oddsMax: 1.7, stakePercent: 2, betsPerDay: 2 })!;
     expect([a.oddsWithin, a.oddsTotal]).toEqual([1, 1]);
+  });
+
+  it('counts a Kelly stake sized from the bank at the start of the day as within', () => {
+    // The Bankroll screen sized Kelly from the bank of this minute: after a
+    // win the same day it recommended 300, and the form and this card then
+    // called that stake over the plan. Both screens now size from the day's start.
+    const win = bet({ date: '2026-08-02', stake: 5_000_00, odds: 2, status: 'won' });
+    const txs = [deposit(10_000_00)];
+    const planK = { kellyMultiplier: 0.5, stakePercent: 2 };
+    const startBank = bankAtBetTime([win], txs)('2026-08-02')!;
+    const sized = recommendedStake(startBank, 2, 0.6, planK.stakePercent / 100, planK.kellyMultiplier);
+    const placed = bet({ date: '2026-08-02', stake: sized, status: 'pending' });
+    const a = calcPlanAdherence([win, placed], txs, { ...plan, stakePercent: 2 }, { evaluate: [placed] })!;
+    expect([a.stakeWithin, a.stakeTotal]).toEqual([1, 1]);
+    // From the bank of this minute it would not have been.
+    const fromNow = recommendedStake(currentBank(txs, [win]), 2, 0.6, 0.02, 0.5);
+    expect(stakeOverPlan(fromNow, startBank, 2)).toBe(true);
   });
 
   it('judges the stake as calcPlanCompliance does', () => {

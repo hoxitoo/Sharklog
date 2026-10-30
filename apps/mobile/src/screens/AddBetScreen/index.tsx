@@ -13,7 +13,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { Sport, BetType, Strategy, BetStatus, EsportsDiscipline, Team, Bet } from '@sharklog/core';
 import {
   SPORTS, BET_TYPES, STRATEGIES, ESPORTS_DISCIPLINES, PICK, parseMoneyInput,
-  impliedProbability, kellyFraction, expectedValue, recommendedStake, inPlanOdds, stakeOverPlan, strategyPlan, activeStrategy, bankAtBetTime, combineExpressOdds, formatOddsAs, CURRENT_SCHEMA_VERSION, FREE_LIMITS, calcDashboard, toYmd,
+  impliedProbability, kellyFraction, expectedValue, recommendedStake, inPlanOdds, stakeOverPlan, strategyPlan, strategySince, activeStrategy, bankAtBetTime, combineExpressOdds, formatOddsAs, CURRENT_SCHEMA_VERSION, FREE_LIMITS, calcDashboard, toYmd,
 } from '@sharklog/core';
 import { useTranslation } from 'react-i18next';
 import { FilterPicker } from '../../components/FilterPicker';
@@ -603,7 +603,12 @@ export function AddBetScreen() {
   // none at all when the user switched the strategy off (activeStrategy).
   const strategy = activeStrategy(settings);
   const plan = useMemo(() => (strategy ? strategyPlan(strategy) : undefined), [strategy]);
-  const strategyLimit = plan?.stakePercent ?? null;
+  // The plan judges bets from the day it took effect (built, or switched back
+  // on) — the card in Analytics too. A bet dated before it is not judged at
+  // all: not its stake, not its odds, not its day; Kelly sizes it as with no plan.
+  const planSince = strategy ? strategySince(strategy) : '';
+  const planApplies = plan != null && watchedDate >= planSince;
+  const strategyLimit = plan && planApplies ? plan.stakePercent : null;
   // A freebet is not own money: the plan does not judge it (nor does Analytics).
   const overLimit = !isFreebet && bankShare != null && strategyLimit != null
     && stakeOverPlan(stakeKopecks, bankTotal, strategyLimit);
@@ -618,8 +623,6 @@ export function AddBetScreen() {
   // at the bookmaker belongs in the book — refusing it made the tracker lie.
   const dailyLimit = effectiveDailyLimit(settings);
   const overDailyLimit = !editBet && dailyLimit > 0 && dayCount + 1 > dailyLimit;
-  // The plan judges bets from the day it was built — the card in Analytics too.
-  const planSince = strategy ? toYmd(new Date(strategy.createdAt)) : '';
 
   // Same rounding the bet is saved with, so the preview cannot promise a payout
   // the stored bet will not produce.
@@ -630,7 +633,6 @@ export function AddBetScreen() {
   // decision like the stake share. All warnings — none stops the save. The odds
   // range is a single's price: an accumulator's total is its legs multiplied.
   const planNotes: string[] = [];
-  const planApplies = plan != null && watchedDate >= planSince;
   if (overDailyLimit) {
     planNotes.push(t('addBet.dayLimitOver', { n: dayCount + 1, max: dailyLimit }));
   }
@@ -1102,7 +1104,7 @@ export function AddBetScreen() {
           <KellyHelper
             odds={singleOdds}
             bankKopecks={bankTotal}
-            plan={plan}
+            plan={planApplies ? plan : undefined}
             onApply={(v) => { setValue('stake', v); haptic.success(); }}
           />
         )}

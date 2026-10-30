@@ -51,8 +51,12 @@ function ResultScreen({ strategy, onReset }: { strategy: GeneratedStrategy; onRe
   const saved = stored?.createdAt === strategy.createdAt;
   const off = saved && stored?.disabled === true;
   const limitsMatch = tiltNow === strategy.tiltThreshold && limitNow === strategy.betsPerDay;
-  // Applying is switching on: the copy this screen holds may carry the old flag.
-  const { disabled: _wasOff, ...onStrategy } = strategy;
+  // Writes start from the LIVE saved copy when there is one: the prop is the
+  // copy this screen opened with, and writing it back would drop a switch-on
+  // date set since. Applying is switching on, so the off flag goes.
+  const { disabled: _wasOff, ...onStrategy } = saved && stored ? stored : strategy;
+  // Switched back on: bets placed while it was off are not judged (strategySince).
+  const switchOn = () => updateSettings({ generatedStrategy: { ...onStrategy, enabledAt: new Date().toISOString() } });
 
   function handleApply() {
     if (limitsMatch) {
@@ -169,7 +173,7 @@ function ResultScreen({ strategy, onReset }: { strategy: GeneratedStrategy; onRe
           </View>
           <TouchableOpacity
             style={s.btnPrimary}
-            onPress={() => { haptic.success(); updateSettings({ generatedStrategy: onStrategy }); }}
+            onPress={() => { haptic.success(); switchOn(); }}
             activeOpacity={0.8}
           >
             <Text style={s.btnPrimaryText}>{t('strategy.enable')}</Text>
@@ -278,15 +282,17 @@ function WizardScreen({ onDone }: { onDone: (strategy: GeneratedStrategy) => voi
 
 export function StrategyBuilderScreen() {
   const settings = useBetsStore((s) => s.settings);
-  const updateSettings = useBetsStore((s) => s.updateSettings);
   const [result, setResult] = useState<GeneratedStrategy | null>(settings.generatedStrategy ?? null);
   const [building, setBuilding] = useState(!settings.generatedStrategy);
   const { t } = useTranslation();
 
+  // Rebuilding does not delete the saved strategy: it keeps working until a
+  // new one is applied. Deleting it at the tap left no plan at all when the
+  // ten questions were abandoned half-way — and the button sits right under
+  // "Turn the strategy off".
   function handleReset() {
     setResult(null);
     setBuilding(true);
-    updateSettings({ generatedStrategy: undefined as any });
   }
 
   function handleDone(strategy: GeneratedStrategy) {
