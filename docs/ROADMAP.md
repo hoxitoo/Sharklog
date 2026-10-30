@@ -31,7 +31,7 @@ _Обновлено: 2026-10-19 (RuStore: оплата через Робокас
 - Haptic feedback: selection/light/medium/heavy/success/warning/error (expo-haptics)
 - BetsScreen: sort (date↓/date↑/odds↓/stake↓) + status filter (scrollable) + haptics
 - AddBetScreen: Kelly calculator — implied prob, my estimate stepper, EV, half-kelly, "Применить"
-- canAddBet() enforces PRO daily bet limit с contextual Alert
+- canAddBet() enforces PRO daily bet limit с contextual Alert (с 2026-10-29 лимит — предупреждение в форме, не запрет)
 
 ### Инфраструктура
 - RevenueCat: real paywall, purchase, restore, syncEntitlement (safe — no downgrade on network fail)
