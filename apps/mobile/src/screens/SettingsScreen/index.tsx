@@ -368,7 +368,7 @@ export function SettingsScreen() {
   // ── Data ────────────────────────────────────────────────────────────────────
 
   async function handleBackupJSON() {
-    const { bets: allBets, bankroll, diary, teams } = useBetsStore.getState();
+    const { bets: allBets, bankroll, diary, teams, goals } = useBetsStore.getState();
     const { isPro: _ip, proExpiresAt: _pe, ...exportableSettings } = settings;
     const backup = JSON.stringify({
       version: CURRENT_SCHEMA_VERSION,
@@ -378,6 +378,7 @@ export function SettingsScreen() {
       bankroll,
       diary,
       teams,
+      goals,
     }, null, 2);
     const path = (FileSystem.cacheDirectory ?? FileSystem.documentDirectory ?? '') + 'sharklog_backup.json';
     try {
@@ -473,7 +474,10 @@ export function SettingsScreen() {
             // records under one id make each edit hit both.
             const have = new Set(store.bets.map((b) => b.id));
             const fresh = backup.bets.filter((b) => !have.has(b.id));
-            useBetsStore.setState({ bets: [...fresh, ...store.bets] });
+            // Goals the phone does not have yet come along; its own stay first.
+            const haveGoals = new Set(store.goals.map((g) => g.id));
+            const newGoals = (backup.goals ?? []).filter((g) => !haveGoals.has(g.id));
+            useBetsStore.setState({ bets: [...fresh, ...store.bets], goals: [...store.goals, ...newGoals] });
             store.persist();
             resyncReminders();
             const pro = await licenseNoteFrom(backup.settings);
@@ -491,6 +495,7 @@ export function SettingsScreen() {
               ...(backup.bankroll ? { bankroll: { ...store.bankroll, ...backup.bankroll } } : {}),
               ...(backup.diary ? { diary: backup.diary } : {}),
               ...(backup.teams ? { teams: backup.teams } : {}),
+              ...(backup.goals ? { goals: backup.goals } : {}),
             });
             store.persist();
             resyncReminders(); // replaced bets: drop orphan reminders, arm the new ones

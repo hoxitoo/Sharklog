@@ -11,3 +11,4 @@ export * from './utils/betsCsv';
 export * from './utils/migrations';
 export * from './utils/sanitize';
 export * from './utils/strategyBuilder';
+export * from './utils/goals';

@@ -52,11 +52,13 @@ interface Props {
   title: string;
   subtitle?: string;
   rightAction?: { label: string; onPress: () => void };
+  /** A custom element at the right of the header (the goals button); wins over `rightAction`. */
+  right?: React.ReactNode;
   /** Lets the first-run tour point at this screen's menu button. */
   menuTourTarget?: TourTargetId;
 }
 
-export function ScreenHeader({ title, subtitle, rightAction, menuTourTarget }: Props) {
+export function ScreenHeader({ title, subtitle, rightAction, right, menuTourTarget }: Props) {
   const insets = useSafeAreaInsets();
   const { openDrawer } = useDrawer();
 
@@ -75,7 +77,7 @@ export function ScreenHeader({ title, subtitle, rightAction, menuTourTarget }: P
         <Text style={styles.title}>{title}</Text>
         {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
       </View>
-      {rightAction ? (
+      {right ? right : rightAction ? (
         <TouchableOpacity style={styles.action} onPress={rightAction.onPress} activeOpacity={0.7}>
           <Text style={styles.actionText}>{rightAction.label}</Text>
         </TouchableOpacity>

@@ -1,6 +1,8 @@
 import { useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { formatMoney, currencySymbol } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
+import { compactMoney } from './compactMoney';
 
 /**
  * `formatMoney` bound to the user's "round amounts" setting and the book's
@@ -26,4 +28,17 @@ export function useFormatMoney(): (kopecks: number) => string {
  */
 export function useCurrencySymbol(): string {
   return currencySymbol(useBetsStore((s) => s.settings.currency));
+}
+
+/**
+ * A short sum for tight places (the goals button): "12,5 тыс $", "3 млн ₽".
+ * The units are words of the interface language; the sign is the book's.
+ */
+export function useCompactMoney(): (kopecks: number) => string {
+  const symbol = useCurrencySymbol();
+  const { t } = useTranslation();
+  return useCallback(
+    (kopecks: number) => compactMoney(kopecks, symbol, { thousand: t('goals.thousand'), million: t('goals.million') }),
+    [symbol, t],
+  );
 }

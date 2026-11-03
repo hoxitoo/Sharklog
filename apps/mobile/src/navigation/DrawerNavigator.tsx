@@ -372,7 +372,7 @@ function DrawerContent({ currentScreen, onNavigate, onClose, insets }: DrawerCon
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const settings = useBetsStore((s) => s.settings);
 
-  function goStack(name: 'Bankroll' | 'StrategyBuilder' | 'Partners' | 'Support') {
+  function goStack(name: 'Bankroll' | 'Goals' | 'StrategyBuilder' | 'Partners' | 'Support') {
     onClose(() => navigation.navigate(name));
   }
 
@@ -425,6 +425,11 @@ function DrawerContent({ currentScreen, onNavigate, onClose, insets }: DrawerCon
           <TouchableOpacity style={styles.navItem} onPress={() => goStack('Bankroll')} activeOpacity={0.75}>
             <AppIcon name="bankroll" size={NAV_GLYPH} />
             <Text style={styles.navLabel}>{t('nav.bankroll')}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.navItem} onPress={() => goStack('Goals')} activeOpacity={0.75}>
+            <AppIcon name="goals" size={NAV_GLYPH} />
+            <Text style={styles.navLabel}>{t('nav.goals')}</Text>
           </TouchableOpacity>
 
           {settings.isPro && (

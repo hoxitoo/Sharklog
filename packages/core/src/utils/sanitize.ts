@@ -1,4 +1,4 @@
-import type { Bet, BetStatus, Bankroll, BankrollTransaction, DiaryEntry, Team } from '../types/bet';
+import type { Bet, BetStatus, Bankroll, BankrollTransaction, DiaryEntry, Goal, GoalKind, Team } from '../types/bet';
 import { CURRENT_SCHEMA_VERSION } from '../constants/index';
 import { normalizeTime } from './daily';
 
@@ -218,6 +218,42 @@ export function sanitizeTeams(raw: unknown): Sanitized<Team> {
     };
     optional(r, out, { discipline: str });
     items.push(out as unknown as Team);
+  }
+  return { items, dropped };
+}
+
+const GOAL_KINDS: readonly GoalKind[] = ['profit', 'bank', 'withdraw', 'lossCap'];
+
+/**
+ * Goals from a backup (`import`) or the app's own file (`stored`). Dropped is
+ * only what would break the goals screen: no id, no title, an unknown kind, a
+ * target that is not a number, no start day. `import` also brings a readable
+ * date to YYYY-MM-DD and refuses a target of zero or less; one id twice keeps
+ * the first, as two goals under one id would edit together.
+ */
+export function sanitizeGoals(raw: unknown, mode: SanitizeMode = 'import'): Sanitized<Goal> {
+  if (!Array.isArray(raw)) return { items: [], dropped: 0 };
+  const items: Goal[] = [];
+  const seen = new Set<string>();
+  let dropped = 0;
+  const day = (v: unknown): string | null => (str(v) ? (mode === 'import' ? normalizeDay(v) : v) : null);
+  for (const r of raw) {
+    const start = isObj(r) ? day(r['startDate']) : null;
+    if (
+      !isObj(r) || !str(r['id']) || seen.has(r['id']) || !str(r['title'])
+      || !GOAL_KINDS.includes(r['kind'] as GoalKind) || !num(r['target']) || !start
+      || (mode === 'import' && (r['target'] as number) <= 0)
+    ) { dropped++; continue; }
+    seen.add(r['id']);
+    const out: Obj = {
+      id: r['id'], title: r['title'], kind: r['kind'], startDate: start,
+      target: mode === 'import' ? Math.round(r['target'] as number) : r['target'],
+      createdAt: isTimestamp(r['createdAt']) ? r['createdAt'] : new Date(0).toISOString(),
+    };
+    const deadline = day(r['deadline']);
+    if (deadline) out['deadline'] = deadline;
+    optional(r, out, { note: str, archived: (v) => typeof v === 'boolean' });
+    items.push(out as unknown as Goal);
   }
   return { items, dropped };
 }
