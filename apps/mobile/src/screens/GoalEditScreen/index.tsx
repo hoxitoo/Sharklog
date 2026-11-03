@@ -101,6 +101,9 @@ export function GoalEditScreen() {
         return;
       }
       const { archived: _was, ...back } = goal;
+      // Back at the END: in its old place it could land before the main goal
+      // and silently take over the header button.
+      deleteGoal(back.id);
       saveGoal(back);
     } else {
       saveGoal({ ...goal, archived: true });
@@ -187,7 +190,10 @@ export function GoalEditScreen() {
             </View>
           ) : null}
         </View>
-        <Text style={[s.hint, s.hintBelow]}>{t('goals.startHint')}</Text>
+        {/* A loss cap has no deadline field: no word about one. */}
+        <Text style={[s.hint, s.hintBelow]}>
+          {isCap ? t('goals.startHint') : `${t('goals.startHint')} ${t('goals.deadlineHint')}`}
+        </Text>
 
         <View style={s.field}>
           <Text style={s.label}>{t('goals.noteLabel')}</Text>

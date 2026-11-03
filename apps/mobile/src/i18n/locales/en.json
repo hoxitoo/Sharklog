@@ -1139,7 +1139,7 @@
     "amountLabel": "Amount, {{currency}}",
     "capLabel": "At most per month, {{currency}}",
     "startLabel": "Start",
-    "startHint": "Bets before the start date don't count. The deadline is optional.",
+    "startHint": "Bets before the start date don't count.",
     "deadlineLabel": "Deadline",
     "noteLabel": "Note, plan",
     "notePh": "Why this goal and how you'll get there",
@@ -1163,7 +1163,7 @@
     "onTrack": "On track for the deadline",
     "offTrack": "Not on track — a reason to move the deadline, not to raise stakes",
     "roiCheckTitle": "Reality check",
-    "roiCheck": "To make it at your turnover you'd need {{need}}% ROI (now {{now}}%). Professionals manage 2–5% over the long run.",
+    "roiCheck": "To make it at your current turnover you'd need {{need}}% ROI — now {{now}}% over {{n}} bets. If the gap is big, move the deadline or the target: raising stakes to keep to a plan is the straight road to tilt.",
     "proLocked": "Your pace, the forecast and the reality check are in Pro",
     "inPlay": "Bets in play: {{n}} for {{amount}} — not counted yet",
     "capMonth": "{{month}}: lost {{loss}} of {{cap}}",
@@ -1214,6 +1214,11 @@
       "bank": "Bank up to 100 000",
       "withdraw": "Withdraw for a holiday",
       "lossCap": "Avoid a big loss"
-    }
+    },
+    "deadlineHint": "The deadline is optional.",
+    "deadlineWas": "Deadline was {{date}}",
+    "lockedHint": "Free shows one goal — the rest wait in Pro",
+    "paceBets": "Betting pace over {{d}} d",
+    "editA11y": "Edit goal “{{title}}”"
   }
 }

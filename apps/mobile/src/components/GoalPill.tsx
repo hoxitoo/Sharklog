@@ -3,7 +3,7 @@ import { View, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
-import { calcGoalProgress, mainGoal } from '@sharklog/core';
+import { calcGoalProgress, mainGoal, toYmd } from '@sharklog/core';
 import { AppText as Text } from './AppText';
 import { AppIcon } from './icons/AppIcon';
 import { useBetsStore } from '../store/betsStore';
@@ -31,7 +31,13 @@ export function GoalPill() {
   const bets = useBetsStore((s) => s.bets);
   const transactions = useBetsStore((s) => s.bankroll.transactions);
   const goal = mainGoal(goals);
-  const p = useMemo(() => (goal ? calcGoalProgress(goal, bets, transactions) : null), [goal, bets, transactions]);
+  // The day is in the key: a month's loss cap must reset at midnight even when
+  // no bet was saved since (the bets screen stays mounted for hours).
+  const today = toYmd(new Date());
+  const p = useMemo(
+    () => (goal ? calcGoalProgress(goal, bets, transactions) : null),
+    [goal, bets, transactions, today], // `today`: re-run after midnight
+  );
 
   const open = () => navigation.navigate('Goals');
 
@@ -66,15 +72,14 @@ export function GoalPill() {
       accessibilityLabel={t('goals.pillA11y', { title: goal.title, cur, target })}
     >
       <AppIcon name="goals" size={GLYPH.md} color={tint} />
+      {/* Two short lines, not "current / target" on one: that ran past the
+          button and cut the target to "150 т…", and a wide button squeezed the
+          screen title ("Ставкалар") on a 360 dp phone. */}
       <View style={pill.texts}>
-        {/* Share and target, not "current / target": two short sums still ran
-            past a 190 pt button and cut the target to "150 т…". */}
-        <Text style={pill.value} numberOfLines={1} adjustsFontSizeToFit>
-          {p.achieved ? '✓' : `${goalPercent(p.ratio)}%`}
-          <Text style={pill.of}> · {target}</Text>
-        </Text>
+        <Text style={pill.value} numberOfLines={1}>{p.achieved ? '✓' : `${goalPercent(p.ratio)}%`}</Text>
+        <Text style={pill.of} numberOfLines={1}>{target}</Text>
         <View style={pill.track}>
-          <View style={[pill.fill, { width: `${Math.round(p.ratio * 100)}%`, backgroundColor: tint }]} />
+          <View style={[pill.fill, { width: `${goalPercent(p.ratio)}%`, backgroundColor: tint }]} />
         </View>
       </View>
     </TouchableOpacity>
@@ -83,15 +88,15 @@ export function GoalPill() {
 
 const pill = themedStyles(() => ({
   box: {
-    minHeight: TOUCH, maxWidth: 190, justifyContent: 'center',
+    minHeight: TOUCH, maxWidth: 136, justifyContent: 'center',
     paddingHorizontal: SPACE.md, borderRadius: RADIUS.pill,
     backgroundColor: colors.bgCard, borderWidth: 1, borderColor: colors.border,
   },
   row: { flexDirection: 'row', alignItems: 'center', gap: SPACE.sm },
   add: { fontSize: SIZE.body, fontWeight: '700', color: colors.purpleText },
-  texts: { flexShrink: 1, gap: SPACE.xs },
+  texts: { flexShrink: 1, gap: 1 },
   value: { ...numeric, fontSize: SIZE.caption, fontWeight: '700', color: colors.textPrimary },
-  of: { ...numeric, fontSize: SIZE.caption, fontWeight: '400', color: colors.textMuted },
+  of: { ...numeric, fontSize: SIZE.micro, fontWeight: '400', color: colors.textMuted },
   track: { height: 3, borderRadius: RADIUS.pill, backgroundColor: colors.bgElevated, overflow: 'hidden' },
   fill: { height: 3, borderRadius: RADIUS.pill },
 }));

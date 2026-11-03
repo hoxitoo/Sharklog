@@ -95,6 +95,19 @@ describe('the header button\'s short sums', () => {
   });
 });
 
+describe('what the goals screen says', () => {
+  // The reality check once quoted "professionals manage 2–5%" — an unsourced
+  // figure of the kind the strategy texts were cleaned of. The screen states
+  // the user's own numbers; it has no business promising returns or citing them.
+  const locales = ['ru', 'en', 'kz', 'by'].map((l) => require(`../i18n/locales/${l}.json`).goals as Record<string, unknown>);
+  const texts = (o: unknown): string[] => (typeof o === 'string' ? [o] : Object.values(o as object).flatMap(texts));
+  it('quotes no one else\'s returns and promises none', () => {
+    const banned = [/\d+\s*[–-]\s*\d+\s*%/, /профессионал/i, /professional/i, /кәсіпқой/i, /прафесіянал/i, /гарант/i, /guarantee/i];
+    const hits = locales.flatMap(texts).filter((t) => banned.some((re) => re.test(t)));
+    expect(hits).toEqual([]);
+  });
+});
+
 describe('the words around a goal', () => {
   const t = ((key: string, v: Record<string, number>) => `${key}:${JSON.stringify(v)}`) as unknown as TFunction;
   it('say a stretch of time in short units — no plural forms to get wrong', () => {

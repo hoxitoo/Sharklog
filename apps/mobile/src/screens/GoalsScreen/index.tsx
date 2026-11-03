@@ -3,7 +3,7 @@ import { View, ScrollView, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
-import { activeGoals, calcGoalProgress, isInTilt, FREE_LIMITS, type GoalProgress } from '@sharklog/core';
+import { activeGoals, calcGoalProgress, goalsFor, isInTilt, toYmd, FREE_LIMITS, type GoalProgress } from '@sharklog/core';
 import { AppText as Text } from '../../components/AppText';
 import { AppIcon } from '../../components/icons/AppIcon';
 import { PaywallSheet } from '../../components/PaywallSheet';
@@ -41,12 +41,16 @@ export function GoalsScreen() {
   const closePaywall = useCallback(() => setPaywall(false), []);
 
   const active = useMemo(() => activeGoals(goals), [goals]);
+  // Free opens one goal; the rest stay stored, locked — a trial that ended or a
+  // Pro phone's backup must not leave every goal open (goalsFor).
+  const { open, locked } = useMemo(() => goalsFor(goals, isPro, FREE_LIMITS.MAX_GOALS), [goals, isPro]);
   const archived = useMemo(() => goals.filter((g) => g.archived), [goals]);
+  const today = toYmd(new Date());
   const progress = useMemo(() => {
     const out = new Map<string, GoalProgress>();
     for (const g of goals) out.set(g.id, calcGoalProgress(g, bets, transactions));
     return out;
-  }, [goals, bets, transactions]);
+  }, [goals, bets, transactions, today]); // `today`: re-run after midnight
   const inTilt = useMemo(() => isInTilt(bets, tiltThreshold), [bets, tiltThreshold]);
 
   function addGoal() {
@@ -75,7 +79,7 @@ export function GoalsScreen() {
             <Text style={s.emptyText}>{t('goals.emptyText')}</Text>
           </View>
         ) : (
-          active.map((g, i) => (
+          open.map((g, i) => (
             <GoalCard
               key={g.id}
               goal={g}
@@ -91,6 +95,23 @@ export function GoalsScreen() {
           ))
         )}
 
+        {locked.map((g) => (
+          <TouchableOpacity
+            key={g.id}
+            style={s.archived}
+            onPress={() => setPaywall(true)}
+            activeOpacity={0.75}
+            accessibilityRole="button"
+            accessibilityHint={t('goals.lockedHint')}
+          >
+            <View style={s.lockedText}>
+              <Text style={s.archivedTitle} numberOfLines={1}>{g.title}</Text>
+              <Text style={s.lockedHint}>{t('goals.lockedHint')}</Text>
+            </View>
+            <Text style={s.proBadge}>{t('common.pro')}</Text>
+          </TouchableOpacity>
+        ))}
+
         <TouchableOpacity style={s.addBtn} onPress={addGoal} activeOpacity={0.8} accessibilityRole="button">
           <Text style={s.addText}>＋ {t('goals.add')}</Text>
           {!isPro && active.length >= FREE_LIMITS.MAX_GOALS ? <Text style={s.proBadge}>{t('common.pro')}</Text> : null}
@@ -98,7 +119,13 @@ export function GoalsScreen() {
 
         {archived.length > 0 ? (
           <>
-            <TouchableOpacity style={s.archiveToggle} onPress={() => setShowArchive((v) => !v)} activeOpacity={0.7}>
+            <TouchableOpacity
+              style={s.archiveToggle}
+              onPress={() => setShowArchive((v) => !v)}
+              activeOpacity={0.7}
+              accessibilityRole="button"
+              accessibilityState={{ expanded: showArchive }}
+            >
               <Text style={s.archiveText}>{t('goals.archive', { n: archived.length })}</Text>
               <Text style={s.archiveText}>{showArchive ? '▲' : '▼'}</Text>
             </TouchableOpacity>
@@ -148,6 +175,8 @@ const s = themedStyles(() => ({
     borderWidth: 1, borderColor: colors.border, marginBottom: SPACE.sm,
   },
   archivedTitle: { flex: 1, fontSize: SIZE.body, color: colors.textSecondary },
+  lockedText: { flex: 1, paddingVertical: SPACE.sm },
+  lockedHint: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: 2 },
   archivedValue: { ...numeric, fontSize: SIZE.caption, fontWeight: '400', color: colors.textMuted },
   disclaimer: { fontSize: SIZE.caption, color: colors.textMuted, lineHeight: 17, marginTop: SPACE.xl, textAlign: 'center' },
 }));
