@@ -383,6 +383,8 @@ const PERKS = [
   'proGate.perkAnalytics',
   'proGate.perkTilt',
   'proGate.perkChecklist',
+  // Free keeps one goal; more goals and the pace / forecast are Pro (GoalsScreen).
+  'proGate.perkGoals',
   // Only what Free lacks: CSV export used to be listed here, and it is free.
   'bankroll.proFeatureFull',
 ] as const;

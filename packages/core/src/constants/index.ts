@@ -115,6 +115,7 @@ export const FREE_LIMITS = {
   MAX_BETS: 50,
   TILT_ALERT_THRESHOLD: 3,   // fixed, not configurable on free
   DAILY_BET_LIMIT: 0,        // not available on free
+  MAX_GOALS: 1,              // active goals; archived ones do not count
 } as const;
 
 export const CURRENT_SCHEMA_VERSION = 4;

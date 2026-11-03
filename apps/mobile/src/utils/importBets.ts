@@ -1,6 +1,6 @@
-import type { Bet, Bankroll, CurrencyCode, DiaryEntry, Team } from '@sharklog/core';
+import type { Bet, Bankroll, CurrencyCode, DiaryEntry, Goal, Team } from '@sharklog/core';
 import {
-  importBetsFromCSV, migrate, sanitizeBets, sanitizeBankroll, sanitizeDiary, sanitizeTeams, isCurrencyCode, type ImportResult,
+  importBetsFromCSV, migrate, sanitizeBets, sanitizeBankroll, sanitizeDiary, sanitizeTeams, sanitizeGoals, isCurrencyCode, type ImportResult,
 } from '@sharklog/core';
 
 export type { ImportResult };
@@ -37,6 +37,7 @@ export interface JSONBackup {
   bankroll?: Partial<Bankroll>;
   diary?: DiaryEntry[];
   teams?: Team[];
+  goals?: Goal[];
   /** Records left out because they were broken (sanitize.ts in core). */
   dropped: number;
   /**
@@ -64,6 +65,7 @@ export function importFromJSON(content: string): JSONBackup | null {
     const bankroll = sanitizeBankroll(parsed['bankroll']);
     const diary = Array.isArray(parsed['diary']) ? sanitizeDiary(parsed['diary']) : null;
     const teams = Array.isArray(parsed['teams']) ? sanitizeTeams(parsed['teams']) : null;
+    const goals = Array.isArray(parsed['goals']) ? sanitizeGoals(parsed['goals']) : null;
     const settings = parsed['settings'];
     return {
       bets: bets.items,
@@ -71,7 +73,8 @@ export function importFromJSON(content: string): JSONBackup | null {
       ...(Object.keys(bankroll.bankroll).length > 0 ? { bankroll: bankroll.bankroll } : {}),
       ...(diary ? { diary: diary.items } : {}),
       ...(teams ? { teams: teams.items } : {}),
-      dropped: bets.dropped + bankroll.dropped + (diary?.dropped ?? 0) + (teams?.dropped ?? 0),
+      ...(goals ? { goals: goals.items } : {}),
+      dropped: bets.dropped + bankroll.dropped + (diary?.dropped ?? 0) + (teams?.dropped ?? 0) + (goals?.dropped ?? 0),
       currency: isCurrencyCode((settings as Record<string, unknown> | undefined)?.['currency'])
         ? (settings as Record<string, CurrencyCode>)['currency']!
         : 'RUB',

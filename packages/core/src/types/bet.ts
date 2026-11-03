@@ -107,6 +107,35 @@ export interface DiaryEntry {
   text?: string;
 }
 
+/**
+ * What a goal measures (`calcGoalProgress`):
+ *  - `profit`   — the result of bets settled from the start day: wins, losses,
+ *                 cashouts as they came out. Deposits and withdrawals do NOT
+ *                 move it: paying in your own money is not earning it.
+ *  - `bank`     — the bank itself: bets, deposits, withdrawals, reconciliations.
+ *  - `withdraw` — money taken out beyond what was paid in, from the start day.
+ *  - `lossCap`  — protective: lose no more than `target` in a calendar month.
+ */
+export type GoalKind = 'profit' | 'bank' | 'withdraw' | 'lossCap';
+
+/** A user's goal. Data, not a setting: it rides in the backup and goes with "clear all data". */
+export interface Goal {
+  id: string;
+  title: string;
+  kind: GoalKind;
+  /** Hundredths of the book's currency, > 0. For `lossCap` — the most to lose in a month. */
+  target: number;
+  /** YYYY-MM-DD: the first day that counts. Bets dated before it are not the goal's. */
+  startDate: string;
+  /** YYYY-MM-DD; none — no deadline. Not used by `lossCap`. */
+  deadline?: string;
+  /** The user's own words: the plan, the why. */
+  note?: string;
+  createdAt: string;
+  /** Kept, out of the way: not on the main screen, not counted against the Free limit. */
+  archived?: boolean;
+}
+
 export type StrategyGoal = 'income' | 'hobby' | 'professional';
 export type StrategyBankroll = 'small' | 'medium' | 'large' | 'xlarge';
 export type StrategyRisk = 'conservative' | 'moderate' | 'aggressive';
@@ -219,5 +248,7 @@ export interface StorageSchema {
   diary: DiaryEntry[];
   settings: AppSettings;
   teams: Team[];
+  /** Absent in data saved before goals existed. */
+  goals?: Goal[];
   version: number;
 }

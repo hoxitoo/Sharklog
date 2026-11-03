@@ -17,6 +17,7 @@ import { useBetsStore, effectiveTiltThreshold } from '../../store/betsStore';
 import { colors, mix, toneSurface } from '../../theme/colors';
 import type { BetsFilter } from '../../components/DrawerContext';
 import { ScreenHeader } from '../../components/ScreenHeader';
+import { GoalPill } from '../../components/GoalPill';
 import { BetCard } from './BetCard';
 import { SwipeableRow } from './SwipeableRow';
 import { FilterPicker } from '../../components/FilterPicker';
@@ -349,6 +350,8 @@ export function BetsScreen({ filter, onClearFilter }: {
     <View style={styles.container}>
       <ScreenHeader
         menuTourTarget="menu"
+        // The main goal's progress; no goal yet — an invitation to set one.
+        right={<GoalPill />}
         title={t('nav.bets')}
         // A real plural: number + a fixed "ставок" printed "261 ставок". And on
         // Free, the count USED, as in Settings — the same "N из 50" used to mean

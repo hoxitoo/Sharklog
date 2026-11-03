@@ -1,9 +1,9 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { Bet, AppSettings, Bankroll, DiaryEntry, Team, Sport, EsportsDiscipline } from '@sharklog/core';
+import type { Bet, AppSettings, Bankroll, DiaryEntry, Goal, Team, Sport, EsportsDiscipline } from '@sharklog/core';
 import {
   migrate, CURRENT_SCHEMA_VERSION, FREE_LIMITS, DEFAULT_BANKROLL_NAME, isInTilt, calcDashboard, parseEventTeams,
-  preselectedBookmakers, sanitizeBets, sanitizeBankroll, sanitizeDiary, sanitizeTeams,
+  preselectedBookmakers, sanitizeBets, sanitizeBankroll, sanitizeDiary, sanitizeTeams, sanitizeGoals,
 } from '@sharklog/core';
 import {
   sendTiltNotification, scheduleBetResultReminder,
@@ -102,6 +102,8 @@ interface BetsStore {
   bankroll: Bankroll;
   diary: DiaryEntry[];
   teams: Team[];
+  /** The user's goals, in their order: the first active one is on the bets screen's header. */
+  goals: Goal[];
   isLoaded: boolean;
 
   load: () => Promise<void>;
@@ -114,6 +116,11 @@ interface BetsStore {
   updateBankroll: (updates: Partial<Bankroll>) => void;
   addDiaryEntry: (entry: DiaryEntry) => void;
   deleteTeam: (id: string) => void;
+  /** Add a goal (to the end) or replace the one with its id. */
+  saveGoal: (goal: Goal) => void;
+  deleteGoal: (id: string) => void;
+  /** Move a goal to the front: the header button shows the first active one. */
+  makeMainGoal: (id: string) => void;
   clearAll: () => void;
 
   /**
@@ -243,6 +250,7 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
   bankroll: defaultBankroll,
   diary: [],
   teams: [],
+  goals: [],
   isLoaded: false,
 
   load: async () => {
@@ -256,7 +264,7 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
       const parsed: unknown = JSON.parse(raw);
       // A list that is not a list is damage too, even before anything is dropped.
       const shapeBroken = typeof parsed !== 'object' || parsed === null
-        || (['bets', 'diary', 'teams'] as const).some((k) => {
+        || (['bets', 'diary', 'teams', 'goals'] as const).some((k) => {
           const v = (parsed as Record<string, unknown>)[k];
           return v !== undefined && !Array.isArray(v);
         });
@@ -283,7 +291,8 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
       const bank = sanitizeBankroll(schema.bankroll);
       const diary = sanitizeDiary(schema.diary, 'stored');
       const teams = sanitizeTeams(schema.teams);
-      if (shapeBroken || bets.dropped + bank.dropped + diary.dropped + teams.dropped > 0) {
+      const goals = sanitizeGoals(schema.goals, 'stored');
+      if (shapeBroken || bets.dropped + bank.dropped + diary.dropped + teams.dropped + goals.dropped > 0) {
         // The next write would make the loss final: keep the file as it was,
         // so support can still get those records back.
         quarantine(raw);
@@ -304,6 +313,7 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
         bankroll: { ...defaultBankroll, ...bank.bankroll },
         diary: diary.items,
         teams: sanitizeTeamNames(teams.items),
+        goals: goals.items,
         isLoaded: true,
       });
     } catch {
@@ -315,8 +325,8 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
   },
 
   persist: async () => {
-    const { bets, settings, bankroll, diary, teams } = get();
-    const payload = JSON.stringify({ bets, settings, bankroll, diary, teams, version: CURRENT_SCHEMA_VERSION });
+    const { bets, settings, bankroll, diary, teams, goals } = get();
+    const payload = JSON.stringify({ bets, settings, bankroll, diary, teams, goals, version: CURRENT_SCHEMA_VERSION });
     writeChain = writeChain.then(() => AsyncStorage.setItem(STORAGE_KEY, payload)).catch(() => {});
     return writeChain;
   },
@@ -393,6 +403,28 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
     get().persist();
   },
 
+  saveGoal: (goal) => {
+    set((s) => ({
+      goals: s.goals.some((g) => g.id === goal.id)
+        ? s.goals.map((g) => (g.id === goal.id ? goal : g))
+        : [...s.goals, goal],
+    }));
+    get().persist();
+  },
+
+  deleteGoal: (id) => {
+    set((s) => ({ goals: s.goals.filter((g) => g.id !== id) }));
+    get().persist();
+  },
+
+  makeMainGoal: (id) => {
+    set((s) => {
+      const g = s.goals.find((x) => x.id === id);
+      return g ? { goals: [g, ...s.goals.filter((x) => x.id !== id)] } : {};
+    });
+    get().persist();
+  },
+
   clearAll: () => {
     cancelAllBetResultReminders();
     // Clear DATA only — preserve user preferences and subscription state. Wiping
@@ -401,6 +433,8 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
       bets: [],
       diary: [],
       teams: [],
+      // Goals are data, measured against the bets just wiped.
+      goals: [],
       bankroll: { ...defaultBankroll, createdAt: new Date().toISOString() },
       settings: { ...s.settings, onboardingComplete: true },
     }));

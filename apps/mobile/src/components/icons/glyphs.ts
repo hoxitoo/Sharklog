@@ -78,6 +78,13 @@ export const GLYPHS = {
   support: [
     { kind: "path", fill: "support", d: "M24 43 C20 39 5 29 4 18 C3 9 8 5 14 5 C19 5 22 8 24 11 C26 8 29 5 34 5 C40 5 45 9 44 18 C43 29 28 39 24 43 Z M25 38 C24 30 27 25 35 20 L24 24 L20 31 Z", evenOdd: true },
   ],
+  goals: [
+    { kind: "circle", fill: "none", cx: 21, cy: 27, r: 17, stroke: "body", strokeWidth: 3.6, round: true },
+    { kind: "circle", fill: "none", cx: 21, cy: 27, r: 8.5, stroke: "body", strokeWidth: 3.2, round: true },
+    { kind: "path", fill: "none", d: "M22 26 L37 11", stroke: "body", strokeWidth: 3.6, round: true },
+    { kind: "circle", fill: "accent", cx: 21, cy: 27, r: 3.5 },
+    { kind: "path", fill: "accent", d: "M36 3 H45 V12 L41 15 L33 7 Z" },
+  ],
   sport_football: [
     { kind: "circle", fill: "none", cx: 24, cy: 24, r: 18, stroke: "body", strokeWidth: 3.2 },
     { kind: "path", fill: "body", d: "M24 16 L32 22 L29 31 H19 L16 22 Z" },
