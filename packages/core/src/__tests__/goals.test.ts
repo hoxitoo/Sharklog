@@ -1,8 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import type { Bet, BankrollTransaction, Goal } from '../types/bet';
 import {
-  calcGoalProgress, activeGoals, mainGoal, addDays, daysBetween, MONTH_DAYS, PACE_WINDOW_DAYS,
+  calcGoalProgress, activeGoals, mainGoal, goalsFor, addDays, daysBetween, MONTH_DAYS, PACE_WINDOW_DAYS, GOAL_ROI_MIN_BETS,
 } from '../utils/goals';
+import { currentBank } from '../utils/stats';
 import { sanitizeGoals } from '../utils/sanitize';
 import { toYmd } from '../utils/daily';
 
@@ -73,6 +74,28 @@ describe('what moves a goal', () => {
     expect(p.startValue).toBe(50_000_00);
   });
 
+  it('a bank goal is the Bankroll screen\'s bank, odd dates included', () => {
+    // The day series skips a bet with an unreadable date (old CSV) or one dated
+    // after today: the goal read 90 000 where Bankroll said 105 000.
+    const bets = [bet({ date: '15.10.2026', status: 'won', stake: 10_000_00 }), bet({ date: day(1), status: 'won', stake: 5_000_00 })];
+    const txs = [tx('deposit', 90_000_00, day(-20))];
+    const p = calcGoalProgress(goal({ kind: 'bank' }), bets, txs, NOW);
+    expect(p.current).toBe(currentBank(txs, bets));
+    expect(p.current).toBe(105_000_00);
+  });
+
+  it('a bank goal starts from its opening deposit — a top-up is not pace', () => {
+    // Deposit 50 000 the day the goal is set, then two losses: the card said
+    // "+73 000 a month, on track". The pace of a bank goal is its bets.
+    const g = goal({ kind: 'bank', target: 100_000_00, startDate: day(-20), deadline: day(60) });
+    const bets = [bet({ date: day(-15), status: 'lost' }), bet({ date: day(-5), status: 'lost' })];
+    const p = calcGoalProgress(g, bets, [tx('deposit', 50_000_00, day(-20))], NOW);
+    expect(p.startValue).toBe(50_000_00);
+    expect(p.current).toBe(48_000_00);
+    expect(p.pacePerMonth).toBeLessThan(0);
+    expect([p.projectedDays, p.onTrack]).toEqual([null, false]);
+  });
+
   it('a withdrawal goal counts money taken out beyond what was paid in, from the start', () => {
     const txs = [
       tx('deposit', 10_000_00, day(-90)),      // before the start
@@ -89,17 +112,18 @@ describe('what moves a goal', () => {
 });
 
 describe('pace, not a daily quota', () => {
-  // Started 120 days ago; +3 000 every 10 days over the last 90 days.
+  // Started 120 days ago; +3 000 every 3 days over the last 90 days (30 bets).
+  const N = GOAL_ROI_MIN_BETS;
   const bets: Bet[] = [];
-  for (let n = 0; n < 9; n++) bets.push(bet({ date: day(-5 - n * 10), status: 'won', odds: 4 }));
+  for (let n = 0; n < N; n++) bets.push(bet({ date: day(-2 - n * 3), status: 'won', odds: 4 }));
   bets.push(bet({ date: day(-110), status: 'won', odds: 11 })); // +10 000, before the pace window
   const g = goal({ startDate: day(-120), deadline: day(365), target: 200_000_00 });
 
   it('says what a month needs from now on, and the user\'s own recent pace', () => {
     const p = calcGoalProgress(g, bets, [], NOW);
-    expect(p.current).toBe(9 * 3_000_00 + 10_000_00);
+    expect(p.current).toBe(N * 3_000_00 + 10_000_00);
     expect(p.paceDays).toBe(PACE_WINDOW_DAYS);
-    expect(p.pacePerMonth).toBeCloseTo(((9 * 3_000_00) / PACE_WINDOW_DAYS) * MONTH_DAYS, 0);
+    expect(p.pacePerMonth).toBeCloseTo(((N * 3_000_00) / PACE_WINDOW_DAYS) * MONTH_DAYS, 0);
     expect(p.needPerMonth).toBeCloseTo((p.remaining / 365) * MONTH_DAYS, 0);
     expect(p.projectedDays).toBe(Math.ceil(p.remaining / (p.pacePerMonth! / MONTH_DAYS)));
     expect(p.onTrack).toBe(p.projectedDays! <= 365);
@@ -107,10 +131,22 @@ describe('pace, not a daily quota', () => {
 
   it('puts the deadline next to the return on turnover it would take', () => {
     const p = calcGoalProgress(g, bets, [], NOW);
-    // 9 bets of 1 000 own money in the window, +3 000 each: 300%.
-    expect(p.roiNow).toBeCloseTo(300);
-    const turnoverPerMonth = ((9 * 1_000_00) / PACE_WINDOW_DAYS) * MONTH_DAYS;
+    // 30 bets of 1 000 own money in the window, +3 000 each: 300%.
+    expect([p.roiNow, p.roiBets]).toEqual([300, N]);
+    const turnoverPerMonth = ((N * 1_000_00) / PACE_WINDOW_DAYS) * MONTH_DAYS;
     expect(p.roiNeeded).toBeCloseTo((p.needPerMonth! / turnoverPerMonth) * 100, 3);
+  });
+
+  it('compares returns only on a real sample — two lucky bets are not a return', () => {
+    const p = calcGoalProgress(g, bets.slice(N - 2), [], NOW);
+    expect([p.roiNow, p.roiNeeded]).toEqual([null, null]);
+  });
+
+  it('asks "per month" only while a month is left', () => {
+    // 1 000 to go in 10 days read "needed per month 3 044".
+    const short = calcGoalProgress(goal({ deadline: day(10) }), [], [], NOW);
+    expect(short.needPerMonth).toBeNull();
+    expect(calcGoalProgress(goal({ deadline: day(40) }), [], [], NOW).needPerMonth).not.toBeNull();
   });
 
   it('gives no pace for under two weeks of a goal — that is noise', () => {
@@ -143,7 +179,8 @@ describe('a loss cap', () => {
       bet({ date: '2026-10-03', status: 'won', stake: 1_000_00 }),   // +1 000
     ];
     const p = calcGoalProgress(cap, bets, [], NOW);
-    expect([p.current, p.remaining, p.capState, p.daysLeft]).toEqual([5_000_00, 5_000_00, 'ok', 0]);
+    // The 31st is the last day — and it still counts.
+    expect([p.current, p.remaining, p.capState, p.daysLeft]).toEqual([5_000_00, 5_000_00, 'ok', 1]);
   });
 
   it('warns at 80%, says when the cap is past, and when bets in play could take it past', () => {
@@ -156,6 +193,22 @@ describe('a loss cap', () => {
       bet({ date: '2026-10-30', status: 'pending', stake: 7_000_00 }),
     ], [], NOW);
     expect([risky.capState, risky.wouldExceed, risky.pendingStake]).toEqual(['ok', true, 7_000_00]);
+  });
+
+  it('does not cry "over the limit" for a month in plus', () => {
+    // +5 000 won, 12 000 in play: at worst −7 000, under a 10 000 cap.
+    const p = calcGoalProgress(cap, [
+      bet({ date: '2026-10-02', status: 'won', stake: 5_000_00 }),
+      bet({ date: '2026-10-30', status: 'pending', stake: 12_000_00 }),
+    ], [], NOW);
+    expect(p.wouldExceed).toBe(false);
+  });
+
+  it('counts bets in play for matches later this month', () => {
+    const mid = new Date(2026, 9, 15, 12);
+    const p = calcGoalProgress(cap, [bet({ date: '2026-10-25', status: 'pending', stake: 11_000_00 })], [], mid);
+    expect([p.pendingStake, p.wouldExceed]).toEqual([11_000_00, true]);
+    expect(calcGoalProgress(cap, [bet({ date: '2026-11-02', status: 'pending' })], [], mid).pendingStake).toBe(0);
   });
 
   it('counts from the start day when that is later in the month', () => {
@@ -171,6 +224,15 @@ describe('the goal list', () => {
     expect(activeGoals(goals).map((g) => g.id)).toEqual(['b', 'c']);
     expect(mainGoal(goals)?.id).toBe('b');
     expect(mainGoal(undefined)).toBeUndefined();
+  });
+
+  it('keeps every goal, and opens on Free only what Free allows', () => {
+    // Pro bought during the trial and lost, or a backup from a Pro phone, left
+    // a Free user with four open goals. Locked, not deleted.
+    const goals = [goal({ id: 'a' }), goal({ id: 'b' }), goal({ id: 'c', archived: true }), goal({ id: 'd' })];
+    const free = goalsFor(goals, false, 1);
+    expect([free.open.map((g) => g.id), free.locked.map((g) => g.id)]).toEqual([['a'], ['b', 'd']]);
+    expect(goalsFor(goals, true, 1).locked).toEqual([]);
   });
 
   it('counts days on the calendar, not in hours', () => {

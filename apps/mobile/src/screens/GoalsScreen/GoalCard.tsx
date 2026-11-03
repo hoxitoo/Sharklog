@@ -41,7 +41,13 @@ function Head({ goal, main, onEdit }: Pick<Props, 'goal' | 'main' | 'onEdit'>) {
         <Text style={card.kind}>{t(`goals.kind.${goal.kind}`)}</Text>
         {main ? <Text style={card.mainBadge}>{t('goals.main')}</Text> : null}
       </View>
-      <TouchableOpacity onPress={onEdit} style={card.editBtn} activeOpacity={0.7} accessibilityRole="button">
+      <TouchableOpacity
+        onPress={onEdit}
+        style={card.editBtn}
+        activeOpacity={0.7}
+        accessibilityRole="button"
+        accessibilityLabel={t('goals.editA11y', { title: goal.title })}
+      >
         <Text style={card.editText}>{t('goals.edit')}</Text>
       </TouchableOpacity>
     </View>
@@ -51,7 +57,7 @@ function Head({ goal, main, onEdit }: Pick<Props, 'goal' | 'main' | 'onEdit'>) {
 function Bar({ ratio, color }: { ratio: number; color: string }) {
   return (
     <View style={card.track}>
-      <View style={[card.fill, { width: `${Math.round(ratio * 100)}%`, backgroundColor: color }]} />
+      <View style={[card.fill, { width: `${goalPercent(ratio)}%`, backgroundColor: color }]} />
     </View>
   );
 }
@@ -66,6 +72,8 @@ function AccumulationCard({ goal, p, main, isPro, inTilt, onEdit, onMakeMain, on
   if (!p.started) when = t('goals.startsOn', { date: dayLabel(goal.startDate) });
   else if (!goal.deadline) when = t('goals.noDeadline');
   else if (p.expired) when = t('goals.expired', { date: dayLabel(goal.deadline) });
+  // Reached, and the deadline is behind: not "by … · 0 d left".
+  else if ((p.daysLeft ?? 0) < 0) when = t('goals.deadlineWas', { date: dayLabel(goal.deadline) });
   else when = t('goals.until', { date: dayLabel(goal.deadline), left: durationLabel(t, p.daysLeft ?? 0) });
 
   return (
@@ -98,7 +106,10 @@ function AccumulationCard({ goal, p, main, isPro, inTilt, onEdit, onMakeMain, on
         </View>
       ) : null}
 
-      {p.started && !p.achieved && !p.expired ? (
+      {/* On a losing streak the whole block goes, not one sentence: a negative
+          pace, "not getting closer" and a "needed per month" that grows after
+          every loss all say "chase". The tilt note above says what to do. */}
+      {p.started && !p.achieved && !p.expired && !inTilt ? (
         <View style={card.pace}>
           {p.needPerMonth !== null ? (
             <Row label={t('goals.needPerMonth')} value={fmt(Math.round(p.needPerMonth))} />
@@ -107,7 +118,8 @@ function AccumulationCard({ goal, p, main, isPro, inTilt, onEdit, onMakeMain, on
             <>
               {p.pacePerMonth !== null ? (
                 <Row
-                  label={t('goals.pace', { d: p.paceDays })}
+                  // A bank goal's pace is its bets: a deposit is a lump sum, not a pace.
+                  label={t(goal.kind === 'bank' ? 'goals.paceBets' : 'goals.pace', { d: p.paceDays })}
                   value={fmt(Math.round(p.pacePerMonth))}
                   color={p.pacePerMonth < 0 ? colors.lost : undefined}
                 />
@@ -123,8 +135,7 @@ function AccumulationCard({ goal, p, main, isPro, inTilt, onEdit, onMakeMain, on
                       : t('goals.projected', { date: dayLabel(addDays(today, p.projectedDays)) })}
                 </Text>
               ) : null}
-              {/* On a losing streak "behind" is a push to chase; the tilt note above says what to do instead. */}
-              {p.onTrack !== null && !(inTilt && !p.onTrack) ? (
+              {p.onTrack !== null ? (
                 <Text style={[card.track_, { color: p.onTrack ? signalInk(colors.won) : signalInk(colors.pending) }]}>
                   {t(p.onTrack ? 'goals.onTrack' : 'goals.offTrack')}
                 </Text>
@@ -132,7 +143,7 @@ function AccumulationCard({ goal, p, main, isPro, inTilt, onEdit, onMakeMain, on
               {p.roiNeeded !== null && p.roiNow !== null ? (
                 <View style={card.reality}>
                   <Text style={card.realityTitle}>{t('goals.roiCheckTitle')}</Text>
-                  <Text style={card.realityText}>{t('goals.roiCheck', { need: pct(p.roiNeeded), now: pct(p.roiNow) })}</Text>
+                  <Text style={card.realityText}>{t('goals.roiCheck', { need: pct(p.roiNeeded), now: pct(p.roiNow), n: p.roiBets })}</Text>
                 </View>
               ) : null}
             </>
@@ -258,6 +269,8 @@ const card = themedStyles(() => ({
   },
   linkBtn: { minHeight: TOUCH, justifyContent: 'center', alignSelf: 'flex-start', marginTop: SPACE.xs },
   link: { fontSize: SIZE.body, fontWeight: '700', color: colors.purpleText },
-  capLine: { ...numeric, fontSize: SIZE.body, fontWeight: '700', color: colors.textPrimary },
+  // A sentence with sums in it, not a column of sums: the wide mono face pushed
+  // the currency sign onto a line of its own at 360 dp.
+  capLine: { fontSize: SIZE.body, fontWeight: '700', color: colors.textPrimary },
   capState: { fontSize: SIZE.caption, fontWeight: '700', marginTop: SPACE.sm },
 }));

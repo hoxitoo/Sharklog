@@ -1,5 +1,5 @@
 import type { Bet, BankrollTransaction, Goal, GoalKind } from '../types/bet';
-import { betPnl } from './stats';
+import { betPnl, currentBank } from './stats';
 import { calcDailyBreakdown, toYmd } from './daily';
 
 /*
@@ -27,6 +27,11 @@ export const PACE_WINDOW_DAYS = 90;
 export const PACE_MIN_DAYS = 14;
 /** At this share of a loss cap the card turns into a warning. */
 export const LOSS_CAP_NEAR = 0.8;
+/**
+ * Settled own-money bets the reality check needs before it compares returns:
+ * two lucky bets at odds 4 read "you'd need 257%, you make 300%" — "you're doing it".
+ */
+export const GOAL_ROI_MIN_BETS = 30;
 
 const DAY_MS = 86_400_000;
 
@@ -61,6 +66,18 @@ export function mainGoal(goals: readonly Goal[] | undefined): Goal | undefined {
   return activeGoals(goals)[0];
 }
 
+/**
+ * Which active goals are open on this plan. Free keeps `limit` of them (the
+ * first, so the header button's goal is always open); the rest stay stored but
+ * locked — not deleted. Pro bought during the trial and lost, or a backup from a
+ * Pro phone, must not leave a Free user with every goal: limited is what is
+ * SHOWN, as with the tilt threshold, never what is kept.
+ */
+export function goalsFor(goals: readonly Goal[] | undefined, isPro: boolean, limit: number): { open: Goal[]; locked: Goal[] } {
+  const active = activeGoals(goals);
+  return isPro ? { open: active, locked: [] } : { open: active.slice(0, limit), locked: active.slice(limit) };
+}
+
 export interface GoalPoint { date: string; value: number }
 
 export interface GoalProgress {
@@ -93,6 +110,8 @@ export interface GoalProgress {
   roiNeeded: number | null;
   /** `profit`: the return on turnover over the same window, %. */
   roiNow: number | null;
+  /** Settled own-money bets behind the two ROI numbers (none below `GOAL_ROI_MIN_BETS`). */
+  roiBets: number;
   /** Bets still in play from the start day (`lossCap`: this month) — not counted until they settle. */
   pendingCount: number;
   pendingStake: number;
@@ -137,19 +156,22 @@ export function calcGoalProgress(
     else if (goal.kind === 'withdraw') acc += d.withdrawals - d.deposits;
     series.push({ date: d.date, value: goal.kind === 'bank' ? d.balance : acc });
   }
-  const valueByDate = new Map(series.map((p) => [p.date, p.value]));
-  const balanceByDate = new Map(days.map((d) => [d.date, d.balance]));
-  const bankNow = days[days.length - 1]?.balance ?? 0;
+  // The bank is the Bankroll screen's bank (currentBank) — not the day series,
+  // which skips a bet with an unreadable date or one dated after today, and
+  // made the goal read 90 000 where Bankroll said 105 000.
+  const bank = goal.kind === 'bank' ? currentBank(transactions, bets) : 0;
+  const current = goal.kind === 'bank' ? bank : started ? series[series.length - 1]?.value ?? 0 : 0;
+  // The chart's "now" dot is the number on the card.
+  if (series.length > 0) series[series.length - 1] = { date: series[series.length - 1]!.date, value: current };
 
-  /** The measure at the end of `date` (any day up to today). */
-  const valueAt = (date: string): number => {
-    if (goal.kind === 'bank') return date < firstDay ? 0 : balanceByDate.get(date) ?? bankNow;
-    if (date < start) return 0;
-    return valueByDate.get(date) ?? 0;
-  };
-
-  const current = goal.kind === 'bank' ? bankNow : started ? valueAt(today) : 0;
-  const startValue = valueAt(addDays(start, -1));
+  // Where the plan line starts. A bank goal starts from the bank at the START of
+  // its first day with that day's deposits in — the opening deposit is where the
+  // goal begins, not progress toward it (the same rule as bankAtBetTime).
+  let startValue = 0;
+  if (goal.kind === 'bank') {
+    const first = days.find((d) => d.date === start);
+    startValue = first ? first.balance - first.pnl - first.adjustments : start < firstDay ? 0 : bank;
+  }
   const target = goal.target;
   const achieved = target > 0 && current >= target;
   const remaining = Math.max(0, target - current);
@@ -160,13 +182,23 @@ export function calcGoalProgress(
     ? (daysBetween(start, today) + 1 > PACE_WINDOW_DAYS ? addDays(today, -(PACE_WINDOW_DAYS - 1)) : start)
     : today;
   const paceDays = started ? daysBetween(windowStart, today) + 1 : 0;
-  const pacePerMonth = paceDays >= PACE_MIN_DAYS
-    ? ((current - valueAt(addDays(windowStart, -1))) / paceDays) * MONTH_DAYS
-    : null;
+  // What moved the measure inside the window. For the bank — the bets only: a
+  // deposit is a lump sum, and extrapolating one told a losing user "on track"
+  // (+73 000 a month from a single 50 000 top-up).
+  let moved = 0;
+  for (const d of days) {
+    if (d.date < windowStart) continue;
+    moved += goal.kind === 'withdraw' ? d.withdrawals - d.deposits : d.pnl;
+  }
+  const pacePerMonth = paceDays >= PACE_MIN_DAYS ? (moved / paceDays) * MONTH_DAYS : null;
 
   const daysLeft = goal.deadline ? daysBetween(today, goal.deadline) : null;
   const expired = daysLeft !== null && daysLeft < 0 && !achieved;
-  const needPerMonth = daysLeft !== null && daysLeft > 0 && !achieved ? (remaining / daysLeft) * MONTH_DAYS : null;
+  // "Per month" only while a month is left: 1 000 to go in 10 days read
+  // "needed per month 3 044" — a bigger quota than what is actually left.
+  const needPerMonth = daysLeft !== null && daysLeft >= MONTH_DAYS && !achieved
+    ? (remaining / daysLeft) * MONTH_DAYS
+    : null;
   const projectedDays = !achieved && pacePerMonth !== null && pacePerMonth > 0
     ? Math.ceil(remaining / (pacePerMonth / MONTH_DAYS))
     : null;
@@ -177,6 +209,7 @@ export function calcGoalProgress(
   // Return on turnover — own money only, settled only, over the pace window.
   let turnover = 0;
   let ownPnl = 0;
+  let roiBets = 0;
   let pendingCount = 0;
   let pendingStake = 0;
   for (const b of bets) {
@@ -189,16 +222,17 @@ export function calcGoalProgress(
     if (b.date < windowStart || !settled(b) || b.isFreebet) continue;
     turnover += b.stake;
     ownPnl += betPnl(b);
+    roiBets += 1;
   }
-  const isProfit = goal.kind === 'profit';
-  const roiNow = isProfit && turnover > 0 && paceDays >= PACE_MIN_DAYS ? (ownPnl / turnover) * 100 : null;
-  const roiNeeded = isProfit && needPerMonth !== null && turnover > 0 && paceDays >= PACE_MIN_DAYS
+  const roiReady = goal.kind === 'profit' && turnover > 0 && paceDays >= PACE_MIN_DAYS && roiBets >= GOAL_ROI_MIN_BETS;
+  const roiNow = roiReady ? (ownPnl / turnover) * 100 : null;
+  const roiNeeded = roiReady && needPerMonth !== null
     ? (needPerMonth / ((turnover / paceDays) * MONTH_DAYS)) * 100
     : null;
 
   return {
     kind: goal.kind, current, target, ratio, remaining, achieved, started, daysLeft, expired,
-    needPerMonth, pacePerMonth, paceDays, projectedDays, onTrack, roiNeeded, roiNow,
+    needPerMonth, pacePerMonth, paceDays, projectedDays, onTrack, roiNeeded, roiNow, roiBets,
     pendingCount: goal.kind === 'profit' ? pendingCount : 0,
     pendingStake: goal.kind === 'profit' ? pendingStake : 0,
     capState: null, wouldExceed: false, startValue, series,
@@ -208,23 +242,26 @@ export function calcGoalProgress(
 /** Lose no more than the cap this calendar month — counted from the start day if that is later. */
 function lossCapProgress(goal: Goal, bets: Bet[], today: string): GoalProgress {
   const monthStart = `${today.slice(0, 8)}01`;
+  const [y, m] = today.split('-').map(Number);
+  const lastDay = new Date(y!, m!, 0).getDate();
+  const monthEnd = `${today.slice(0, 8)}${String(lastDay).padStart(2, '0')}`;
   const from = goal.startDate > monthStart ? goal.startDate : monthStart;
   let pnl = 0;
   let pendingCount = 0;
   let pendingStake = 0;
   for (const b of bets) {
-    if (b.date < from || b.date > today) continue;
+    if (b.date < from) continue;
     if (b.status === 'pending') {
+      // A bet in play for a match later this month is this month's risk too.
+      if (b.date > monthEnd) continue;
       pendingCount += 1;
       if (!b.isFreebet) pendingStake += b.stake;
-    } else {
+    } else if (b.date <= today) {
       pnl += betPnl(b);
     }
   }
   const loss = Math.max(0, -pnl);
   const target = goal.target;
-  const [y, m] = today.split('-').map(Number);
-  const lastDay = new Date(y!, m!, 0).getDate();
   const capState = target <= 0 ? null : loss > target ? 'over' : loss >= target * LOSS_CAP_NEAR ? 'near' : 'ok';
   return {
     kind: 'lossCap',
@@ -234,13 +271,16 @@ function lossCapProgress(goal: Goal, bets: Bet[], today: string): GoalProgress {
     remaining: Math.max(0, target - loss),
     achieved: false,
     started: goal.startDate <= today,
-    daysLeft: lastDay - Number(today.slice(8, 10)),
+    // Today counts: on the last day of the month there is still that day.
+    daysLeft: lastDay - Number(today.slice(8, 10)) + 1,
     expired: false,
     needPerMonth: null, pacePerMonth: null, paceDays: 0, projectedDays: null, onTrack: null,
-    roiNeeded: null, roiNow: null,
+    roiNeeded: null, roiNow: null, roiBets: 0,
     pendingCount, pendingStake,
     capState,
-    wouldExceed: capState !== 'over' && target > 0 && loss + pendingStake > target,
+    // The month's net loss if every bet in play lost — a month in plus has room:
+    // +5 000 won and 12 000 in play is at worst −7 000, under a 10 000 cap.
+    wouldExceed: capState !== 'over' && target > 0 && Math.max(0, pendingStake - pnl) > target,
     startValue: 0,
     series: [],
   };
