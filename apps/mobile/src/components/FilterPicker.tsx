@@ -17,8 +17,14 @@ export interface PickerOption<T extends string> {
   label: string;
   /** The author's glyph for this option (sports, disciplines) — shown in the sheet's list. */
   icon?: GlyphName;
-  /** A second, quieter line in the sheet: an example ("+150 · -200"). */
+  /** A second, quieter line in the sheet: an example in digits ("+150 · -200"), set in the mono face. */
   hint?: string;
+  /**
+   * A second line in words — what the option means. Regular face: the mono one
+   * is for digits, and under a sentence its wide spaces split the words apart
+   * (the goal kinds read "Плюс  от  ставок  с  даты").
+   */
+  description?: string;
 }
 
 interface Props<T extends string> {
@@ -152,6 +158,7 @@ export function FilterPicker<T extends string>({ label, options, value, onChange
                           {o.label}
                         </Text>
                         {o.hint ? <Text style={[picker.optionHint, numeric]}>{o.hint}</Text> : null}
+                        {o.description ? <Text style={picker.optionDescription}>{o.description}</Text> : null}
                       </View>
                     </View>
                     {isCurrent && <Text style={picker.check}>✓</Text>}
@@ -224,6 +231,7 @@ const picker = themedStyles(() => ({
   optionTexts: { flex: 1 },
   optionText: { fontSize: SIZE.lead, color: colors.textSecondary },
   optionHint: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: 2 },
+  optionDescription: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: 2, lineHeight: 17 },
   optionTextCurrent: { color: colors.purpleText, fontWeight: '700' },
   check: { fontSize: SIZE.lead, color: colors.purpleText, fontWeight: '700' },
 }));

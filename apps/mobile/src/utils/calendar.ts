@@ -1,0 +1,63 @@
+/*
+ * The month grid of the date sheet. Pure — no React Native — so it is under test.
+ *
+ * Days are YYYY-MM-DD strings, the way the app stores them everywhere. The
+ * arithmetic works on calendar fields (UTC dates as plain counters), never on
+ * local times, so neither DST nor the phone's offset can move a day.
+ */
+
+const pad = (n: number) => String(n).padStart(2, '0');
+
+export const ymdOf = (year: number, month: number, day: number): string => `${year}-${pad(month)}-${pad(day)}`;
+
+/** Days in a month; `month` is 1–12. */
+export function daysInMonth(year: number, month: number): number {
+  return new Date(Date.UTC(year, month, 0)).getUTCDate();
+}
+
+/** A month `delta` months away, across year ends both ways. */
+export function shiftMonth(year: number, month: number, delta: number): { year: number; month: number } {
+  const i = year * 12 + (month - 1) + delta;
+  return { year: Math.floor(i / 12), month: (((i % 12) + 12) % 12) + 1 };
+}
+
+/** The first day of a week: Sunday in English, Monday in the other three languages. */
+export function weekStartFor(language: string): 0 | 1 {
+  return language.startsWith('en') ? 0 : 1;
+}
+
+/** The header row's weekdays, as indexes into `weekdaysShort.N` (0 = Sunday). */
+export function weekdayOrder(weekStart: 0 | 1): number[] {
+  return Array.from({ length: 7 }, (_, i) => (i + weekStart) % 7);
+}
+
+/**
+ * A month as six weeks of seven cells: the day, or null before the 1st and
+ * after the last. Always six rows — a sheet that changed height from month to
+ * month would move the buttons under it while the thumb is still paging.
+ */
+export function monthCells(year: number, month: number, weekStart: 0 | 1): Array<string | null> {
+  const first = new Date(Date.UTC(year, month - 1, 1)).getUTCDay();
+  const lead = (first - weekStart + 7) % 7;
+  const days = daysInMonth(year, month);
+  return Array.from({ length: 42 }, (_, i) => {
+    const d = i - lead + 1;
+    return d >= 1 && d <= days ? ymdOf(year, month, d) : null;
+  });
+}
+
+/**
+ * The day `n` months on, held to the month's end: 31 January plus a month is
+ * the last of February, not 3 March.
+ */
+export function addMonths(ymd: string, n: number): string {
+  const [y = 0, m = 1, d = 1] = ymd.split('-').map(Number);
+  const { year, month } = shiftMonth(y, m, n);
+  return ymdOf(year, month, Math.min(d, daysInMonth(year, month)));
+}
+
+/** The year and month a day falls in. */
+export function monthOf(ymd: string): { year: number; month: number } {
+  const [y = 0, m = 1] = ymd.split('-').map(Number);
+  return { year: y, month: m };
+}

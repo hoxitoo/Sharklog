@@ -101,6 +101,17 @@ describe('what the goals screen says', () => {
   // the user's own numbers; it has no business promising returns or citing them.
   const locales = ['ru', 'en', 'kz', 'by'].map((l) => require(`../i18n/locales/${l}.json`).goals as Record<string, unknown>);
   const texts = (o: unknown): string[] => (typeof o === 'string' ? [o] : Object.values(o as object).flatMap(texts));
+  it('has every text a kind is shown with — a kind added to core without them would print raw keys', () => {
+    // The form and the card build these keys from the kind, so the i18n
+    // parity test cannot see one missing: it only compares files.
+    const { GOAL_KINDS } = require('@sharklog/core') as typeof import('@sharklog/core');
+    const missing = locales.flatMap((g, i) => GOAL_KINDS.flatMap((k) =>
+      ['kind', 'kindHint', 'how', 'startHint', 'amount']
+        .filter((group) => typeof (g[group] as Record<string, unknown> | undefined)?.[k] !== 'string')
+        .map((group) => `${['ru', 'en', 'kz', 'by'][i]}: goals.${group}.${k}`)));
+    expect(missing).toEqual([]);
+  });
+
   it('quotes no one else\'s returns and promises none', () => {
     const banned = [/\d+\s*[–-]\s*\d+\s*%/, /профессионал/i, /professional/i, /кәсіпқой/i, /прафесіянал/i, /гарант/i, /guarantee/i];
     const hits = locales.flatMap(texts).filter((t) => banned.some((re) => re.test(t)));
