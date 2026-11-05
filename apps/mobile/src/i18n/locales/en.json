@@ -1242,7 +1242,8 @@
     "prevYear": "Back a year",
     "nextYear": "Forward a year",
     "today": "Today",
-    "clear": "Clear"
+    "clear": "Clear",
+    "pick": "Pick a date"
   },
   "weekdaysShort": {
     "0": "Su",

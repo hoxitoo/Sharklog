@@ -1,5 +1,5 @@
 import type { Bet, OddsFormat } from '@sharklog/core';
-import { betBacksTeam, parseEventTeams, parseOdds, formatOddsAs } from '@sharklog/core';
+import { betBacksTeam, parseEventTeams, parseOdds, formatOddsAs, toYmd } from '@sharklog/core';
 
 /**
  * The advanced bet filter — everything the status and sort pickers do not cover.
@@ -142,10 +142,16 @@ export function suggest(pool: string[], input: string, limit: number): string[] 
     .slice(0, limit);
 }
 
-/** `2026-09-01` → `01.09`, the same short form the date chip already uses. */
-function short(ymdStr: string): string {
+/**
+ * `2026-09-01` → `01.09`, the same short form the date chip already uses — or
+ * `01.09.25` when the year has to be said: a range across New Year, or a date
+ * outside the current year. With the calendar's year buttons a range from
+ * 01.11.2025 to 05.11.2026 is two taps away, and "01.11–05.11" read as four days.
+ */
+function short(ymdStr: string, withYear: boolean): string {
   const [y, m, d] = ymdStr.split('-');
-  return y && m && d ? `${d}.${m}` : ymdStr;
+  if (!y || !m || !d) return ymdStr;
+  return withYear ? `${d}.${m}.${y.slice(2)}` : `${d}.${m}`;
 }
 
 /**
@@ -158,14 +164,19 @@ function short(ymdStr: string): string {
  * Symbols rather than words (`× ≥1.5`, `01.09 →`): the values are the point,
  * and a chip on one line has no room to spend on prose.
  */
-export function describeBetsQuery(q: BetsQuery, format: OddsFormat = 'decimal'): string | null {
+export function describeBetsQuery(q: BetsQuery, format: OddsFormat = 'decimal', today: string = toYmd(new Date())): string | null {
   const parts: string[] = [];
   if (q.tournament.trim()) parts.push(q.tournament.trim());
   if (q.team.trim()) parts.push(q.team.trim());
 
-  // Only bounds that filter are named — as with dates below.
-  const from = oddsBound(q.oddsFrom, format) != null ? q.oddsFrom.trim() : '';
-  const to = oddsBound(q.oddsTo, format) != null ? q.oddsTo.trim() : '';
+  // Only bounds that filter are named — as with dates below. Reversed bounds
+  // are named the way applyBetsQuery reads them, swapped: a chip saying
+  // "3–1.5" would describe a range the list is not showing.
+  const lo = oddsBound(q.oddsFrom, format);
+  const hi = oddsBound(q.oddsTo, format);
+  let from = lo != null ? q.oddsFrom.trim() : '';
+  let to = hi != null ? q.oddsTo.trim() : '';
+  if (lo != null && hi != null && lo > hi) [from, to] = [to, from];
   // "×" is the decimal multiplier; a "+150" or a "5/2" stands on its own.
   const x = format === 'decimal' ? '× ' : '';
   if (from && to) parts.push(`${x}${from}–${to}`);
@@ -174,11 +185,14 @@ export function describeBetsQuery(q: BetsQuery, format: OddsFormat = 'decimal'):
 
   // Only complete dates are filtered on, so only complete dates are named —
   // a chip reading "2026-0 →" would describe a filter that is not applied.
-  const dFrom = ymd(q.dateFrom);
-  const dTo = ymd(q.dateTo);
-  if (dFrom && dTo) parts.push(`${short(dFrom)}–${short(dTo)}`);
-  else if (dFrom) parts.push(`${short(dFrom)} →`);
-  else if (dTo) parts.push(`→ ${short(dTo)}`);
+  let dFrom = ymd(q.dateFrom);
+  let dTo = ymd(q.dateTo);
+  if (dFrom && dTo && dFrom > dTo) [dFrom, dTo] = [dTo, dFrom];
+  const year = today.slice(0, 4);
+  const withYear = [dFrom, dTo].some((d) => d && d.slice(0, 4) !== year);
+  if (dFrom && dTo) parts.push(`${short(dFrom, withYear)}–${short(dTo, withYear)}`);
+  else if (dFrom) parts.push(`${short(dFrom, withYear)} →`);
+  else if (dTo) parts.push(`→ ${short(dTo, withYear)}`);
 
   return parts.length > 0 ? parts.join(' · ') : null;
 }

@@ -708,7 +708,10 @@ export function AddBetScreen() {
         ? parseMoneyInput(data.cashoutAmount)
         : undefined,
     } as Partial<Bet>;
-    const dateVal = data.date.trim() || defaultDate;
+    // An edited bet keeps its stored date, even an empty one an old backup
+    // carried: the field says "pick a date", and saving without one must not
+    // quietly move the bet to today.
+    const dateVal = data.date.trim() || (editBet ? editBet.date : defaultDate);
     const timeVal = data.time.trim() || defaultTime;
 
     if (isSingle) {
@@ -1406,7 +1409,7 @@ export function AddBetScreen() {
                   control={control}
                   name="date"
                   render={({ field: { onChange, value } }) => (
-                    <DateField label={t('bet.date')} value={value} onChange={onChange} />
+                    <DateField label={t('bet.date')} value={value} onChange={onChange} placeholder={t('datePicker.pick')} />
                   )}
                 />
               </Field>
