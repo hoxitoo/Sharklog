@@ -1,4 +1,4 @@
-import { addMonths, daysInMonth, monthCells, shiftMonth, weekdayOrder, weekStartFor } from '../utils/calendar';
+import { addMonths, daysInMonth, followStart, monthCells, shiftMonth, weekdayOrder, weekStartFor } from '../utils/calendar';
 
 /*
  * The date sheet's arithmetic: a grid that starts on the right weekday, keeps
@@ -53,5 +53,26 @@ describe('stepping by months', () => {
     expect(addMonths('2027-12-31', 2)).toBe('2028-02-29');
     expect(addMonths('2026-11-05', 36)).toBe('2029-11-05');
     expect(addMonths('2026-03-31', -1)).toBe('2026-02-28');
+  });
+});
+
+describe('a deadline when the start moves', () => {
+  const PRESETS = [3, 6, 12, 36];
+  it('moves with the start when it was "+N months" from it', () => {
+    // "1 г." from 05.11.2026, then the start moved to 10.01.2027: still a year.
+    expect(followStart('2027-11-05', '2026-11-05', '2027-01-10', PRESETS)).toBe('2028-01-10');
+  });
+
+  it('stays where it was put by hand, while it is still after the start', () => {
+    expect(followStart('2027-08-20', '2026-11-05', '2027-01-10', PRESETS)).toBe('2027-08-20');
+  });
+
+  it('is dropped once the start has passed it — it could only fail on save', () => {
+    expect(followStart('2027-08-20', '2026-11-05', '2027-09-01', PRESETS)).toBe('');
+    expect(followStart('2027-08-20', '2026-11-05', '2027-08-20', PRESETS)).toBe('');
+  });
+
+  it('leaves "no deadline" alone', () => {
+    expect(followStart('', '2026-11-05', '2027-01-10', PRESETS)).toBe('');
   });
 });

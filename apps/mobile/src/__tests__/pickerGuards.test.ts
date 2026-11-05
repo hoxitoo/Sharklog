@@ -25,3 +25,18 @@ describe('ThemePicker', () => {
     expect(src).not.toMatch(/\bdisabled=\{/);
   });
 });
+
+describe('bottom sheets', () => {
+  it('keep their contents reachable by a screen reader', () => {
+    // A Pressable is accessible by default, and on iOS an accessible view hides
+    // everything inside it: the sheet's backdrop and its tap shield made
+    // VoiceOver see one "close" element and no option or day to choose.
+    for (const file of ['FilterPicker.tsx', 'DateField.tsx']) {
+      const src = read('components', file);
+      const pressables = src.match(/<Pressable\b[^\n]*/g) ?? []; // the tag up to its line end: `=>` would cut it short
+      expect(pressables.length).toBeGreaterThan(0);
+      for (const tag of pressables) expect(`${file}: ${tag}`).toMatch(/accessible=\{false\}/);
+      expect(src).toMatch(/onAccessibilityEscape=\{close\}/);
+    }
+  });
+});

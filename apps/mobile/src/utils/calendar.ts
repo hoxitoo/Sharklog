@@ -61,3 +61,16 @@ export function monthOf(ymd: string): { year: number; month: number } {
   const [y = 0, m = 1] = ymd.split('-').map(Number);
   return { year: y, month: m };
 }
+
+/**
+ * Where a deadline goes when its start moves. One that was "+N months" from
+ * the old start (a preset — it meant "a year from the start") moves with it;
+ * one the new start has passed is dropped, since it could only fail on save;
+ * any other stays as chosen. '' is "no deadline".
+ */
+export function followStart(deadline: string, oldStart: string, newStart: string, presetMonths: readonly number[]): string {
+  if (!deadline) return deadline;
+  const m = presetMonths.find((n) => addMonths(oldStart, n) === deadline);
+  if (m !== undefined) return addMonths(newStart, m);
+  return deadline > newStart ? deadline : '';
+}

@@ -1139,7 +1139,7 @@
     "startLabel": "Start",
     "startHint": {
       "profit": "Bets before this date don't count.",
-      "bank": "The whole bank counts. The plan line on the chart starts on this date.",
+      "bank": "The whole bank counts. Pace and the plan are measured from this date.",
       "withdraw": "Withdrawals and deposits before this date don't count.",
       "lossCap": "In the first month losses count from this date, after that from the 1st."
     },
@@ -1200,8 +1200,8 @@
       "yearsMonths": "{{y}} y {{m}} mo"
     },
     "kind": {
-      "profit": "Earn from betting",
-      "bank": "Grow the bank to",
+      "profit": "Betting profit",
+      "bank": "Reach a bank amount",
       "withdraw": "Withdraw money",
       "lossCap": "Monthly loss limit"
     },
@@ -1222,7 +1222,7 @@
     "paceBets": "Betting pace over {{d}} d",
     "editA11y": "Edit goal “{{title}}”",
     "amount": {
-      "profit": "How much to earn, {{currency}}",
+      "profit": "Target profit, {{currency}}",
       "bank": "Target bank, {{currency}}",
       "withdraw": "How much to withdraw, {{currency}}",
       "lossCap": "At most per month, {{currency}}"

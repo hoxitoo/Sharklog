@@ -113,18 +113,33 @@ export function DateField({ label, value, onChange, placeholder, min, presets, p
       >
         {/* The mono face only for the digits: under a word ("Без срока") its
             wide spaces read as gaps. */}
-        <Text style={[s.value, value ? numeric : s.placeholder]} numberOfLines={1}>
+        {/* Shrinks rather than cuts: at half width on a 360 dp phone with the
+            system font enlarged, "05.11.2026" lost its year to an ellipsis. */}
+        <Text
+          style={[s.value, value ? numeric : s.placeholder]}
+          numberOfLines={1}
+          adjustsFontSizeToFit
+          minimumFontScale={0.7}
+        >
           {value ? dayLabel(value) : placeholder ?? ''}
         </Text>
-        <AppIcon name="calendar" size={GLYPH.lg} color={colors.textMuted} />
+        <AppIcon name="calendar" size={GLYPH.md} color={colors.textMuted} />
       </TouchableOpacity>
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={close}>
-        <Pressable style={s.backdrop} onPress={close}>
-          <Animated.View style={[s.sheet, { paddingBottom: bottomPad, transform: [{ translateY: dragY }] }]}>
+        {/* Both Pressables are `accessible={false}`: a Pressable is accessible by
+            default, and on iOS an accessible view hides everything inside it —
+            VoiceOver would find one "close" element and no day to choose. The
+            screen-reader way out is the escape gesture on the sheet. */}
+        <Pressable style={s.backdrop} onPress={close} accessible={false}>
+          <Animated.View
+            style={[s.sheet, { paddingBottom: bottomPad, transform: [{ translateY: dragY }] }]}
+            accessibilityViewIsModal
+            onAccessibilityEscape={close}
+          >
             {/* Shields the whole sheet from the backdrop's dismiss — a tap
                 between two days must not close it. */}
-            <Pressable onPress={(e) => e.stopPropagation()}>
+            <Pressable onPress={(e) => e.stopPropagation()} accessible={false}>
               <View {...drag.panHandlers}>
                 <View style={s.handle} />
                 <Text style={s.title}>{label}</Text>

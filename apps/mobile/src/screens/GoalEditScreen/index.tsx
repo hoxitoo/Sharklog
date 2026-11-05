@@ -9,7 +9,7 @@ import {
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
 import { FilterPicker } from '../../components/FilterPicker';
 import { DateField } from '../../components/DateField';
-import { addMonths } from '../../utils/calendar';
+import { addMonths, followStart } from '../../utils/calendar';
 import { useBetsStore } from '../../store/betsStore';
 import { useBottomPad } from '../../utils/useBottomPad';
 import { useCurrencySymbol } from '../../utils/useFormatMoney';
@@ -22,6 +22,9 @@ import type { RootStackParamList } from '../../navigation/RootNavigator';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 type Route = RouteProp<RootStackParamList, 'GoalEdit'>;
+
+/** The deadline chips, in months from the start. */
+const PRESET_MONTHS = [3, 6, 12, 36];
 
 /** The text an amount field opens with: whole units, as typed ("150000"). */
 const amountText = (kopecks: number) => String(Math.round(kopecks) / 100);
@@ -59,12 +62,26 @@ export function GoalEditScreen() {
   // how, in full (goals.how).
   const kindOptions = GOAL_KINDS.map((k) => ({ key: k, label: t(`goals.kind.${k}`), description: t(`goals.kindHint.${k}`) }));
   // A deadline is usually "in N months": one tap instead of paging the calendar.
-  const deadlinePresets = [
-    { label: t('goals.dur.months', { m: 3 }), value: addMonths(start, 3) },
-    { label: t('goals.dur.months', { m: 6 }), value: addMonths(start, 6) },
-    { label: t('goals.dur.years', { y: 1 }), value: addMonths(start, 12) },
-    { label: t('goals.dur.years', { y: 3 }), value: addMonths(start, 36) },
-  ];
+  // Counted from the start; one already behind us is not offered — on an old
+  // goal every chip would otherwise set a deadline that has passed.
+  const today = toYmd(new Date());
+  const deadlinePresets = PRESET_MONTHS
+    .map((m) => ({
+      label: m % 12 === 0 ? t('goals.dur.years', { y: m / 12 }) : t('goals.dur.months', { m }),
+      value: addMonths(start, m),
+    }))
+    .filter((p) => p.value > today);
+
+  /**
+   * A moved start carries the deadline with it when the deadline was one of
+   * the "+N months" answers (it meant "a year from the start"), and drops a
+   * deadline the new start has passed — it would only fail on Save, and the
+   * calendar would open on a month of greyed-out days.
+   */
+  function changeStart(next: string) {
+    setDeadline((d) => followStart(d, start, next, PRESET_MONTHS));
+    setStart(next);
+  }
 
   /** The goal as the form describes it, or null after saying what is wrong. */
   function read(): Goal | null {
@@ -175,7 +192,7 @@ export function GoalEditScreen() {
         <View style={s.row}>
           <View style={[s.field, s.half]}>
             <Text style={s.label}>{t('goals.startLabel')}</Text>
-            <DateField label={t('goals.startLabel')} value={start} onChange={setStart} />
+            <DateField label={t('goals.startLabel')} value={start} onChange={changeStart} />
           </View>
           {!isCap ? (
             <View style={[s.field, s.half]}>

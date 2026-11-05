@@ -112,6 +112,15 @@ describe('what the goals screen says', () => {
     expect(missing).toEqual([]);
   });
 
+  it('names the kinds as bookkeeping, not as a way to earn', () => {
+    // "Заработать на ставках" read as an invitation to make money on betting —
+    // the impression RuStore moderation and the advertising law look for. The
+    // kind names and amount labels say what is measured, not what to win.
+    const verbs = [/заработ/i, /\bearn/i, /табу|табыс/i, /зарабі/i];
+    const names = locales.flatMap((g) => ['kind', 'amount'].flatMap((group) => Object.values(g[group] as Record<string, string>)));
+    expect(names.filter((n) => verbs.some((re) => re.test(n)))).toEqual([]);
+  });
+
   it('quotes no one else\'s returns and promises none', () => {
     const banned = [/\d+\s*[–-]\s*\d+\s*%/, /профессионал/i, /professional/i, /кәсіпқой/i, /прафесіянал/i, /гарант/i, /guarantee/i];
     const hits = locales.flatMap(texts).filter((t) => banned.some((re) => re.test(t)));

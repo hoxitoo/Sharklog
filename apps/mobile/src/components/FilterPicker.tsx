@@ -127,12 +127,19 @@ export function FilterPicker<T extends string>({ label, options, value, onChange
 
       <Modal visible={open} transparent animationType="fade" onRequestClose={close}>
         {/* Tap outside, or drag the sheet down. */}
-        <Pressable style={picker.backdrop} onPress={close}>
-          <Animated.View style={[picker.sheet, { paddingBottom: bottomPad, transform: [{ translateY: dragY }] }]}>
+        {/* `accessible={false}` on both Pressables: accessible by default, and on
+            iOS an accessible view hides its children — VoiceOver saw one
+            "close" element and none of the options. Escape gesture closes. */}
+        <Pressable style={picker.backdrop} onPress={close} accessible={false}>
+          <Animated.View
+            style={[picker.sheet, { paddingBottom: bottomPad, transform: [{ translateY: dragY }] }]}
+            accessibilityViewIsModal
+            onAccessibilityEscape={close}
+          >
             {/* Shields the WHOLE sheet from the backdrop's dismiss. Without it,
                 a thumb landing in the sheet's own padding — the 40pt band under
                 the last option — closes it instead of choosing. */}
-            <Pressable onPress={(e) => e.stopPropagation()}>
+            <Pressable onPress={(e) => e.stopPropagation()} accessible={false}>
               <View {...drag.panHandlers}>
                 {/* The grab area: the handle plus the title beside it. */}
                 <View style={picker.handle} />
