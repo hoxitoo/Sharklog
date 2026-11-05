@@ -17,6 +17,7 @@ import {
 } from '@sharklog/core';
 import { useTranslation } from 'react-i18next';
 import { FilterPicker } from '../../components/FilterPicker';
+import { DateField } from '../../components/DateField';
 import { useFormatMoney, useCurrencySymbol } from '../../utils/useFormatMoney';
 import { useOddsFormat, useFormatOddsRange, oddsKeyboard } from '../../utils/useOdds';
 import { oddsFieldText, readOddsField, readLegField, legFieldText, oddsExample } from '../../utils/oddsField';
@@ -1399,18 +1400,13 @@ export function AddBetScreen() {
             {/* ── Date + Time ─── */}
             <View style={styles.row2}>
               <Field style={styles.half} label={t('bet.date')}>
+                {/* A calendar, not a YYYY-MM-DD box: a typed "5.11" was saved as
+                    is and the bet fell out of every day it belonged to. */}
                 <Controller
                   control={control}
                   name="date"
                   render={({ field: { onChange, value } }) => (
-                    <TextInput
-                      style={inputStyle}
-                      placeholder={t('addBet.datePh')}
-                      placeholderTextColor={colors.textMuted}
-                      value={value}
-                      onChangeText={onChange}
-                      keyboardType="numbers-and-punctuation"
-                    />
+                    <DateField label={t('bet.date')} value={value} onChange={onChange} />
                   )}
                 />
               </Field>

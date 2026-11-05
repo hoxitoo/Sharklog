@@ -13,7 +13,7 @@ import { SIZE, GLYPH, numeric } from '../theme/typography';
 import { haptic } from '../utils/haptics';
 import { useBottomPad } from '../utils/useBottomPad';
 import { dayLabel } from '../utils/goalText';
-import { monthCells, monthOf, shiftMonth, weekdayOrder, weekStartFor } from '../utils/calendar';
+import { isYmd, monthCells, monthOf, shiftMonth, weekdayOrder, weekStartFor } from '../utils/calendar';
 
 export interface DatePreset {
   label: string;
@@ -37,6 +37,7 @@ interface Props {
   presetsTitle?: string;
   /** Offers "no date" in the sheet — an optional field. */
   onClear?: () => void;
+  /** The clear button's words; "Очистить" when not given. */
   clearLabel?: string;
   style?: StyleProp<ViewStyle>;
 }
@@ -57,7 +58,11 @@ export function DateField({ label, value, onChange, placeholder, min, presets, p
   const bottomPad = useBottomPad(SPACE.xl);
   const [open, setOpen] = useState(false);
   const today = toYmd(new Date());
-  const [view, setView] = useState(() => monthOf(value || today));
+  // A stored date can predate the calendar: a CSV import once kept an
+  // unreadable one as typed. It is shown as it is and kept until another day is
+  // chosen; the calendar then opens on today, not on a month it cannot read.
+  const valid = isYmd(value);
+  const [view, setView] = useState(() => monthOf(valid ? value : today));
   const weekStart = weekStartFor(i18n.language);
   const dragY = useRef(new Animated.Value(0)).current;
 
@@ -68,7 +73,7 @@ export function DateField({ label, value, onChange, placeholder, min, presets, p
     // Reset on OPEN, not on close: resetting during the fade would jump the
     // closing sheet. Opens on the chosen day, else on the first allowed one.
     dragY.setValue(0);
-    setView(monthOf(value || (min && min > today ? min : today)));
+    setView(monthOf(valid ? value : min && min > today ? min : today));
     setOpen(true);
   }
 
@@ -97,6 +102,7 @@ export function DateField({ label, value, onChange, placeholder, min, presets, p
     }),
   ).current;
 
+  const shown = valid ? dayLabel(value) : value.trim();
   const page = (delta: number) => setView((v) => shiftMonth(v.year, v.month, delta));
   const cells = monthCells(view.year, view.month, weekStart);
   const weeks = Array.from({ length: 6 }, (_, w) => cells.slice(w * 7, w * 7 + 7));
@@ -108,7 +114,7 @@ export function DateField({ label, value, onChange, placeholder, min, presets, p
         onPress={open_}
         activeOpacity={0.75}
         accessibilityRole="button"
-        accessibilityLabel={`${label}: ${value ? dayLabel(value) : placeholder ?? ''}`}
+        accessibilityLabel={`${label}: ${shown || placeholder || ''}`}
         accessibilityHint={t('datePicker.openHint')}
       >
         {/* The mono face only for the digits: under a word ("Без срока") its
@@ -116,12 +122,12 @@ export function DateField({ label, value, onChange, placeholder, min, presets, p
         {/* Shrinks rather than cuts: at half width on a 360 dp phone with the
             system font enlarged, "05.11.2026" lost its year to an ellipsis. */}
         <Text
-          style={[s.value, value ? numeric : s.placeholder]}
+          style={[s.value, shown ? numeric : s.placeholder]}
           numberOfLines={1}
           adjustsFontSizeToFit
           minimumFontScale={0.7}
         >
-          {value ? dayLabel(value) : placeholder ?? ''}
+          {shown || placeholder || ''}
         </Text>
         <AppIcon name="calendar" size={GLYPH.md} color={colors.textMuted} />
       </TouchableOpacity>
@@ -231,7 +237,7 @@ export function DateField({ label, value, onChange, placeholder, min, presets, p
                     activeOpacity={0.7}
                     accessibilityRole="button"
                   >
-                    <Text style={s.footerText}>{clearLabel ?? ''}</Text>
+                    <Text style={s.footerText}>{clearLabel ?? t('datePicker.clear')}</Text>
                   </TouchableOpacity>
                 ) : null}
               </View>
