@@ -52,9 +52,16 @@ apps/mobile/src/
     OnboardingScreen/        — 3 шага: welcome (logo image) → стартовый банкролл → букмекеры
     StrategyBuilderScreen/   — PRO: прогресс-бар + 10 вопросов + результат + "Применить стратегию" (только план / + тилт и лимит в Настройки),
                                «Отключить / Включить стратегию»
+    GoalsScreen/             — «Цели»: карточки активных целей (прогресс, срок, «нужно в месяц»; в Pro — темп,
+                               прогноз, проверка реальностью), блок «Как считается» на каждой карточке, график у
+                               главной, архив. Кнопка главной цели — GoalPill в шапке «Ставок»
+    GoalEditScreen/          — форма цели: вид (имя-действие + фраза «что считается»), название, сумма (подпись по
+                               виду), начало и срок — календарь DateField (у срока чипы 3 мес./6 мес./1 г./3 г.)
   components/
     ErrorBoundary.tsx        — React class component; friendly RN error screen + reload button
-    ProGate.tsx              — пейвол с реальными RC offerings (monthly/annual), restore
+    ProGate.tsx              — пейвол: в сборке RuStore — «Pro навсегда» через Робокассу, в сборке Google Play — подписки RevenueCat
+    DateField.tsx            — дата как поле + шит с календарём (свой, в теме и на языке приложения); сетка — utils/calendar
+    FilterPicker.tsx         — кнопка + шит выбора; у варианта `hint` (цифры, моноширинный) или `description` (слова)
     ScreenHeader.tsx         — title + subtitle + optional right CTA (не используется в stack-экранах)
     ChecklistModal.tsx       — 5 вопросов перед ставкой, только PRO
     StatusBadge.tsx          — цветной бейдж статуса ставки (pending/won/lost/refund/cashout)
@@ -65,7 +72,7 @@ apps/mobile/src/
                                2400ms фиксировано, все useNativeDriver:true, onFinish() callback
     ResponsibleGamblingBanner.tsx — коллапсируемый 18+ баннер (AsyncStorage @sharklog/responsible_expanded)
   navigation/
-    RootNavigator.tsx        — Stack: Drawer + AddBet (modal) + Bankroll + StrategyBuilder
+    RootNavigator.tsx        — Stack: Drawer + AddBet (modal) + Bankroll + Goals + GoalEdit + StrategyBuilder + Partners + BetsFilter
     DrawerNavigator.tsx      — кастомный анимированный drawer (заменяет таббар)
                                Animated.spring (открытие) / Animated.timing (закрытие)
                                DrawerContext — openDrawer() доступен из любого экрана
@@ -331,6 +338,8 @@ interface TeamStats {
 23. **Доля банка берётся на начало дня ставки** (`calcPlanCompliance`): результаты того же дня не должны задним числом менять банк, против которого мерялась ставка.
 24. **`Alert.alert` после закрытия `Modal`** откладывается на кадр — иначе алерт может быть снят вместе с размонтируемым контроллером.
 25. **JSON-восстановление проходит через `migrate()`**: иначе бэкап, снятый до исправления схемы, возвращает в приложение уже вылеченные баги.
+26. **Цели — данные** (`goals` рядом с дневником, в бэкапе, стираются «Очистить все данные»). Прогресс — только `calcGoalProgress` (core): `profit` — результат ставок с даты начала (депозиты не двигают), `bank` — `currentBank`, `withdraw` — выведено сверх внесённого, `lossCap` — минус календарного месяца. Free — одна открытая цель (`goalsFor`, лимит на показ, не на хранение). Тексты вида строятся из ключа (`goals.kind/kindHint/how/startHint/amount.<вид>`) — их полноту держит `goals.test.ts`.
+27. **Дата из календаря, не из текстового поля**: новые экраны берут `DateField`; форма ставки и фильтр списка пока вводят ГГГГ-ММ-ДД руками.
 
 ---
 
@@ -539,7 +548,7 @@ VITE_OWNER_PRO=true
 ## Тесты
 
 ```
-packages/core         208 vitest unit tests (stats, analytics, daily, formatters, kelly, migrations,
+packages/core         320 vitest unit tests (stats, analytics, daily, formatters, kelly, migrations,
                           betsCsv x14 — round-trip / P&L / инъекция / разделители,
                           pnlBuckets x10 — границы бакетов, порядок кривой,
                           bankroll x10 — bankCash / currentBank / pendingExposure / сверки,
@@ -550,8 +559,8 @@ packages/core         208 vitest unit tests (stats, analytics, daily, formatters
                           insightsGroups x8 — дисциплина в группировках (только по esports-ставкам) и порядок по P&L,
                           betYears x16 — список лет, «без турнира», границы диаграммы, тримминг имён)
 apps/desktop           40 vitest smoke tests (betsStore x25, importBets x15)
-apps/mobile            34 jest smoke tests (betsStore x21, chartScale x6, theme x7)
-ИТОГО                  282 теста
+apps/mobile           345 jest tests (стор, стражи дизайна/тем/переводов, оплата, цели, календарь…)
+ИТОГО                  705 тестов (core 320 + desktop 40 + mobile 345, на 2026-11-05)
 ```
 
 ---
@@ -590,16 +599,14 @@ git push -u origin claude/busy-shannon-jQgRK
 
 ## Что осталось до прода
 
-### Обязательно (blocker)
-- [ ] Сгенерировать ключи подписи: `npx tauri signer generate` → добавить в GitHub Secrets
-- [ ] Заменить `UPDATER_PUBLIC_KEY_PLACEHOLDER` в `tauri.conf.json` реальным публичным ключом
-- [ ] Заменить `projectId: "PLACEHOLDER"` в `app.json` реальным EAS projectId
+Актуальный список — `docs/ROADMAP.md`, раздел «🎯 Первый релиз — RuStore» (таблица «Осталось»),
+«🔐 Безопасность» и «⚖️ Оплата». Коротко (2026-11-05): всё, что делается в коде, сделано; осталось
+то, что делает автор, — Робокасса на ИП, ключи и сервер лицензий, переменные EAS, оферта с
+реквизитами на своём сайте и адреса этого сайта в приложении, тестовая оплата на `preview`,
+нативная сборка `rustore` и прогон на телефоне, карточка в консоли RuStore.
 
-### Желательно
-- [ ] Скриншоты для App Store / Google Play
-- [ ] LemonSqueezy для платежей (desktop)
-- [ ] Sentry DSN в production env
-- [ ] Задеплоить Privacy Policy URL
+Ключи подписи десктопа, `projectId` EAS и политика конфиденциальности — сделаны (раньше здесь
+числились блокерами).
 
 ---
 
