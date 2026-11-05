@@ -145,10 +145,24 @@ describe('describeBetsQuery', () => {
     expect(describeBetsQuery(q({ oddsFrom: '1.5', oddsTo: '3' }))).toBe('× 1.5–3');
   });
 
+  // A fixed "today": whether the year is said depends on it.
+  const TODAY = '2026-11-05';
   it('shortens dates the way the list chip does', () => {
-    expect(describeBetsQuery(q({ dateFrom: '2026-09-01', dateTo: '2026-09-05' }))).toBe('01.09–05.09');
-    expect(describeBetsQuery(q({ dateFrom: '2026-09-01' }))).toBe('01.09 →');
-    expect(describeBetsQuery(q({ dateTo: '2026-09-05' }))).toBe('→ 05.09');
+    expect(describeBetsQuery(q({ dateFrom: '2026-09-01', dateTo: '2026-09-05' }), 'decimal', TODAY)).toBe('01.09–05.09');
+    expect(describeBetsQuery(q({ dateFrom: '2026-09-01' }), 'decimal', TODAY)).toBe('01.09 →');
+    expect(describeBetsQuery(q({ dateTo: '2026-09-05' }), 'decimal', TODAY)).toBe('→ 05.09');
+  });
+
+  it('says the year when the range crosses one or lies outside this year', () => {
+    // The calendar's year buttons make 01.11.2025 → 05.11.2026 two taps away,
+    // and "01.11–05.11" read as four days.
+    expect(describeBetsQuery(q({ dateFrom: '2025-11-01', dateTo: '2026-11-05' }), 'decimal', TODAY)).toBe('01.11.25–05.11.26');
+    expect(describeBetsQuery(q({ dateFrom: '2025-03-01' }), 'decimal', TODAY)).toBe('01.03.25 →');
+  });
+
+  it('names reversed bounds the way the list reads them — swapped', () => {
+    expect(describeBetsQuery(q({ dateFrom: '2026-11-10', dateTo: '2026-11-01' }), 'decimal', TODAY)).toBe('01.11–10.11');
+    expect(describeBetsQuery(q({ oddsFrom: '3', oddsTo: '1.5' }))).toBe('× 1.5–3');
   });
 
   it('stays silent about a half-typed date, which is not being filtered on', () => {

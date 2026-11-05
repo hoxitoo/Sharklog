@@ -95,9 +95,17 @@ describe('dates are picked, not typed', () => {
       const text = readFileSync(join(__dirname, '..', 'i18n', 'locales', `${l}.json`), 'utf8');
       expect(`${l}: ${/ГГГГ|YYYY|ЖЖЖЖ/.test(text)}`).toBe(`${l}: false`);
     }
-    for (const screen of ['AddBetScreen', 'GoalEditScreen', 'BetsFilterScreen']) {
-      const src = readFileSync(join(__dirname, '..', 'screens', screen, 'index.tsx'), 'utf8');
-      expect(`${screen}: ${src.includes('<DateField')}`).toBe(`${screen}: true`);
-    }
+    // Each date is bound to a DateField, and to nothing typed beside it.
+    const src = (screen: string) => readFileSync(join(__dirname, '..', 'screens', screen, 'index.tsx'), 'utf8');
+    const bet = src('AddBetScreen');
+    expect(bet).toMatch(/name="date"[\s\S]{0,120}?<DateField/);
+    expect(bet).not.toMatch(/name="date"[\s\S]{0,120}?<TextInput/);
+    const filter = src('BetsFilterScreen');
+    expect(filter).toMatch(/<DateField[^>]*value=\{draft\.dateFrom\}/);
+    expect(filter).toMatch(/<DateField[^>]*value=\{draft\.dateTo\}/);
+    expect(filter).not.toMatch(/onChangeText=\{set\('date(From|To)'\)\}/);
+    const goal = src('GoalEditScreen');
+    expect(goal).not.toMatch(/onChangeText=\{set(Start|Deadline)\}/);
+    expect((goal.match(/<DateField/g) ?? []).length).toBe(2);
   });
 });
