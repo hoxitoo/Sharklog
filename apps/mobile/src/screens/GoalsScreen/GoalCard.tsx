@@ -54,6 +54,21 @@ function Head({ goal, main, onEdit }: Pick<Props, 'goal' | 'main' | 'onEdit'>) {
   );
 }
 
+/**
+ * What moves this goal, in full. The kind sheet says it in one sentence; here,
+ * next to the numbers it explains, there is room for the cases people ask
+ * about — a cash-out, a deposit, a bet still in play.
+ */
+function How({ goal }: { goal: Goal }) {
+  const { t } = useTranslation();
+  return (
+    <View style={card.how}>
+      <Text style={card.howTitle}>{t('goals.howTitle')}</Text>
+      <Text style={card.howText}>{t(`goals.how.${goal.kind}`, { date: dayLabel(goal.startDate) })}</Text>
+    </View>
+  );
+}
+
 function Bar({ ratio, color }: { ratio: number; color: string }) {
   return (
     <View style={card.track}>
@@ -162,6 +177,8 @@ function AccumulationCard({ goal, p, main, isPro, inTilt, onEdit, onMakeMain, on
 
       {main ? <GoalChart goal={goal} p={p} /> : null}
 
+      <How goal={goal} />
+
       {goal.note ? <Text style={card.userNote}>{goal.note}</Text> : null}
 
       {!main ? (
@@ -197,6 +214,7 @@ function LossCapCard({ goal, p, main, onEdit, onMakeMain }: Props) {
         <Text style={card.when}>{t('goals.startsOn', { date: dayLabel(goal.startDate) })}</Text>
       )}
       {p.wouldExceed ? <Text style={card.note}>{t('goals.capRisk', { amount: fmt(p.pendingStake) })}</Text> : null}
+      <How goal={goal} />
       {goal.note ? <Text style={card.userNote}>{goal.note}</Text> : null}
       {!main ? (
         <TouchableOpacity style={card.linkBtn} onPress={onMakeMain} activeOpacity={0.7} accessibilityRole="button">
@@ -263,6 +281,9 @@ const card = themedStyles(() => ({
   },
   lockedText: { flex: 1, fontSize: SIZE.caption, color: colors.textSecondary },
   proBadge: { fontSize: SIZE.micro, fontWeight: '800', color: colors.gold },
+  how: { marginTop: SPACE.md, paddingTop: SPACE.md, borderTopWidth: 1, borderTopColor: colors.border },
+  howTitle: { fontSize: SIZE.micro, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5 },
+  howText: { fontSize: SIZE.caption, color: colors.textSecondary, lineHeight: 17, marginTop: SPACE.xs },
   userNote: {
     fontSize: SIZE.body, color: colors.textSecondary, lineHeight: 20, marginTop: SPACE.md,
     paddingTop: SPACE.md, borderTopWidth: 1, borderTopColor: colors.border,

@@ -4,10 +4,12 @@ import { useNavigation, useRoute, type RouteProp } from '@react-navigation/nativ
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import {
-  activeGoals, normalizeDay, parseMoneyInput, toYmd, FREE_LIMITS, GOAL_KINDS, type Goal, type GoalKind,
+  activeGoals, addDays, parseMoneyInput, toYmd, FREE_LIMITS, GOAL_KINDS, type Goal, type GoalKind,
 } from '@sharklog/core';
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
 import { FilterPicker } from '../../components/FilterPicker';
+import { DateField } from '../../components/DateField';
+import { addMonths } from '../../utils/calendar';
 import { useBetsStore } from '../../store/betsStore';
 import { useBottomPad } from '../../utils/useBottomPad';
 import { useCurrencySymbol } from '../../utils/useFormatMoney';
@@ -53,7 +55,16 @@ export function GoalEditScreen() {
   }, [existing, navigation, t]);
 
   const isCap = kind === 'lossCap';
-  const kindOptions = GOAL_KINDS.map((k) => ({ key: k, label: t(`goals.kind.${k}`), hint: t(`goals.kindHint.${k}`) }));
+  // In the sheet each kind says what it counts, in a sentence; the card says
+  // how, in full (goals.how).
+  const kindOptions = GOAL_KINDS.map((k) => ({ key: k, label: t(`goals.kind.${k}`), description: t(`goals.kindHint.${k}`) }));
+  // A deadline is usually "in N months": one tap instead of paging the calendar.
+  const deadlinePresets = [
+    { label: t('goals.dur.months', { m: 3 }), value: addMonths(start, 3) },
+    { label: t('goals.dur.months', { m: 6 }), value: addMonths(start, 6) },
+    { label: t('goals.dur.years', { y: 1 }), value: addMonths(start, 12) },
+    { label: t('goals.dur.years', { y: 3 }), value: addMonths(start, 36) },
+  ];
 
   /** The goal as the form describes it, or null after saying what is wrong. */
   function read(): Goal | null {
@@ -61,14 +72,11 @@ export function GoalEditScreen() {
     if (!name) { Alert.alert(t('common.error'), t('goals.errTitle')); return null; }
     const target = parseMoneyInput(amount);
     if (!(target > 0)) { Alert.alert(t('common.error'), t('goals.errAmount')); return null; }
-    const startDay = normalizeDay(start);
-    if (!startDay) { Alert.alert(t('common.error'), t('goals.errDate')); return null; }
-    let end: string | null = null;
-    if (!isCap && deadline.trim()) {
-      end = normalizeDay(deadline);
-      if (!end) { Alert.alert(t('common.error'), t('goals.errDate')); return null; }
-      if (end <= startDay) { Alert.alert(t('common.error'), t('goals.errDeadline')); return null; }
-    }
+    // Both days come from the calendar, already YYYY-MM-DD. The deadline can
+    // still fall behind the start: chosen first, then the start moved past it.
+    const startDay = start;
+    const end = !isCap && deadline ? deadline : null;
+    if (end && end <= startDay) { Alert.alert(t('common.error'), t('goals.errDeadline')); return null; }
     const text = note.trim();
     return {
       id: existing?.id ?? uuid(),
@@ -153,7 +161,7 @@ export function GoalEditScreen() {
         </View>
 
         <View style={s.field}>
-          <Text style={s.label}>{isCap ? t('goals.capLabel', { currency }) : t('goals.amountLabel', { currency })}</Text>
+          <Text style={s.label}>{t(`goals.amount.${kind}`, { currency })}</Text>
           <TextInput
             style={s.input}
             value={amount}
@@ -167,33 +175,28 @@ export function GoalEditScreen() {
         <View style={s.row}>
           <View style={[s.field, s.half]}>
             <Text style={s.label}>{t('goals.startLabel')}</Text>
-            <TextInput
-              style={s.input}
-              value={start}
-              onChangeText={setStart}
-              placeholder={t('addBet.datePh')}
-              placeholderTextColor={colors.textMuted}
-              keyboardType="numbers-and-punctuation"
-            />
+            <DateField label={t('goals.startLabel')} value={start} onChange={setStart} />
           </View>
           {!isCap ? (
             <View style={[s.field, s.half]}>
               <Text style={s.label}>{t('goals.deadlineLabel')}</Text>
-              <TextInput
-                style={s.input}
+              <DateField
+                label={t('goals.deadlineLabel')}
                 value={deadline}
-                onChangeText={setDeadline}
-                placeholder={t('addBet.datePh')}
-                placeholderTextColor={colors.textMuted}
-                keyboardType="numbers-and-punctuation"
+                onChange={setDeadline}
+                placeholder={t('goals.noDeadline')}
+                min={addDays(start, 1)}
+                presets={deadlinePresets}
+                presetsTitle={t('goals.deadlineFrom')}
+                onClear={() => setDeadline('')}
+                clearLabel={t('goals.noDeadline')}
               />
             </View>
           ) : null}
         </View>
-        {/* A loss cap has no deadline field: no word about one. */}
-        <Text style={[s.hint, s.hintBelow]}>
-          {isCap ? t('goals.startHint') : `${t('goals.startHint')} ${t('goals.deadlineHint')}`}
-        </Text>
+        {/* What the start date does differs by kind: a bank goal counts the
+            whole bank and the start only draws the plan. */}
+        <Text style={[s.hint, s.hintBelow]}>{t(`goals.startHint.${kind}`)}</Text>
 
         <View style={s.field}>
           <Text style={s.label}>{t('goals.noteLabel')}</Text>

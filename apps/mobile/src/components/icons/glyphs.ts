@@ -85,6 +85,15 @@ export const GLYPHS = {
     { kind: "circle", fill: "accent", cx: 21, cy: 27, r: 3.5 },
     { kind: "path", fill: "accent", d: "M36 3 H45 V12 L41 15 L33 7 Z" },
   ],
+  calendar: [
+    { kind: "path", fill: "none", d: "M11 10 H37 A5 5 0 0 1 42 15 V37 A5 5 0 0 1 37 42 H11 A5 5 0 0 1 6 37 V15 A5 5 0 0 1 11 10 Z", stroke: "body", strokeWidth: 3.6, round: true },
+    { kind: "path", fill: "none", d: "M7 19 H41", stroke: "body", strokeWidth: 3.2, round: true },
+    { kind: "path", fill: "none", d: "M16 5 V13 M32 5 V13", stroke: "body", strokeWidth: 3.6, round: true },
+    { kind: "circle", fill: "body", cx: 15, cy: 27, r: 2.2 },
+    { kind: "circle", fill: "body", cx: 23, cy: 27, r: 2.2 },
+    { kind: "circle", fill: "body", cx: 15, cy: 35, r: 2.2 },
+    { kind: "circle", fill: "accent", cx: 31, cy: 32, r: 5 },
+  ],
   sport_football: [
     { kind: "circle", fill: "none", cx: 24, cy: 24, r: 18, stroke: "body", strokeWidth: 3.2 },
     { kind: "path", fill: "body", d: "M24 16 L32 22 L29 31 H19 L16 22 Z" },

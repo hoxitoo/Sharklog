@@ -22,7 +22,7 @@ const NAMES = {
   'menu/bets': 'bets', 'menu/dashboard': 'dashboard', 'menu/insights': 'insights',
   'menu/analytics': 'analytics', 'menu/discipline': 'discipline', 'menu/settings': 'settings',
   'menu/bankroll': 'bankroll', 'menu/strategy-builder': 'strategy', 'menu/partners': 'partners',
-  'menu/support-author': 'support', 'menu/goals': 'goals',
+  'menu/support-author': 'support', 'menu/goals': 'goals', 'ui/calendar': 'calendar',
   'sports/football': 'sport_football', 'sports/hockey': 'sport_hockey', 'sports/basketball': 'sport_basketball',
   'sports/tennis': 'sport_tennis', 'sports/esports': 'sport_esports', 'sports/volleyball': 'sport_volleyball',
   'sports/baseball': 'sport_baseball', 'sports/other-sport': 'sport_other',

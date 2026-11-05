@@ -1134,12 +1134,15 @@
     "pillAdd": "Goal",
     "pillAddA11y": "Set a goal",
     "pillA11y": "Goal “{{title}}”: {{cur}} of {{target}}",
-    "kindLabel": "What it measures",
+    "kindLabel": "Goal type",
     "titleLabel": "Name",
-    "amountLabel": "Amount, {{currency}}",
-    "capLabel": "At most per month, {{currency}}",
     "startLabel": "Start",
-    "startHint": "Bets before the start date don't count.",
+    "startHint": {
+      "profit": "Bets before this date don't count.",
+      "bank": "The whole bank counts. The plan line on the chart starts on this date.",
+      "withdraw": "Withdrawals and deposits before this date don't count.",
+      "lossCap": "In the first month losses count from this date, after that from the 1st."
+    },
     "deadlineLabel": "Deadline",
     "noteLabel": "Note, plan",
     "notePh": "Why this goal and how you'll get there",
@@ -1187,7 +1190,6 @@
     "freeLimitMsg": "To bring this goal back, archive the current one or get Pro.",
     "errTitle": "Give the goal a name.",
     "errAmount": "The amount must be above zero.",
-    "errDate": "Dates go as YYYY-MM-DD.",
     "errDeadline": "The deadline must be after the start.",
     "chartActual": "actual",
     "chartPlan": "plan",
@@ -1198,16 +1200,16 @@
       "yearsMonths": "{{y}} y {{m}} mo"
     },
     "kind": {
-      "profit": "Betting result",
-      "bank": "Bank",
-      "withdraw": "Withdrawals",
-      "lossCap": "Loss limit"
+      "profit": "Earn from betting",
+      "bank": "Grow the bank to",
+      "withdraw": "Withdraw money",
+      "lossCap": "Monthly loss limit"
     },
     "kindHint": {
-      "profit": "Profit from bets since the start date: wins, losses, cash-outs. Deposits and withdrawals don't count — money paid in isn't money earned.",
-      "bank": "What's in the account: bets, deposits, withdrawals and reconciliations.",
-      "withdraw": "How much you've taken out beyond what you paid in since the start date.",
-      "lossCap": "Lose no more than this in a calendar month. A protective goal: it tells you when to stop."
+      "profit": "Counts net profit from bets since the start date. Deposits and withdrawals don't count.",
+      "bank": "Counts everything in the account — the same number as in Bankroll.",
+      "withdraw": "Counts how much you've withdrawn beyond what you paid in since the start date.",
+      "lossCap": "Counts betting losses for the month. A protective goal: it tells you when to stop."
     },
     "titlePh": {
       "profit": "Profit this season",
@@ -1215,10 +1217,40 @@
       "withdraw": "Withdraw for a holiday",
       "lossCap": "Avoid a big loss"
     },
-    "deadlineHint": "The deadline is optional.",
     "deadlineWas": "Deadline was {{date}}",
     "lockedHint": "Free shows one goal — the rest wait in Pro",
     "paceBets": "Betting pace over {{d}} d",
-    "editA11y": "Edit goal “{{title}}”"
+    "editA11y": "Edit goal “{{title}}”",
+    "amount": {
+      "profit": "How much to earn, {{currency}}",
+      "bank": "Target bank, {{currency}}",
+      "withdraw": "How much to withdraw, {{currency}}",
+      "lossCap": "At most per month, {{currency}}"
+    },
+    "howTitle": "How it's counted",
+    "how": {
+      "profit": "Wins minus losses on bets since {{date}}. Cash-outs and free bets count as they settled, refunds as zero. Deposits and withdrawals don't move this goal: money paid in isn't money earned.",
+      "bank": "Everything in the account now: paid in plus betting result minus withdrawn, with reconciliations. Bets in play count once they settle. Pace and projection use bets only: a deposit is a lump sum, not a pace.",
+      "withdraw": "Withdrawn minus paid in since {{date}}: pay in 10,000 and withdraw 25,000 — that's 15,000 toward the goal. Winnings left in the account don't count until you withdraw them.",
+      "lossCap": "Net loss on settled bets in the calendar month — losses minus wins; in the first month, from the start date. At 80% of the limit you get a warning, past it a signal to take a break. The count starts over on the 1st."
+    },
+    "deadlineFrom": "From the start:"
+  },
+  "datePicker": {
+    "openHint": "Opens a calendar",
+    "prevMonth": "Previous month",
+    "nextMonth": "Next month",
+    "prevYear": "Back a year",
+    "nextYear": "Forward a year",
+    "today": "Today"
+  },
+  "weekdaysShort": {
+    "0": "Su",
+    "1": "Mo",
+    "2": "Tu",
+    "3": "We",
+    "4": "Th",
+    "5": "Fr",
+    "6": "Sa"
   }
 }
