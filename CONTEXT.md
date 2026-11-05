@@ -55,7 +55,7 @@ apps/mobile/src/
     GoalsScreen/             — «Цели»: карточки активных целей (прогресс, срок, «нужно в месяц»; в Pro — темп,
                                прогноз, проверка реальностью), блок «Как считается» на каждой карточке, график у
                                главной, архив. Кнопка главной цели — GoalPill в шапке «Ставок»
-    GoalEditScreen/          — форма цели: вид (имя-действие + фраза «что считается»), название, сумма (подпись по
+    GoalEditScreen/          — форма цели: вид (имя + фраза «что считается»), название, сумма (подпись по
                                виду), начало и срок — календарь DateField (у срока чипы 3 мес./6 мес./1 г./3 г.)
   components/
     ErrorBoundary.tsx        — React class component; friendly RN error screen + reload button
@@ -559,8 +559,8 @@ packages/core         320 vitest unit tests (stats, analytics, daily, formatters
                           insightsGroups x8 — дисциплина в группировках (только по esports-ставкам) и порядок по P&L,
                           betYears x16 — список лет, «без турнира», границы диаграммы, тримминг имён)
 apps/desktop           40 vitest smoke tests (betsStore x25, importBets x15)
-apps/mobile           345 jest tests (стор, стражи дизайна/тем/переводов, оплата, цели, календарь…)
-ИТОГО                  705 тестов (core 320 + desktop 40 + mobile 345, на 2026-11-05)
+apps/mobile           351 jest tests (стор, стражи дизайна/тем/переводов, оплата, цели, календарь…)
+ИТОГО                  711 тестов (core 320 + desktop 40 + mobile 351, на 2026-11-05)
 ```
 
 ---
