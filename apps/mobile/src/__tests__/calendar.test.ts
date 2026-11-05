@@ -1,4 +1,6 @@
-import { addMonths, daysInMonth, followStart, monthCells, shiftMonth, weekdayOrder, weekStartFor } from '../utils/calendar';
+import { readFileSync } from 'fs';
+import { join } from 'path';
+import { addMonths, daysInMonth, followStart, isYmd, monthCells, shiftMonth, weekdayOrder, weekStartFor } from '../utils/calendar';
 
 /*
  * The date sheet's arithmetic: a grid that starts on the right weekday, keeps
@@ -74,5 +76,28 @@ describe('a deadline when the start moves', () => {
 
   it('leaves "no deadline" alone', () => {
     expect(followStart('', '2026-11-05', '2027-01-10', PRESETS)).toBe('');
+  });
+});
+
+describe('dates are picked, not typed', () => {
+  it('tells a real day from anything else stored as one', () => {
+    expect(isYmd('2026-11-05')).toBe(true);
+    expect(isYmd('2028-02-29')).toBe(true);
+    // An old CSV import kept unreadable dates as typed; the field shows them
+    // as they are and the calendar opens on today instead.
+    for (const v of ['2026-02-30', '2026-13-01', '5.11.2026', '2026-1-5', '']) expect(isYmd(v)).toBe(false);
+  });
+
+  it('has no screen left that asks for YYYY-MM-DD', () => {
+    // A typed "5.11" was saved as the bet's date and dropped it out of every
+    // day, filter and chart it belonged to.
+    for (const l of ['ru', 'en', 'kz', 'by']) {
+      const text = readFileSync(join(__dirname, '..', 'i18n', 'locales', `${l}.json`), 'utf8');
+      expect(`${l}: ${/ГГГГ|YYYY|ЖЖЖЖ/.test(text)}`).toBe(`${l}: false`);
+    }
+    for (const screen of ['AddBetScreen', 'GoalEditScreen', 'BetsFilterScreen']) {
+      const src = readFileSync(join(__dirname, '..', 'screens', screen, 'index.tsx'), 'utf8');
+      expect(`${screen}: ${src.includes('<DateField')}`).toBe(`${screen}: true`);
+    }
   });
 });

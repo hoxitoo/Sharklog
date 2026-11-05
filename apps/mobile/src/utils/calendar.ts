@@ -10,6 +10,15 @@ const pad = (n: number) => String(n).padStart(2, '0');
 
 export const ymdOf = (year: number, month: number, day: number): string => `${year}-${pad(month)}-${pad(day)}`;
 
+/** A real day written as YYYY-MM-DD — 2026-02-30 is not one. */
+export function isYmd(v: string): boolean {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v);
+  if (!m) return false;
+  const month = Number(m[2]);
+  const day = Number(m[3]);
+  return month >= 1 && month <= 12 && day >= 1 && day <= daysInMonth(Number(m[1]), month);
+}
+
 /** Days in a month; `month` is 1–12. */
 export function daysInMonth(year: number, month: number): number {
   return new Date(Date.UTC(year, month, 0)).getUTCDate();

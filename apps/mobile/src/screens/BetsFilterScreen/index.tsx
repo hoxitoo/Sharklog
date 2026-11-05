@@ -4,6 +4,7 @@ import { AppText as Text, AppTextInput as TextInput } from '../../components/App
 import { useNavigation } from '@react-navigation/native';
 import { useBetsStore } from '../../store/betsStore';
 import { useBetsQuery } from '../../components/BetsQueryContext';
+import { DateField } from '../../components/DateField';
 import { EMPTY_BETS_QUERY, betsVocabulary, suggest, countBetsQuery, type BetsQuery } from '../../utils/betsQuery';
 import { colors } from '../../theme/colors';
 import { SPACE, RADIUS, TOUCH } from '../../theme/layout';
@@ -146,22 +147,24 @@ export function BetsFilterScreen() {
           </Field>
 
           <Field label={t('bet.date')} hint={t('filters.dateHint')}>
+            {/* Calendars: typing YYYY-MM-DD by hand was the complaint. Each
+                bound clears on its own — one date is a valid filter. */}
             <View style={s.pair}>
-              <TextInput
-                style={[inputStyle, numeric, s.pairCell]}
-                placeholder={t('filters.from')}
-                placeholderTextColor={colors.textMuted}
+              <DateField
+                style={s.pairCell}
+                label={`${t('bet.date')} · ${t('filters.from')}`}
                 value={draft.dateFrom}
-                onChangeText={set('dateFrom')}
-                autoCorrect={false}
+                onChange={set('dateFrom')}
+                placeholder={t('filters.from')}
+                onClear={() => set('dateFrom')('')}
               />
-              <TextInput
-                style={[inputStyle, numeric, s.pairCell]}
-                placeholder={t('filters.to')}
-                placeholderTextColor={colors.textMuted}
+              <DateField
+                style={s.pairCell}
+                label={`${t('bet.date')} · ${t('filters.to')}`}
                 value={draft.dateTo}
-                onChangeText={set('dateTo')}
-                autoCorrect={false}
+                onChange={set('dateTo')}
+                placeholder={t('filters.to')}
+                onClear={() => set('dateTo')('')}
               />
             </View>
           </Field>

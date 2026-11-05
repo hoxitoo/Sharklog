@@ -654,7 +654,7 @@
     "team": "Team / athlete",
     "teamHint": "Only bets ON this team, not every match it played",
     "anyF": "Any",
-    "dateHint": "YYYY-MM-DD — same as in the bet form",
+    "dateHint": "Both dates are inclusive — one is enough.",
     "from": "from",
     "to": "to",
     "note": "The filter adds to status and sort — they stay as you set them.",
@@ -726,7 +726,6 @@
     "extraShow": "Strategy, bookmaker, tournament, notes...",
     "customStrategy": "Name the strategy",
     "customStrategyPh": "Match bet, Arbitrage...",
-    "datePh": "YYYY-MM-DD",
     "timePh": "HH:MM",
     "tournamentPh": "Champions League, Premier League, CS2 Major...",
     "closingOdds": "Closing odds (CLV) — optional",
@@ -1242,7 +1241,8 @@
     "nextMonth": "Next month",
     "prevYear": "Back a year",
     "nextYear": "Forward a year",
-    "today": "Today"
+    "today": "Today",
+    "clear": "Clear"
   },
   "weekdaysShort": {
     "0": "Su",
