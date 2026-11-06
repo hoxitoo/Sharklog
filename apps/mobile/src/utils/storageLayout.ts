@@ -27,6 +27,16 @@
  * — so the bets can be rebuilt from the pieces alone when the record is lost
  * or unreadable, or was overwritten by an older build that knows no pieces.
  *
+ * WHY A BASE. When the session loaded a record of the OLD layout (bets inside,
+ * no generation — the first launch after the update, or after an older build
+ * rewrote the record), its pieces also carry `"b"`: a hash of that record's
+ * text. Such a record next to pieces is ambiguous: either an older build wrote
+ * it after those pieces' save (their bets are not in it — keep both), or the
+ * save that wrote those pieces was killed before its own record landed (it
+ * did not happen — keep the record alone; merging would bring back the bets
+ * that save deleted, and mix a «Replace» restore into the bets it replaced).
+ * Same text, same hash: the second case.
+ *
  * WHY THE RECORD IS PADDED. iOS keeps values of up to 1 024 characters inline
  * in its manifest and longer ones in files, and when a key goes from a file
  * back to inline it deletes the file BEFORE it saves the manifest — a kill in
@@ -57,6 +67,20 @@ export function parsePieceKey(key: string): { gen: number; index: number } | nul
   return { gen: Number(m[1]), index: Number(m[2]) };
 }
 
+/**
+ * A short fingerprint of a text (FNV-1a, 32 bits, over UTF-16 units) — to tell
+ * whether the record on disk is the one a session loaded (see "Why a base").
+ * Not a security measure: nothing here defends against a forged file.
+ */
+export function textHash(text: string): string {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < text.length; i++) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return (h >>> 0).toString(16).padStart(8, '0');
+}
+
 /** Bets as groups of JSON texts, each group's array at most `limit` characters. */
 function groupBets(bets: readonly unknown[], limit: number): string[][] {
   const groups: string[][] = [];
@@ -80,19 +104,22 @@ function groupBets(bets: readonly unknown[], limit: number): string[][] {
 
 /**
  * Everything one save writes, in two steps: `pieces` (new keys, written
- * first) and `record` (the main record, written after them).
+ * first) and `record` (the main record, written after them). `base` — the
+ * hash of the old-layout record the session loaded, if it loaded one.
  */
 export function buildSave(
   data: { bets: readonly unknown[] } & Record<string, unknown>,
   gen: number,
   limit: number = CHUNK_CHARS,
+  base: string | null = null,
 ): { pieces: Record<string, string>; record: string; chunks: number } {
   const { bets, ...rest } = data;
   const groups = groupBets(bets, limit);
   const n = groups.length;
+  const b = base === null ? '' : `"b":${JSON.stringify(base)},`;
   const pieces: Record<string, string> = {};
   groups.forEach((parts, i) => {
-    pieces[pieceKey(gen, i)] = `{"g":${gen},"i":${i},"n":${n},"bets":[${parts.join(',')}]}`;
+    pieces[pieceKey(gen, i)] = `{"g":${gen},"i":${i},"n":${n},${b}"bets":[${parts.join(',')}]}`;
   });
   const meta = { ...rest, betsGen: gen, betChunks: n, betCount: bets.length };
   let record = JSON.stringify(meta);
@@ -112,13 +139,17 @@ export function recordPieces(parsed: unknown): { gen: number; chunks: number; co
 }
 
 /** One parsed piece, or null when the text is not a whole piece. */
-export function parsePiece(text: string | null): { g: number; i: number; n: number; bets: unknown[] } | null {
+export function parsePiece(
+  text: string | null,
+): { g: number; i: number; n: number; b: string | null; bets: unknown[] } | null {
   if (text === null) return null;
   try {
     const p = JSON.parse(text) as Record<string, unknown>;
+    if (typeof p !== 'object' || p === null) return null;
     const ok = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v >= 0;
     if (!ok(p['g']) || !ok(p['i']) || !ok(p['n']) || !Array.isArray(p['bets'])) return null;
-    return { g: p['g'], i: p['i'], n: p['n'], bets: p['bets'] };
+    const b = typeof p['b'] === 'string' ? p['b'] : null;
+    return { g: p['g'], i: p['i'], n: p['n'], b, bets: p['bets'] };
   } catch {
     return null;
   }
