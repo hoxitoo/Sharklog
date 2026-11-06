@@ -6,6 +6,7 @@ import type { Bet, BetStatus } from '@sharklog/core';
 import { useFormatMoney } from '../utils/useFormatMoney';
 import { useOddsFormat } from '../utils/useOdds';
 import { oddsBadge } from '../utils/oddsField';
+import { pickLabel } from '../utils/labels';
 import { useTranslation } from 'react-i18next';
 import { useBetsStore } from '../store/betsStore';
 import { colors } from '../theme/colors';
@@ -136,7 +137,7 @@ export function useBetActions() {
         afterWheel(() => {
           Alert.alert(
             t('bet.confirmDelete'),
-            `${displayEvent(target.event)}\n${target.pick} · ${formatMoney(target.stake)}`,
+            `${displayEvent(target.event)}\n${pickLabel(t, target.pick)} · ${formatMoney(target.stake)}`,
             [
               { text: t('common.cancel'), style: 'cancel' },
               {
@@ -157,7 +158,7 @@ export function useBetActions() {
       visible={bet !== null}
       {...(bet ? {
         title: displayEvent(bet.event),
-        subtitle: `${bet.pick} · ${oddsBadge(bet.odds, oddsFormat)} · ${formatMoney(bet.stake)}`,
+        subtitle: `${pickLabel(t, bet.pick)} · ${oddsBadge(bet.odds, oddsFormat)} · ${formatMoney(bet.stake)}`,
       } : {})}
       actions={actions}
       onSelect={select}

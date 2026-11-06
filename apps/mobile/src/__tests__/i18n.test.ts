@@ -304,6 +304,18 @@ describe('pickLabel', () => {
     expect(pickLabel(i18n.t, 'Нетфликс')).toBe('Нетфликс');
   });
 
+  it('is how every screen shows a stored pick — none prints it raw', () => {
+    // The action wheel printed `${bet.pick}`: an English user deleting a bet
+    // read "П1" in the confirmation. Interpolating a pick into text, or
+    // rendering it as a JSX child, must go through pickLabel.
+    const raw = sources(SRC).flatMap((file) => {
+      const code = readFileSync(file, 'utf8');
+      const hits = [...code.matchAll(/\$\{[\w.!?]*\.pick\}|>\s*\{[\w.!?]*\.pick\}/g)].map((m) => m[0]);
+      return hits.map((h) => `${file.slice(SRC.length + 1)}: ${h}`);
+    });
+    expect(raw).toEqual([]);
+  });
+
   it('maps every leg of an express on its own', () => {
     applyLanguage('en');
     expect(pickLabel(i18n.t, 'П1 / ТМ 3.5 / NaVi')).toBe('Home / Under 3.5 / NaVi');

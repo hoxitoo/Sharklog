@@ -12,7 +12,7 @@ import { useFormatMoney } from '../../utils/useFormatMoney';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { Bet, BetStatus } from '@sharklog/core';
-import { isInTilt, calcDailyBreakdown, currentBank, betBacksTeam, betPnl, toYmd, FREE_LIMITS } from '@sharklog/core';
+import { isInTilt, calcDailyBreakdown, currentBank, pendingStake, betBacksTeam, betPnl, toYmd, FREE_LIMITS } from '@sharklog/core';
 import { useBetsStore, effectiveTiltThreshold } from '../../store/betsStore';
 import { colors, mix, toneSurface } from '../../theme/colors';
 import type { BetsFilter } from '../../components/DrawerContext';
@@ -218,10 +218,8 @@ export function BetsScreen({ filter, onClearFilter }: {
 
   // Working context while logging bets: today's result, money currently at risk, bank.
   const today = useMemo(() => calcDailyBreakdown(bets, [], { days: 1 })[0] ?? null, [bets]);
-  const exposure = useMemo(
-    () => bets.filter((b) => b.status === 'pending').reduce((sum, b) => sum + b.stake, 0),
-    [bets],
-  );
+  // Every open stake, freebets included — the same "в игре" as the Bankroll.
+  const exposure = useMemo(() => pendingStake(bets), [bets]);
   const bank = useMemo(
     () => currentBank(bankroll.transactions, bets),
     [bets, bankroll.transactions],

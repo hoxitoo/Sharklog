@@ -386,6 +386,7 @@
     "insufficientMsg": "Максімум для вываду: {{amount}}",
     "withdrawn": "Выведзена",
     "atBookLine": "У гульні {{exposure}} · у букмекера зараз ≈ {{atBook}}",
+    "atBookLineFree": "У гульні {{inPlay}}, з іх фрыбеты {{free}} — букмекер не спісвае іх з балансу · у букмекера зараз ≈ {{atBook}}",
     "holdToDelete": "Утрымлівайце, каб выдаліць",
     "proFeatureFull": "Банкрол-трэкер і калькулятар Кэлі",
     "noteAdjustment": "Звяраўка з букмекерам",

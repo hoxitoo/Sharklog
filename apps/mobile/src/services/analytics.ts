@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { APP_VERSION } from '../utils/appVersion';
+import { uuid } from '../utils/uuid';
 
 const HOST = process.env['EXPO_PUBLIC_POSTHOG_HOST'] ?? 'https://eu.posthog.com';
 const KEY = process.env['EXPO_PUBLIC_POSTHOG_KEY'] ?? '';
@@ -13,7 +14,9 @@ async function getDeviceId(): Promise<string> {
   if (deviceId) return deviceId;
   const stored = await AsyncStorage.getItem(DEVICE_ID_KEY);
   if (stored) { deviceId = stored; return stored; }
-  const id = crypto.randomUUID();
+  // utils/uuid, not crypto.randomUUID(): Hermes may have no `crypto`, and the
+  // throw here was swallowed by trackEvent's catch — every event silently lost.
+  const id = uuid();
   await AsyncStorage.setItem(DEVICE_ID_KEY, id);
   deviceId = id;
   return id;

@@ -5,7 +5,7 @@ import { AppText as Text } from '../../components/AppText';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { calcDashboard, isInTilt, calcDailyBreakdown, summarizeDays, toYmd, activeStrategy, strategyPlan } from '@sharklog/core';
+import { calcDashboard, isInTilt, calcDailyBreakdown, currentBank, summarizeDays, toYmd, activeStrategy, strategyPlan } from '@sharklog/core';
 import type { Bet, DayStats } from '@sharklog/core';
 import { useBetsStore, effectiveTiltThreshold } from '../../store/betsStore';
 import { colors, signalInk, signalTint, toneSurface } from '../../theme/colors';
@@ -494,9 +494,11 @@ export function DashboardScreen() {
     setTiltDismissed(true);
   }
 
-  // Bank = cash movements (deposits, withdrawals, reconciliations) + all-time P&L,
-  // read off the last day of the full series.
-  const bankTotal = fullDays.length > 0 ? fullDays[fullDays.length - 1]!.balance : 0;
+  // The bank — the same number the Bankroll and Bets screens show. Read off the
+  // last day of the daily series it was lower: that series skips a bet whose
+  // date it cannot place (an older CSV import kept "05.11.2025" as typed), so
+  // one such won bet took its whole P&L off the dashboard's bank.
+  const bankTotal = useMemo(() => currentBank(bankroll.transactions, bets), [bankroll.transactions, bets]);
 
   // Most-recent 5 settled-or-pending bets, newest first.
   const last5 = [...filteredBets]
