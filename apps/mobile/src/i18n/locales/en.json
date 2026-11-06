@@ -1254,5 +1254,11 @@
     "4": "Th",
     "5": "Fr",
     "6": "Sa"
+  },
+  "storageError": {
+    "title": "Could not read your data",
+    "body": "Your bets, bank and settings are still there: until the data is read, the app writes and erases nothing. Try again. If that does not help, contact support and do not reinstall the app — reinstalling deletes the data.",
+    "retry": "Try again",
+    "support": "Contact support"
   }
 }

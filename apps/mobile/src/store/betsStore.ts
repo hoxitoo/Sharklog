@@ -12,31 +12,59 @@ import {
 import { verifyLicense, resolvePro, trialEnd, extractLicense, hasLicense, readLicense, type LicensePayload } from '../utils/license';
 import { BILLING, LICENSE_PUBKEY } from '../services/billing';
 import { distribution } from '../utils/storeLinks';
+import { STORAGE_KEY, chunkKey, chunkIndex, namedChunks, storageEntries } from '../utils/storageLayout';
 
-const STORAGE_KEY = '@sharklog/data';
 /** The stored file as it was, when loading had to leave records out. */
 const QUARANTINE_KEY = '@sharklog/data_quarantine';
 
 /**
- * Keep a damaged file. Never over an earlier copy: a second damage event must
- * not overwrite the first. And never the same file twice: the damaged file
- * stays until the app next writes, and a launch that only reads would
- * otherwise add a full copy each time — until AsyncStorage's 6 MB on Android
- * runs out and every later save fails silently.
+ * Keep a damaged file: its main record under a quarantine key, its bets pieces
+ * (null — a piece that was missing) next to it as `<key>#<i>`. Never over an
+ * earlier copy: a second damage event must not overwrite the first. And never
+ * the same file twice: the damaged file stays until the app next writes, and a
+ * launch that only reads would otherwise add a full copy each time.
  */
-function quarantine(raw: string): void {
+function quarantine(main: string, pieces: readonly (string | null)[] = []): void {
   (async () => {
     const keys = (await AsyncStorage.getAllKeys())
       .filter((k) => k === QUARANTINE_KEY || k.startsWith(`${QUARANTINE_KEY}:`));
-    const copies = await AsyncStorage.getMany(keys);
-    if (Object.values(copies).some((v) => v === raw)) return;
-    await AsyncStorage.setItem(keys.includes(QUARANTINE_KEY) ? `${QUARANTINE_KEY}:${Date.now()}` : QUARANTINE_KEY, raw);
+    const bases = keys.filter((k) => !k.includes('#'));
+    const copies = await AsyncStorage.getMany(bases);
+    for (const base of bases) {
+      if (copies[base] !== main) continue;
+      if (pieces.length === 0) return;
+      const saved = await AsyncStorage.getMany(pieces.map((_, i) => `${base}#${i}`));
+      if (pieces.every((p, i) => (saved[`${base}#${i}`] ?? null) === p)) return;
+    }
+    const base = keys.includes(QUARANTINE_KEY) ? `${QUARANTINE_KEY}:${Date.now()}` : QUARANTINE_KEY;
+    const entries: Record<string, string> = { [base]: main };
+    pieces.forEach((p, i) => { if (p !== null) entries[`${base}#${i}`] = p; });
+    await AsyncStorage.setMany(entries);
   })().catch(() => {});
 }
 
 // Serialize all writes through a single chain so rapid successive mutations
 // (e.g. quick W/L taps) can't race and clobber each other's snapshot.
 let writeChain: Promise<void> = Promise.resolve();
+
+/** How many bets pieces the last save (or the load) left on disk. */
+let storedChunks = 0;
+
+/** Every bets piece on disk, by index — for a quarantine when the main record cannot be read. */
+async function allPieces(): Promise<(string | null)[]> {
+  const keys = (await AsyncStorage.getAllKeys()).filter((k) => chunkIndex(k) !== null);
+  if (keys.length === 0) return [];
+  const got = await AsyncStorage.getMany(keys);
+  const out: (string | null)[] = [];
+  for (const k of keys) out[chunkIndex(k)!] = got[k] ?? null;
+  return Array.from(out, (p) => p ?? null);
+}
+
+/** Pieces past what the main record names: leftovers of a save cut short. */
+async function removeStalePieces(named: number): Promise<void> {
+  const stale = (await AsyncStorage.getAllKeys()).filter((k) => (chunkIndex(k) ?? -1) >= named);
+  if (stale.length > 0) await AsyncStorage.removeMany(stale);
+}
 
 function uuid(): string {
   const c = (globalThis as any).crypto;
@@ -105,6 +133,12 @@ interface BetsStore {
   /** The user's goals, in their order: the first active one is on the bets screen's header. */
   goals: Goal[];
   isLoaded: boolean;
+  /**
+   * The stored data could not be READ (not "there is none"). The app shows an
+   * error screen and writes nothing: starting empty, as it used to, let the
+   * first save — onboarding's — replace the real file.
+   */
+  loadError: boolean;
 
   load: () => Promise<void>;
   persist: () => Promise<void>;
@@ -252,16 +286,55 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
   teams: [],
   goals: [],
   isLoaded: false,
+  loadError: false,
 
   load: async () => {
-    let raw: string | null = null;
+    let raw: string | null;
     try {
       raw = await AsyncStorage.getItem(STORAGE_KEY);
-      if (!raw) {
-        set({ isLoaded: true });
-        return;
+    } catch {
+      // Could not READ — which is not "no data". Writes stay blocked (persist
+      // checks loadError) until a retry succeeds.
+      set({ loadError: true });
+      return;
+    }
+    if (!raw) {
+      // A fresh install. Pieces without a record are not touched here: they
+      // could be the only copy of the bets. A save overwrites them in turn.
+      storedChunks = 0;
+      set({ isLoaded: true, loadError: false });
+      return;
+    }
+    let pieces: (string | null)[] = [];
+    try {
+      let parsed: unknown = JSON.parse(raw);
+      // A piece that is missing or unreadable is damage: what it held is
+      // quarantined with the record, and the rest of the bets load.
+      let damaged = false;
+      const named = namedChunks(parsed);
+      if (named !== null) {
+        const keys = Array.from({ length: named }, (_, i) => chunkKey(i));
+        let got: Record<string, string | null> = {};
+        try {
+          if (keys.length > 0) got = await AsyncStorage.getMany(keys);
+        } catch {
+          set({ loadError: true });
+          return;
+        }
+        const bets: unknown[] = [];
+        pieces = keys.map((k) => got[k] ?? null);
+        for (const piece of pieces) {
+          if (piece === null) { damaged = true; continue; }
+          try {
+            const list: unknown = JSON.parse(piece);
+            if (Array.isArray(list)) for (const b of list) bets.push(b);
+            else damaged = true;
+          } catch {
+            damaged = true;
+          }
+        }
+        parsed = { ...(parsed as Record<string, unknown>), bets };
       }
-      const parsed: unknown = JSON.parse(raw);
       // A list that is not a list is damage too, even before anything is dropped.
       const shapeBroken = typeof parsed !== 'object' || parsed === null
         || (['bets', 'diary', 'teams', 'goals'] as const).some((k) => {
@@ -292,10 +365,10 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
       const diary = sanitizeDiary(schema.diary, 'stored');
       const teams = sanitizeTeams(schema.teams);
       const goals = sanitizeGoals(schema.goals, 'stored');
-      if (shapeBroken || bets.dropped + bank.dropped + diary.dropped + teams.dropped + goals.dropped > 0) {
+      if (damaged || shapeBroken || bets.dropped + bank.dropped + diary.dropped + teams.dropped + goals.dropped > 0) {
         // The next write would make the loss final: keep the file as it was,
         // so support can still get those records back.
-        quarantine(raw);
+        quarantine(raw, pieces);
       }
       set({
         bets: bets.items,
@@ -315,19 +388,36 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
         teams: sanitizeTeamNames(teams.items),
         goals: goals.items,
         isLoaded: true,
+        loadError: false,
       });
+      storedChunks = named ?? 0;
+      // Pieces past what the record names are leftovers of a save cut short
+      // (or of the old layout, where the record names none).
+      removeStalePieces(storedChunks).catch(() => {});
     } catch {
       // Unreadable (a crash mid-write): the app starts empty, and its first
-      // write replaces the file — with the bets AND the licence in it. Keep it.
-      if (raw) quarantine(raw);
-      set({ isLoaded: true });
+      // write replaces the file — with the bets AND the licence in it. Keep it,
+      // with every bets piece on disk: the next save would remove them.
+      quarantine(raw, pieces.length > 0 ? pieces : await allPieces().catch(() => []));
+      storedChunks = 0;
+      set({ isLoaded: true, loadError: false });
     }
   },
 
   persist: async () => {
-    const { bets, settings, bankroll, diary, teams, goals } = get();
-    const payload = JSON.stringify({ bets, settings, bankroll, diary, teams, goals, version: CURRENT_SCHEMA_VERSION });
-    writeChain = writeChain.then(() => AsyncStorage.setItem(STORAGE_KEY, payload)).catch(() => {});
+    const { bets, settings, bankroll, diary, teams, goals, isLoaded, loadError } = get();
+    // Never before a load has succeeded: the state is then the empty default,
+    // and writing it would replace data that is on disk but was not read.
+    if (!isLoaded || loadError) return writeChain;
+    const { entries, chunks } = storageEntries({ bets, settings, bankroll, diary, teams, goals, version: CURRENT_SCHEMA_VERSION });
+    const stale = Array.from({ length: Math.max(0, storedChunks - chunks) }, (_, i) => chunkKey(chunks + i));
+    storedChunks = chunks;
+    writeChain = writeChain.then(async () => {
+      // One call: on Android one transaction, pieces and the record that names them.
+      await AsyncStorage.setMany(entries);
+      // Only after the new record is written: until then the old one names these.
+      if (stale.length > 0) await AsyncStorage.removeMany(stale);
+    }).catch(() => {});
     return writeChain;
   },
 
