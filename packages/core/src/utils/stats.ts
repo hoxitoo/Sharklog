@@ -9,7 +9,90 @@ import { ODDS_RANGES } from '../constants/index';
  * the run the user sees in the list.
  */
 export function byPlayedAt(a: Bet, b: Bet): number {
-  return (`${a.date}T${a.time}`).localeCompare(`${b.date}T${b.time}`) || a.createdAt.localeCompare(b.createdAt);
+  const ka = playedKeys(a);
+  const kb = playedKeys(b);
+  return compareKey(ka.played, kb.played, ka.playedPlain && kb.playedPlain)
+    || compareKey(a.createdAt, b.createdAt, ka.createdPlain && kb.createdPlain);
+}
+
+/*
+ * Why the keys are cached and compared as plain strings. The comparator used to
+ * build two strings and call `localeCompare` on every comparison — tens of
+ * thousands per tap on a book of 1 000 bets, each `localeCompare` a call into
+ * ICU (on Android, through JNI). For keys of one fixed shape —
+ * `YYYY-MM-DDTHH:MM`, or an ISO timestamp with milliseconds — every position
+ * holds the same kind of character in both strings, so they differ only at
+ * digits, and plain `<` orders them exactly as `localeCompare` does. Anything
+ * else (a date an old CSV import kept as typed) still goes through
+ * `localeCompare`, so no order changes.
+ */
+const PLAYED_SHAPE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
+const CREATED_SHAPE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/;
+
+interface PlayedKeys {
+  date: string; time: string; createdAt: string;
+  played: string; playedPlain: boolean; createdPlain: boolean;
+}
+const keysOf = new WeakMap<Bet, PlayedKeys>();
+
+function playedKeys(b: Bet): PlayedKeys {
+  const k = keysOf.get(b);
+  // Checked against the bet, not trusted: a caller that edits a bet in place
+  // would otherwise sort by its old date.
+  if (k && k.date === b.date && k.time === b.time && k.createdAt === b.createdAt) return k;
+  const played = `${b.date}T${b.time}`;
+  const fresh = {
+    date: b.date, time: b.time, createdAt: b.createdAt,
+    played, playedPlain: PLAYED_SHAPE.test(played), createdPlain: CREATED_SHAPE.test(b.createdAt),
+  };
+  keysOf.set(b, fresh);
+  return fresh;
+}
+
+function compareKey(a: string, b: string, plain: boolean): number {
+  if (plain) return a < b ? -1 : a > b ? 1 : 0;
+  return a.localeCompare(b);
+}
+
+const orderOf = new WeakMap<readonly Bet[], Bet[]>();
+
+/**
+ * The bets in `byPlayedAt` order — a sorted copy, cached for this array: the
+ * screens of one write ask several times (dashboard, streaks, drawdown, tilt),
+ * and the store's array changes only when a bet does. Filter the result, do not
+ * sort a filtered copy: order (ties included) is the same, the sort runs once.
+ * The returned array is shared — never mutate it.
+ */
+export function playedOrder(bets: readonly Bet[]): readonly Bet[] {
+  let sorted = orderOf.get(bets);
+  if (!sorted) {
+    // Keys looked up once per bet, not twice per comparison: the sort then
+    // reads plain fields (on Hermes, without a JIT, the lookups were the cost).
+    const keyed = bets.map((b) => ({ b, k: playedKeys(b) }));
+    keyed.sort((x, y) =>
+      compareKey(x.k.played, y.k.played, x.k.playedPlain && y.k.playedPlain)
+      || compareKey(x.k.createdAt, y.k.createdAt, x.k.createdPlain && y.k.createdPlain));
+    sorted = keyed.map((e) => e.b);
+    orderOf.set(bets, sorted);
+  }
+  return sorted;
+}
+
+/**
+ * The newest first, as `.sort((a, b) => byPlayedAt(b, a))` gives it: tied
+ * bets (the same minute and the same `createdAt` — a CSV import writes many)
+ * keep the order they came in, rather than coming out reversed.
+ */
+export function newestPlayedFirst(sortedAsc: readonly Bet[]): Bet[] {
+  const out: Bet[] = [];
+  let end = sortedAsc.length;
+  while (end > 0) {
+    let start = end - 1;
+    while (start > 0 && byPlayedAt(sortedAsc[start - 1]!, sortedAsc[end - 1]!) === 0) start--;
+    for (let i = start; i < end; i++) out.push(sortedAsc[i]!);
+    end = start;
+  }
+  return out;
 }
 
 export interface SliceStats {
@@ -87,12 +170,11 @@ function calcSlice(bets: Bet[], label: string): SliceStats {
 
 export function calcDashboard(bets: Bet[]): DashboardStats {
   const stats = calcSlice(bets, 'all');
-  const settled = bets
-    .filter((b) => b.status === 'won' || b.status === 'lost' || (b.status === 'cashout' && b.cashoutAmount != null))
-    // Ordered by when the match happened, not when the row was typed in: a bet
-    // entered after the fact would otherwise land at the end of the curve and
-    // put it out of step with the bets list, the dashboard and the bank curve.
-    .sort(byPlayedAt);
+  // Ordered by when the match happened, not when the row was typed in: a bet
+  // entered after the fact would otherwise land at the end of the curve and
+  // put it out of step with the bets list, the dashboard and the bank curve.
+  const settled = playedOrder(bets)
+    .filter((b) => b.status === 'won' || b.status === 'lost' || (b.status === 'cashout' && b.cashoutAmount != null));
 
   const pendingCount = bets.filter((b) => b.status === 'pending').length;
   const totalStaked = stats.totalStaked;
@@ -130,9 +212,7 @@ function calcStreak(bets: Bet[]): DashboardStats['currentStreak'] {
   // Latest MATCH first, as `calcStreaks` counts: by `createdAt`, three old
   // losses typed in after today's win read as a fresh tilt here while
   // Analytics showed the win as the current run.
-  const settled = [...bets]
-    .filter((b) => b.status === 'won' || b.status === 'lost')
-    .sort((a, b) => byPlayedAt(b, a)); // newest first
+  const settled = newestPlayedFirst(playedOrder(bets).filter((b) => b.status === 'won' || b.status === 'lost'));
 
   if (settled.length === 0) return { type: 'none', count: 0 };
 

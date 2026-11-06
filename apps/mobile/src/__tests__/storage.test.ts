@@ -416,15 +416,36 @@ describe('a read that fails', () => {
     expect(useBetsStore.getState().bets).toHaveLength(505);
   });
 
-  it('a load waits for a save already queued, and a second load waits for the first', async () => {
-    await save([bet(1)]); // on disk: the older state, which a load that did not wait would read
+  it('a load while loaded reads nothing — it would trade the screen, and a save on its way, for older data', async () => {
+    await save([bet(1)]);
     useBetsStore.setState({ bets: [bet(1), bet(2)] });
-    useBetsStore.getState().persist(); // not awaited: still queued when the load starts
+    useBetsStore.getState().persist(); // still queued when the load is asked
     storage.getItem.mockClear();
-    const [a, b] = [useBetsStore.getState().load(), useBetsStore.getState().load()];
-    await Promise.all([a, b]);
+    await useBetsStore.getState().load();
+    expect(storage.getItem.mock.calls.filter(([k]) => k === STORAGE_KEY)).toHaveLength(0);
+    expect(ids()).toEqual(['bet-1', 'bet-2']);
+    await relaunch();
+    expect(ids()).toEqual(['bet-1', 'bet-2']);
+  });
+
+  it('two retries from the error screen share one read', async () => {
+    await save([bet(1), bet(2)]);
+    useBetsStore.setState({ bets: [], isLoaded: false, loadError: true });
+    storage.getItem.mockClear();
+    await Promise.all([useBetsStore.getState().load(), useBetsStore.getState().load()]);
     expect(ids()).toEqual(['bet-1', 'bet-2']);
     expect(storage.getItem.mock.calls.filter(([k]) => k === STORAGE_KEY)).toHaveLength(1);
+  });
+
+  it('a queued save does not write a state that is no longer a loaded one', async () => {
+    await save([bet(1), bet(2)]);
+    useBetsStore.setState({ bets: [bet(1), bet(2), bet(3)] });
+    useBetsStore.getState().persist(); // queued…
+    useBetsStore.setState({ bets: [], isLoaded: false, loadError: true }); // …and the state is gone before it runs
+    useBetsStore.getState().persist(); // refused: must not make the queued one skip for nothing
+    expect(await useBetsStore.getState().flush()).toBe(false);
+    await relaunch();
+    expect(ids()).toEqual(['bet-1', 'bet-2']); // not an empty save
   });
 
   it('a save refused before the load is not reported as saved — and a load supersedes it', async () => {
@@ -557,6 +578,30 @@ describe('clear all data', () => {
     useBetsStore.getState().clearAll();
     await useBetsStore.getState().flush();
     expect(await quarantined()).toEqual([]);
+  });
+
+  it('takes a quarantine copy that is still being written, too', async () => {
+    // A copy of a big store takes a while; «Clear» tapped meanwhile must not
+    // remove the keys before the copy lands, and leave the copy behind.
+    await save(many(500));
+    await storage.setItem(STORAGE_KEY, '{"settings": {');
+    const real = storage.setMany.getMockImplementation()!;
+    storage.setMany.mockImplementation(async (entries: Record<string, string>) => {
+      if (Object.keys(entries).some((k) => k.startsWith('@sharklog/data_quarantine'))) {
+        await new Promise((r) => setTimeout(r, 30));
+      }
+      return real(entries);
+    });
+    try {
+      await relaunch(); // starts the (slow) copy
+      useBetsStore.getState().clearAll();
+      await useBetsStore.getState().flush();
+      await new Promise((r) => setTimeout(r, 60));
+      const left = ((await storage.getAllKeys()) as string[]).filter((k) => k.startsWith('@sharklog/data_quarantine'));
+      expect(left).toEqual([]);
+    } finally {
+      storage.setMany.mockImplementation(real);
+    }
   });
 
   it('leaves no piece behind', async () => {

@@ -12,9 +12,11 @@ import { haptic } from '../../utils/haptics';
 import type { DiaryEntry } from '@sharklog/core';
 import { SIZE, GLYPH } from '../../theme/typography';
 import { useTranslation } from 'react-i18next';
-import { dateLocale } from '../../i18n';
 import { themedStyles } from '../../theme/themed';
 import { useBottomPad } from '../../utils/useBottomPad';
+import { formatDate } from '../../utils/dateFormat';
+
+const DIARY_DAY: Intl.DateTimeFormatOptions = { weekday: 'short', day: 'numeric', month: 'long' };
 
 // Labels are `discipline.mood<value>`.
 const MOODS: Array<{ value: 1 | 2 | 3 | 4 | 5; emoji: string }> = [
@@ -246,7 +248,7 @@ export function DisciplineScreen() {
                   <Text style={styles.diaryEmoji}>{moodObj?.emoji ?? '😐'}</Text>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.diaryDate}>
-                      {new Date(`${entry.date}T00:00:00`).toLocaleDateString(dateLocale(), { weekday: 'short', day: 'numeric', month: 'long' })}
+                      {formatDate(new Date(`${entry.date}T00:00:00`), DIARY_DAY)}
                     </Text>
                     {entry.text ? (
                       <Text style={styles.diaryText} numberOfLines={2}>{entry.text}</Text>

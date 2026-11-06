@@ -1,6 +1,6 @@
 import type { Bet, BankrollTransaction, OddsFormat } from '../types/bet';
 import { formatOddsAs, parseOdds } from './oddsFormat';
-import { betPnl, calcDashboard, byPlayedAt } from './stats';
+import { betPnl, calcDashboard, playedOrder } from './stats';
 import { toYmd, calcDailyBreakdown } from './daily';
 
 // ── Streaks (best win / worst loss / current) ────────────────────────────────
@@ -21,9 +21,7 @@ export interface StreakStats {
 export function calcStreaks(bets: Bet[]): StreakStats {
   // In the order the matches were played — the order of the bets list, so a
   // run here is a run there (see byPlayedAt).
-  const settled = [...bets]
-    .filter((b) => b.status === 'won' || b.status === 'lost')
-    .sort(byPlayedAt);
+  const settled = playedOrder(bets).filter((b) => b.status === 'won' || b.status === 'lost');
 
   let bestWin = 0;
   let worstLoss = 0;
@@ -236,9 +234,8 @@ export interface DrawdownStats {
 }
 
 export function calcMaxDrawdown(bets: Bet[]): DrawdownStats {
-  const settled = [...bets]
-    .filter((b) => b.status === 'won' || b.status === 'lost' || (b.status === 'cashout' && b.cashoutAmount != null))
-    .sort(byPlayedAt);
+  const settled = playedOrder(bets)
+    .filter((b) => b.status === 'won' || b.status === 'lost' || (b.status === 'cashout' && b.cashoutAmount != null));
 
   let cum = 0;
   let peak = 0;

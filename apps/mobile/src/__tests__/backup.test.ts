@@ -56,6 +56,7 @@ describe('load of a damaged store', () => {
     const loose = bet({ id: 'old', date: '2.10.2026 19:30' });
     const raw = JSON.stringify({ version: 3, bets: [bet(), loose, bet({ id: 'bad', event: null })], diary: [], teams: [] });
     await AsyncStorage.setItem('@sharklog/data', raw);
+    useBetsStore.setState({ isLoaded: false }); // a launch
     await useBetsStore.getState().load();
     const ids = useBetsStore.getState().bets.map((b) => b.id);
     expect(ids).toEqual(['b1', 'old']);
@@ -69,6 +70,7 @@ describe('load of a damaged store', () => {
     const AsyncStorage = require('@react-native-async-storage/async-storage').default;
     const first = await AsyncStorage.getItem('@sharklog/data_quarantine');
     await AsyncStorage.setItem('@sharklog/data', '{"bets": [{"id": "b1"');
+    useBetsStore.setState({ isLoaded: false }); // a launch
     await useBetsStore.getState().load();
     await flush();
     expect(useBetsStore.getState().isLoaded).toBe(true);
@@ -86,6 +88,7 @@ describe('load of a damaged store', () => {
     const count = async () => ((await AsyncStorage.getAllKeys()) as string[]).filter((k) => k.startsWith('@sharklog/data_quarantine')).length;
     const before = await count();
     for (let i = 0; i < 3; i++) {
+      useBetsStore.setState({ isLoaded: false }); // a launch
       await useBetsStore.getState().load();
       await flush();
     }
