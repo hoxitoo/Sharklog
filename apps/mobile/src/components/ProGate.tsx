@@ -136,6 +136,10 @@ function RobokassaCheckout() {
       return;
     }
     setPhase('awaiting');
+    // In effect but not on disk: the "changes not saved" alert (App.tsx) says
+    // why, and the next check finishes the job. "Check your connection" here
+    // would point at the wrong thing.
+    if (r === 'notSaved') return;
     Alert.alert(
       r === 'pending' ? t('proGate.awaitingTitle') : t('common.error'),
       r === 'pending' ? t('proGate.notYet') : t('proGate.checkError'),

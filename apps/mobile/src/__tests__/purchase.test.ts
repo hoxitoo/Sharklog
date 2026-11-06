@@ -98,7 +98,9 @@ describe('resumePendingPayment', () => {
     const storage = require('@react-native-async-storage/async-storage').default;
     // The save of the licence fails (killed, disk full): the record never lands.
     storage.setItem.mockImplementationOnce(async () => { throw new Error('disk full'); });
-    expect(await resumePendingPayment()).toBe('unreachable');
+    // Not "unreachable": the licence came and is in effect, it is the disk that
+    // failed — the paywall must not tell this user to check their connection.
+    expect(await resumePendingPayment()).toBe('notSaved');
     expect(await server.getPendingPayment()).not.toBeNull();
     // The next check fetches it again and, saved this time, lets the invoice go.
     expect(await resumePendingPayment()).toBe('paid');

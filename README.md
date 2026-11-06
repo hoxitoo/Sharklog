@@ -230,7 +230,6 @@ VITE_OWNER_PRO=true   # Pro без покупки (owner-режим)
 EXPO_PUBLIC_RC_IOS_KEY=...
 EXPO_PUBLIC_RC_ANDROID_KEY=...
 EXPO_PUBLIC_ENV=production
-EXPO_PUBLIC_SENTRY_DSN=...      # без неё Sentry выключен
 EXPO_PUBLIC_POSTHOG_KEY=...     # без неё аналитика событий выключена
 EXPO_PUBLIC_SUPPORT_URL=...     # «Написать автору»; без неё строки нет
 EXPO_PUBLIC_BILLING=robokassa   # robokassa (RuStore, по умолчанию) | revenuecat (Google Play)

@@ -81,7 +81,7 @@ apps/mobile/src/
                                Вторичные: Банкролл | Стратегии (PRO) | Партнёры
   services/
     revenueCat.ts            — initRevenueCat, getOfferings, purchasePackage, restorePurchases, syncEntitlement
-    sentry.ts                — initSentry, captureException, setUserContext, clearUserContext
+    crashReport.ts           — свой отчёт об ошибке (вместо Sentry): reportFor, installCrashCapture, takeLastCrashReport
   store/
     betsStore.ts             — Zustand + AsyncStorage; addBet, updateBet, deleteBet,
                                updateSettings, updateBankroll, addDiaryEntry, deleteTeam, clearAll, canAddBet
@@ -549,7 +549,7 @@ VITE_OWNER_PRO=true
 ## Тесты
 
 ```
-packages/core         321 vitest unit tests (stats, analytics, daily, formatters, kelly, migrations,
+packages/core         322 vitest unit tests (stats, analytics, daily, formatters, kelly, migrations,
                           betsCsv x14 — round-trip / P&L / инъекция / разделители,
                           pnlBuckets x10 — границы бакетов, порядок кривой,
                           bankroll x10 — bankCash / currentBank / pendingExposure / сверки,
@@ -560,8 +560,8 @@ packages/core         321 vitest unit tests (stats, analytics, daily, formatters
                           insightsGroups x8 — дисциплина в группировках (только по esports-ставкам) и порядок по P&L,
                           betYears x16 — список лет, «без турнира», границы диаграммы, тримминг имён)
 apps/desktop           40 vitest smoke tests (betsStore x25, importBets x15)
-apps/mobile           392 jest tests (стор, стражи дизайна/тем/переводов, оплата, цели, календарь…)
-ИТОГО                  753 теста (core 321 + desktop 40 + mobile 392, на 2026-11-06)
+apps/mobile           408 jest tests (стор, стражи дизайна/тем/переводов, оплата, цели, календарь…)
+ИТОГО                  770 тестов (core 322 + desktop 40 + mobile 408, на 2026-11-06)
 ```
 
 ---

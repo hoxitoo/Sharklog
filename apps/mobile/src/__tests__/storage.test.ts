@@ -276,6 +276,42 @@ describe('the record lost, broken, or rewritten by an older build', () => {
     expect(ids()).toEqual(['bet-1', 'bet-2', 'bet-3']);
   });
 
+  it('numbers new saves above the landed mark, even when nothing else on disk is that high', async () => {
+    // The last save on this build had no bets (no pieces), then an older build
+    // wrote its record. Counting from the pieces alone (none) would reuse the
+    // landed number — and a killed save under it would read as landed and be
+    // merged: a «Replace» killed mid-way showed 1-2-7-8 (review 2026-11-06).
+    await save([]);
+    expect(await pieceKeys()).toEqual([]);
+    await oldLayoutFile([bet(1), bet(2)]);
+    await storage.setItem(LANDED_KEY, '1');
+    await relaunch();
+    storage.setItem.mockImplementationOnce(async () => { throw new Error('killed'); });
+    await save([bet(7), bet(8)]);
+    await relaunch();
+    expect(ids()).toEqual(['bet-1', 'bet-2']);
+  });
+
+  it('no readable record: the damaged generation that keeps the most bets wins — and every damaged one is kept', async () => {
+    // An unreadable newest generation must not beat an older one that still
+    // has bets in it: starting empty, the first save would remove those.
+    const older = buildSave({ bets: many(3_000) }, 5).pieces;
+    const keys = Object.keys(older).sort();
+    for (const [k, v] of Object.entries(older)) if (k !== keys[1]) await storage.setItem(k, v);
+    await storage.setItem('@sharklog/bets:6:0', '{"g":6,"i":0,"n":1,"bets":[');
+    await storage.setItem(STORAGE_KEY, '{"settings": {');
+    await relaunch();
+    await flush(); await flush();
+    const { bets, settings } = useBetsStore.getState();
+    expect(bets.length).toBeGreaterThan(1_000);
+    expect(settings.onboardingComplete).toBe(true);
+    const copies = Object.values(await storage.getMany(
+      ((await storage.getAllKeys()) as string[]).filter((k) => k.startsWith('@sharklog/data_quarantine#')),
+    ));
+    expect(copies).toContain('{"g":6,"i":0,"n":1,"bets":[');
+    expect(copies).toContain(older[keys[0]!]);
+  });
+
   it('the record unreadable AND a piece missing: what still reads loads, not an empty app', async () => {
     await save(many(3_000));
     const keys = (await pieceKeys()).sort();
@@ -363,6 +399,32 @@ describe('a read that fails', () => {
     useBetsStore.setState({ bets: [bet(1), bet(2)] });
     useBetsStore.getState().persist(); // anything else, a moment later
     expect(await first).toBe(true);
+  });
+
+  it('a burst of saves writes once — the last state — and still reports it saved', async () => {
+    // Ten W/L taps on 10 000 bets were ten full rewrites. A save with a newer
+    // one queued behind it is skipped; the newer one writes the state as it is.
+    await save(many(500));
+    storage.setMany.mockClear();
+    for (let i = 0; i < 5; i++) {
+      useBetsStore.setState({ bets: many(500 + i + 1) });
+      useBetsStore.getState().persist();
+    }
+    expect(await useBetsStore.getState().flush()).toBe(true);
+    expect(storage.setMany).toHaveBeenCalledTimes(1);
+    await relaunch();
+    expect(useBetsStore.getState().bets).toHaveLength(505);
+  });
+
+  it('a load waits for a save already queued, and a second load waits for the first', async () => {
+    await save([bet(1)]); // on disk: the older state, which a load that did not wait would read
+    useBetsStore.setState({ bets: [bet(1), bet(2)] });
+    useBetsStore.getState().persist(); // not awaited: still queued when the load starts
+    storage.getItem.mockClear();
+    const [a, b] = [useBetsStore.getState().load(), useBetsStore.getState().load()];
+    await Promise.all([a, b]);
+    expect(ids()).toEqual(['bet-1', 'bet-2']);
+    expect(storage.getItem.mock.calls.filter(([k]) => k === STORAGE_KEY)).toHaveLength(1);
   });
 
   it('a save refused before the load is not reported as saved — and a load supersedes it', async () => {
@@ -485,6 +547,18 @@ describe('a save that fails (a full phone)', () => {
 });
 
 describe('clear all data', () => {
+  it('takes the quarantine copies too — they hold the bets', async () => {
+    await save(many(1_000));
+    await storage.setItem(STORAGE_KEY, '{"settings": {'); // damaged: the load keeps a copy
+    await relaunch();
+    await flush(); await flush();
+    const quarantined = async () => ((await storage.getAllKeys()) as string[]).filter((k) => k.startsWith('@sharklog/data_quarantine'));
+    expect((await quarantined()).length).toBeGreaterThan(1);
+    useBetsStore.getState().clearAll();
+    await useBetsStore.getState().flush();
+    expect(await quarantined()).toEqual([]);
+  });
+
   it('leaves no piece behind', async () => {
     await save(many(3_000));
     useBetsStore.getState().clearAll();

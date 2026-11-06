@@ -34,9 +34,12 @@ describe('uuid', () => {
       }
     };
     walk(SRC);
-    const hits = files.filter((f) => /crypto\.randomUUID\s*\(/.test(
-      readFileSync(f, 'utf8').replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, ''),
-    ));
+    files.push(join(SRC, '..', 'App.tsx')); // outside src/, and it runs first
+    // Comments out — but a `//` inside a string ('https://…') is not one: only
+    // a `//` at a line's start or after whitespace starts a comment here.
+    const code = (f: string) => readFileSync(f, 'utf8').replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|\s)\/\/.*$/gm, '$1');
+    // Any call of it: crypto.randomUUID(), crypto?.randomUUID?.(), c.randomUUID()…
+    const hits = files.filter((f) => /\.\s*randomUUID\b|\?\.\s*randomUUID\b/.test(code(f)));
     expect(hits.map((f) => f.slice(SRC.length + 1))).toEqual([]);
   });
 });

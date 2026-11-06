@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { sanitizeBets, sanitizeBet, sanitizeBankroll, sanitizeDiary, sanitizeTeams, normalizeDay } from './sanitize';
+import { sanitizeBets, sanitizeBet, sanitizeBankroll, sanitizeDiary, sanitizeTeams, sanitizeGoals, normalizeDay } from './sanitize';
+import { TEXT_LIMITS } from '../constants/index';
 
 const good = {
   id: 'b1', createdAt: '2026-10-01T10:00:00.000Z', updatedAt: '2026-10-01T10:00:00.000Z',
@@ -136,5 +137,23 @@ describe('sanitizeDiary and sanitizeTeams', () => {
     const t = sanitizeTeams([{ id: 't', name: 'NaVi', sport: 'esports', discipline: 'csgo', usageCount: 3, lastUsed: '2026-10-01T00:00:00.000Z' }, { id: 'x', name: 5 }]);
     expect(t.items[0]!.name).toBe('NaVi');
     expect(t.dropped).toBe(1);
+  });
+
+  it('clips an import\'s text to TEXT_LIMITS — and never touches stored data', () => {
+    // On Android a value is one SQLite row read through a 2 MB window: one
+    // pasted megabyte in a note made the whole store unreadable on every launch.
+    const huge = 'ж'.repeat(1_000_000);
+    const imported = sanitizeBet({ ...good, notes: huge, event: huge, tournament: huge }, 'import')!;
+    expect(imported.notes).toHaveLength(TEXT_LIMITS.NOTE);
+    expect(imported.event).toHaveLength(TEXT_LIMITS.FIELD);
+    expect(imported.tournament).toHaveLength(TEXT_LIMITS.FIELD);
+    expect(sanitizeBet({ ...good, notes: huge }, 'stored')!.notes).toHaveLength(huge.length);
+    const diary = sanitizeDiary([{ id: 'd', date: '2026-11-01', mood: 3, text: huge }], 'import');
+    expect(diary.items[0]!.text).toHaveLength(TEXT_LIMITS.NOTE);
+    const goals = sanitizeGoals([{ id: 'g', title: huge, kind: 'profit', target: 100, startDate: '2026-11-01', note: huge }], 'import');
+    expect([goals.items[0]!.title.length, goals.items[0]!.note!.length]).toEqual([TEXT_LIMITS.FIELD, TEXT_LIMITS.NOTE]);
+    // A normal accumulator's event and pick are far inside the limit.
+    const express = Array.from({ length: 20 }, (_, i) => `Команда ${i} vs Соперник ${i}`).join(' | ');
+    expect(sanitizeBet({ ...good, event: express }, 'import')!.event).toBe(express);
   });
 });

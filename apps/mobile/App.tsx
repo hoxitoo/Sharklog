@@ -23,10 +23,15 @@ import {
 import { initRevenueCat, syncEntitlement } from './src/services/revenueCat';
 import { resumePendingPayment, takePaidNotice, checkLicenseStanding } from './src/services/purchase';
 import { BILLING } from './src/services/billing';
-import { initSentry } from './src/services/sentry';
+import { installCrashCapture, takeLastCrashReport } from './src/services/crashReport';
+import { ErrorReportSheet } from './src/components/ErrorReportSheet';
 import { Analytics } from './src/services/analytics';
 import './src/i18n/index';
 import i18n, { applyLanguage } from './src/i18n/index';
+
+// First thing: a fatal error from here on is kept for the next launch, which
+// offers the user a report to send (services/crashReport.ts).
+installCrashCapture();
 
 // Keep native splash visible until React Native is ready to render
 SplashScreen.preventAutoHideAsync().catch(() => {});
@@ -73,6 +78,9 @@ export default function App() {
   const themeKey = useBetsStore((s) => s.settings.theme ?? 'dark');
   const navState = useRef<NavigationState | undefined>(undefined);
   const [splashDone, setSplashDone] = useState(false);
+  // The report of the crash the last session closed with, while its window is open.
+  const [crashReport, setCrashReport] = useState<string | null>(null);
+  const crashOffered = useRef(false);
 
   const [fontsLoaded, fontError] = useFonts({
     DMSans_400Regular,
@@ -171,7 +179,6 @@ export default function App() {
   }, [isLoaded]);
 
   useEffect(() => {
-    initSentry();
     // RevenueCat only in the build that sells through it: in the RuStore build
     // its "no" would take away Pro that an older build left behind.
     if (BILLING === 'revenuecat') initRevenueCat();
@@ -242,6 +249,20 @@ export default function App() {
     return () => sub.remove();
   }, [isLoaded]);
 
+  // The last session crashed: once the app is on screen (after the splash, in
+  // the user's language), offer the report — once; it is forgotten as read.
+  useEffect(() => {
+    if (!isLoaded || !splashDone || crashOffered.current) return;
+    crashOffered.current = true;
+    takeLastCrashReport().then((report) => {
+      if (!report) return;
+      Alert.alert(i18n.t('errorReport.lastCrashTitle'), i18n.t('errorReport.lastCrashBody'), [
+        { text: i18n.t('errorReport.lastCrashSkip'), style: 'cancel' },
+        { text: i18n.t('errorReport.lastCrashView'), onPress: () => setCrashReport(report) },
+      ]);
+    });
+  }, [isLoaded, splashDone]);
+
   // A failed font load must not hang the app on the splash forever.
   const fontsSettled = fontsLoaded || !!fontError;
   const appReady = isLoaded && fontsSettled;
@@ -300,6 +321,9 @@ export default function App() {
   }
 
   const statusBarStyle = THEME_META[currentTheme()].dark ? 'light' : 'dark';
+  const crashSheet = (
+    <ErrorReportSheet visible={crashReport !== null} report={crashReport ?? ''} onClose={() => setCrashReport(null)} />
+  );
 
   if (!onboardingComplete) {
     return (
@@ -307,6 +331,7 @@ export default function App() {
         <SafeAreaProvider>
           <StatusBar style={statusBarStyle} />
           <OnboardingScreen />
+          {crashSheet}
         </SafeAreaProvider>
       </ErrorBoundary>
     );
@@ -323,6 +348,7 @@ export default function App() {
           <StatusBar style={statusBarStyle} />
           <RootNavigator />
         </NavigationContainer>
+        {crashSheet}
       </SafeAreaProvider>
     </ErrorBoundary>
   );
