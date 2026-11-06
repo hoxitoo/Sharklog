@@ -66,6 +66,20 @@ export const LANDED_KEY = '@sharklog/data_landed';
 export const IOS_INLINE_CHARS = 1_024;
 
 /**
+ * Whether a record write that FAILED may still end up on disk. On iOS a record
+ * not yet in its own file can reach the file while its manifest entry does
+ * not, and a later manifest write makes that file the live record — so its
+ * pieces must stay. Android writes a value in one SQLite transaction: failed
+ * means not there, and keeping its pieces would only take the space a nearly
+ * full phone is short of. Unknown platform: assume it may (a kept generation
+ * costs space; a removed live one, the bets). `process.env.EXPO_OS` is
+ * replaced with the platform at build time (babel-preset-expo, define-plugin).
+ */
+export function failedRecordMayLand(os: string | undefined = process.env['EXPO_OS']): boolean {
+  return os !== 'android';
+}
+
+/**
  * Characters per piece. SQLite keeps text as UTF-8, at most three bytes for a
  * character the app stores: 400 000 characters stay under 1.2 MB — inside the
  * 2 MB window whatever the text.

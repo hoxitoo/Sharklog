@@ -14,7 +14,7 @@ import { BILLING, LICENSE_PUBKEY } from '../services/billing';
 import { distribution } from '../utils/storeLinks';
 import {
   STORAGE_KEY, LANDED_KEY, IOS_INLINE_CHARS, pieceKey, parsePieceKey, buildSave, recordPieces, assembleGeneration,
-  parsePiece, generationsOnDisk, textHash,
+  parsePiece, generationsOnDisk, textHash, failedRecordMayLand,
 } from '../utils/storageLayout';
 
 /** The stored file as it was, when loading had to leave records out. */
@@ -566,11 +566,11 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
       //    the old pieces, which are all still there. Failed: on iOS a record
       //    that was not yet a file may be in its file without the manifest
       //    entry, and a later manifest write would make it the live one — its
-      //    pieces then stay until a save lands.
+      //    pieces then stay until a save lands (on iOS only: failedRecordMayLand).
       try {
         await AsyncStorage.setItem(STORAGE_KEY, record);
       } catch {
-        if (!recordIsFile) keepGens.add(gen);
+        if (!recordIsFile && failedRecordMayLand()) keepGens.add(gen);
         failed();
         return;
       }

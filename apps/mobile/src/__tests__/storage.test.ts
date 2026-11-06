@@ -3,6 +3,7 @@ import type { Bet } from '@sharklog/core';
 import { useBetsStore, defaultSettings, defaultBankroll } from '../store/betsStore';
 import {
   CHUNK_CHARS, MIN_RECORD_CHARS, STORAGE_KEY, LANDED_KEY, assembleGeneration, buildSave, parsePieceKey, recordPieces,
+  failedRecordMayLand,
 } from '../utils/storageLayout';
 
 /*
@@ -405,6 +406,14 @@ describe('a save that fails (a full phone)', () => {
     expect(first.size).toBe(1);
     expect(gensOf(await piecesWhenWriting(() => save(many(1_001))))).toEqual(first);
     expect(gensOf(await pieceKeys()).size).toBe(1); // landed: the rest went
+  });
+
+  it('keeps a failed record\'s pieces only where a failed write can still land: iOS, not Android', () => {
+    // Android writes a value in one transaction: kept pieces would only take
+    // the space a full phone is short of, copy after copy (review 2026-11-06).
+    expect(failedRecordMayLand('ios')).toBe(true);
+    expect(failedRecordMayLand('android')).toBe(false);
+    expect(failedRecordMayLand(undefined)).toBe(true); // unknown: keep — space, not bets
   });
 
   it('first session after the update: a failed save\'s pieces are cleared before the next', async () => {
