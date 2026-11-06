@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { Bet } from '../types/bet';
-import { byPlayedAt, playedOrder, newestPlayedFirst, calcDashboard } from '../utils/stats';
+import { byPlayedAt, playedOrder, newestPlayedFirst, calcDashboard, totalPnl, calcCurrentStreak, currentBank, isInTilt } from '../utils/stats';
 import { calcStreaks, calcMaxDrawdown } from '../utils/analytics';
 
 /*
@@ -70,5 +70,21 @@ describe('byPlayedAt, cached', () => {
     expect(byPlayedAt(a, b)).toBeLessThan(0);
     a.date = '2026-11-03';
     expect(byPlayedAt(a, b)).toBeGreaterThan(0);
+  });
+});
+
+describe('one field without the whole dashboard', () => {
+  it('totalPnl, calcCurrentStreak and currentBank read exactly what calcDashboard says', () => {
+    for (let round = 0; round < 200; round++) {
+      const bets = book(1 + Math.floor(rnd() * 80)).map((b) => (rnd() < 0.2 ? { ...b, isFreebet: true } : b));
+      const d = calcDashboard(bets);
+      expect(totalPnl(bets)).toBe(d.pnl);
+      expect(calcCurrentStreak(bets)).toEqual(d.currentStreak);
+      const txs = [{ id: 't', type: 'deposit' as const, amount: 10_000_00, date: '2026-01-01' }];
+      expect(currentBank(txs, bets)).toBe(10_000_00 + d.pnl);
+      for (const n of [1, 3, 5]) {
+        expect(isInTilt(bets, n)).toBe(d.currentStreak.type === 'loss' && d.currentStreak.count >= n);
+      }
+    }
   });
 });

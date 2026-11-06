@@ -830,11 +830,13 @@ function AnalyticsContent() {
     return bets.filter((b) => b.date > cutoffStr);
   }, [bets, period]);
 
-  const extended = useMemo(() => ({
+  // The raw key: SportBreakdown needs it for the glyph, and names it itself.
+  const sportSlices = useMemo(() => calcByField(filteredBets, 'sport'), [filteredBets]);
+  // The five slices under «Расширенная статистика» — only once it is OPEN: on
+  // 2 000 bets they cost ~20 ms on every change, for a section that is closed.
+  const extended = useMemo(() => (!extendedOpen ? null : {
     // Labels in the interface language. A value with no translation (an old or
     // hand-edited one) shows as stored rather than as a raw key.
-    // The raw key: SportBreakdown needs it for the glyph, and names it itself.
-    sport: calcByField(filteredBets, 'sport'),
     betType: calcByField(filteredBets, 'betType', (v) => t(`betTypes.${v}`, { defaultValue: String(v) })),
     bookmaker: calcByField(filteredBets, 'bookmaker'),
     strategy: calcByField(filteredBets, 'strategy', (v) => t(`strategies.${v}`, { defaultValue: String(v) })),
@@ -842,7 +844,7 @@ function AnalyticsContent() {
     odds: calcByOddsRange(filteredBets, oddsRangeLabel(oddsFormat)),
     // Core would name the days in Russian on its own.
     day: calcByDayOfWeek(filteredBets, (d) => t(`weekdays.${d}`)),
-  }), [filteredBets, t, oddsFormat]);
+  }), [extendedOpen, filteredBets, t, oddsFormat]);
 
   return (
     <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: bottomPad }}>
@@ -867,7 +869,7 @@ function AnalyticsContent() {
       <LuckCard bets={filteredBets} />
       {/* Promoted out of the collapsed section: which sport actually earns is
           a first-screen question, and the bars answer it without arithmetic. */}
-      <SportBreakdown stats={extended.sport} />
+      <SportBreakdown stats={sportSlices} />
       <TimeCard bets={filteredBets} />
       <ClvCard bets={filteredBets} />
 
@@ -881,7 +883,7 @@ function AnalyticsContent() {
         <Text style={styles.extChevron}>{extendedOpen ? '▲' : '▼'}</Text>
       </TouchableOpacity>
 
-      {extendedOpen && (
+      {extended && (
         <>
           <ExtendedSection title={t('analytics.byBetType')} stats={extended.betType} />
           <ExtendedSection title={t('analytics.byBookmaker')} stats={extended.bookmaker} />

@@ -9,7 +9,7 @@ import { haptic } from '../../utils/haptics';
 import { useTranslation } from 'react-i18next';
 import { txNoteLabel } from '../../utils/labels';
 import type { ChartSeries } from '../../components/BalanceChart';
-import { TX_NOTE, calcDashboard, parseMoneyInput, kellyFraction, recommendedStake, activeStrategy, bankAtBetTime, toYmd, expectedValue, parseOdds, impliedProbability, calcDailyBreakdown, currentBank, pendingExposure, pendingStake } from '@sharklog/core';
+import { TX_NOTE, totalPnl, parseMoneyInput, kellyFraction, recommendedStake, activeStrategy, bankAtBetTime, toYmd, expectedValue, parseOdds, impliedProbability, calcDailyBreakdown, currentBank, pendingExposure, pendingStake } from '@sharklog/core';
 
 /** How much of the history the screen shows before asking. */
 const TX_PREVIEW = 5;
@@ -398,20 +398,28 @@ function BankrollContent() {
   const bankroll = useBetsStore((s) => s.bankroll);
   const updateBankroll = useBetsStore((s) => s.updateBankroll);
   const { width } = useWindowDimensions();
-  const stats = useMemo(() => calcDashboard(bets), [bets]);
+  // The P&L alone: the whole dashboard (sorts, a curve, a streak) ran for this one number.
+  const pnl = useMemo(() => totalPnl(bets), [bets]);
   const [activeTxForm, setActiveTxForm] = useState<TxType | null>(null);
   const [allTxShown, setAllTxShown] = useState(false);
   // P&L by default: the bank line is mostly a record of transfers, and the
   // question the screen is opened with is whether the betting is working.
   const [series, setSeries] = useState<ChartSeries>('pnl');
 
-  const deposited = bankroll.transactions.filter((tx) => tx.type === 'deposit').reduce((s, tx) => s + tx.amount, 0);
-  const withdrawn = bankroll.transactions.filter((tx) => tx.type === 'withdrawal').reduce((s, tx) => s + tx.amount, 0);
-  const bank = currentBank(bankroll.transactions, bets);
-  // "В игре" is every open stake, freebets included; the balance at the
-  // bookmaker subtracts only the user's own money (a freebet never left it).
-  const inPlay = pendingStake(bets);
-  const exposure = pendingExposure(bets);
+  // The header, once per change of the bets or the transactions — not on every
+  // render (a form opened, a series toggled, a letter typed in an amount).
+  const { deposited, withdrawn, bank, inPlay, exposure } = useMemo(() => {
+    const txs = bankroll.transactions;
+    return {
+      deposited: txs.filter((tx) => tx.type === 'deposit').reduce((s, tx) => s + tx.amount, 0),
+      withdrawn: txs.filter((tx) => tx.type === 'withdrawal').reduce((s, tx) => s + tx.amount, 0),
+      bank: currentBank(txs, bets),
+      // "В игре" is every open stake, freebets included; the balance at the
+      // bookmaker subtracts only the user's own money (a freebet never left it).
+      inPlay: pendingStake(bets),
+      exposure: pendingExposure(bets),
+    };
+  }, [bets, bankroll.transactions]);
   const unitAmount = Math.round(bank * bankroll.unitPercent / 100);
 
   // Bank curve, aggregated per DAY (readable trend, not a spike storm) with real
@@ -428,7 +436,7 @@ function BankrollContent() {
     // Legend dots describe marks on the line, and the P&L line carries none.
     const hasDeposit = !isPnl && dailySeries.some((d) => d.deposits > 0);
     const hasWithdrawal = !isPnl && dailySeries.some((d) => d.withdrawals > 0);
-    const headline = isPnl ? stats.pnl : bank;
+    const headline = isPnl ? pnl : bank;
     return (
       <View style={bk.chartCard}>
         <View style={bk.chartHeader}>
@@ -477,7 +485,7 @@ function BankrollContent() {
         </View>
       </View>
     );
-  }, [dailySeries, bank, width, series, stats.pnl, fmt, t]);
+  }, [dailySeries, bank, width, series, pnl, fmt, t]);
 
   function handleTxSubmit(type: TxType, amount: number, note: string) {
     if (type === 'adjustment') {
@@ -546,9 +554,9 @@ function BankrollContent() {
           </View>
           <View style={bk.metaCell}>
             <Text style={bk.metaLabel}>P&L</Text>
-            <Text style={[bk.metaValue, { color: stats.pnl >= 0 ? colors.won : colors.lost }]}
+            <Text style={[bk.metaValue, { color: pnl >= 0 ? colors.won : colors.lost }]}
               numberOfLines={1} adjustsFontSizeToFit>
-              {stats.pnl >= 0 ? '+' : ''}{fmt(stats.pnl)}
+              {pnl >= 0 ? '+' : ''}{fmt(pnl)}
             </Text>
           </View>
         </View>

@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { Alert } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -54,11 +54,16 @@ export function useBetActions() {
   const [level, setLevel] = useState<'root' | 'status'>('root');
   const [cashoutFor, setCashoutFor] = useState<string | null>(null);
 
-  function open(target: Bet) {
+  // Stable (useCallback): it is a prop of every card in the list, and a fresh
+  // function per render defeated their React.memo — 40 cards re-rendered for a
+  // letter in the search.
+  const open = useCallback((target: Bet) => {
     haptic.light();
     setLevel('root');
     setBet(target);
-  }
+  }, []);
+  const openCashout = useCallback((id: string) => setCashoutFor(id), []);
+  const closeCashout = useCallback(() => setCashoutFor(null), []);
 
   function close() {
     setBet(null);
@@ -172,7 +177,7 @@ export function useBetActions() {
     element,
     /** Id of the card whose inline cashout field is open, if any. */
     cashoutFor,
-    openCashout: (id: string) => setCashoutFor(id),
-    closeCashout: () => setCashoutFor(null),
+    openCashout,
+    closeCashout,
   };
 }

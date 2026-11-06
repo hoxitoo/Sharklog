@@ -549,7 +549,7 @@ VITE_OWNER_PRO=true
 ## Тесты
 
 ```
-packages/core         326 vitest unit tests (stats, analytics, daily, formatters, kelly, migrations,
+packages/core         329 vitest unit tests (stats, analytics, daily, formatters, kelly, migrations,
                           betsCsv x14 — round-trip / P&L / инъекция / разделители,
                           pnlBuckets x10 — границы бакетов, порядок кривой,
                           bankroll x10 — bankCash / currentBank / pendingExposure / сверки,
@@ -560,8 +560,8 @@ packages/core         326 vitest unit tests (stats, analytics, daily, formatters
                           insightsGroups x8 — дисциплина в группировках (только по esports-ставкам) и порядок по P&L,
                           betYears x16 — список лет, «без турнира», границы диаграммы, тримминг имён)
 apps/desktop           40 vitest smoke tests (betsStore x25, importBets x15)
-apps/mobile           414 jest tests (стор, стражи дизайна/тем/переводов, оплата, цели, календарь…)
-ИТОГО                  780 тестов (core 326 + desktop 40 + mobile 414, на 2026-11-06)
+apps/mobile           417 jest tests (стор, стражи дизайна/тем/переводов, оплата, цели, календарь…)
+ИТОГО                  786 тестов (core 329 + desktop 40 + mobile 417, на 2026-11-06)
 ```
 
 ---
