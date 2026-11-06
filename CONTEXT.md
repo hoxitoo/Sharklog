@@ -560,8 +560,8 @@ packages/core         321 vitest unit tests (stats, analytics, daily, formatters
                           insightsGroups x8 — дисциплина в группировках (только по esports-ставкам) и порядок по P&L,
                           betYears x16 — список лет, «без турнира», границы диаграммы, тримминг имён)
 apps/desktop           40 vitest smoke tests (betsStore x25, importBets x15)
-apps/mobile           385 jest tests (стор, стражи дизайна/тем/переводов, оплата, цели, календарь…)
-ИТОГО                  746 тестов (core 321 + desktop 40 + mobile 385, на 2026-11-06)
+apps/mobile           391 jest tests (стор, стражи дизайна/тем/переводов, оплата, цели, календарь…)
+ИТОГО                  752 теста (core 321 + desktop 40 + mobile 391, на 2026-11-06)
 ```
 
 ---
