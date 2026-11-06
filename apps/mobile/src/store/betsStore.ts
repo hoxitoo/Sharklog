@@ -12,7 +12,9 @@ import {
 import { verifyLicense, resolvePro, trialEnd, extractLicense, hasLicense, readLicense, type LicensePayload } from '../utils/license';
 import { BILLING, LICENSE_PUBKEY } from '../services/billing';
 import { distribution } from '../utils/storeLinks';
-import { STORAGE_KEY, chunkKey, chunkIndex, namedChunks, storageEntries } from '../utils/storageLayout';
+import {
+  STORAGE_KEY, pieceKey, parsePieceKey, buildSave, recordPieces, assembleGeneration, parsePiece, generationsOnDisk,
+} from '../utils/storageLayout';
 
 /** The stored file as it was, when loading had to leave records out. */
 const QUARANTINE_KEY = '@sharklog/data_quarantine';
@@ -47,23 +49,37 @@ function quarantine(main: string, pieces: readonly (string | null)[] = []): void
 // (e.g. quick W/L taps) can't race and clobber each other's snapshot.
 let writeChain: Promise<void> = Promise.resolve();
 
-/** How many bets pieces the last save (or the load) left on disk. */
-let storedChunks = 0;
+/**
+ * The newest bets generation on disk or written this session. Each save takes
+ * the next one, so its pieces never land on keys a reader may be using
+ * (storageLayout.ts, "Why generations").
+ */
+let lastGen = 0;
+/** Whether the last save reached the disk — for a caller that must know (a paid licence). */
+let lastWriteOk = true;
 
-/** Every bets piece on disk, by index — for a quarantine when the main record cannot be read. */
-async function allPieces(): Promise<(string | null)[]> {
-  const keys = (await AsyncStorage.getAllKeys()).filter((k) => chunkIndex(k) !== null);
-  if (keys.length === 0) return [];
+/** The texts of a generation's pieces, in index order (null — missing). */
+async function readGeneration(gen: number, count: number): Promise<(string | null)[]> {
+  if (count === 0) return [];
+  const keys = Array.from({ length: count }, (_, i) => pieceKey(gen, i));
   const got = await AsyncStorage.getMany(keys);
-  const out: (string | null)[] = [];
-  for (const k of keys) out[chunkIndex(k)!] = got[k] ?? null;
-  return Array.from(out, (p) => p ?? null);
+  return keys.map((k) => got[k] ?? null);
 }
 
-/** Pieces past what the main record names: leftovers of a save cut short. */
-async function removeStalePieces(named: number): Promise<void> {
-  const stale = (await AsyncStorage.getAllKeys()).filter((k) => (chunkIndex(k) ?? -1) >= named);
-  if (stale.length > 0) await AsyncStorage.removeMany(stale);
+/**
+ * The newest generation on disk that is whole — the bets when the main record
+ * cannot name them (lost, unreadable, or rewritten by an older build that
+ * knows no pieces). Every piece carries its generation's piece count.
+ */
+async function newestWholeGeneration(keys: readonly string[]): Promise<{ texts: (string | null)[]; bets: unknown[] } | null> {
+  for (const { gen, indices } of generationsOnDisk(keys)) {
+    const first = parsePiece((await readGeneration(gen, 1))[0] ?? null);
+    if (!first || first.n === 0 || indices.length < first.n) continue;
+    const texts = await readGeneration(gen, first.n);
+    const { bets, whole } = assembleGeneration(gen, texts);
+    if (whole) return { texts, bets };
+  }
+  return null;
 }
 
 function uuid(): string {
@@ -142,6 +158,8 @@ interface BetsStore {
 
   load: () => Promise<void>;
   persist: () => Promise<void>;
+  /** Waits for the saves queued so far; true when the last of them reached the disk. */
+  flush: () => Promise<boolean>;
 
   addBet: (bet: Bet) => void;
   updateBet: (id: string, updates: Partial<Bet>) => void;
@@ -289,58 +307,84 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
   loadError: false,
 
   load: async () => {
+    // Read first; decide after. A failed READ is not "no data": writes stay
+    // blocked (persist checks loadError) until a retry reads it — the app used
+    // to start empty here, and its first save (onboarding's) replaced the file.
     let raw: string | null;
+    let keys: string[];
     try {
       raw = await AsyncStorage.getItem(STORAGE_KEY);
+      keys = await AsyncStorage.getAllKeys();
     } catch {
-      // Could not READ — which is not "no data". Writes stay blocked (persist
-      // checks loadError) until a retry succeeds.
       set({ loadError: true });
       return;
     }
-    if (!raw) {
-      // A fresh install. Pieces without a record are not touched here: they
-      // could be the only copy of the bets. A save overwrites them in turn.
-      storedChunks = 0;
-      set({ isLoaded: true, loadError: false });
-      return;
-    }
-    let pieces: (string | null)[] = [];
     try {
-      let parsed: unknown = JSON.parse(raw);
-      // A piece that is missing or unreadable is damage: what it held is
-      // quarantined with the record, and the rest of the bets load.
-      let damaged = false;
-      const named = namedChunks(parsed);
-      if (named !== null) {
-        const keys = Array.from({ length: named }, (_, i) => chunkKey(i));
-        let got: Record<string, string | null> = {};
+      const onDisk = generationsOnDisk(keys);
+      let record: Record<string, unknown> | null = null;
+      // The record exists but is not readable JSON (a crash mid-write).
+      let recordBroken = false;
+      if (raw !== null) {
         try {
-          if (keys.length > 0) got = await AsyncStorage.getMany(keys);
+          const p: unknown = JSON.parse(raw);
+          if (typeof p === 'object' && p !== null && !Array.isArray(p)) record = p as Record<string, unknown>;
+          else recordBroken = true;
         } catch {
-          set({ loadError: true });
+          recordBroken = true;
+        }
+      }
+      let damaged = recordBroken;
+      let pieces: (string | null)[] = [];
+      let parsed: Record<string, unknown>;
+      const named = record ? recordPieces(record) : null;
+      if (named) {
+        // The usual case: the record names its generation; it must be whole.
+        pieces = await readGeneration(named.gen, named.chunks);
+        const { bets, whole } = assembleGeneration(named.gen, pieces, named.count);
+        if (!whole) damaged = true;
+        parsed = { ...record, bets };
+      } else {
+        // No record that names pieces: the old single-key layout, a record
+        // lost or unreadable, or one an older build rewrote without them. If
+        // pieces are on disk, their bets are kept alongside the record's;
+        // sanitize keeps the later edit of a bet that is in both.
+        const found = onDisk.length > 0 ? await newestWholeGeneration(keys) : null;
+        if (found) {
+          pieces = found.texts;
+        } else if (onDisk.length > 0) {
+          // Pieces, none of them whole: keep the newest set for support — the
+          // next save would remove them.
+          damaged = true;
+          const newest = onDisk[0]!;
+          pieces = await readGeneration(newest.gen, Math.max(...newest.indices) + 1);
+        }
+        if (raw === null && !found && onDisk.length === 0) {
+          // A fresh install.
+          lastGen = 0;
+          set({ isLoaded: true, loadError: false });
           return;
         }
-        const bets: unknown[] = [];
-        pieces = keys.map((k) => got[k] ?? null);
-        for (const piece of pieces) {
-          if (piece === null) { damaged = true; continue; }
-          try {
-            const list: unknown = JSON.parse(piece);
-            if (Array.isArray(list)) for (const b of list) bets.push(b);
-            else damaged = true;
-          } catch {
-            damaged = true;
-          }
+        const own = record?.['bets'];
+        parsed = {
+          ...(record ?? {}),
+          bets: found ? [...(Array.isArray(own) ? own : []), ...found.bets] : own,
+        };
+        if (!record && !(found && found.bets.length > 0)) {
+          // Nothing readable at all: start as a new install did — but the
+          // damaged file is kept first.
+          if (raw !== null || pieces.length > 0) quarantine(raw ?? '', pieces);
+          lastGen = onDisk[0]?.gen ?? 0;
+          set({ isLoaded: true, loadError: false });
+          return;
         }
-        parsed = { ...(parsed as Record<string, unknown>), bets };
+        if (!record) parsed['settings'] = { onboardingComplete: true };
       }
+      lastGen = Math.max(named?.gen ?? 0, onDisk[0]?.gen ?? 0);
       // A list that is not a list is damage too, even before anything is dropped.
-      const shapeBroken = typeof parsed !== 'object' || parsed === null
-        || (['bets', 'diary', 'teams', 'goals'] as const).some((k) => {
-          const v = (parsed as Record<string, unknown>)[k];
-          return v !== undefined && !Array.isArray(v);
-        });
+      const shapeBroken = (['bets', 'diary', 'teams', 'goals'] as const).some((k) => {
+        const v = parsed[k];
+        return v !== undefined && !Array.isArray(v);
+      });
       const schema = migrate(parsed as Parameters<typeof migrate>[0]);
       const savedSettings: Partial<AppSettings> = schema.settings ?? {};
       // A licence that does not count on this build (a test licence in a store
@@ -368,7 +412,7 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
       if (damaged || shapeBroken || bets.dropped + bank.dropped + diary.dropped + teams.dropped + goals.dropped > 0) {
         // The next write would make the loss final: keep the file as it was,
         // so support can still get those records back.
-        quarantine(raw, pieces);
+        quarantine(raw ?? '', pieces);
       }
       set({
         bets: bets.items,
@@ -390,17 +434,10 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
         isLoaded: true,
         loadError: false,
       });
-      storedChunks = named ?? 0;
-      // Pieces past what the record names are leftovers of a save cut short
-      // (or of the old layout, where the record names none).
-      removeStalePieces(storedChunks).catch(() => {});
     } catch {
-      // Unreadable (a crash mid-write): the app starts empty, and its first
-      // write replaces the file — with the bets AND the licence in it. Keep it,
-      // with every bets piece on disk: the next save would remove them.
-      quarantine(raw, pieces.length > 0 ? pieces : await allPieces().catch(() => []));
-      storedChunks = 0;
-      set({ isLoaded: true, loadError: false });
+      // Something failed AFTER the read — a bug in migration or sanitizing.
+      // Not a reason to start empty over data that is there: keep writes off.
+      set({ loadError: true });
     }
   },
 
@@ -409,17 +446,27 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
     // Never before a load has succeeded: the state is then the empty default,
     // and writing it would replace data that is on disk but was not read.
     if (!isLoaded || loadError) return writeChain;
-    const { entries, chunks } = storageEntries({ bets, settings, bankroll, diary, teams, goals, version: CURRENT_SCHEMA_VERSION });
-    const stale = Array.from({ length: Math.max(0, storedChunks - chunks) }, (_, i) => chunkKey(chunks + i));
-    storedChunks = chunks;
+    const gen = ++lastGen;
+    const { pieces, record } = buildSave({ bets, settings, bankroll, diary, teams, goals, version: CURRENT_SCHEMA_VERSION }, gen);
     writeChain = writeChain.then(async () => {
-      // One call: on Android one transaction, pieces and the record that names them.
-      await AsyncStorage.setMany(entries);
-      // Only after the new record is written: until then the old one names these.
-      if (stale.length > 0) await AsyncStorage.removeMany(stale);
+      lastWriteOk = false;
+      // 1. The new pieces, under keys no reader uses yet.
+      if (Object.keys(pieces).length > 0) await AsyncStorage.setMany(pieces);
+      // 2. The record that names them. Until this lands, the old one names
+      //    the old pieces, which are all still there.
+      await AsyncStorage.setItem(STORAGE_KEY, record);
+      lastWriteOk = true;
+      // 3. Only now is every other generation garbage.
+      const old = (await AsyncStorage.getAllKeys()).filter((k) => {
+        const p = parsePieceKey(k);
+        return p !== null && p.gen !== gen;
+      });
+      if (old.length > 0) await AsyncStorage.removeMany(old);
     }).catch(() => {});
     return writeChain;
   },
+
+  flush: () => writeChain.then(() => lastWriteOk),
 
   addBet: (bet) => {
     const names = extractTeamNames(bet.event);
