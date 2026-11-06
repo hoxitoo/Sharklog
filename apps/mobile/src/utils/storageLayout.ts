@@ -48,6 +48,24 @@ export const STORAGE_KEY = '@sharklog/data';
 export const PIECE_PREFIX = '@sharklog/bets:';
 
 /**
+ * The generation whose record last landed, written after that record by every
+ * save. Two jobs:
+ *  - a short value that changes on each save, so iOS must write its manifest
+ *    before the save counts as landed. A save that only rewrites an existing
+ *    file never writes it, and a manifest write that failed earlier in the
+ *    session (a record moving into its own file) would otherwise stay unsaved
+ *    while every later save reported success;
+ *  - for a load that finds an old-layout record: a generation whose record
+ *    DID land is never skipped as a killed save — an older build overwrote it
+ *    ("Why a base": two downgrades with an unchanged record would otherwise
+ *    read as a killed save and lose every bet in the pieces).
+ */
+export const LANDED_KEY = '@sharklog/data_landed';
+
+/** iOS keeps values up to this many characters inline in its manifest, longer ones in files. */
+export const IOS_INLINE_CHARS = 1_024;
+
+/**
  * Characters per piece. SQLite keeps text as UTF-8, at most three bytes for a
  * character the app stores: 400 000 characters stay under 1.2 MB — inside the
  * 2 MB window whatever the text.

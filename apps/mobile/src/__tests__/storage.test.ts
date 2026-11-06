@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Bet } from '@sharklog/core';
 import { useBetsStore, defaultSettings, defaultBankroll } from '../store/betsStore';
 import {
-  CHUNK_CHARS, MIN_RECORD_CHARS, STORAGE_KEY, assembleGeneration, buildSave, parsePieceKey, recordPieces,
+  CHUNK_CHARS, MIN_RECORD_CHARS, STORAGE_KEY, LANDED_KEY, assembleGeneration, buildSave, parsePieceKey, recordPieces,
 } from '../utils/storageLayout';
 
 /*
@@ -75,6 +75,19 @@ async function save(bets: Bet[]) {
 }
 
 const pieceKeys = async () => ((await storage.getAllKeys()) as string[]).filter((k) => parsePieceKey(k) !== null);
+const gensOf = (keys: string[]) => new Set(keys.map((k) => parsePieceKey(k)!.gen));
+
+/** Runs `act` and returns the piece keys on disk at the moment its save starts writing pieces. */
+async function piecesWhenWriting(act: () => Promise<unknown>): Promise<string[]> {
+  const real = storage.setMany.getMockImplementation()!;
+  let seen: string[] = [];
+  storage.setMany.mockImplementationOnce(async (entries: Record<string, string>) => {
+    seen = await pieceKeys();
+    return real(entries);
+  });
+  await act();
+  return seen;
+}
 
 beforeEach(async () => {
   jest.clearAllMocks();
@@ -226,8 +239,9 @@ describe('the record lost, broken, or rewritten by an older build', () => {
     expect((await pieceKeys()).length).toBeGreaterThan(0);
     await relaunch();
     expect(ids()).toEqual(['bet-1', 'bet-2', 'bet-3']);
-    // And the next save takes the old file's bets into pieces, leaving no other.
-    await useBetsStore.getState().persist();
+    // The killed save's pieces are garbage: cleared before the next writes.
+    expect(await piecesWhenWriting(() => useBetsStore.getState().persist())).toEqual([]);
+    // And that save took the old file's bets into pieces, leaving no other.
     await relaunch();
     expect(ids()).toEqual(['bet-1', 'bet-2', 'bet-3']);
     expect(new Set((await pieceKeys()).map((k) => parsePieceKey(k)!.gen)).size).toBe(1);
@@ -242,6 +256,23 @@ describe('the record lost, broken, or rewritten by an older build', () => {
     await storage.setItem(STORAGE_KEY, JSON.stringify({ settings, version: 4, bets: [bet(9)] }));
     await relaunch();
     expect(ids()).toEqual(['bet-1', 'bet-2', 'bet-3', 'bet-9']);
+  });
+
+  it('two downgrades, each with an unchanged save in the old build: nothing lost', async () => {
+    // The old build sees no bets (it cannot read pieces), so a save that
+    // changes nothing there writes the same record byte for byte each time.
+    // The pieces written between the two carry that record's hash as their
+    // base — but their record LANDED, and the landed mark says so.
+    await save([bet(1), bet(2)]);
+    const settings = JSON.parse((await storage.getItem(STORAGE_KEY))!).settings;
+    const oldBuild = JSON.stringify({ settings, version: 4, bets: [] });
+    await storage.setItem(STORAGE_KEY, oldBuild);
+    await relaunch();
+    expect(ids()).toEqual(['bet-1', 'bet-2']);
+    await save([bet(1), bet(2), bet(3)]);
+    await storage.setItem(STORAGE_KEY, oldBuild);
+    await relaunch();
+    expect(ids()).toEqual(['bet-1', 'bet-2', 'bet-3']);
   });
 
   it('the record unreadable AND a piece missing: what still reads loads, not an empty app', async () => {
@@ -324,6 +355,15 @@ describe('a read that fails', () => {
     expect(await useBetsStore.getState().flush()).toBe(false);
   });
 
+  it('a save asked for while the first is in flight does not make the first read as lost', async () => {
+    useBetsStore.setState({ bets: [bet(1)] });
+    useBetsStore.getState().persist(); // e.g. the licence
+    const first = useBetsStore.getState().flush();
+    useBetsStore.setState({ bets: [bet(1), bet(2)] });
+    useBetsStore.getState().persist(); // anything else, a moment later
+    expect(await first).toBe(true);
+  });
+
   it('a save refused before the load is not reported as saved — and a load supersedes it', async () => {
     useBetsStore.setState({ isLoaded: false });
     useBetsStore.getState().persist();
@@ -334,20 +374,54 @@ describe('a read that fails', () => {
 });
 
 describe('a save that fails (a full phone)', () => {
-  const gensOf = (keys: string[]) => new Set(keys.map((k) => parsePieceKey(k)!.gen));
   const full = async () => { throw new Error('SQLITE_FULL'); };
 
-  /** Runs `act` and returns the piece keys on disk at the moment its save starts writing. */
-  async function piecesWhenWriting(act: () => Promise<unknown>): Promise<string[]> {
-    const real = storage.setMany.getMockImplementation()!;
-    let seen: string[] = [];
+  it('lands only with its landed mark, which names the generation the record names', async () => {
+    await save([bet(1)]);
+    const record = JSON.parse((await storage.getItem(STORAGE_KEY))!);
+    expect(await storage.getItem(LANDED_KEY)).toBe(String(record.betsGen));
+  });
+
+  it('the landed mark not written: not saved, and its pieces stay — the record may be the live one', async () => {
+    await save(many(1_000));
+    const real = storage.setItem.getMockImplementation()!;
+    storage.setItem.mockImplementationOnce(real).mockImplementationOnce(full); // the record, then the mark
+    await save(many(1_001));
+    expect(useBetsStore.getState().saveFailed).toBe(true);
+    expect(await useBetsStore.getState().flush()).toBe(false);
+    const both = gensOf(await pieceKeys());
+    expect(both.size).toBe(2);
+    expect(gensOf(await piecesWhenWriting(() => save(many(1_002))))).toEqual(both);
+    expect(useBetsStore.getState().saveFailed).toBe(false);
+    await relaunch();
+    expect(useBetsStore.getState().bets).toHaveLength(1_002);
+  });
+
+  it('a record that was never a file failed to write: its pieces stay until a save lands (iOS may still list it)', async () => {
+    // reset() left an empty disk — a fresh install: the first record is new.
+    storage.setItem.mockImplementationOnce(full);
+    await save(many(1_000));
+    const first = gensOf(await pieceKeys());
+    expect(first.size).toBe(1);
+    expect(gensOf(await piecesWhenWriting(() => save(many(1_001))))).toEqual(first);
+    expect(gensOf(await pieceKeys()).size).toBe(1); // landed: the rest went
+  });
+
+  it('first session after the update: a failed save\'s pieces are cleared before the next', async () => {
+    await oldLayoutFile([bet(1), bet(2)]);
+    await relaunch();
+    // iOS lists the files that fit, then reports the error.
     storage.setMany.mockImplementationOnce(async (entries: Record<string, string>) => {
-      seen = await pieceKeys();
-      return real(entries);
+      const [k, v] = Object.entries(entries)[0]!;
+      await storage.setItem(k, v);
+      throw new Error('SQLITE_FULL');
     });
-    await act();
-    return seen;
-  }
+    await save(many(1_000));
+    expect((await pieceKeys()).length).toBeGreaterThan(0);
+    expect(await piecesWhenWriting(() => save(many(1_001)))).toEqual([]);
+    await relaunch();
+    expect(useBetsStore.getState().bets).toHaveLength(1_001);
+  });
 
   it('raises saveFailed and keeps the state; the next save that lands clears it', async () => {
     await save([bet(1)]);

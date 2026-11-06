@@ -13,8 +13,8 @@ import { verifyLicense, resolvePro, trialEnd, extractLicense, hasLicense, readLi
 import { BILLING, LICENSE_PUBKEY } from '../services/billing';
 import { distribution } from '../utils/storeLinks';
 import {
-  STORAGE_KEY, pieceKey, parsePieceKey, buildSave, recordPieces, assembleGeneration, parsePiece, generationsOnDisk,
-  textHash,
+  STORAGE_KEY, LANDED_KEY, IOS_INLINE_CHARS, pieceKey, parsePieceKey, buildSave, recordPieces, assembleGeneration,
+  parsePiece, generationsOnDisk, textHash,
 } from '../utils/storageLayout';
 
 /** The stored file as it was, when loading had to leave records out. */
@@ -62,6 +62,19 @@ let lastGen = 0;
  */
 let committedGen: number | null = null;
 /**
+ * Generations besides `committedGen` that may not be cleared before a save
+ * lands: the pieces an old-layout or lost record was rebuilt from (their bets
+ * are not in that record), and a save whose record write failed in a way that
+ * may still have put it on disk (see persist).
+ */
+let keepGens = new Set<number>();
+/**
+ * The record on disk is a FILE on iOS (over 1 024 characters, or written by
+ * this build, which pads it). Then rewriting it either lands whole or leaves
+ * the old one: a failed write is not on disk.
+ */
+let recordIsFile = false;
+/**
  * The hash of the old-layout record this session loaded (storageLayout.ts,
  * "Why a base"); null otherwise. Every piece written this session carries it.
  */
@@ -73,7 +86,7 @@ let loadedBase: string | null = null;
  */
 let savesAsked = 0;
 let savedThrough = 0;
-/** A save failed: its pieces may still be on disk, eating the space the next one needs. */
+/** Pieces that no record will ever name may be on disk, eating the space the next save needs. */
 let orphansPossible = false;
 
 /** The texts of a generation's pieces, in index order (null — missing). */
@@ -89,26 +102,33 @@ async function readGeneration(gen: number, count: number): Promise<(string | nul
  * unreadable, or an old-layout record): the newest WHOLE generation — or, when
  * none is whole, whatever pieces of the newest one still read (`whole: false`;
  * starting empty would let the next save remove them). A generation whose base
- * is `skipBase` is passed over: it is a save of that very record, killed
- * before its own record landed (storageLayout.ts, "Why a base").
+ * is `skipBase` is passed over (`skipped`): it is a save of that very record,
+ * killed before its own record landed — unless it is the `landed` one, whose
+ * record DID land, and which an older build then overwrote (storageLayout.ts,
+ * "Why a base").
  */
 async function piecesWithoutRecord(
   keys: readonly string[],
   skipBase: string | null,
-): Promise<{ texts: (string | null)[]; bets: unknown[]; whole: boolean } | null> {
+  landed: number | null,
+): Promise<{ found: { texts: (string | null)[]; bets: unknown[]; whole: boolean } | null; skipped: number[] }> {
   let partial: { texts: (string | null)[]; bets: unknown[]; whole: boolean } | null = null;
+  const skipped: number[] = [];
   for (const { gen, indices } of generationsOnDisk(keys)) {
     const listed = await readGeneration(gen, Math.max(...indices) + 1);
     const own = listed.map(parsePiece).filter((p): p is NonNullable<typeof p> => p !== null && p.g === gen);
-    if (skipBase !== null && own.some((p) => p.b === skipBase)) continue;
+    if (skipBase !== null && gen !== landed && own.some((p) => p.b === skipBase)) {
+      skipped.push(gen);
+      continue;
+    }
     // Every piece names its generation's count; read exactly that many.
     const n = own[0]?.n ?? listed.length;
     const texts = Array.from({ length: n }, (_, i) => listed[i] ?? null);
     const { bets, whole } = assembleGeneration(gen, texts);
-    if (whole && n > 0) return { texts, bets, whole: true };
+    if (whole && n > 0) return { found: { texts, bets, whole: true }, skipped };
     partial ??= { texts: listed, bets, whole: false };
   }
-  return partial;
+  return { found: partial, skipped };
 }
 
 function uuid(): string {
@@ -351,9 +371,11 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
     // to start empty here, and its first save (onboarding's) replaced the file.
     let raw: string | null;
     let keys: string[];
+    let landedText: string | null;
     try {
       raw = await AsyncStorage.getItem(STORAGE_KEY);
       keys = await AsyncStorage.getAllKeys();
+      landedText = await AsyncStorage.getItem(LANDED_KEY);
     } catch {
       set({ loadError: true });
       return;
@@ -376,12 +398,12 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
       let pieces: (string | null)[] = [];
       let parsed: Record<string, unknown>;
       const named = record ? recordPieces(record) : null;
+      const landed = landedText !== null && /^\d+$/.test(landedText) ? Number(landedText) : null;
       committedGen = named ? named.gen : null;
+      keepGens = new Set();
+      recordIsFile = raw !== null && raw.length > IOS_INLINE_CHARS;
       loadedBase = null;
-      // Generations beside the one the record names are leftovers of a save
-      // that failed or was killed last session: the first save clears them
-      // before writing (on a full phone they may be the space it needs).
-      orphansPossible = named !== null && onDisk.some((g) => g.gen !== named.gen);
+      orphansPossible = false;
       // Saves asked for before this load (refused: nothing was read yet) are
       // superseded by what is on disk — they no longer count as unsaved.
       savedThrough = savesAsked;
@@ -391,6 +413,13 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
         const { bets, whole } = assembleGeneration(named.gen, pieces, named.count);
         if (!whole) damaged = true;
         parsed = { ...record, bets };
+        // Other generations are leftovers of a save that failed or was killed
+        // last session: the first save clears them before writing (on a full
+        // phone they may be the space it needs). Not when the named one is
+        // damaged — then they wait for a save that has landed, as before.
+        const others = onDisk.filter((g) => g.gen !== named.gen).map((g) => g.gen);
+        if (damaged) keepGens = new Set(others);
+        else orphansPossible = others.length > 0;
       } else {
         // No record that names pieces: the old single-key layout, a record
         // lost or unreadable, or one an older build rewrote without them. If
@@ -398,7 +427,13 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
         // sanitize keeps the later edit of a bet that is in both — except a
         // killed save of this very record (storageLayout.ts, "Why a base").
         if (record) loadedBase = textHash(raw!);
-        const found = onDisk.length > 0 ? await piecesWithoutRecord(keys, loadedBase) : null;
+        const { found, skipped } = onDisk.length > 0
+          ? await piecesWithoutRecord(keys, loadedBase, landed)
+          : { found: null, skipped: [] as number[] };
+        // Until a save lands, only the skipped ones are garbage: any other
+        // generation may hold bets this record does not have.
+        keepGens = new Set(onDisk.map((g) => g.gen).filter((g) => !skipped.includes(g)));
+        orphansPossible = skipped.length > 0;
         if (found) {
           pieces = found.texts;
           // Pieces, none of them whole: what still reads is kept, and the set
@@ -500,47 +535,74 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
     const { pieces, record } = buildSave(
       { bets, settings, bankroll, diary, teams, goals, version: CURRENT_SCHEMA_VERSION }, gen, undefined, loadedBase,
     );
-    // Every generation but `keep` (and the one being written) is garbage.
-    const removeOthers = async (keep: number | null) => {
+    // Every generation but this one, the one the record on disk names, and
+    // the ones that must wait for a landed save (keepGens) is garbage.
+    const removeGarbage = async () => {
       const old = (await AsyncStorage.getAllKeys()).filter((k) => {
         const p = parsePieceKey(k);
-        return p !== null && p.gen !== gen && p.gen !== keep;
+        return p !== null && p.gen !== gen && p.gen !== committedGen && !keepGens.has(p.gen);
       });
       if (old.length > 0) await AsyncStorage.removeMany(old);
     };
+    // Most likely a full phone. Nothing is lost YET — the state is in memory,
+    // the last good save on disk — but it will be when the app closes: App.tsx
+    // tells the user and saves again on their return.
+    const failed = () => {
+      orphansPossible = true;
+      if (!get().saveFailed) set({ saveFailed: true });
+    };
     writeChain = writeChain.then(async () => {
-      // 0. After a failed save, its pieces may be on disk, and on a full
-      //    phone they take the space this save needs. Only when the record
-      //    names a generation of its own: next to an old-layout record, other
-      //    generations may hold bets that record does not have.
-      if (orphansPossible && committedGen !== null) {
-        try { await removeOthers(committedGen); orphansPossible = false; } catch { /* the save below decides */ }
+      // 0. Pieces no record will ever name (a failed save's, a killed save
+      //    skipped at load) take, on a full phone, the space this save needs.
+      if (orphansPossible) {
+        try { await removeGarbage(); orphansPossible = false; } catch { /* the save below decides */ }
       }
+      // 1. The new pieces, under keys no reader uses yet. Failed: no record
+      //    was written, so they are garbage.
       try {
-        // 1. The new pieces, under keys no reader uses yet.
         if (Object.keys(pieces).length > 0) await AsyncStorage.setMany(pieces);
-        // 2. The record that names them. Until this lands, the old one names
-        //    the old pieces, which are all still there.
+      } catch { failed(); return; }
+      // 2. The record that names them. Until this lands, the old one names
+      //    the old pieces, which are all still there. Failed: on iOS a record
+      //    that was not yet a file may be in its file without the manifest
+      //    entry, and a later manifest write would make it the live one — its
+      //    pieces then stay until a save lands.
+      try {
         await AsyncStorage.setItem(STORAGE_KEY, record);
       } catch {
-        // Most likely a full phone. Nothing is lost YET — the state is in
-        // memory, the last good save on disk — but it will be when the app
-        // closes: App.tsx tells the user and saves again on their return.
-        orphansPossible = true;
-        if (!get().saveFailed) set({ saveFailed: true });
+        if (!recordIsFile) keepGens.add(gen);
+        failed();
+        return;
+      }
+      // 3. The landed mark: a changed inline value makes iOS write its
+      //    manifest, so only now is the record on disk for sure. Failed: the
+      //    record may or may not be the live one — keep both its pieces and
+      //    the previous ones.
+      try {
+        await AsyncStorage.setItem(LANDED_KEY, String(gen));
+      } catch {
+        keepGens.add(gen);
+        failed();
         return;
       }
       committedGen = gen;
-      savedThrough = seq;
+      keepGens = new Set();
+      recordIsFile = true; // padded past the inline limit (buildSave)
+      savedThrough = Math.max(savedThrough, seq);
       if (get().saveFailed) set({ saveFailed: false });
-      // 3. Only now is every other generation garbage. A failure here costs
+      // 4. Only now is every other generation garbage. A failure here costs
       //    space, not data: the next save clears them.
-      try { await removeOthers(null); orphansPossible = false; } catch { orphansPossible = true; }
+      try { await removeGarbage(); orphansPossible = false; } catch { orphansPossible = true; }
     }).catch(() => {});
     return writeChain;
   },
 
-  flush: () => writeChain.then(() => savedThrough === savesAsked),
+  // "Saved" means everything asked for UP TO NOW: a save asked for later —
+  // while this one is in flight — does not make a landed save read as lost.
+  flush: () => {
+    const target = savesAsked;
+    return writeChain.then(() => savedThrough >= target);
+  },
 
   addBet: (bet) => {
     const names = extractTeamNames(bet.event);
