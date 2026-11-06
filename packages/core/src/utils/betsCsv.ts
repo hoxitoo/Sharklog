@@ -1,5 +1,5 @@
 import type { Bet, BetStatus, Sport, BetType, Strategy, EsportsDiscipline } from '../types/bet';
-import { SPORTS, BET_TYPES, STRATEGIES, ESPORTS_DISCIPLINES, CURRENT_SCHEMA_VERSION } from '../constants/index';
+import { SPORTS, BET_TYPES, STRATEGIES, ESPORTS_DISCIPLINES, CURRENT_SCHEMA_VERSION, TEXT_LIMITS } from '../constants/index';
 import { betPnl } from './stats';
 import { toYmd, normalizeTime } from './daily';
 import { currencyFromUnit } from './currency';
@@ -200,13 +200,15 @@ function rowsToObjects(headers: string[], rows: string[][]): Array<Record<string
 }
 
 function mapRow(raw: Record<string, string>, newId: () => string): Bet | null {
-  const g = (key: string) => (raw[key] ?? '').trim();
+  // Every cell cut to TEXT_LIMITS (notes to the longer one): one huge cell made
+  // a bet whose piece Android cannot read back — the store, on every launch.
+  const g = (key: string, max: number = TEXT_LIMITS.FIELD) => (raw[key] ?? '').trim().slice(0, max);
 
   // Event comes from its own column, or from HomeTeam / AwayTeam pairs.
   const homeTeam = g('homeTeam');
   const awayTeam = g('awayTeam');
   let event = g('event');
-  if (!event && (homeTeam || awayTeam)) event = [homeTeam, awayTeam].filter(Boolean).join(' vs ');
+  if (!event && (homeTeam || awayTeam)) event = [homeTeam, awayTeam].filter(Boolean).join(' vs ').slice(0, TEXT_LIMITS.FIELD);
   if (!event) return null;
 
   const dateRaw = g('date');
@@ -256,7 +258,7 @@ function mapRow(raw: Record<string, string>, newId: () => string): Bet | null {
     status,
     strategy,
     schemaVersion: CURRENT_SCHEMA_VERSION,
-    ...(g('notes') ? { notes: g('notes') } : {}),
+    ...(g('notes') ? { notes: g('notes', TEXT_LIMITS.NOTE) } : {}),
     ...(g('tournament') ? { tournament: g('tournament') } : {}),
     ...(discipline ? { discipline } : {}),
     ...(TRUTHY.includes(g('freebet').toLowerCase()) ? { isFreebet: true } : {}),

@@ -28,7 +28,9 @@ const QUARANTINE_KEY = '@sharklog/data_quarantine';
  * launch that only reads would otherwise add a full copy each time.
  */
 function quarantine(main: string, pieces: readonly (string | null)[] = []): void {
-  (async () => {
+  // On the write chain: «Clear all data» queued after it removes this copy
+  // too, instead of racing a multi-megabyte write still on its way.
+  writeChain = writeChain.then(async () => {
     const keys = (await AsyncStorage.getAllKeys())
       .filter((k) => k === QUARANTINE_KEY || k.startsWith(`${QUARANTINE_KEY}:`));
     const bases = keys.filter((k) => !k.includes('#'));
@@ -43,7 +45,7 @@ function quarantine(main: string, pieces: readonly (string | null)[] = []): void
     const entries: Record<string, string> = { [base]: main };
     pieces.forEach((p, i) => { if (p !== null) entries[`${base}#${i}`] = p; });
     await AsyncStorage.setMany(entries);
-  })().catch(() => {});
+  }).catch(() => {});
 }
 
 // Serialize all writes through a single chain so rapid successive mutations
@@ -86,6 +88,8 @@ let loadedBase: string | null = null;
  */
 let savesAsked = 0;
 let savedThrough = 0;
+/** The newest save actually queued (a refused one is not): a link behind which a newer one waits skips. */
+let lastQueued = 0;
 /** Pieces that no record will ever name may be on disk, eating the space the next save needs. */
 let orphansPossible = false;
 
@@ -385,6 +389,9 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
 
   load: async () => {
     if (loading) return loading;
+    // Loaded already (a dev reload re-running the mount effect): a second read
+    // could only trade what is on screen — and saves on their way — for older data.
+    if (get().isLoaded && !get().loadError) return;
     let release!: () => void;
     loading = new Promise<void>((r) => { release = r; });
     try {
@@ -564,6 +571,7 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
     // Never before a load has succeeded: the state is then the empty default,
     // and writing it would replace data that is on disk but was not read.
     if (!isLoaded || loadError) return writeChain;
+    lastQueued = seq;
     let gen = 0;
     // Every generation but this one, the one the record on disk names, and
     // the ones that must wait for a landed save (keepGens) is garbage.
@@ -587,7 +595,9 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
       // 10 000 bets were ten 5 MB writes). The state is taken HERE, when it is
       // written, not when it was asked for. flush() waits for the save that
       // covers it.
-      if (seq < savesAsked) return;
+      // And the state must still be a loaded one: a load that failed after this
+      // was queued leaves an empty default in memory.
+      if (seq < lastQueued || !get().isLoaded || get().loadError) return;
       const { bets, settings, bankroll, diary, teams, goals } = get();
       gen = ++lastGen;
       const { pieces, record } = buildSave(

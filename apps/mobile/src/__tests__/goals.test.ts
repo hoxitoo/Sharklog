@@ -54,10 +54,12 @@ describe('goals in the store', () => {
     useBetsStore.getState().saveGoal(goal({ note: 'план' }));
     await useBetsStore.getState().persist();
     useBetsStore.setState({ goals: [] });
+    useBetsStore.setState({ isLoaded: false }); // a launch
     await useBetsStore.getState().load();
     expect(useBetsStore.getState().goals).toEqual([goal({ note: 'план' })]);
     // A file from before goals existed loads with none.
     await AsyncStorage.setItem('@sharklog/data', JSON.stringify({ bets: [], version: 4 }));
+    useBetsStore.setState({ isLoaded: false }); // a launch
     await useBetsStore.getState().load();
     expect(useBetsStore.getState().goals).toEqual([]);
   });

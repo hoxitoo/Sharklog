@@ -230,6 +230,7 @@ describe('a changed default does not rewrite stored settings', () => {
     const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
     const { disableChecklist: _drop, ...old } = { ...defaultSettings, onboardingComplete: true };
     await AsyncStorage.setItem('@sharklog/data', JSON.stringify({ bets: [], diary: [], teams: [], version: 3, settings: old }));
+    useBetsStore.setState({ isLoaded: false }); // a launch: load() reads only before the store is loaded
     await useBetsStore.getState().load();
     expect(useBetsStore.getState().settings.disableChecklist).toBe(false);
   });

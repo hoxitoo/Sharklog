@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useRef, useEffect, useDeferredValue } from 'react';
 import { SPACE, RADIUS, TOUCH, FAB_CLEARANCE, hitSlopFor } from '../../theme/layout';
 import { cardSurface } from '../../components/Card';
 import {
@@ -29,7 +29,7 @@ import { tourTarget, useTourStore } from '../../components/tour/tour';
 import { haptic } from '../../utils/haptics';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { useTranslation } from 'react-i18next';
-import { dateLocale } from '../../i18n/index';
+import { formatDate } from '../../utils/dateFormat';
 import { SIZE, GLYPH, numeric } from '../../theme/typography';
 import { themedStyles } from '../../theme/themed';
 import { useBottomPad } from '../../utils/useBottomPad';
@@ -37,17 +37,31 @@ import { useOddsFormat } from '../../utils/useOdds';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-function formatDateTitle(dateStr: string, todayLabel: string, yesterdayLabel: string): string {
-  const todayStr = toYmd(new Date());
-  const yesterday = new Date();
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayStr = toYmd(yesterday);
-  if (dateStr === todayStr) return todayLabel;
-  if (dateStr === yesterdayStr) return yesterdayLabel;
+/** A day header: "Сегодня", "Вчера", or "5 ноября". `today`/`yesterday` are YYYY-MM-DD, made once per list. */
+function formatDateTitle(
+  dateStr: string, today: string, yesterday: string, todayLabel: string, yesterdayLabel: string,
+): string {
+  if (dateStr === today) return todayLabel;
+  if (dateStr === yesterday) return yesterdayLabel;
   const parts = dateStr.split('-').map(Number);
   const d = new Date(parts[0] ?? 0, (parts[1] ?? 1) - 1, parts[2] ?? 1);
-  return d.toLocaleDateString(dateLocale(), { day: 'numeric', month: 'long' });
+  return formatDate(d, DAY_TITLE);
 }
+const DAY_TITLE: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long' };
+
+/**
+ * Text order without `localeCompare` when every key has the fixed shape —
+ * YYYY-MM-DD days, HH:MM times — where plain `<` orders exactly alike. On
+ * Android each `localeCompare` is a call into Java (Hermes); sorting 700 days
+ * made thousands. A key in another shape (an old import) keeps the old order.
+ */
+function textOrder(keys: readonly string[], shape: RegExp): (a: string, b: string) => number {
+  return keys.every((k) => shape.test(k))
+    ? (a, b) => (a < b ? -1 : a > b ? 1 : 0)
+    : (a, b) => a.localeCompare(b);
+}
+const DAY_SHAPE = /^\d{4}-\d{2}-\d{2}$/;
+const TIME_SHAPE = /^\d{2}:\d{2}$/;
 
 const STATUS_FILTER_KEYS: Array<BetStatus | 'all'> = ['all', 'pending', 'won', 'lost', 'refund', 'cashout'];
 
@@ -208,13 +222,18 @@ export function BetsScreen({ filter, onClearFilter }: {
     setBarHeight(h);
   }, []);
 
-  // Tournaments and teams the user has actually entered. Rebuilt only when the
-  // bets change, not on every keystroke — it walks the whole history.
-  const vocab = useMemo(() => betsVocabulary(bets), [bets]);
+  // Tournaments and teams the user has actually entered. Built only while
+  // there is text in the search — it walks the whole history, and a save with
+  // the field empty used to rebuild it for nothing — and not on every letter.
+  const hasSearch = search.trim().length > 0;
+  const vocab = useMemo(() => (hasSearch ? betsVocabulary(bets) : null), [bets, hasSearch]);
   const searchHints = useMemo(
-    () => suggest([...vocab.tournaments, ...vocab.teams], search, 4),
+    () => (vocab ? suggest([...vocab.tournaments, ...vocab.teams], search, 4) : []),
     [vocab, search],
   );
+  // The list follows the search a beat behind the field: typing stays at the
+  // speed of the keyboard, and the list catches up when React has the time.
+  const listSearch = useDeferredValue(search);
 
   // Working context while logging bets: today's result, money currently at risk, bank.
   const today = useMemo(() => calcDailyBreakdown(bets, [], { days: 1 })[0] ?? null, [bets]);
@@ -290,8 +309,8 @@ export function BetsScreen({ filter, onClearFilter }: {
     if (filter?.noTournament) result = result.filter((b) => !(b.tournament ?? '').trim());
     if (statusFilter !== 'all') result = result.filter((b) => b.status === statusFilter);
     result = applyBetsQuery(result, query, oddsFormat);
-    if (search.trim()) {
-      const q = search.trim().toLowerCase();
+    if (listSearch.trim()) {
+      const q = listSearch.trim().toLowerCase();
       // The tournament belongs in here. Without it, typing the name of a
       // tournament that plainly exists returned "ничего не найдено", because
       // the only fields searched were the event and the pick.
@@ -327,20 +346,22 @@ export function BetsScreen({ filter, onClearFilter }: {
       arr.push(bet);
       map.set(bet.date, arr);
     }
-    const sortedDates = [...map.keys()].sort((a, b) =>
-      sort === 'date_asc' ? a.localeCompare(b) : b.localeCompare(a),
-    );
+    const dates = [...map.keys()];
+    const byDay = textOrder(dates, DAY_SHAPE);
+    const sortedDates = dates.sort((a, b) => (sort === 'date_asc' ? byDay(a, b) : byDay(b, a)));
+    const now = new Date();
+    const todayStr = toYmd(now);
+    const yesterdayStr = toYmd(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1));
     return sortedDates.map((date) => {
       const data = [...(map.get(date) ?? [])];
+      const byTime = textOrder(data.map((b) => b.time ?? ''), TIME_SHAPE);
       data.sort((a, b) =>
-        sort === 'date_asc'
-          ? (a.time ?? '').localeCompare(b.time ?? '')
-          : (b.time ?? '').localeCompare(a.time ?? ''),
+        sort === 'date_asc' ? byTime(a.time ?? '', b.time ?? '') : byTime(b.time ?? '', a.time ?? ''),
       );
       const dailyPnl = data.reduce((sum, b) => sum + betPnl(b), 0);
-      return { title: formatDateTitle(date, todayLabel, yesterdayLabel), date, dailyPnl, data };
+      return { title: formatDateTitle(date, todayStr, yesterdayStr, todayLabel, yesterdayLabel), date, dailyPnl, data };
     });
-  }, [bets, statusFilter, search, sort, filter, query, oddsFormat, todayLabel, yesterdayLabel, t]);
+  }, [bets, statusFilter, listSearch, sort, filter, query, oddsFormat, todayLabel, yesterdayLabel, t]);
 
   const betActions = useBetActions();
 

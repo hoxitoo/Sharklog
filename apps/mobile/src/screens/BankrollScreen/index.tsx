@@ -7,7 +7,6 @@ import {
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
 import { haptic } from '../../utils/haptics';
 import { useTranslation } from 'react-i18next';
-import { dateLocale } from '../../i18n';
 import { txNoteLabel } from '../../utils/labels';
 import type { ChartSeries } from '../../components/BalanceChart';
 import { TX_NOTE, calcDashboard, parseMoneyInput, kellyFraction, recommendedStake, activeStrategy, bankAtBetTime, toYmd, expectedValue, parseOdds, impliedProbability, calcDailyBreakdown, currentBank, pendingExposure, pendingStake } from '@sharklog/core';
@@ -53,6 +52,9 @@ import { BalanceChart } from '../../components/BalanceChart';
 import { SERIES } from '../../theme/chartColors';
 import { themedStyles } from '../../theme/themed';
 import { useBottomPad } from '../../utils/useBottomPad';
+import { formatDate } from '../../utils/dateFormat';
+
+const TX_DAY: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' };
 
 const STEP_SLOP = hitSlopFor(28);
 
@@ -334,7 +336,7 @@ const TX_ICON: Record<BankrollTxType, string> = {
 function TxRow({ tx, onDelete }: { tx: BankrollTransaction; onDelete: () => void }) {
   const fmt = useFormatMoney();
   const { t } = useTranslation();
-  const date = new Date(tx.date).toLocaleDateString(dateLocale(), { day: 'numeric', month: 'short' });
+  const date = formatDate(new Date(tx.date), TX_DAY);
   // A withdrawal's sign lives in its type; an adjustment carries it in the amount.
   const signed = tx.type === 'withdrawal' ? -tx.amount : tx.amount;
   const label = t(TX_LABEL[tx.type]);

@@ -128,6 +128,7 @@ describe('load', () => {
       bets: [], diary: [], teams: [], version: 3,
       settings: { ...defaultSettings, onboardingComplete: true, ...saved },
     }));
+    useBetsStore.setState({ isLoaded: false }); // a launch
     await useBetsStore.getState().load();
     return settings();
   }
@@ -184,6 +185,7 @@ describe('test-mode licences', () => {
       bets: [], diary: [], teams: [], version: 3,
       settings: { ...defaultSettings, onboardingComplete: true, isPro: true, license: lapsed },
     }));
+    useBetsStore.setState({ isLoaded: false }); // a launch
     await useBetsStore.getState().load();
     expect(settings().isPro).toBe(false);
     expect(settings().license).toBeUndefined();

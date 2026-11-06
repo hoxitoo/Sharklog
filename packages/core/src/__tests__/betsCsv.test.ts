@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { Bet } from '../types/bet';
 import { buildBetsCSV, importBetsFromCSV, importBetsFromRows, parseAmount } from '../utils/betsCsv';
+import { TEXT_LIMITS } from '../constants/index';
 
 let seq = 0;
 const newId = () => `id-${++seq}`;
@@ -205,5 +206,25 @@ describe('parseAmount', () => {
     expect(parseAmount('1,85')).toBe(1.85);
     expect(parseAmount('403.00')).toBe(403);
     expect(parseAmount('—')).toBeNaN();
+  });
+});
+
+describe('a CSV with a huge cell', () => {
+  it('is cut to TEXT_LIMITS — one cell must not make the store unreadable on Android', () => {
+    // The backup restore clipped (sanitize); CSV went around it (review 2026-11-06).
+    const big = 'ж'.repeat(500_000);
+    const rows = [
+      ['Дата', 'Событие', 'Коэффициент', 'Ставка', 'Результат', 'Заметки', 'Турнир'],
+      ['2026-11-01', big, '1.85', '100', 'won', big, big],
+    ];
+    const [bet] = importBetsFromRows(rows, newId).bets;
+    expect(bet!.event).toHaveLength(TEXT_LIMITS.FIELD);
+    expect(bet!.notes).toHaveLength(TEXT_LIMITS.NOTE);
+    expect(bet!.tournament).toHaveLength(TEXT_LIMITS.FIELD);
+    const teams = importBetsFromRows([
+      ['Дата', 'HomeTeam', 'AwayTeam', 'Коэффициент', 'Ставка'],
+      ['2026-11-01', 'a'.repeat(5_000), 'b'.repeat(5_000), '1.85', '100'],
+    ], newId).bets[0]!;
+    expect(teams.event.length).toBeLessThanOrEqual(TEXT_LIMITS.FIELD);
   });
 });

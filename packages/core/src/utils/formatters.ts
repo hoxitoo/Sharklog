@@ -1,14 +1,21 @@
 /** Convert kopecks to display string, e.g. 150000 → "1 500 ₽" */
+/**
+ * One formatter per number of decimals, made once: building an
+ * Intl.NumberFormat is the expensive part (Node: 39 times the format call),
+ * and a list of bets formats hundreds of sums per render.
+ */
+const moneyFormats = new Map<number, Intl.NumberFormat>();
+function moneyFormat(maxDecimals: number): Intl.NumberFormat {
+  let f = moneyFormats.get(maxDecimals);
+  if (!f) {
+    f = new Intl.NumberFormat('ru-RU', { minimumFractionDigits: 0, maximumFractionDigits: maxDecimals });
+    moneyFormats.set(maxDecimals, f);
+  }
+  return f;
+}
+
 export function formatMoney(kopecks: number, currency = '₽', maxDecimals = 2): string {
-  const rubles = kopecks / 100;
-  return (
-    new Intl.NumberFormat('ru-RU', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: maxDecimals,
-    }).format(rubles) +
-    ' ' +
-    currency
-  );
+  return `${moneyFormat(maxDecimals).format(kopecks / 100)} ${currency}`;
 }
 
 /** Convert user-entered string rubles to kopecks integer.
