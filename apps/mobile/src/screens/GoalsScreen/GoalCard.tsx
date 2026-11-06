@@ -172,7 +172,7 @@ function AccumulationCard({ goal, p, main, isPro, inTilt, onEdit, onMakeMain, on
       ) : null}
 
       {p.pendingCount > 0 ? (
-        <Text style={card.note}>{t('goals.inPlay', { n: p.pendingCount, amount: fmt(p.pendingStake) })}</Text>
+        <Text style={card.note}>{t('goals.inPlay', { n: p.pendingCount, amount: fmt(p.inPlayStake) })}</Text>
       ) : null}
 
       {main ? <GoalChart goal={goal} p={p} /> : null}

@@ -14,7 +14,13 @@ import { clearPendingPayment, fetchLicense, getPendingPayment, isRevoked } from 
  * none of those three can lose a paid purchase.
  */
 
-export type ResumeResult = 'paid' | 'pending' | 'none' | 'unreachable';
+/**
+ * `notSaved`: the licence arrived and is in effect, but did not reach the disk
+ * (a full phone). The invoice is kept — the next check fetches it again — and
+ * the store's own "changes not saved" alert already says why; it is not a
+ * network problem, so the caller must not say "check your connection".
+ */
+export type ResumeResult = 'paid' | 'pending' | 'none' | 'unreachable' | 'notSaved';
 
 /**
  * An invoice nobody paid in a month was abandoned; stop asking about it. Long
@@ -130,7 +136,7 @@ async function run(): Promise<ResumeResult> {
   // The invoice is the only way back to this licence. Forget it only once the
   // licence is on disk: forgotten first, a kill or a failed write in between
   // lost a PAID licence for good. Kept, the next check fetches it again.
-  if (!(await useBetsStore.getState().flush())) return 'unreachable';
+  if (!(await useBetsStore.getState().flush())) return 'notSaved';
   await clearPendingPayment();
   paidNotice = true;
   Analytics.proUpgradeCompleted();

@@ -1,5 +1,5 @@
 import type { Bet, BetStatus, Bankroll, BankrollTransaction, DiaryEntry, Goal, GoalKind, Team } from '../types/bet';
-import { CURRENT_SCHEMA_VERSION } from '../constants/index';
+import { CURRENT_SCHEMA_VERSION, TEXT_LIMITS } from '../constants/index';
 import { normalizeTime } from './daily';
 
 /*
@@ -71,6 +71,17 @@ export function normalizeDay(v: unknown): string | null {
 }
 
 /** Copy only the optional fields whose type is right. */
+/**
+ * An import's text cut to `max` (TEXT_LIMITS: one pasted megabyte would make
+ * the store unreadable on Android). Stored data is never touched.
+ */
+function clipText(out: Obj, keys: readonly string[], max: number): void {
+  for (const k of keys) {
+    const v = out[k];
+    if (typeof v === 'string' && v.length > max) out[k] = v.slice(0, max);
+  }
+}
+
 function optional(src: Obj, out: Obj, fields: Record<string, (v: unknown) => boolean>): void {
   for (const [k, ok] of Object.entries(fields)) {
     if (src[k] !== undefined && ok(src[k])) out[k] = src[k];
@@ -122,6 +133,10 @@ export function sanitizeBet(raw: unknown, mode: SanitizeMode = 'import'): Bet | 
     notes: str, tournament: str, discipline: str,
     customSport: str, customBetType: str, customStrategy: str,
   });
+  if (strict) {
+    clipText(out, ['notes'], TEXT_LIMITS.NOTE);
+    clipText(out, ['event', 'pick', 'bookmaker', 'tournament', 'discipline', 'customSport', 'customBetType', 'customStrategy'], TEXT_LIMITS.FIELD);
+  }
   return out as unknown as Bet;
 }
 
@@ -200,6 +215,7 @@ export function sanitizeDiary(raw: unknown, mode: SanitizeMode = 'import'): Sani
     if (!isObj(r) || !str(r['id']) || !day || ![1, 2, 3, 4, 5].includes(r['mood'] as number)) { dropped++; continue; }
     const out: Obj = { id: r['id'], date: day, mood: r['mood'] };
     optional(r, out, { text: str });
+    if (mode === 'import') clipText(out, ['text'], TEXT_LIMITS.NOTE);
     items.push(out as unknown as DiaryEntry);
   }
   return { items, dropped };
@@ -253,6 +269,10 @@ export function sanitizeGoals(raw: unknown, mode: SanitizeMode = 'import'): Sani
     const deadline = day(r['deadline']);
     if (deadline) out['deadline'] = deadline;
     optional(r, out, { note: str, archived: (v) => typeof v === 'boolean' });
+    if (mode === 'import') {
+      clipText(out, ['title'], TEXT_LIMITS.FIELD);
+      clipText(out, ['note'], TEXT_LIMITS.NOTE);
+    }
     items.push(out as unknown as Goal);
   }
   return { items, dropped };

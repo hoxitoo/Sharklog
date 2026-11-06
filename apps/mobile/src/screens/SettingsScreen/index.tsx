@@ -489,8 +489,10 @@ export function SettingsScreen() {
           style: 'destructive',
           onPress: async () => {
             const store = useBetsStore.getState();
-            if (otherCurrency) store.updateSettings({ currency: backup.currency });
+            // One state, one save: the currency set apart was a save of the OLD
+            // bets under the new sign — killed after it, the book read wrong.
             useBetsStore.setState({
+              ...(otherCurrency ? { settings: { ...store.settings, currency: backup.currency } } : {}),
               bets: backup.bets,
               ...(backup.bankroll ? { bankroll: { ...store.bankroll, ...backup.bankroll } } : {}),
               ...(backup.diary ? { diary: backup.diary } : {}),

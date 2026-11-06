@@ -111,6 +111,21 @@ export function preselectedBookmakers(): string[] {
   return DEFAULT_BOOKMAKERS.slice(0, 3);
 }
 
+/**
+ * The longest free text kept per field. Not a style rule: on Android a stored
+ * value is one SQLite row, read whole through a 2 MB window, and one pasted
+ * megabyte in a note would make the store unreadable — on every launch, with
+ * no way out from inside the app. Inputs cap at this; a backup or CSV import
+ * clips to it (sanitize, 'import' mode). Generous on purpose: an accumulator's
+ * event and pick join every leg.
+ */
+export const TEXT_LIMITS = {
+  /** A bet's notes, a diary entry, a goal's note. */
+  NOTE: 10_000,
+  /** Every other text: event, pick, tournament, bookmaker, team, goal title. */
+  FIELD: 2_000,
+} as const;
+
 export const FREE_LIMITS = {
   MAX_BETS: 50,
   TILT_ALERT_THRESHOLD: 3,   // fixed, not configurable on free

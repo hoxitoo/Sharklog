@@ -3,6 +3,7 @@ import {
   Text as RNText, TextInput as RNTextInput, StyleSheet,
   type TextProps, type TextInputProps, type TextStyle,
 } from 'react-native';
+import { TEXT_LIMITS } from '@sharklog/core';
 import { resolveFont } from '../theme/typography';
 import { themedStyles } from '../theme/themed';
 
@@ -43,10 +44,18 @@ export function AppText({ style, ...rest }: TextProps) {
  * say so; a silently null ref would break the focus jump between the team
  * fields on the add-bet form with nothing to see in a type-check.
  */
-export function AppTextInput({ style, ref, ...rest }: TextInputProps & {
+/**
+ * Every text field has a length cap (TEXT_LIMITS, core) unless it names its
+ * own: on Android a stored value is one SQLite row read through a 2 MB window,
+ * and a megabyte pasted into a note made the whole store unreadable — on every
+ * launch, with no way out from inside the app. Multi-line fields (notes, the
+ * diary, a pasted recovery-code message) get the longer one.
+ */
+export function AppTextInput({ style, ref, maxLength, ...rest }: TextInputProps & {
   ref?: React.Ref<RNTextInput>;
 }) {
-  return <RNTextInput {...rest} ref={ref} style={[base.text, style, fontFor(style)]} />;
+  const cap = maxLength ?? (rest.multiline ? TEXT_LIMITS.NOTE : TEXT_LIMITS.FIELD);
+  return <RNTextInput {...rest} maxLength={cap} ref={ref} style={[base.text, style, fontFor(style)]} />;
 }
 
 /** Flattens whatever style shape the caller passed, then asks the theme. */

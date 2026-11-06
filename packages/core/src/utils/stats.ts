@@ -446,8 +446,8 @@ export function currentBank(transactions: BankrollTransaction[], bets: Bet[]): n
 }
 
 /**
- * The bookmaker's own money in unsettled bets — what it has already taken off
- * the balance. Freebets are left out: a freebet is the bookmaker's bonus, not
+ * The user's own money in unsettled bets — what the bookmaker has already taken
+ * off the balance. Freebets are left out: a freebet is the bookmaker's bonus, not
  * the user's cash, so it never left the balance. This is the number for
  * "balance at the bookmaker" and for reconciliation; counting a freebet here
  * would make a reconciliation record a shortfall that is not there.

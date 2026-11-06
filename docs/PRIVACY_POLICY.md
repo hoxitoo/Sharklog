@@ -31,9 +31,10 @@ In Google Play / App Store versions (if released), Pro is bought through the sto
 |---------|---------|------|
 | **Robokassa** | Accepting the Pro payment | Payment details you enter on its page; e-mail for the receipt, if you give one |
 | **Cloudflare** | Licence server | Invoice number, amount, payment status and date, when the code was issued and which version of the offer was in force; technical request data (e.g. IP address) processed by Cloudflare to deliver the request |
-| **Sentry** (if enabled) | Crash reports | Error description, device model, OS and app version — no betting data |
 | **PostHog** (if enabled) | Anonymous usage statistics | See section 5 |
 | **RevenueCat, Apple, Google** | Purchases in Google Play / App Store versions | Anonymous purchaser ID, purchase receipt |
+
+**Error reports.** The App uses no crash-reporting service. When it runs into an error, it can show you a report — the error description, app version and build, OS and version, interface language and time; no betting data. It reaches the author only if you send it yourself: copied into a message to support, or through your phone's share menu. The App sends nothing on its own.
 
 ## 5. Usage statistics
 

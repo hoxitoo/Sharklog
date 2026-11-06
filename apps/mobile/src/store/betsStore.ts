@@ -89,6 +89,15 @@ let savedThrough = 0;
 /** Pieces that no record will ever name may be on disk, eating the space the next save needs. */
 let orphansPossible = false;
 
+/** The load in progress: a second call (a double-tapped retry) waits for it instead of reading again. */
+let loading: Promise<void> | null = null;
+
+/** What made the last load fail — for the error report the user can send (StorageErrorScreen). */
+let storageFailure: unknown = null;
+export function lastStorageFailure(): unknown {
+  return storageFailure;
+}
+
 /** The texts of a generation's pieces, in index order (null — missing). */
 async function readGeneration(gen: number, count: number): Promise<(string | null)[]> {
   if (count === 0) return [];
@@ -100,8 +109,11 @@ async function readGeneration(gen: number, count: number): Promise<(string | nul
 /**
  * The bets the pieces hold when the main record cannot name them (lost,
  * unreadable, or an old-layout record): the newest WHOLE generation — or, when
- * none is whole, whatever pieces of the newest one still read (`whole: false`;
- * starting empty would let the next save remove them). A generation whose base
+ * none is whole, what still reads of the generation that keeps the MOST bets
+ * (`whole: false`; starting empty would let the next save remove them — and
+ * an unreadable newest generation must not win over an older one with 299
+ * bets in it). `broken`: the texts of every generation that was not whole,
+ * for the quarantine — the next save removes them all. A generation whose base
  * is `skipBase` is passed over (`skipped`): it is a save of that very record,
  * killed before its own record landed — unless it is the `landed` one, whose
  * record DID land, and which an older build then overwrote (storageLayout.ts,
@@ -111,9 +123,14 @@ async function piecesWithoutRecord(
   keys: readonly string[],
   skipBase: string | null,
   landed: number | null,
-): Promise<{ found: { texts: (string | null)[]; bets: unknown[]; whole: boolean } | null; skipped: number[] }> {
+): Promise<{
+  found: { texts: (string | null)[]; bets: unknown[]; whole: boolean } | null;
+  skipped: number[];
+  broken: (string | null)[];
+}> {
   let partial: { texts: (string | null)[]; bets: unknown[]; whole: boolean } | null = null;
   const skipped: number[] = [];
+  const broken: (string | null)[] = [];
   for (const { gen, indices } of generationsOnDisk(keys)) {
     const listed = await readGeneration(gen, Math.max(...indices) + 1);
     const own = listed.map(parsePiece).filter((p): p is NonNullable<typeof p> => p !== null && p.g === gen);
@@ -125,10 +142,11 @@ async function piecesWithoutRecord(
     const n = own[0]?.n ?? listed.length;
     const texts = Array.from({ length: n }, (_, i) => listed[i] ?? null);
     const { bets, whole } = assembleGeneration(gen, texts);
-    if (whole && n > 0) return { found: { texts, bets, whole: true }, skipped };
-    partial ??= { texts: listed, bets, whole: false };
+    if (whole && n > 0) return { found: { texts, bets, whole: true }, skipped, broken };
+    broken.push(...listed);
+    if (!partial || bets.length > partial.bets.length) partial = { texts: listed, bets, whole: false };
   }
-  return { found: partial, skipped };
+  return { found: partial, skipped, broken };
 }
 
 function uuid(): string {
@@ -366,175 +384,187 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
   saveFailed: false,
 
   load: async () => {
-    // Read first; decide after. A failed READ is not "no data": writes stay
-    // blocked (persist checks loadError) until a retry reads it — the app used
-    // to start empty here, and its first save (onboarding's) replaced the file.
-    let raw: string | null;
-    let keys: string[];
-    let landedText: string | null;
+    if (loading) return loading;
+    let release!: () => void;
+    loading = new Promise<void>((r) => { release = r; });
     try {
-      raw = await AsyncStorage.getItem(STORAGE_KEY);
-      keys = await AsyncStorage.getAllKeys();
-      landedText = await AsyncStorage.getItem(LANDED_KEY);
-    } catch {
-      set({ loadError: true });
-      return;
-    }
-    try {
-      const onDisk = generationsOnDisk(keys);
-      let record: Record<string, unknown> | null = null;
-      // The record exists but is not readable JSON (a crash mid-write).
-      let recordBroken = false;
-      if (raw !== null) {
-        try {
-          const p: unknown = JSON.parse(raw);
-          if (typeof p === 'object' && p !== null && !Array.isArray(p)) record = p as Record<string, unknown>;
-          else recordBroken = true;
-        } catch {
-          recordBroken = true;
-        }
+      // A save already queued lands before the disk is read: read first, and
+      // the state on screen would lose what that save carries.
+      await writeChain;
+      // Read first; decide after. A failed READ is not "no data": writes stay
+      // blocked (persist checks loadError) until a retry reads it — the app used
+      // to start empty here, and its first save (onboarding's) replaced the file.
+      let raw: string | null;
+      let keys: string[];
+      let landedText: string | null;
+      try {
+        raw = await AsyncStorage.getItem(STORAGE_KEY);
+        keys = await AsyncStorage.getAllKeys();
+        landedText = await AsyncStorage.getItem(LANDED_KEY);
+      } catch (e) {
+        storageFailure = e;
+        set({ loadError: true });
+        return;
       }
-      let damaged = recordBroken;
-      let pieces: (string | null)[] = [];
-      let parsed: Record<string, unknown>;
-      const named = record ? recordPieces(record) : null;
-      const landed = landedText !== null && /^\d+$/.test(landedText) ? Number(landedText) : null;
-      committedGen = named ? named.gen : null;
-      keepGens = new Set();
-      recordIsFile = raw !== null && raw.length > IOS_INLINE_CHARS;
-      loadedBase = null;
-      orphansPossible = false;
-      // Saves asked for before this load (refused: nothing was read yet) are
-      // superseded by what is on disk — they no longer count as unsaved.
-      savedThrough = savesAsked;
-      if (named) {
-        // The usual case: the record names its generation; it must be whole.
-        pieces = await readGeneration(named.gen, named.chunks);
-        const { bets, whole } = assembleGeneration(named.gen, pieces, named.count);
-        if (!whole) damaged = true;
-        parsed = { ...record, bets };
-        // Other generations are leftovers of a save that failed or was killed
-        // last session: the first save clears them before writing (on a full
-        // phone they may be the space it needs). Not when the named one is
-        // damaged — then they wait for a save that has landed, as before.
-        const others = onDisk.filter((g) => g.gen !== named.gen).map((g) => g.gen);
-        if (damaged) keepGens = new Set(others);
-        else orphansPossible = others.length > 0;
-      } else {
-        // No record that names pieces: the old single-key layout, a record
-        // lost or unreadable, or one an older build rewrote without them. If
-        // pieces are on disk, their bets are kept alongside the record's;
-        // sanitize keeps the later edit of a bet that is in both — except a
-        // killed save of this very record (storageLayout.ts, "Why a base").
-        if (record) loadedBase = textHash(raw!);
-        const { found, skipped } = onDisk.length > 0
-          ? await piecesWithoutRecord(keys, loadedBase, landed)
-          : { found: null, skipped: [] as number[] };
-        // Until a save lands, only the skipped ones are garbage: any other
-        // generation may hold bets this record does not have.
-        keepGens = new Set(onDisk.map((g) => g.gen).filter((g) => !skipped.includes(g)));
-        orphansPossible = skipped.length > 0;
-        if (found) {
-          pieces = found.texts;
-          // Pieces, none of them whole: what still reads is kept, and the set
-          // is quarantined for support — the next save would remove it.
-          if (!found.whole) damaged = true;
+      try {
+        const onDisk = generationsOnDisk(keys);
+        let record: Record<string, unknown> | null = null;
+        // The record exists but is not readable JSON (a crash mid-write).
+        let recordBroken = false;
+        if (raw !== null) {
+          try {
+            const p: unknown = JSON.parse(raw);
+            if (typeof p === 'object' && p !== null && !Array.isArray(p)) record = p as Record<string, unknown>;
+            else recordBroken = true;
+          } catch {
+            recordBroken = true;
+          }
         }
-        if (raw === null && onDisk.length === 0) {
-          // A fresh install.
-          lastGen = 0;
-          set({ isLoaded: true, loadError: false });
-          return;
+        let damaged = recordBroken;
+        let pieces: (string | null)[] = [];
+        let parsed: Record<string, unknown>;
+        const named = record ? recordPieces(record) : null;
+        const landed = landedText !== null && /^\d+$/.test(landedText) ? Number(landedText) : null;
+        // Every new generation is above anything on disk AND the landed mark: a
+        // number reused below a stale mark would read, in a killed save, as one
+        // whose record landed (storageLayout.ts, LANDED_KEY).
+        const genFloor = Math.max(named?.gen ?? 0, onDisk[0]?.gen ?? 0, landed ?? 0);
+        committedGen = named ? named.gen : null;
+        keepGens = new Set();
+        recordIsFile = raw !== null && raw.length > IOS_INLINE_CHARS;
+        loadedBase = null;
+        orphansPossible = false;
+        // Saves asked for before this load (refused: nothing was read yet) are
+        // superseded by what is on disk — they no longer count as unsaved.
+        savedThrough = savesAsked;
+        if (named) {
+          // The usual case: the record names its generation; it must be whole.
+          pieces = await readGeneration(named.gen, named.chunks);
+          const { bets, whole } = assembleGeneration(named.gen, pieces, named.count);
+          if (!whole) damaged = true;
+          parsed = { ...record, bets };
+          // Other generations are leftovers of a save that failed or was killed
+          // last session: the first save clears them before writing (on a full
+          // phone they may be the space it needs). Not when the named one is
+          // damaged — then they wait for a save that has landed, as before.
+          const others = onDisk.filter((g) => g.gen !== named.gen).map((g) => g.gen);
+          if (damaged) keepGens = new Set(others);
+          else orphansPossible = others.length > 0;
+        } else {
+          // No record that names pieces: the old single-key layout, a record
+          // lost or unreadable, or one an older build rewrote without them. If
+          // pieces are on disk, their bets are kept alongside the record's;
+          // sanitize keeps the later edit of a bet that is in both — except a
+          // killed save of this very record (storageLayout.ts, "Why a base").
+          if (record) loadedBase = textHash(raw!);
+          const { found, skipped, broken } = onDisk.length > 0
+            ? await piecesWithoutRecord(keys, loadedBase, landed)
+            : { found: null, skipped: [] as number[], broken: [] as (string | null)[] };
+          // Until a save lands, only the skipped ones are garbage: any other
+          // generation may hold bets this record does not have.
+          keepGens = new Set(onDisk.map((g) => g.gen).filter((g) => !skipped.includes(g)));
+          orphansPossible = skipped.length > 0;
+          // Pieces that were not whole: what still reads is kept, and every such
+          // set is quarantined for support — the next save would remove them.
+          pieces = [...(found?.whole ? found.texts : []), ...broken];
+          if (broken.length > 0) damaged = true;
+          if (raw === null && onDisk.length === 0) {
+            // A fresh install.
+            lastGen = genFloor;
+            set({ isLoaded: true, loadError: false });
+            return;
+          }
+          const own = record?.['bets'];
+          // A list that is not a list, about to be replaced by the pieces' list.
+          if (found && own !== undefined && !Array.isArray(own)) damaged = true;
+          parsed = {
+            ...(record ?? {}),
+            bets: found ? [...(Array.isArray(own) ? own : []), ...found.bets] : own,
+          };
+          if (!record && !(found && found.bets.length > 0)) {
+            // Nothing readable at all: start as a new install did — but the
+            // damaged file is kept first.
+            if (raw !== null || pieces.length > 0) quarantine(raw ?? '', pieces);
+            lastGen = genFloor;
+            set({ isLoaded: true, loadError: false });
+            return;
+          }
+          if (!record) parsed['settings'] = { onboardingComplete: true };
         }
-        const own = record?.['bets'];
-        // A list that is not a list, about to be replaced by the pieces' list.
-        if (found && own !== undefined && !Array.isArray(own)) damaged = true;
-        parsed = {
-          ...(record ?? {}),
-          bets: found ? [...(Array.isArray(own) ? own : []), ...found.bets] : own,
-        };
-        if (!record && !(found && found.bets.length > 0)) {
-          // Nothing readable at all: start as a new install did — but the
-          // damaged file is kept first.
-          if (raw !== null || pieces.length > 0) quarantine(raw ?? '', pieces);
-          lastGen = onDisk[0]?.gen ?? 0;
-          set({ isLoaded: true, loadError: false });
-          return;
+        lastGen = genFloor;
+        // A list that is not a list is damage too, even before anything is dropped.
+        const shapeBroken = (['bets', 'diary', 'teams', 'goals'] as const).some((k) => {
+          const v = parsed[k];
+          return v !== undefined && !Array.isArray(v);
+        });
+        const schema = migrate(parsed as Parameters<typeof migrate>[0]);
+        const savedSettings: Partial<AppSettings> = schema.settings ?? {};
+        // A licence that does not count on this build (a test licence in a store
+        // build, a revoked one) is dropped, not just ignored.
+        const { license: storedLicense, ...savedRest } = savedSettings;
+        const license = licenseCounts(storedLicense, savedSettings.revokedLicenses) ? storedLicense : undefined;
+        // The stored flag is a cache. Pro is decided again on every launch from
+        // what can actually grant it: a run-out trial closes the gates. (The
+        // licence was verified when it was stored — see hasLicense.)
+        const isPro = resolvePro({
+          owner: IS_OWNER_PRO,
+          licenseValid: license !== undefined,
+          trialEndsAt: savedSettings.proExpiresAt,
+          storeEntitled: null,
+          previous: savedSettings.isPro ?? false,
+          keepCached: KEEP_CACHED_PRO,
+        });
+        // Only what would crash a screen is dropped (sanitize.ts, 'stored' mode);
+        // anything the app wrote loosely in an older version stays as it was.
+        const bets = sanitizeBets(schema.bets, 'stored');
+        const bank = sanitizeBankroll(schema.bankroll);
+        const diary = sanitizeDiary(schema.diary, 'stored');
+        const teams = sanitizeTeams(schema.teams);
+        const goals = sanitizeGoals(schema.goals, 'stored');
+        if (damaged || shapeBroken || bets.dropped + bank.dropped + diary.dropped + teams.dropped + goals.dropped > 0) {
+          // The next write would make the loss final: keep the file as it was,
+          // so support can still get those records back.
+          quarantine(raw ?? '', pieces);
         }
-        if (!record) parsed['settings'] = { onboardingComplete: true };
+        set({
+          bets: bets.items,
+          settings: {
+            ...defaultSettings,
+            ...savedRest,
+            ...(license !== undefined ? { license } : {}),
+            // Existing users (data already present) shouldn't be re-onboarded on upgrade.
+            onboardingComplete: savedSettings.onboardingComplete ?? true,
+            // Settings saved before the key existed meant "checklist on"; the new
+            // default (off) is for new installs only, not a change to theirs.
+            disableChecklist: savedSettings.disableChecklist ?? false,
+            isPro,
+          },
+          bankroll: { ...defaultBankroll, ...bank.bankroll },
+          diary: diary.items,
+          teams: sanitizeTeamNames(teams.items),
+          goals: goals.items,
+          isLoaded: true,
+          loadError: false,
+        });
+      } catch (e) {
+        // Something failed AFTER the read — a bug in migration or sanitizing.
+        // Not a reason to start empty over data that is there: keep writes off.
+        storageFailure = e;
+        set({ loadError: true });
       }
-      lastGen = Math.max(named?.gen ?? 0, onDisk[0]?.gen ?? 0);
-      // A list that is not a list is damage too, even before anything is dropped.
-      const shapeBroken = (['bets', 'diary', 'teams', 'goals'] as const).some((k) => {
-        const v = parsed[k];
-        return v !== undefined && !Array.isArray(v);
-      });
-      const schema = migrate(parsed as Parameters<typeof migrate>[0]);
-      const savedSettings: Partial<AppSettings> = schema.settings ?? {};
-      // A licence that does not count on this build (a test licence in a store
-      // build, a revoked one) is dropped, not just ignored.
-      const { license: storedLicense, ...savedRest } = savedSettings;
-      const license = licenseCounts(storedLicense, savedSettings.revokedLicenses) ? storedLicense : undefined;
-      // The stored flag is a cache. Pro is decided again on every launch from
-      // what can actually grant it: a run-out trial closes the gates. (The
-      // licence was verified when it was stored — see hasLicense.)
-      const isPro = resolvePro({
-        owner: IS_OWNER_PRO,
-        licenseValid: license !== undefined,
-        trialEndsAt: savedSettings.proExpiresAt,
-        storeEntitled: null,
-        previous: savedSettings.isPro ?? false,
-        keepCached: KEEP_CACHED_PRO,
-      });
-      // Only what would crash a screen is dropped (sanitize.ts, 'stored' mode);
-      // anything the app wrote loosely in an older version stays as it was.
-      const bets = sanitizeBets(schema.bets, 'stored');
-      const bank = sanitizeBankroll(schema.bankroll);
-      const diary = sanitizeDiary(schema.diary, 'stored');
-      const teams = sanitizeTeams(schema.teams);
-      const goals = sanitizeGoals(schema.goals, 'stored');
-      if (damaged || shapeBroken || bets.dropped + bank.dropped + diary.dropped + teams.dropped + goals.dropped > 0) {
-        // The next write would make the loss final: keep the file as it was,
-        // so support can still get those records back.
-        quarantine(raw ?? '', pieces);
-      }
-      set({
-        bets: bets.items,
-        settings: {
-          ...defaultSettings,
-          ...savedRest,
-          ...(license !== undefined ? { license } : {}),
-          // Existing users (data already present) shouldn't be re-onboarded on upgrade.
-          onboardingComplete: savedSettings.onboardingComplete ?? true,
-          // Settings saved before the key existed meant "checklist on"; the new
-          // default (off) is for new installs only, not a change to theirs.
-          disableChecklist: savedSettings.disableChecklist ?? false,
-          isPro,
-        },
-        bankroll: { ...defaultBankroll, ...bank.bankroll },
-        diary: diary.items,
-        teams: sanitizeTeamNames(teams.items),
-        goals: goals.items,
-        isLoaded: true,
-        loadError: false,
-      });
-    } catch {
-      // Something failed AFTER the read — a bug in migration or sanitizing.
-      // Not a reason to start empty over data that is there: keep writes off.
-      set({ loadError: true });
+    } finally {
+      loading = null;
+      release();
     }
   },
 
   persist: async () => {
     const seq = ++savesAsked;
-    const { bets, settings, bankroll, diary, teams, goals, isLoaded, loadError } = get();
+    const { isLoaded, loadError } = get();
     // Never before a load has succeeded: the state is then the empty default,
     // and writing it would replace data that is on disk but was not read.
     if (!isLoaded || loadError) return writeChain;
-    const gen = ++lastGen;
-    const { pieces, record } = buildSave(
-      { bets, settings, bankroll, diary, teams, goals, version: CURRENT_SCHEMA_VERSION }, gen, undefined, loadedBase,
-    );
+    let gen = 0;
     // Every generation but this one, the one the record on disk names, and
     // the ones that must wait for a landed save (keepGens) is garbage.
     const removeGarbage = async () => {
@@ -552,6 +582,17 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
       if (!get().saveFailed) set({ saveFailed: true });
     };
     writeChain = writeChain.then(async () => {
+      // A newer save is queued behind this one and will write the newer state:
+      // this one would be a full rewrite for nothing (ten quick W/L taps on
+      // 10 000 bets were ten 5 MB writes). The state is taken HERE, when it is
+      // written, not when it was asked for. flush() waits for the save that
+      // covers it.
+      if (seq < savesAsked) return;
+      const { bets, settings, bankroll, diary, teams, goals } = get();
+      gen = ++lastGen;
+      const { pieces, record } = buildSave(
+        { bets, settings, bankroll, diary, teams, goals, version: CURRENT_SCHEMA_VERSION }, gen, undefined, loadedBase,
+      );
       // 0. Pieces no record will ever name (a failed save's, a killed save
       //    skipped at load) take, on a full phone, the space this save needs.
       if (orphansPossible) {
@@ -599,9 +640,16 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
 
   // "Saved" means everything asked for UP TO NOW: a save asked for later —
   // while this one is in flight — does not make a landed save read as lost.
-  flush: () => {
+  // A save skipped for a newer one (persist) leaves its job to that one, so
+  // this waits for the chain to catch up, not only for the link it saw.
+  flush: async () => {
     const target = savesAsked;
-    return writeChain.then(() => savedThrough >= target);
+    for (;;) {
+      const chain = writeChain;
+      await chain;
+      if (savedThrough >= target) return true;
+      if (chain === writeChain) return false;
+    }
   },
 
   addBet: (bet) => {
@@ -712,6 +760,12 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
       settings: { ...s.settings, onboardingComplete: true },
     }));
     get().persist();
+    // The quarantine copies hold the bets too: «Clear all data» means them as
+    // well — and on a full phone, theirs is the space the user wants back.
+    writeChain = writeChain.then(async () => {
+      const copies = (await AsyncStorage.getAllKeys()).filter((k) => k.startsWith(QUARANTINE_KEY));
+      if (copies.length > 0) await AsyncStorage.removeMany(copies);
+    }).catch(() => {});
   },
 
   refreshPro: (storeEntitled = null) => {

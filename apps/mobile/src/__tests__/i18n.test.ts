@@ -1,5 +1,6 @@
 import { readFileSync, readdirSync } from 'fs';
 import { join } from 'path';
+import ts from 'typescript';
 import { MiniPluralRules, installPluralRules, nativeCoversOurLanguages } from '../i18n/pluralRules';
 import ru from '../i18n/locales/ru.json';
 import en from '../i18n/locales/en.json';
@@ -234,6 +235,55 @@ function sources(dir: string, out: string[] = []): string[] {
   return out;
 }
 
+/**
+ * Reads of a stored `.pick` that reach the screen as text: a JSX child, a
+ * template literal, a string concatenation, or a value interpolated by `t()` —
+ * through `??`, `||`, `?:`, `!`, `as` and string methods on the way — unless
+ * the read is an argument of `pickLabel`. A TypeScript AST walk: the regex it
+ * replaces missed `{bet.event} · {bet.pick}` and `t('x', { pick: bet.pick })`.
+ */
+function rawPickReads(code: string, fileName: string): string[] {
+  const sf = ts.createSourceFile(fileName, code, ts.ScriptTarget.Latest, true, fileName.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+  const isText = (e: ts.Node) => ts.isStringLiteral(e) || ts.isNoSubstitutionTemplateLiteral(e) || ts.isTemplateExpression(e);
+  const calleeName = (c: ts.CallExpression) => {
+    const e = c.expression;
+    return ts.isIdentifier(e) ? e.text : ts.isPropertyAccessExpression(e) ? e.name.text : '';
+  };
+  const hits: string[] = [];
+  const shown = (start: ts.Node): boolean => {
+    let n: ts.Node = start;
+    for (let p = n.parent; p; n = p, p = p.parent) {
+      if (ts.isCallExpression(p)) {
+        if (p.arguments.includes(n as ts.Expression)) return false; // passed on: pickLabel or a parser
+        continue; // `.trim()` and the like: still the raw pick
+      }
+      if (ts.isTemplateSpan(p)) return true;
+      if (ts.isJsxExpression(p)) return ts.isJsxElement(p.parent) || ts.isJsxFragment(p.parent);
+      if (ts.isBinaryExpression(p)) {
+        const op = p.operatorToken.kind;
+        if (op === ts.SyntaxKind.PlusToken) return isText(p.left) || isText(p.right) || shown(p);
+        if (op === ts.SyntaxKind.QuestionQuestionToken || op === ts.SyntaxKind.BarBarToken || op === ts.SyntaxKind.AmpersandAmpersandToken) continue;
+        return false;
+      }
+      if (ts.isPropertyAssignment(p) || ts.isShorthandPropertyAssignment(p)) {
+        const call = p.parent.parent;
+        return ts.isObjectLiteralExpression(p.parent) && !!call && ts.isCallExpression(call) && ['t', 'tr'].includes(calleeName(call));
+      }
+      if (ts.isConditionalExpression(p)) { if (p.condition === n) return false; continue; }
+      if (ts.isParenthesizedExpression(p) || ts.isNonNullExpression(p) || ts.isAsExpression(p)
+        || ts.isPropertyAccessExpression(p) || ts.isElementAccessExpression(p)) continue;
+      return false;
+    }
+    return false;
+  };
+  const visit = (node: ts.Node) => {
+    if (ts.isPropertyAccessExpression(node) && node.name.text === 'pick' && shown(node)) hits.push(node.getText(sf));
+    ts.forEachChild(node, visit);
+  };
+  visit(sf);
+  return hits;
+}
+
 /** Lines with Cyrillic outside comments. `https://` is not a comment. */
 function cyrillicLines(code: string): number {
   const noBlock = code.replace(/\/\*[\s\S]*?\*\//g, (m) => '\n'.repeat(m.split('\n').length - 1));
@@ -308,12 +358,32 @@ describe('pickLabel', () => {
     // The action wheel printed `${bet.pick}`: an English user deleting a bet
     // read "П1" in the confirmation. Interpolating a pick into text, or
     // rendering it as a JSX child, must go through pickLabel.
-    const raw = sources(SRC).flatMap((file) => {
-      const code = readFileSync(file, 'utf8');
-      const hits = [...code.matchAll(/\$\{[\w.!?]*\.pick\}|>\s*\{[\w.!?]*\.pick\}/g)].map((m) => m[0]);
-      return hits.map((h) => `${file.slice(SRC.length + 1)}: ${h}`);
-    });
+    const files = [...sources(SRC), join(SRC, '..', 'App.tsx')];
+    const raw = files.flatMap((file) =>
+      rawPickReads(readFileSync(file, 'utf8'), file).map((h) => `${file.slice(SRC.length + 1)}: ${h}`));
     expect(raw).toEqual([]);
+  });
+
+  it('the guard itself sees every way a pick reaches the screen (and not the ways it is parsed)', () => {
+    const shown = [
+      'const a = <Text>{bet.event} · {bet.pick}</Text>;',
+      "const a = t('x', { pick: bet.pick });",
+      "const a = bet.pick + ' · ';",
+      'const a = `${legs[0].pick}`;',
+      "const a = `${bet.pick ?? ''}`;",
+      'const a = `${bet?.pick.trim()}`;',
+      'const a = <Text>{cond ? bet.pick : null}</Text>;',
+    ];
+    for (const code of shown) expect([code, rawPickReads(code, 'x.tsx').length]).toEqual([code, 1]);
+    const fine = [
+      'const a = <Text>{pickLabel(t, bet.pick)}</Text>;',
+      'const a = `${pickLabel(t, bet.pick ?? "")}`;',
+      'const a = b.pick.toLowerCase().includes(q);',
+      'const a = <TextInput value={leg.pick} />;',
+      "const a = parseEditPick(type, source.pick ?? '');",
+      "const a = t('bet.pick');",
+    ];
+    for (const code of fine) expect([code, rawPickReads(code, 'x.tsx')]).toEqual([code, []]);
   });
 
   it('maps every leg of an express on its own', () => {

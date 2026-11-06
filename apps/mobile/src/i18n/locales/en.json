@@ -1260,7 +1260,21 @@
     "body": "Your bets, bank and settings are still there: until the data is read, the app writes and erases nothing. Try again. If that does not help, contact support and do not reinstall the app — reinstalling deletes the data.",
     "retry": "Try again",
     "support": "Contact support",
+    "stillFailing": "Still couldn't read it. Send the error report — it tells the author what happened. Your data is still there; the app isn't touching it.",
     "saveTitle": "Changes were not saved",
     "saveBody": "Your latest changes exist only in memory and will be lost if the app is closed. Most likely the phone is out of storage — free up some space and try again. When you come back to the app, it will try to save again by itself."
+  },
+  "errorReport": {
+    "open": "Send an error report",
+    "title": "Error report",
+    "intro": "The report reaches the author only if you send it yourself. It contains no bets, amounts or notes — only what you see below: the error and the app and system versions.",
+    "copyAndContact": "Copy and message the author",
+    "copy": "Copy",
+    "copied": "Report copied — paste it into your message.",
+    "share": "Share…",
+    "lastCrashTitle": "The app closed with an error",
+    "lastCrashBody": "Last time SharkLog closed because of an error. A report helps fix it — see what's in it and send it if you like.",
+    "lastCrashView": "View report",
+    "lastCrashSkip": "No thanks"
   }
 }

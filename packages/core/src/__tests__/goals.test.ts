@@ -63,6 +63,9 @@ describe('what moves a goal', () => {
     const bets = [bet({ date: day(-1), status: 'pending', stake: 500_00 }), bet({ date: day(-1), status: 'pending', isFreebet: true })];
     const p = calcGoalProgress(goal(), bets, [], NOW);
     expect([p.current, p.pendingCount, p.pendingStake]).toEqual([0, 2, 500_00]);
+    // "В игре" next to the count is the same two bets — the freebet's stake
+    // included, as on the bets screen; own money alone is the risk measure.
+    expect(p.inPlayStake).toBe(500_00 + bets[1]!.stake);
   });
 
   it('a bank goal is the bank itself: deposits, withdrawals and bets', () => {

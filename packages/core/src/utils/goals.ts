@@ -114,6 +114,13 @@ export interface GoalProgress {
   roiBets: number;
   /** Bets still in play from the start day (`lossCap`: this month) — not counted until they settle. */
   pendingCount: number;
+  /**
+   * What those bets put at stake: "в игре", freebets INCLUDED — the same sum as
+   * on the bets screen and in Bankroll (`pendingStake` there). Shown next to
+   * `pendingCount`, so the two describe the same bets.
+   */
+  inPlayStake: number;
+  /** Own money among them (no freebets): what a loss would cost — the loss-cap risk check. */
   pendingStake: number;
   /** `lossCap` only: under 80%, at or past 80%, past the cap. */
   capState: 'ok' | 'near' | 'over' | null;
@@ -211,11 +218,13 @@ export function calcGoalProgress(
   let ownPnl = 0;
   let roiBets = 0;
   let pendingCount = 0;
+  let inPlayStake = 0;
   let pendingStake = 0;
   for (const b of bets) {
     if (b.date < start || b.date > today) continue;
     if (b.status === 'pending') {
       pendingCount += 1;
+      inPlayStake += b.stake;
       if (!b.isFreebet) pendingStake += b.stake;
       continue;
     }
@@ -234,6 +243,7 @@ export function calcGoalProgress(
     kind: goal.kind, current, target, ratio, remaining, achieved, started, daysLeft, expired,
     needPerMonth, pacePerMonth, paceDays, projectedDays, onTrack, roiNeeded, roiNow, roiBets,
     pendingCount: goal.kind === 'profit' ? pendingCount : 0,
+    inPlayStake: goal.kind === 'profit' ? inPlayStake : 0,
     pendingStake: goal.kind === 'profit' ? pendingStake : 0,
     capState: null, wouldExceed: false, startValue, series,
   };
@@ -248,6 +258,7 @@ function lossCapProgress(goal: Goal, bets: Bet[], today: string): GoalProgress {
   const from = goal.startDate > monthStart ? goal.startDate : monthStart;
   let pnl = 0;
   let pendingCount = 0;
+  let inPlayStake = 0;
   let pendingStake = 0;
   for (const b of bets) {
     if (b.date < from) continue;
@@ -255,6 +266,7 @@ function lossCapProgress(goal: Goal, bets: Bet[], today: string): GoalProgress {
       // A bet in play for a match later this month is this month's risk too.
       if (b.date > monthEnd) continue;
       pendingCount += 1;
+      inPlayStake += b.stake;
       if (!b.isFreebet) pendingStake += b.stake;
     } else if (b.date <= today) {
       pnl += betPnl(b);
@@ -276,7 +288,7 @@ function lossCapProgress(goal: Goal, bets: Bet[], today: string): GoalProgress {
     expired: false,
     needPerMonth: null, pacePerMonth: null, paceDays: 0, projectedDays: null, onTrack: null,
     roiNeeded: null, roiNow: null, roiBets: 0,
-    pendingCount, pendingStake,
+    pendingCount, inPlayStake, pendingStake,
     capState,
     // The month's net loss if every bet in play lost — a month in plus has room:
     // +5 000 won and 12 000 in play is at worst −7 000, under a 10 000 cap.
