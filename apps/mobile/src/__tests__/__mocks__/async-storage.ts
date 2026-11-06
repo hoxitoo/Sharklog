@@ -10,4 +10,6 @@ export default {
   // the old multiGet — a mock with the old name let code that calls it pass
   // here and fail on the phone.
   getMany: jest.fn(async (keys: string[]) => Object.fromEntries(keys.map((k) => [k, store[k] ?? null]))),
+  setMany: jest.fn(async (entries: Record<string, string>) => { Object.assign(store, entries); }),
+  removeMany: jest.fn(async (keys: string[]) => { for (const k of keys) delete store[k]; }),
 };

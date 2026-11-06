@@ -10,6 +10,7 @@ import { RootNavigator } from './src/navigation/RootNavigator';
 import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { AnimatedSplash } from './src/components/AnimatedSplash';
+import { StorageErrorScreen } from './src/components/StorageErrorScreen';
 import { useBetsStore, effectiveReminderHour } from './src/store/betsStore';
 import { colors, applyTheme, currentTheme } from './src/theme/colors';
 import { PALETTES, THEME_META } from './src/theme/palettes';
@@ -58,6 +59,7 @@ function navigationTheme() {
 export default function App() {
   const load = useBetsStore((s) => s.load);
   const isLoaded = useBetsStore((s) => s.isLoaded);
+  const loadError = useBetsStore((s) => s.loadError);
   const language = useBetsStore((s) => s.settings.language);
   const oddsFormat = useBetsStore((s) => s.settings.oddsFormat);
   // A number, so the selector is stable; changes with Pro status as well as the hour.
@@ -209,11 +211,24 @@ export default function App() {
   const appReady = isLoaded && fontsSettled;
 
   // Hide native splash once React Native is ready to show our custom JS splash
+  // — or the read-error screen, which must not wait behind it forever.
   useEffect(() => {
-    if (appReady) {
+    if (appReady || loadError) {
       SplashScreen.hideAsync().catch(() => {});
     }
-  }, [appReady]);
+  }, [appReady, loadError]);
+
+  // The stored data could not be read. isLoaded stays false, so nothing that
+  // waits for it runs (reminder sync, payment check, the notification action),
+  // and the store writes nothing until a retry reads the data.
+  if (loadError) {
+    return (
+      <SafeAreaProvider>
+        <StatusBar style="light" />
+        <StorageErrorScreen />
+      </SafeAreaProvider>
+    );
+  }
 
   // Keep showing splash until the animation is done AND the store is loaded AND
   // the fonts are registered.
