@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { Bet, BankrollTransaction } from '../types/bet';
-import { bankCash, currentBank, pendingExposure } from '../utils/stats';
+import { bankCash, currentBank, pendingExposure, pendingStake } from '../utils/stats';
 import { calcDailyBreakdown } from '../utils/daily';
 
 function tx(over: Partial<BankrollTransaction>): BankrollTransaction {
@@ -56,6 +56,19 @@ describe('pendingExposure', () => {
 
   it('ignores settled bets', () => {
     expect(pendingExposure([bet({ status: 'won' }), bet({ status: 'lost' })])).toBe(0);
+  });
+});
+
+describe('pendingStake', () => {
+  it('counts every open stake, freebets included — that is "в игре"', () => {
+    const bets = [
+      bet({ status: 'pending', stake: 100_000 }),
+      bet({ status: 'pending', stake: 50_000, isFreebet: true }),
+      bet({ status: 'won', stake: 70_000 }),
+    ];
+    expect(pendingStake(bets)).toBe(150_000);
+    // The balance at the bookmaker still subtracts only the user's own money.
+    expect(pendingExposure(bets)).toBe(100_000);
   });
 });
 

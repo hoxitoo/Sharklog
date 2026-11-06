@@ -358,6 +358,7 @@
     "insufficientMsg": "Maximum you can withdraw: {{amount}}",
     "withdrawn": "Withdrawn",
     "atBookLine": "In play {{exposure}} · at the bookmaker now ≈ {{atBook}}",
+    "atBookLineFree": "In play {{inPlay}}, of which freebets {{free}} — the bookmaker does not take them off the balance · at the bookmaker now ≈ {{atBook}}",
     "holdToDelete": "Long-press to delete",
     "proFeatureFull": "Bankroll tracker and Kelly calculator",
     "noteAdjustment": "Reconciled with the bookmaker",

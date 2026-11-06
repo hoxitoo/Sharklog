@@ -445,9 +445,25 @@ export function currentBank(transactions: BankrollTransaction[], bets: Bet[]): n
   return bankCash(transactions) + calcDashboard(bets).pnl;
 }
 
-/** Money sitting in unsettled bets — deducted at the bookmaker, not here. */
+/**
+ * The bookmaker's own money in unsettled bets — what it has already taken off
+ * the balance. Freebets are left out: a freebet is the bookmaker's bonus, not
+ * the user's cash, so it never left the balance. This is the number for
+ * "balance at the bookmaker" and for reconciliation; counting a freebet here
+ * would make a reconciliation record a shortfall that is not there.
+ */
 export function pendingExposure(bets: Bet[]): number {
   return bets
     .filter((b) => b.status === 'pending' && !b.isFreebet)
+    .reduce((sum, b) => sum + b.stake, 0);
+}
+
+/**
+ * Everything in play: the stakes of all unsettled bets, freebets included —
+ * the "в игре" a user reads. Not for balance arithmetic (see pendingExposure).
+ */
+export function pendingStake(bets: Bet[]): number {
+  return bets
+    .filter((b) => b.status === 'pending')
     .reduce((sum, b) => sum + b.stake, 0);
 }

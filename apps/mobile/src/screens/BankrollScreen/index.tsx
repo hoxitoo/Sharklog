@@ -10,7 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { dateLocale } from '../../i18n';
 import { txNoteLabel } from '../../utils/labels';
 import type { ChartSeries } from '../../components/BalanceChart';
-import { TX_NOTE, calcDashboard, parseMoneyInput, kellyFraction, recommendedStake, activeStrategy, bankAtBetTime, toYmd, expectedValue, parseOdds, impliedProbability, calcDailyBreakdown, currentBank, pendingExposure } from '@sharklog/core';
+import { TX_NOTE, calcDashboard, parseMoneyInput, kellyFraction, recommendedStake, activeStrategy, bankAtBetTime, toYmd, expectedValue, parseOdds, impliedProbability, calcDailyBreakdown, currentBank, pendingExposure, pendingStake } from '@sharklog/core';
 
 /** How much of the history the screen shows before asking. */
 const TX_PREVIEW = 5;
@@ -406,6 +406,9 @@ function BankrollContent() {
   const deposited = bankroll.transactions.filter((tx) => tx.type === 'deposit').reduce((s, tx) => s + tx.amount, 0);
   const withdrawn = bankroll.transactions.filter((tx) => tx.type === 'withdrawal').reduce((s, tx) => s + tx.amount, 0);
   const bank = currentBank(bankroll.transactions, bets);
+  // "В игре" is every open stake, freebets included; the balance at the
+  // bookmaker subtracts only the user's own money (a freebet never left it).
+  const inPlay = pendingStake(bets);
   const exposure = pendingExposure(bets);
   const unitAmount = Math.round(bank * bankroll.unitPercent / 100);
 
@@ -548,9 +551,11 @@ function BankrollContent() {
           </View>
         </View>
 
-        {exposure > 0 && (
+        {inPlay > 0 && (
           <Text style={bk.exposureNote}>
-            {t('bankroll.atBookLine', { exposure: fmt(exposure), atBook: fmt(bank - exposure) })}
+            {inPlay > exposure
+              ? t('bankroll.atBookLineFree', { inPlay: fmt(inPlay), free: fmt(inPlay - exposure), atBook: fmt(bank - exposure) })
+              : t('bankroll.atBookLine', { exposure: fmt(exposure), atBook: fmt(bank - exposure) })}
           </Text>
         )}
 
