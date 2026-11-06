@@ -62,11 +62,38 @@ function emptyBucket(): Bucket {
  */
 export function calcDailyBreakdown(
   bets: Bet[],
-  transactions: BankrollTransaction[] = [],
+  transactions: BankrollTransaction[] = NO_TRANSACTIONS,
   opts: { days?: number; endDate?: Date } = {},
 ): DayStats[] {
   const end = opts.endDate ?? new Date();
   const endStr = toYmd(end);
+  // One series per (bets, transactions, last day, window) — the arrays by
+  // identity: the stores replace them on every change, never edit them in
+  // place. Bank shares on the cards, the goal button, every goal, Bankroll and
+  // the bet form each built the same ~7 ms series again after every write.
+  // The returned series is shared: read it, never mutate it.
+  let byTxs = dailyCache.get(bets);
+  if (!byTxs) { byTxs = new WeakMap(); dailyCache.set(bets, byTxs); }
+  let byKey = byTxs.get(transactions);
+  if (!byKey) { byKey = new Map(); byTxs.set(transactions, byKey); }
+  const cacheKey = `${endStr}|${opts.days ?? ''}`;
+  const hit = byKey.get(cacheKey);
+  if (hit) return hit;
+  const out = buildDaily(bets, transactions, end, endStr, opts.days);
+  byKey.set(cacheKey, out);
+  return out;
+}
+
+const NO_TRANSACTIONS: BankrollTransaction[] = [];
+const dailyCache = new WeakMap<readonly Bet[], WeakMap<readonly BankrollTransaction[], Map<string, DayStats[]>>>();
+
+function buildDaily(
+  bets: Bet[],
+  transactions: BankrollTransaction[],
+  end: Date,
+  endStr: string,
+  days: number | undefined,
+): DayStats[] {
 
   const byDate = new Map<string, Bucket>();
   const touch = (d: string): Bucket => {
@@ -112,8 +139,8 @@ export function calcDailyBreakdown(
   const firstData = dataDates[0];
 
   let startDate: Date;
-  if (opts.days != null) {
-    startDate = new Date(end.getFullYear(), end.getMonth(), end.getDate() - (opts.days - 1));
+  if (days != null) {
+    startDate = new Date(end.getFullYear(), end.getMonth(), end.getDate() - (days - 1));
   } else if (firstData) {
     const [y, m, d] = firstData.split('-').map(Number);
     startDate = new Date(y!, (m! - 1), d!);

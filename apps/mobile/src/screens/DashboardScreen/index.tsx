@@ -5,7 +5,7 @@ import { AppText as Text } from '../../components/AppText';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { calcDashboard, isInTilt, calcDailyBreakdown, currentBank, summarizeDays, toYmd, activeStrategy, strategyPlan } from '@sharklog/core';
+import { calcDashboard, isInTilt, calcDailyBreakdown, currentBank, summarizeDays, toYmd, activeStrategy, strategyPlan, playedOrder, newestPlayedFirst } from '@sharklog/core';
 import type { Bet, DayStats } from '@sharklog/core';
 import { useBetsStore, effectiveTiltThreshold } from '../../store/betsStore';
 import { colors, signalInk, signalTint, toneSurface } from '../../theme/colors';
@@ -25,6 +25,7 @@ import { SIZE, GLYPH, numeric } from '../../theme/typography';
 import { useTranslation } from 'react-i18next';
 import { dateLocale } from '../../i18n';
 import { pickLabel } from '../../utils/labels';
+import { newestEntered } from '../../utils/recentBets';
 import { strategyName } from '../../utils/strategyText';
 import { themedStyles } from '../../theme/themed';
 import { useBottomPad } from '../../utils/useBottomPad';
@@ -40,13 +41,14 @@ const PERIOD_OPTIONS: Array<{ key: PeriodFilter; label: string }> = [
 
 function WLStrip({ bets }: { bets: Bet[] }) {
   const { t } = useTranslation();
-  // Sort by recency first — store order isn't guaranteed chronological, so a bare
-  // slice(0,7) could show a stale, non-latest set of results.
-  const last7 = bets
-    .filter((b) => b.status !== 'pending')
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-    .slice(0, 7)
-    .reverse();
+  // The latest RESULTS by when the match was played — the order the current
+  // streak and the tilt banner next to it count in (byPlayedAt). By `createdAt`
+  // a bet typed in after the fact showed as the newest result. Memoised: it
+  // sorted every bet on each render of the dashboard.
+  const last7 = useMemo(
+    () => newestPlayedFirst(playedOrder(bets).filter((b) => b.status !== 'pending')).slice(0, 7).reverse(),
+    [bets],
+  );
   if (last7.length === 0) return null;
 
   return (
@@ -500,10 +502,9 @@ export function DashboardScreen() {
   // one such won bet took its whole P&L off the dashboard's bank.
   const bankTotal = useMemo(() => currentBank(bankroll.transactions, bets), [bankroll.transactions, bets]);
 
-  // Most-recent 5 settled-or-pending bets, newest first.
-  const last5 = [...filteredBets]
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-    .slice(0, 5);
+  // The 5 most recently ENTERED bets, newest first — once per change of the
+  // bets, not on every render (a period toggle, an expanded chart).
+  const last5 = useMemo(() => newestEntered(filteredBets, 5), [filteredBets]);
 
   return (
     <View style={styles.flex}>

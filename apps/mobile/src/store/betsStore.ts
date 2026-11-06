@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Bet, AppSettings, Bankroll, DiaryEntry, Goal, Team, Sport, EsportsDiscipline } from '@sharklog/core';
 import {
-  migrate, CURRENT_SCHEMA_VERSION, FREE_LIMITS, DEFAULT_BANKROLL_NAME, isInTilt, calcDashboard, parseEventTeams,
+  migrate, CURRENT_SCHEMA_VERSION, FREE_LIMITS, DEFAULT_BANKROLL_NAME, calcCurrentStreak, parseEventTeams,
   preselectedBookmakers, sanitizeBets, sanitizeBankroll, sanitizeDiary, sanitizeTeams, sanitizeGoals,
 } from '@sharklog/core';
 import {
@@ -699,8 +699,10 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
 
     if (updates.status === 'lost' && prevStatus !== 'lost') {
       const { bets, settings } = get();
-      if (isInTilt(bets, effectiveTiltThreshold(settings))) {
-        sendTiltNotification(calcDashboard(bets).currentStreak.count);
+      // One pass for the check and the count (the whole dashboard used to run for the count).
+      const streak = calcCurrentStreak(bets);
+      if (streak.type === 'loss' && streak.count >= effectiveTiltThreshold(settings)) {
+        sendTiltNotification(streak.count);
       }
     }
     get().persist();

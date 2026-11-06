@@ -4,7 +4,7 @@ import {
   View, StyleSheet, ScrollView, TouchableOpacity, Alert,
 } from 'react-native';
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
-import { calcDashboard, isInTilt, toYmd } from '@sharklog/core';
+import { calcCurrentStreak, toYmd } from '@sharklog/core';
 import { useBetsStore, effectiveTiltThreshold, effectiveDailyLimit } from '../../store/betsStore';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { colors } from '../../theme/colors';
@@ -128,8 +128,10 @@ export function DisciplineScreen() {
   const settings = useBetsStore((s) => s.settings);
   const addDiaryEntry = useBetsStore((s) => s.addDiaryEntry);
   const { t } = useTranslation();
-  const stats = useMemo(() => calcDashboard(bets), [bets]);
-  const inTilt = isInTilt(bets, effectiveTiltThreshold(settings));
+  // The current run only — not the whole dashboard — and once per change of the bets,
+  // not on every letter typed in the diary below (16–21 ms a letter, audit 2026-11-06).
+  const streak = useMemo(() => calcCurrentStreak(bets), [bets]);
+  const inTilt = streak.type === 'loss' && streak.count >= effectiveTiltThreshold(settings);
   const dailyLimit = effectiveDailyLimit(settings);
 
   const today = todayStr();
@@ -168,7 +170,7 @@ export function DisciplineScreen() {
             <View style={{ flex: 1 }}>
               <Text style={styles.tiltTitle}>{t('bet.tiltTitle')}</Text>
               <Text style={styles.tiltSub}>
-                {t('discipline.tiltStreak', { count: stats.currentStreak.count })}
+                {t('discipline.tiltStreak', { count: streak.count })}
               </Text>
             </View>
           </View>
@@ -203,7 +205,7 @@ export function DisciplineScreen() {
         <Card title={t('discipline.tiltStats')}>
           <View style={styles.tiltGrid}>
             <View style={styles.tiltStat}>
-              <Text style={styles.tiltStatValue}>{stats.currentStreak.type === 'loss' ? stats.currentStreak.count : 0}</Text>
+              <Text style={styles.tiltStatValue}>{streak.type === 'loss' ? streak.count : 0}</Text>
               <Text style={styles.tiltStatLabel}>{t('discipline.lostStreak')}</Text>
             </View>
             <View style={styles.tiltStat}>

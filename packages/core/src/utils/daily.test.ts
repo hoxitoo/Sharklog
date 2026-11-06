@@ -188,3 +188,33 @@ describe('calcDailyBreakdown — malformed input', () => {
     expect(days[days.length - 1]!.date).toBe('2024-05-05'); // still ends today
   });
 });
+
+describe('calcDailyBreakdown, cached', () => {
+  // Bank shares, the goal button, every goal, Bankroll and the bet form each
+  // asked for the same series after every write. One series per (bets,
+  // transactions, last day, window) — by identity: the stores replace arrays.
+  const bets = [
+    makeBet({ status: 'won', date: '2026-11-01', stake: 100_00, odds: 2 }),
+    makeBet({ status: 'lost', date: '2026-11-03', stake: 50_00 }),
+  ];
+  const txs: BankrollTransaction[] = [{ id: 't', type: 'deposit', amount: 1_000_00, date: '2026-10-30T10:00:00.000Z' }];
+  const end = new Date(2026, 10, 5, 12);
+
+  it('gives the same series for the same inputs, and a fresh one when any of them changes', () => {
+    const a = calcDailyBreakdown(bets, txs, { endDate: end });
+    expect(calcDailyBreakdown(bets, txs, { endDate: new Date(2026, 10, 5, 23) })).toBe(a); // same day
+    expect(calcDailyBreakdown([...bets], txs, { endDate: end })).not.toBe(a);
+    expect(calcDailyBreakdown(bets, [...txs], { endDate: end })).not.toBe(a);
+    expect(calcDailyBreakdown(bets, txs, { endDate: new Date(2026, 10, 6) })).not.toBe(a);
+    expect(calcDailyBreakdown(bets, txs, { endDate: end, days: 3 })).not.toBe(a);
+  });
+
+  it('reads exactly as an uncached series', () => {
+    const cached = calcDailyBreakdown(bets, txs, { endDate: end });
+    const fresh = calcDailyBreakdown(bets.map((b) => ({ ...b })), txs.map((t) => ({ ...t })), { endDate: end });
+    expect(cached).toEqual(fresh);
+    expect(calcDailyBreakdown(bets, txs, { endDate: end, days: 3 }))
+      .toEqual(calcDailyBreakdown([...bets], [...txs], { endDate: end, days: 3 }));
+  });
+});
+

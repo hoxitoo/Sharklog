@@ -65,6 +65,34 @@ const TIME_SHAPE = /^\d{2}:\d{2}$/;
 
 const STATUS_FILTER_KEYS: Array<BetStatus | 'all'> = ['all', 'pending', 'won', 'lost', 'refund', 'cashout'];
 
+/**
+ * One row of the list: the swipe-to-delete and the card. Memoised with stable
+ * handlers (the bet's id is bound here, not in an arrow made per render), so a
+ * write or a keystroke re-renders only the rows whose own props changed.
+ */
+const BetRow = React.memo(function BetRow({ bet, cashoutOpen, onOpen, onRequestCashout, onCloseCashout, onDelete }: {
+  bet: Bet;
+  cashoutOpen: boolean;
+  onOpen: (bet: Bet) => void;
+  onRequestCashout: (id: string) => void;
+  onCloseCashout: () => void;
+  onDelete: (id: string) => void;
+}) {
+  const remove = useCallback(() => { haptic.error(); onDelete(bet.id); }, [bet.id, onDelete]);
+  const requestCashout = useCallback(() => onRequestCashout(bet.id), [bet.id, onRequestCashout]);
+  return (
+    <SwipeableRow onDelete={remove}>
+      <BetCard
+        bet={bet}
+        onPress={onOpen}
+        cashoutOpen={cashoutOpen}
+        onRequestCashout={requestCashout}
+        onCloseCashout={onCloseCashout}
+      />
+    </SwipeableRow>
+  );
+});
+
 type SortKey = 'date_desc' | 'date_asc' | 'odds_desc' | 'odds_asc' | 'stake_desc' | 'stake_asc';
 
 type T = (key: string) => string;
@@ -94,7 +122,8 @@ export function BetsScreen({ filter, onClearFilter }: {
   const bottomPad = useBottomPad(FAB_CLEARANCE);
   const navigation = useNavigation<Nav>();
   const bets = useBetsStore((s) => s.bets);
-  const settings = useBetsStore((s) => s.settings);
+  // Only what the screen reads: the whole settings object re-rendered it on any setting.
+  const isPro = useBetsStore((s) => s.settings.isPro);
   const tiltThreshold = useBetsStore((s) => effectiveTiltThreshold(s.settings));
   const bankroll = useBetsStore((s) => s.bankroll);
   const deleteBet = useBetsStore((s) => s.deleteBet);
@@ -364,6 +393,20 @@ export function BetsScreen({ filter, onClearFilter }: {
   }, [bets, statusFilter, listSearch, sort, filter, query, oddsFormat, todayLabel, yesterdayLabel, t]);
 
   const betActions = useBetActions();
+  const { open: openActions, cashoutFor, openCashout, closeCashout } = betActions;
+  // Every handler a row gets is stable, so a row re-renders only when ITS bet or
+  // its cashout field changes — not all ~40 visible cards for a letter in the
+  // search, the panel folding away or the wheel opening (audit 2026-11-06).
+  const renderBet = useCallback(({ item }: { item: Bet }) => (
+    <BetRow
+      bet={item}
+      cashoutOpen={cashoutFor === item.id}
+      onOpen={openActions}
+      onRequestCashout={openCashout}
+      onCloseCashout={closeCashout}
+      onDelete={deleteBet}
+    />
+  ), [cashoutFor, openActions, openCashout, closeCashout, deleteBet]);
 
   return (
     <View style={styles.container}>
@@ -375,7 +418,7 @@ export function BetsScreen({ filter, onClearFilter }: {
         // A real plural: number + a fixed "ставок" printed "261 ставок". And on
         // Free, the count USED, as in Settings — the same "N из 50" used to mean
         // "used" there and "left" here.
-        subtitle={settings.isPro
+        subtitle={isPro
           ? t('common.betsCount', { count: bets.length })
           : `${bets.length} ${t('common.of')} ${FREE_LIMITS.MAX_BETS}`}
       />
@@ -386,18 +429,7 @@ export function BetsScreen({ filter, onClearFilter }: {
           style={styles.listFlex}
           sections={sections}
           keyExtractor={(item) => item.id}
-          renderItem={useCallback(({ item }: { item: import('@sharklog/core').Bet }) => (
-            <SwipeableRow onDelete={() => { haptic.error(); deleteBet(item.id); }}>
-              <BetCard
-                bet={item}
-                onPress={betActions.open}
-                cashoutOpen={betActions.cashoutFor === item.id}
-                onRequestCashout={() => betActions.openCashout(item.id)}
-                onCloseCashout={betActions.closeCashout}
-              />
-            </SwipeableRow>
-          // eslint-disable-next-line react-hooks/exhaustive-deps
-          ), [deleteBet, betActions.cashoutFor])}
+          renderItem={renderBet}
           renderSectionHeader={useCallback(({ section }: { section: { title: string; dailyPnl: number } }) => (
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionDate}>{section.title}</Text>
@@ -656,7 +688,7 @@ export function BetsScreen({ filter, onClearFilter }: {
       </View>
 
 
-      {!settings.isPro && bets.length >= 40 && (
+      {!isPro && bets.length >= 40 && (
         <View style={styles.limitBanner}>
           <Text style={styles.limitText}>
             {FREE_LIMITS.MAX_BETS - bets.length <= 0

@@ -305,6 +305,23 @@ export function isInTilt(bets: Bet[], threshold: number): boolean {
   return streak.type === 'loss' && streak.count >= threshold;
 }
 
+/**
+ * The current run of wins or losses — `calcDashboard(bets).currentStreak`
+ * without the rest of the dashboard: the tilt check after a "lost" tap and the
+ * discipline screen need this one field, and the whole dashboard is two more
+ * passes and a curve.
+ */
+export function calcCurrentStreak(bets: Bet[]): DashboardStats['currentStreak'] {
+  return calcStreak(bets);
+}
+
+/** Realized P&L of all the bets, in kopecks — `calcDashboard(bets).pnl`, without the rest. */
+export function totalPnl(bets: readonly Bet[]): number {
+  let sum = 0;
+  for (const b of bets) sum += betPnl(b);
+  return sum;
+}
+
 export interface TournamentStats {
   tournament: string;
   sport: string;        // most common sport label in this group
@@ -522,7 +539,8 @@ export function bankCash(transactions: BankrollTransaction[]): number {
  * `bookmakerBalance = currentBank - pendingExposure`.
  */
 export function currentBank(transactions: BankrollTransaction[], bets: Bet[]): number {
-  return bankCash(transactions) + calcDashboard(bets).pnl;
+  // The P&L alone — it used to run the whole dashboard (two sorts) for this one sum.
+  return bankCash(transactions) + totalPnl(bets);
 }
 
 /**
