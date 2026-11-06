@@ -60,6 +60,7 @@ export default function App() {
   const load = useBetsStore((s) => s.load);
   const isLoaded = useBetsStore((s) => s.isLoaded);
   const loadError = useBetsStore((s) => s.loadError);
+  const saveFailed = useBetsStore((s) => s.saveFailed);
   const language = useBetsStore((s) => s.settings.language);
   const oddsFormat = useBetsStore((s) => s.settings.oddsFormat);
   // A number, so the selector is stable; changes with Pro status as well as the hour.
@@ -209,6 +210,34 @@ export default function App() {
     check();
     const sub = AppState.addEventListener('change', (state) => {
       if (state === 'active') check();
+    });
+    return () => sub.remove();
+  }, [isLoaded]);
+
+  // A save that did not reach the disk — most likely a full phone. What is on
+  // screen then lives only in memory and goes when the app closes, so say it
+  // once per failure and offer a retry. The retry clears the flag first: one
+  // that fails again says so again.
+  useEffect(() => {
+    if (!saveFailed) return;
+    Alert.alert(i18n.t('storageError.saveTitle'), i18n.t('storageError.saveBody'), [
+      { text: i18n.t('common.ok'), style: 'cancel' },
+      {
+        text: i18n.t('storageError.retry'),
+        onPress: () => {
+          useBetsStore.setState({ saveFailed: false });
+          useBetsStore.getState().persist();
+        },
+      },
+    ]);
+  }, [saveFailed]);
+
+  // ...and save again, quietly, each time the user comes back — they may have
+  // just freed space in the phone's settings.
+  useEffect(() => {
+    if (!isLoaded) return;
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active' && useBetsStore.getState().saveFailed) useBetsStore.getState().persist();
     });
     return () => sub.remove();
   }, [isLoaded]);

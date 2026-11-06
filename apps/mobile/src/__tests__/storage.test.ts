@@ -44,11 +44,23 @@ const flush = () => new Promise((r) => setTimeout(r, 0));
 
 async function reset() {
   await storage.clear();
+  // A load of the empty disk, so nothing the store keeps between saves
+  // (generation, base, unsaved count) carries over from the previous test.
+  useBetsStore.setState({ isLoaded: false, loadError: false, saveFailed: false });
+  await useBetsStore.getState().load();
   useBetsStore.setState({
     bets: [], diary: [], teams: [], goals: [],
     settings: { ...defaultSettings, onboardingComplete: true },
     bankroll: { ...defaultBankroll }, isLoaded: true, loadError: false,
   });
+}
+
+/** A file of the layout every build before the pieces wrote: one key, bets inside. */
+async function oldLayoutFile(bets: Bet[]) {
+  await storage.clear();
+  await storage.setItem(STORAGE_KEY, JSON.stringify({
+    version: 4, bets, settings: { ...defaultSettings, onboardingComplete: true }, diary: [], teams: [],
+  }));
 }
 
 /** A launch: the state in memory is gone, the store reads the disk. */
@@ -202,6 +214,53 @@ describe('the record lost, broken, or rewritten by an older build', () => {
     expect(useBetsStore.getState().bets).toEqual(bets);
   });
 
+  it('the first save after the update was killed before its record: the old file as it was, not a mix', async () => {
+    // A «Replace» restore in the first session on the new build; the save
+    // wrote its pieces and died before the record. The old file still says
+    // 1-2-3 and never mentions those pieces: the restore did not happen.
+    // Merged, the two would have read 1-2-3-7-8 — neither state.
+    await oldLayoutFile([bet(1), bet(2), bet(3)]);
+    await relaunch();
+    storage.setItem.mockImplementationOnce(async () => { throw new Error('killed'); });
+    await save([bet(7), bet(8)]);
+    expect((await pieceKeys()).length).toBeGreaterThan(0);
+    await relaunch();
+    expect(ids()).toEqual(['bet-1', 'bet-2', 'bet-3']);
+    // And the next save takes the old file's bets into pieces, leaving no other.
+    await useBetsStore.getState().persist();
+    await relaunch();
+    expect(ids()).toEqual(['bet-1', 'bet-2', 'bet-3']);
+    expect(new Set((await pieceKeys()).map((k) => parsePieceKey(k)!.gen)).size).toBe(1);
+  });
+
+  it('...but after that save landed, an older build\'s rewrite is merged with it, as before', async () => {
+    await oldLayoutFile([bet(1), bet(2)]);
+    await relaunch();
+    await save([bet(1), bet(2), bet(3)]); // landed: the record names its pieces now
+    // An older build: read no bets, the user added one, saved the old way.
+    const settings = JSON.parse((await storage.getItem(STORAGE_KEY))!).settings;
+    await storage.setItem(STORAGE_KEY, JSON.stringify({ settings, version: 4, bets: [bet(9)] }));
+    await relaunch();
+    expect(ids()).toEqual(['bet-1', 'bet-2', 'bet-3', 'bet-9']);
+  });
+
+  it('the record unreadable AND a piece missing: what still reads loads, not an empty app', async () => {
+    await save(many(3_000));
+    const keys = (await pieceKeys()).sort();
+    expect(keys.length).toBeGreaterThan(2);
+    await storage.removeMany([keys[1]!]);
+    await storage.setItem(STORAGE_KEY, '{"settings": {');
+    await relaunch();
+    await flush(); await flush();
+    const { bets, settings, isLoaded } = useBetsStore.getState();
+    expect(isLoaded).toBe(true);
+    expect(bets.length).toBeGreaterThan(0);
+    expect(bets.length).toBeLessThan(3_000);
+    // Not a new install: no onboarding (and no second trial) over recovered bets.
+    expect(settings.onboardingComplete).toBe(true);
+    expect(await storage.getItem('@sharklog/data_quarantine')).toBe('{"settings": {');
+  });
+
   it('a piece of the named save is damaged: the rest loads, and record and pieces go to quarantine', async () => {
     await save(many(3_000));
     const keys = await pieceKeys();
@@ -263,6 +322,82 @@ describe('a read that fails', () => {
     storage.setItem.mockImplementationOnce(async () => { throw new Error('disk full'); });
     useBetsStore.getState().persist();
     expect(await useBetsStore.getState().flush()).toBe(false);
+  });
+
+  it('a save refused before the load is not reported as saved — and a load supersedes it', async () => {
+    useBetsStore.setState({ isLoaded: false });
+    useBetsStore.getState().persist();
+    expect(await useBetsStore.getState().flush()).toBe(false);
+    await useBetsStore.getState().load();
+    expect(await useBetsStore.getState().flush()).toBe(true);
+  });
+});
+
+describe('a save that fails (a full phone)', () => {
+  const gensOf = (keys: string[]) => new Set(keys.map((k) => parsePieceKey(k)!.gen));
+  const full = async () => { throw new Error('SQLITE_FULL'); };
+
+  /** Runs `act` and returns the piece keys on disk at the moment its save starts writing. */
+  async function piecesWhenWriting(act: () => Promise<unknown>): Promise<string[]> {
+    const real = storage.setMany.getMockImplementation()!;
+    let seen: string[] = [];
+    storage.setMany.mockImplementationOnce(async (entries: Record<string, string>) => {
+      seen = await pieceKeys();
+      return real(entries);
+    });
+    await act();
+    return seen;
+  }
+
+  it('raises saveFailed and keeps the state; the next save that lands clears it', async () => {
+    await save([bet(1)]);
+    storage.setMany.mockImplementationOnce(full);
+    await save([bet(1), bet(2)]);
+    expect(useBetsStore.getState().saveFailed).toBe(true);
+    expect(ids()).toEqual(['bet-1', 'bet-2']);
+    expect(await useBetsStore.getState().flush()).toBe(false);
+    await useBetsStore.getState().persist();
+    expect(useBetsStore.getState().saveFailed).toBe(false);
+    expect(await useBetsStore.getState().flush()).toBe(true);
+    await relaunch();
+    expect(ids()).toEqual(['bet-1', 'bet-2']);
+  });
+
+  it('clears the failed save\'s pieces BEFORE writing the next: on a full phone they are the space it needs', async () => {
+    await save(many(1_000));
+    const committed = gensOf(await pieceKeys());
+    storage.setItem.mockImplementationOnce(full); // the pieces landed, the record did not
+    await save(many(1_001));
+    expect(gensOf(await pieceKeys()).size).toBe(2);
+    const seen = await piecesWhenWriting(() => save(many(1_002)));
+    expect(gensOf(seen)).toEqual(committed);
+    await relaunch();
+    expect(useBetsStore.getState().bets).toHaveLength(1_002);
+  });
+
+  it('...and the leftovers of a save that failed in the LAST session', async () => {
+    await save(many(1_000));
+    const committed = gensOf(await pieceKeys());
+    storage.setItem.mockImplementationOnce(full);
+    await save(many(1_001));
+    await relaunch(); // closed and opened again: the record names the old generation
+    expect(useBetsStore.getState().bets).toHaveLength(1_000);
+    const seen = await piecesWhenWriting(() => useBetsStore.getState().persist());
+    expect(gensOf(seen)).toEqual(committed);
+  });
+
+  it('beside an OLD-layout record clears nothing before a save lands: the pieces hold bets that record lacks', async () => {
+    await save([bet(1), bet(2)]);
+    const settings = JSON.parse((await storage.getItem(STORAGE_KEY))!).settings;
+    await storage.setItem(STORAGE_KEY, JSON.stringify({ settings, version: 4, bets: [bet(9)] })); // an older build
+    await relaunch();
+    expect(ids()).toEqual(['bet-1', 'bet-2', 'bet-9']);
+    storage.setItem.mockImplementationOnce(full);
+    await useBetsStore.getState().persist();
+    storage.setItem.mockImplementationOnce(async () => { throw new Error('killed'); });
+    await useBetsStore.getState().persist();
+    await relaunch();
+    expect(ids()).toEqual(['bet-1', 'bet-2', 'bet-9']);
   });
 });
 

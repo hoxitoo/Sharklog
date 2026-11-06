@@ -1259,6 +1259,8 @@
     "title": "Could not read your data",
     "body": "Your bets, bank and settings are still there: until the data is read, the app writes and erases nothing. Try again. If that does not help, contact support and do not reinstall the app — reinstalling deletes the data.",
     "retry": "Try again",
-    "support": "Contact support"
+    "support": "Contact support",
+    "saveTitle": "Changes were not saved",
+    "saveBody": "Your latest changes exist only in memory and will be lost if the app is closed. Most likely the phone is out of storage — free up some space and try again. When you come back to the app, it will try to save again by itself."
   }
 }
