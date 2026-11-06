@@ -92,6 +92,19 @@ describe('resumePendingPayment', () => {
     expect(takePaidNotice()).toBe(false);
   });
 
+  it('keeps the invoice until the licence is on disk — a failed save must not lose a paid licence', async () => {
+    const p = await server.createPayment();
+    licenseAnswer = { status: 'paid', license: licence(p!.inv) };
+    const storage = require('@react-native-async-storage/async-storage').default;
+    // The save of the licence fails (killed, disk full): the record never lands.
+    storage.setItem.mockImplementationOnce(async () => { throw new Error('disk full'); });
+    expect(await resumePendingPayment()).toBe('unreachable');
+    expect(await server.getPendingPayment()).not.toBeNull();
+    // The next check fetches it again and, saved this time, lets the invoice go.
+    expect(await resumePendingPayment()).toBe('paid');
+    expect(await server.getPendingPayment()).toBeNull();
+  });
+
   it('lets go of an invoice the server does not know', async () => {
     await server.createPayment();
     licenseAnswer = { status: 'unknown' };

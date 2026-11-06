@@ -127,6 +127,10 @@ async function run(): Promise<ResumeResult> {
   // the key — a configuration error, not a payment problem. Keep the invoice:
   // a fixed build will pick the same licence up.
   if (!useBetsStore.getState().applyLicense(answer.license)) return 'unreachable';
+  // The invoice is the only way back to this licence. Forget it only once the
+  // licence is on disk: forgotten first, a kill or a failed write in between
+  // lost a PAID licence for good. Kept, the next check fetches it again.
+  if (!(await useBetsStore.getState().flush())) return 'unreachable';
   await clearPendingPayment();
   paidNotice = true;
   Analytics.proUpgradeCompleted();

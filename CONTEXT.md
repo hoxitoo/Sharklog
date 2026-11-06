@@ -340,6 +340,7 @@ interface TeamStats {
 25. **JSON-восстановление проходит через `migrate()`**: иначе бэкап, снятый до исправления схемы, возвращает в приложение уже вылеченные баги.
 26. **Цели — данные** (`goals` рядом с дневником, в бэкапе, стираются «Очистить все данные»). Прогресс — только `calcGoalProgress` (core): `profit` — результат ставок с даты начала (депозиты не двигают), `bank` — `currentBank`, `withdraw` — выведено сверх внесённого, `lossCap` — минус календарного месяца. Free — одна открытая цель (`goalsFor`, лимит на показ, не на хранение). Тексты вида строятся из ключа (`goals.kind/kindHint/how/startHint/amount.<вид>`) — их полноту держит `goals.test.ts`.
 27. **Дата из календаря, не из текстового поля**: `DateField` в форме ставки, фильтре списка и целях. Дату старого формата (импорт CSV) поле показывает как есть и не трогает.
+28. **Хранилище мобилки — ставки кусками, запись поколениями** (`utils/storageLayout.ts`): ни одно значение не приближается к 2 МБ (Android не прочитает строку больше), сохранение переживает обрыв на любом шаге, при загрузке ничего не удаляется, при ошибке чтения — экран ошибки и ни одной записи. Подробно — CLAUDE.md, «Хранилище данных».
 
 ---
 
@@ -548,7 +549,7 @@ VITE_OWNER_PRO=true
 ## Тесты
 
 ```
-packages/core         320 vitest unit tests (stats, analytics, daily, formatters, kelly, migrations,
+packages/core         321 vitest unit tests (stats, analytics, daily, formatters, kelly, migrations,
                           betsCsv x14 — round-trip / P&L / инъекция / разделители,
                           pnlBuckets x10 — границы бакетов, порядок кривой,
                           bankroll x10 — bankCash / currentBank / pendingExposure / сверки,
@@ -559,8 +560,8 @@ packages/core         320 vitest unit tests (stats, analytics, daily, formatters
                           insightsGroups x8 — дисциплина в группировках (только по esports-ставкам) и порядок по P&L,
                           betYears x16 — список лет, «без турнира», границы диаграммы, тримминг имён)
 apps/desktop           40 vitest smoke tests (betsStore x25, importBets x15)
-apps/mobile           355 jest tests (стор, стражи дизайна/тем/переводов, оплата, цели, календарь…)
-ИТОГО                  715 тестов (core 320 + desktop 40 + mobile 355, на 2026-11-05)
+apps/mobile           377 jest tests (стор, стражи дизайна/тем/переводов, оплата, цели, календарь…)
+ИТОГО                  738 тестов (core 321 + desktop 40 + mobile 377, на 2026-11-06)
 ```
 
 ---

@@ -175,13 +175,20 @@ export default function App() {
     // its "no" would take away Pro that an older build left behind.
     if (BILLING === 'revenuecat') initRevenueCat();
     Analytics.appOpen();
-    load().then(async () => {
-      // Pro from every source, not the store's word alone: a "no" from
-      // RevenueCat used to switch off a running trial or a licence with it.
+    load();
+  }, []);
+
+  // Pro from every source, not the store's word alone: a "no" from RevenueCat
+  // used to switch off a running trial or a licence with it. Keyed on isLoaded,
+  // not chained to the first load(): after a read error, the retry is what
+  // loads the store, and the entitlement must be asked then too.
+  useEffect(() => {
+    if (!isLoaded) return;
+    (async () => {
       const entitled = BILLING === 'revenuecat' ? await syncEntitlement() : null;
       useBetsStore.getState().refreshPro(entitled);
-    });
-  }, []);
+    })();
+  }, [isLoaded]);
 
   // A Robokassa payment finishes in the browser, outside the app; ask the
   // licence server about it when the user comes back, and at launch (the app
