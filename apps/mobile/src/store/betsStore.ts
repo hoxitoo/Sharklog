@@ -83,15 +83,26 @@ let committedGen: number | null = null;
  */
 let keepGens = new Set<number>();
 /**
- * The bets array a save of THIS session wrote into `committedGen`, and in how
- * many pieces. While the store still holds that very array, its pieces on disk
- * are the bets — a save changes only the record (a setting toggled, a diary
- * line, a deposit wrote ~5 MB on 10 000 bets). By reference: the store never
- * changes the array or a bet in place, it replaces them. Null after a load —
- * what was read went through migration and sanitizing, and the pieces may not
- * be what the store holds — so the first save of a session is always whole.
+ * The bets array a save of THIS session wrote into `committedGen`, a copy of
+ * its items, and in how many pieces. While the store still holds that very
+ * array with those very items, its pieces on disk are the bets — a save
+ * changes only the record (a setting toggled, a diary line, a deposit wrote
+ * ~5 MB on 10 000 bets). By reference: the store never changes the array or a
+ * bet in place, it replaces them. The copy catches the array changed in place
+ * anyway (a push would leave the record's count at odds with the pieces); a
+ * bet's FIELD changed in place is what the dev-build freeze below catches.
+ * Null after a load — what was read went through migration and sanitizing,
+ * and the pieces may not be what the store holds — so the first save of a
+ * session is always whole.
  */
-let committedBets: { bets: readonly Bet[]; chunks: number } | null = null;
+let committedBets: { bets: readonly Bet[]; items: readonly Bet[]; chunks: number } | null = null;
+
+/** The store's bets are still exactly what the committed generation's pieces hold. Exported for its test. */
+export function betsUnchanged(c: NonNullable<typeof committedBets>, bets: readonly Bet[]): boolean {
+  if (c.bets !== bets || c.items.length !== bets.length) return false;
+  for (let i = 0; i < bets.length; i++) if (c.items[i] !== bets[i]) return false;
+  return true;
+}
 /**
  * The record on disk is a FILE on iOS (over 1 024 characters, or written by
  * this build, which pads it). Then rewriting it either lands whole or leaves
@@ -620,7 +631,7 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
       // hold them, and only the record changes. The record names that same
       // generation, so a save killed or failed at any step leaves the old
       // record or the new one — both naming pieces that are there.
-      const reuse = committedBets !== null && committedBets.bets === bets && committedGen !== null
+      const reuse = committedBets !== null && committedGen !== null && betsUnchanged(committedBets, bets)
         ? { gen: committedGen, chunks: committedBets.chunks }
         : null;
       let pieces: Record<string, string> = {};
@@ -656,8 +667,10 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
         failed();
         return;
       }
-      // 3. The landed mark: a changed inline value makes iOS write its
-      //    manifest, so only now is the record on disk for sure. Failed: the
+      // 3. The landed mark: an inline value — iOS writes its manifest on EVERY
+      //    inline write, changed or not (RNCAsyncStorage.mm, _writeEntry), so
+      //    only now is the record on disk for sure; a save that wrote only
+      //    the record writes the same value again, and must. Failed: the
       //    record may or may not be the live one — keep both its pieces and
       //    the previous ones.
       try {
@@ -668,7 +681,7 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
         return;
       }
       committedGen = gen;
-      committedBets = { bets, chunks };
+      committedBets = { bets, items: bets.slice(), chunks };
       keepGens = new Set();
       recordIsFile = true; // padded past the inline limit (buildSave)
       savedThrough = Math.max(savedThrough, seq);
@@ -888,3 +901,18 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
     return settings.isPro || bets.length < FREE_LIMITS.MAX_BETS;
   },
 }));
+
+// Saving trusts that a bet is never changed in place (`committedBets`): a field
+// written straight into a stored bet would show on screen and be gone after a
+// restart, because the next save would write the record alone. In a dev build
+// every bet that enters the store is frozen, so such a write throws where it
+// happens instead of losing data quietly in a release.
+export function freezeBets(bets: readonly Bet[]): void {
+  for (const b of bets) if (b && !Object.isFrozen(b)) Object.freeze(b);
+  if (!Object.isFrozen(bets)) Object.freeze(bets);
+}
+if (typeof __DEV__ !== 'undefined' && __DEV__) {
+  useBetsStore.subscribe((state, prev) => {
+    if (state.bets !== prev.bets) freezeBets(state.bets);
+  });
+}

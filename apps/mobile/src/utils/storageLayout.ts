@@ -50,11 +50,13 @@ export const PIECE_PREFIX = '@sharklog/bets:';
 /**
  * The generation whose record last landed, written after that record by every
  * save. Two jobs:
- *  - a short value that changes on each save, so iOS must write its manifest
- *    before the save counts as landed. A save that only rewrites an existing
+ *  - a short INLINE value, so iOS must write its manifest before the save
+ *    counts as landed (it does on every inline write, changed or not —
+ *    RNCAsyncStorage.mm, _writeEntry). A save that only rewrites an existing
  *    file never writes it, and a manifest write that failed earlier in the
  *    session (a record moving into its own file) would otherwise stay unsaved
- *    while every later save reported success;
+ *    while every later save reported success. A save that wrote only the
+ *    record (bets unchanged) writes the same number again — for this;
  *  - for a load that finds an old-layout record: a generation whose record
  *    DID land is never skipped as a killed save — an older build overwrote it
  *    ("Why a base": two downgrades with an unchanged record would otherwise
