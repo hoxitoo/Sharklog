@@ -30,3 +30,25 @@ describe('icons and fonts', () => {
     expect(barrels).toEqual([]);
   });
 });
+
+describe('React types vs the bundler', () => {
+  // The type check maps `react` to the React 19 types of this app (React
+  // Native in the root node_modules would see the desktop's React 18 types).
+  // Expo applies tsconfig `paths` to Metro too, so with that mapping on, the
+  // bundle resolved `react` to the types package and did not build. Metro
+  // resolves @sharklog/core through its package.json (src) instead.
+  const { readFileSync } = require('fs') as typeof import('fs');
+  const { join } = require('path') as typeof import('path');
+  const root = join(__dirname, '..', '..');
+
+  it('the react path mapping is for TypeScript only — Metro does not read tsconfig paths', () => {
+    const tsconfig = readFileSync(join(root, 'tsconfig.json'), 'utf8');
+    const app = JSON.parse(readFileSync(join(root, 'app.json'), 'utf8'));
+    if (/"react":\s*\[/.test(tsconfig)) expect(app.expo.experiments?.tsconfigPaths).toBe(false);
+  });
+
+  it('core resolves for Metro through its package.json', () => {
+    const core = JSON.parse(readFileSync(join(root, '..', '..', 'packages', 'core', 'package.json'), 'utf8'));
+    expect(core.main).toBe('./src/index.ts');
+  });
+});

@@ -32,6 +32,7 @@ docs/            — ROADMAP.md, ANALYSIS.md, PRIVACY_POLICY.md, RELEASE_GUIDE.m
 - PRO-функции мобилки — `<ProGate feature="...">` компонент.
 - `packages/core` — без зависимостей на React/RN/Browser.
 - `exactOptionalPropertyTypes: true` — нельзя писать `prop={undefined}`, нужен spread `{...(x ? { prop: x } : {})}`.
+- **Типы React — своей версии у каждого приложения**: мобилка на React 19 — `@types/react` 19 в `apps/mobile`, десктоп на React 18 — 18 в корне. React Native лежит в корневом `node_modules` и сам по себе видел бы типы 18, поэтому `paths` в `apps/mobile/tsconfig.json` направляет `react` и `react/*` на мобильные типы (без этого две версии `ReactNode` не сходились). **Expo применяет `paths` и к Metro** — с этим отображением бандл искал `react` в пакете типов и не собирался, поэтому в `app.json` `experiments.tsconfigPaths: false`, а `@sharklog/core` Metro находит через его `package.json` (`main` → `src/index.ts`). Страж — `bundleImports.test.ts`. В React 19 `useRef<T>(null)` — это `RefObject<T | null>`: проп для такого рефа так и типизируй.
 - **refund ≠ cashout**: `refund` = букмекер вернул ставку (отмена матча); `cashout` = игрок сам выкупил досрочно. Это два разных `BetStatus`.
 - **formatPercent()** уже добавляет `+` для положительных значений — не добавляй префикс вручную.
 - **`parseMoneyInput`** сохраняет ведущий `-` и парсит много-групповые разделители (`1 000 000`, `1.000.000`). Отрицательные значения отбрасывай на уровне формы (`stake > 0`), а не в парсере.
@@ -309,7 +310,7 @@ new Date(str).toLocaleDateString(locale, { day: 'numeric', month: 'short' });
 # Тесты
 cd packages/core && npx vitest run        # 343 unit-теста core
 cd apps/desktop  && npm test              # 40 smoke-тестов desktop (Vitest)
-cd apps/mobile   && npm test              # 468 тестов mobile (Jest), включая стражей дизайна, тем и переводов
+cd apps/mobile   && npm test              # 470 тестов mobile (Jest), включая стражей дизайна, тем и переводов
 
 # Type-check
 cd apps/mobile  && npx tsc --noEmit
