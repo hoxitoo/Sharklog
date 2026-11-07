@@ -12,7 +12,9 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "paths": {
-      "@sharklog/core": ["../../packages/core/src/index.ts"]
+      "@sharklog/core": ["../../packages/core/src/index.ts"],
+      "react": ["./node_modules/@types/react"],
+      "react/*": ["./node_modules/@types/react/*"]
     }
   },
   "include": ["src", "App.tsx", "index.ts"],

@@ -96,7 +96,7 @@ function SingleTeamInput({
   value: string;
   onChange: (v: string) => void;
   onSubmitEditing?: () => void;
-  textInputRef?: React.RefObject<TextInputRef>;
+  textInputRef?: React.RefObject<TextInputRef | null>;
   placeholder?: string;
   sport: Sport;
   discipline: EsportsDiscipline;
@@ -214,7 +214,7 @@ const ac = themedStyles(() => ({
 function TournamentInput({ value, onChange, scrollRef }: {
   value: string;
   onChange: (v: string) => void;
-  scrollRef?: React.RefObject<ScrollView>;
+  scrollRef?: React.RefObject<ScrollView | null>;
 }) {
   const bets = useBetsStore((s) => s.bets);
   // `tr`, not `t`: `t` is the tournament name in the loops below.
