@@ -5,7 +5,7 @@ import {
   Keyboard, Easing,
 } from 'react-native';
 import { AppText as Text } from '../components/AppText';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { ChecklistModal } from '../components/ChecklistModal';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';

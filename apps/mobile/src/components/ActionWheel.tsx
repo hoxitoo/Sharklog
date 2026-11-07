@@ -5,7 +5,7 @@ import {
 } from 'react-native';
 import { AppText as Text } from './AppText';
 import Svg, { Path } from 'react-native-svg';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { colors, alpha, mix } from '../theme/colors';
 import { PALETTES } from '../theme/palettes';
 import { SIZE } from '../theme/typography';

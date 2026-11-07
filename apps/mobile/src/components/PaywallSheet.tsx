@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import { Modal, Pressable, TouchableOpacity } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTranslation } from 'react-i18next';
 import { ProOffer } from './ProGate';
 import { useBetsStore, ownsPro } from '../store/betsStore';
