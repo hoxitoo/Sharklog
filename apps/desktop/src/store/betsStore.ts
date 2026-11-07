@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { Bet, AppSettings, Bankroll, DiaryEntry, Team } from '@sharklog/core';
-import { migrate, CURRENT_SCHEMA_VERSION, FREE_LIMITS, isInTilt, parseEventTeams, preselectedBookmakers, cleanTeamNames, upsertTeams } from '@sharklog/core';
+import { migrate, CURRENT_SCHEMA_VERSION, FREE_LIMITS, parseEventTeams, preselectedBookmakers, cleanTeamNames, upsertTeams } from '@sharklog/core';
 import { loadData, saveData } from '../storage/storageService';
 
 function uuid(): string {

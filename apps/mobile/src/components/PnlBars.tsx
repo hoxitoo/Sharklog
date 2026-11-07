@@ -1,5 +1,4 @@
-import React from 'react';
-import { View, StyleSheet, TouchableWithoutFeedback } from 'react-native';
+import { View, TouchableWithoutFeedback } from 'react-native';
 import { AppText as Text } from './AppText';
 import Svg, { Rect, Line } from 'react-native-svg';
 import type { PnlBucket } from '@sharklog/core';

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { SPACE, RADIUS } from '../theme/layout';
 import { View, StyleSheet, Animated, Easing } from 'react-native';
 import { AppText as Text } from './AppText';

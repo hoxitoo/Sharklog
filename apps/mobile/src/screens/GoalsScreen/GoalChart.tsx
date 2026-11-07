@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { View } from 'react-native';
 import Svg, { Polyline, Line, Circle } from 'react-native-svg';
 import { useTranslation } from 'react-i18next';

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { cardSurface } from '../../components/Card';
 import { SPACE, RADIUS, hitSlopFor } from '../../theme/layout';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, TouchableOpacity } from 'react-native';
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
 import type { Bet } from '@sharklog/core';
 import { parseMoneyInput, betPnl } from '@sharklog/core';

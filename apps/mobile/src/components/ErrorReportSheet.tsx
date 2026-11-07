@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Modal, View, Pressable, ScrollView, TouchableOpacity, Linking, Share } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AppText as Text } from './AppText';

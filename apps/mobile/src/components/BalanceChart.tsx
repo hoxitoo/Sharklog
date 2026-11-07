@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, StyleSheet, PanResponder } from 'react-native';
+import { View, PanResponder } from 'react-native';
 import { AppText as Text } from './AppText';
 import Svg, { Polyline, Polygon, Line, Circle } from 'react-native-svg';
 import type { DayStats } from '@sharklog/core';

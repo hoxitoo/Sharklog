@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   View, TouchableOpacity, Modal, Pressable, Animated, PanResponder, Keyboard, type StyleProp, type ViewStyle,
 } from 'react-native';

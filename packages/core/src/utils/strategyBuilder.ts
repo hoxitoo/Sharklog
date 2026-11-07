@@ -1,6 +1,6 @@
 import type {
   StrategyAnswers, GeneratedStrategy,
-  StrategyGoal, StrategyRisk, StrategyExperience,
+  
   Strategy, BetType,
 } from '../types/bet';
 import { toYmd } from './daily';

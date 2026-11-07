@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo, useRef } from 'react';
 import { SPACE, RADIUS, TOUCH, hitSlopFor } from '../../theme/layout';
 import {
-  View, StyleSheet, ScrollView, TouchableOpacity, Alert, KeyboardAvoidingView, Platform,
+  View, ScrollView, TouchableOpacity, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
 import type { TextInput as TextInputRef } from 'react-native';
@@ -13,7 +13,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { Sport, BetType, Strategy, BetStatus, EsportsDiscipline, Team, Bet } from '@sharklog/core';
 import {
   SPORTS, BET_TYPES, STRATEGIES, ESPORTS_DISCIPLINES, PICK, parseMoneyInput,
-  impliedProbability, kellyFraction, expectedValue, recommendedStake, inPlanOdds, stakeOverPlan, strategyPlan, strategySince, activeStrategy, bankAtBetTime, combineExpressOdds, formatOddsAs, CURRENT_SCHEMA_VERSION, FREE_LIMITS, calcDashboard, toYmd, stepProbability,
+  impliedProbability, kellyFraction, expectedValue, recommendedStake, inPlanOdds, stakeOverPlan, strategyPlan, strategySince, activeStrategy, bankAtBetTime, combineExpressOdds, formatOddsAs, CURRENT_SCHEMA_VERSION, FREE_LIMITS, toYmd, stepProbability,
 } from '@sharklog/core';
 import { useTranslation } from 'react-i18next';
 import { FilterPicker } from '../../components/FilterPicker';
@@ -271,7 +271,7 @@ function TournamentInput({ value, onChange, scrollRef }: {
 
 // ── Restore pick1x2 value from an existing 1X2 bet ────────────────────────────
 
-function initPick1x2(editBet: { betType: BetType; pick?: string } | undefined, team1: string, team2: string): Pick1x2 {
+function initPick1x2(editBet: { betType: BetType; pick?: string } | undefined, _team1: string, team2: string): Pick1x2 {
   if (!editBet || editBet.betType !== '1X2') return 'home';
   const pick = editBet.pick ?? '';
   if (pick === PICK.DRAW || pick === 'X') return 'draw';

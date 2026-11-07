@@ -69,63 +69,6 @@ export function calcExtremes(bets: Bet[]): ExtremeBets {
   return { biggestWin, biggestLoss };
 }
 
-// ── Full-calendar-month result (previous complete month) ─────────────────────
-
-export interface MonthResult {
-  year: number;
-  month: number;      // 0-11
-  label: string;      // "YYYY-MM"
-  pnl: number;
-  roi: number;
-  count: number;      // settled bets in the month
-  winRate: number;
-  deltaPnl: number;   // pnl minus the month before (trend)
-}
-
-function ymd(y: number, m: number, d: number): string {
-  const mm = String(m + 1).padStart(2, '0');
-  const dd = String(d).padStart(2, '0');
-  return `${y}-${mm}-${dd}`;
-}
-
-function betsInMonth(bets: Bet[], y: number, m: number): Bet[] {
-  const start = ymd(y, m, 1);
-  const end = ymd(y, m, new Date(y, m + 1, 0).getDate()); // last day of month
-  return bets.filter((b) => b.date >= start && b.date <= end);
-}
-
-/** Result for an arbitrary calendar month (trend delta vs the month before it). */
-export function calcMonthResult(bets: Bet[], year: number, month: number): MonthResult {
-  const monthBets = betsInMonth(bets, year, month);
-  const d = calcDashboard(monthBets);
-  // "Settled" is consistent with pnl/roi, which include cashouts (see calcDashboard).
-  const settledCount = monthBets.filter(
-    (b) => b.status === 'won' || b.status === 'lost' || (b.status === 'cashout' && b.cashoutAmount != null),
-  ).length;
-
-  // Month before, for the trend delta
-  const before = new Date(year, month - 1, 1);
-  const beforeBets = betsInMonth(bets, before.getFullYear(), before.getMonth());
-  const beforePnl = calcDashboard(beforeBets).pnl;
-
-  return {
-    year,
-    month,
-    label: `${year}-${String(month + 1).padStart(2, '0')}`,
-    pnl: d.pnl,
-    roi: d.roi,
-    count: settledCount,
-    winRate: d.winRate,
-    deltaPnl: d.pnl - beforePnl,
-  };
-}
-
-/** Result for the previous full calendar month relative to `now`. */
-export function calcLastFullMonth(bets: Bet[], now: Date): MonthResult {
-  const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  return calcMonthResult(bets, prev.getFullYear(), prev.getMonth());
-}
-
 // ── Time-of-day distribution ─────────────────────────────────────────────────
 
 export interface HourBucket {
@@ -275,28 +218,6 @@ export function calcEdge(bets: Bet[]): EdgeStats {
     avgOdds: d.avgOdds,
     sampleSize: d.wonBets + d.lostBets,
   };
-}
-
-// ── Monthly P&L trend (last N calendar months incl. current) ─────────────────
-
-export interface MonthlyPnl {
-  year: number;
-  month: number;  // 0-11
-  pnl: number;
-  count: number;  // total bets in the month
-}
-
-export function calcMonthlyPnl(bets: Bet[], now: Date, months = 6): MonthlyPnl[] {
-  const out: MonthlyPnl[] = [];
-  for (let i = months - 1; i >= 0; i--) {
-    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-    const y = d.getFullYear();
-    const m = d.getMonth();
-    const mb = betsInMonth(bets, y, m);
-    const dash = calcDashboard(mb);
-    out.push({ year: y, month: m, pnl: dash.pnl, count: dash.totalBets });
-  }
-  return out;
 }
 
 /** Below this many settled bets, ROI/win-rate/edge are noise, not signal. */

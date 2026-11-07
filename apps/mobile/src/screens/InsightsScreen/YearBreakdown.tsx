@@ -1,7 +1,7 @@
-import React, { useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { SPACE, RADIUS, TOUCH } from '../../theme/layout';
 import { cardSurface } from '../../components/Card';
-import { View, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
+import { View, TouchableOpacity, ScrollView } from 'react-native';
 import { AppText as Text } from '../../components/AppText';
 import type { Bet, TournamentStats } from '@sharklog/core';
 import { calcBetYears, betsInYear, calcByTournament } from '@sharklog/core';

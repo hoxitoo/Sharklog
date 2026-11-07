@@ -45,15 +45,6 @@ export function chartScale(vals: number[], sections = 4): GiftedChartScale {
   };
 }
 
-/**
- * gifted-charts adds sectionsBelow × stepHeight to the declared `height`.
- * Given the total vertical budget for the chart, return the `height` prop
- * so the rendered chart (positive + negative quadrants) fits the budget.
- */
-export function chartHeightForBudget(budget: number, scale: GiftedChartScale): number {
-  return Math.round((budget * scale.noOfSections) / (scale.noOfSections + scale.sectionsBelow));
-}
-
 /** Shared Y-axis label: 1500 → "1.5k", small values as-is. */
 export function formatChartYLabel(v: string): string {
   const n = parseFloat(v);

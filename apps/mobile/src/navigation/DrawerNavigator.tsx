@@ -196,7 +196,7 @@ export function DrawerNavigator() {
         e.nativeEvent.pageX < 28 && !drawerVisibleRef.current,
       onMoveShouldSetPanResponder: (_, g) =>
         !drawerVisibleRef.current && g.dx > 8 && Math.abs(g.dy) < 60,
-      onPanResponderRelease: (e, g) => {
+      onPanResponderRelease: (_e, g) => {
         if (!drawerVisibleRef.current && g.dx > 20) openDrawer();
       },
     }),

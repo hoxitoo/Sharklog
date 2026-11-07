@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { SPACE, RADIUS, TOUCH } from '../../theme/layout';
 import {
-  View, StyleSheet, TouchableOpacity, ScrollView, Alert,
+  View, TouchableOpacity, ScrollView, Alert,
 } from 'react-native';
 import { AppText as Text } from '../../components/AppText';
 import { buildStrategy, strategyPlan, BANKROLL_TIERS, STRATEGY_ODDS_BANDS, isCurrencyCode } from '@sharklog/core';

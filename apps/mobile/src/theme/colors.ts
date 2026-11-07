@@ -12,8 +12,6 @@ import { PALETTES, THEME_META, isThemeId, type Palette, type ThemeId } from './p
  */
 export const colors: Palette = { ...PALETTES.dark };
 
-export type Colors = Palette;
-
 let activeTheme: ThemeId = 'dark';
 let version = 0;
 

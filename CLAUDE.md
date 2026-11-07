@@ -32,6 +32,7 @@ docs/            — ROADMAP.md, ANALYSIS.md, PRIVACY_POLICY.md, RELEASE_GUIDE.m
 - PRO-функции мобилки — `<ProGate feature="...">` компонент.
 - `packages/core` — без зависимостей на React/RN/Browser.
 - `exactOptionalPropertyTypes: true` — нельзя писать `prop={undefined}`, нужен spread `{...(x ? { prop: x } : {})}`.
+- **`noUnusedLocals` и `noUnusedParameters` включены во всех трёх пакетах** (`tsconfig.base.json`, с 2026-11-07): неиспользуемый импорт или переменная — ошибка `tsc`, а `tsc` гоняет CI. Параметр, который нужен по позиции, но не читается, — с подчёркиванием (`_e`). `React` в файле с одним JSX не импортируй: JSX собирается автоматическим рантаймом. Экспорт, который никто не зовёт, `tsc` не видит — его ищи грепом перед тем, как полагаться на функцию.
 - **Типы React — своей версии у каждого приложения**: мобилка на React 19 — `@types/react` 19 в `apps/mobile`, десктоп на React 18 — 18 в корне. React Native лежит в корневом `node_modules` и сам по себе видел бы типы 18, поэтому `paths` в `apps/mobile/tsconfig.json` направляет `react` и `react/*` на мобильные типы (без этого две версии `ReactNode` не сходились). **Expo применяет `paths` и к Metro** — с этим отображением бандл искал `react` в пакете типов и не собирался, поэтому в `app.json` `experiments.tsconfigPaths: false`, а `@sharklog/core` Metro находит через его `package.json` (`main` → `src/index.ts`). Страж — `bundleImports.test.ts`. В React 19 `useRef<T>(null)` — это `RefObject<T | null>`: проп для такого рефа так и типизируй.
 - **refund ≠ cashout**: `refund` = букмекер вернул ставку (отмена матча); `cashout` = игрок сам выкупил досрочно. Это два разных `BetStatus`.
 - **formatPercent()** уже добавляет `+` для положительных значений — не добавляй префикс вручную.
@@ -146,7 +147,7 @@ docs/            — ROADMAP.md, ANALYSIS.md, PRIVACY_POLICY.md, RELEASE_GUIDE.m
 **Темы (мобилка): Тёмная / Светлая / Оливковая / Тёмно-синяя.** Устройство, которое нельзя ломать:
 - **Палитры — данные** в `theme/palettes.ts` (`PALETTES[id]`, одинаковые ключи, 6-значный hex, `*Dim` — 8-значный). Новый цвет = ключ во ВСЕХ палитрах; тест сверяет ключи и формат и гоняет правила контраста по каждой теме (`__tests__/theme.test.ts`): текст на всех поверхностях ≥ 4.5, сигнальные цвета (won/lost/pending/refund/accent/purpleText/gold/violet/raspberry) как текст на карточке ≥ 4.5, белый на `purple` ≥ 4.4 (фирменный тёмный — 4.41), `onAccent`/`onGold` на своих заливках ≥ 4.5, `onLost` на `lost` ≥ 4.5 (у тёмной — фирменные 3.59), маркер `deposit` ≥ 3 на карточке и плитке и не совпадает с другими сериями графика.
 - **`colors` — ЖИВОЙ объект**: `applyTheme(id)` (theme/colors.ts) меняет его значения на месте. Компонент, читающий `colors.x` ПРИ ОТРИСОВКЕ, получает текущую тему — поэтому 900 мест не трогали.
-- **Ничего не читает палитру при загрузке модуля.** Таблица стилей уровня модуля — ТОЛЬКО `themedStyles(() => ({...}))` (theme/themed.ts: ленивый прокси, пересобирается при смене темы); `StyleSheet.create` на верхнем уровне запрещён. Общие объекты с цветом (`cardSurface`, `tileStyle`, `HEADER_TITLE`, `NAV_TITLE`, `typography`, `STATUS_COLORS`, `TONE_ACCENT`, `SERIES`, `inputStyle`) — на ГЕТТЕРАХ: спред `{...shared}` в модуле копирует значение один раз. Геттер работает ТОЛЬКО потому, что смена темы перемонтирует дерево: значение снимается заново при следующем рендере, а не по подписке. Нарушение находит статический страж `__tests__/themeLive.test.ts` (TypeScript AST) с указанием файла и строки — он сканирует и `App.tsx`, ловит IIFE (`(() => colors.bg)()`) и вызов `toneSurface(...)` на уровне модуля (так центр доната в Аналитике застывал в тёмной теме — чёрный круг на белой карточке), а отдельный тест проверяет, что сам страж ловит то, что должен. Новый помощник, отдающий цвет темы, — в его `PALETTE_NAMES`.
+- **Ничего не читает палитру при загрузке модуля.** Таблица стилей уровня модуля — ТОЛЬКО `themedStyles(() => ({...}))` (theme/themed.ts: ленивый прокси, пересобирается при смене темы); `StyleSheet.create` на верхнем уровне запрещён. Общие объекты с цветом (`cardSurface`, `tileStyle`, `HEADER_TITLE`, `NAV_TITLE`, `STATUS_COLORS`, `TONE_ACCENT`, `SERIES`, `inputStyle`) — на ГЕТТЕРАХ: спред `{...shared}` в модуле копирует значение один раз. Геттер работает ТОЛЬКО потому, что смена темы перемонтирует дерево: значение снимается заново при следующем рендере, а не по подписке. Нарушение находит статический страж `__tests__/themeLive.test.ts` (TypeScript AST) с указанием файла и строки — он сканирует и `App.tsx`, ловит IIFE (`(() => colors.bg)()`) и вызов `toneSurface(...)` на уровне модуля (так центр доната в Аналитике застывал в тёмной теме — чёрный круг на белой карточке), а отдельный тест проверяет, что сам страж ловит то, что должен. Новый помощник, отдающий цвет темы, — в его `PALETTE_NAMES`.
 - **`isThemeId` — только собственные ключи** (`hasOwnProperty`): `'toString' in PALETTES` — правда, и тема стала бы `undefined`. Бэкап тему НЕ везёт: восстановление возвращает ставки, банк, дневник и команды, настройки остаются как на устройстве.
 - **Переключение = перемонтаж.** Палитра применяется из подписки на стор, зарегистрированной в `App.tsx` на уровне модуля (раньше любого компонента — до ре-рендера); дерево под `key={theme}` монтируется заново, поэтому замороженные и мемоизированные экраны тоже перерисуются. Стек сохраняется (`initialState`), экран меню — `lastScreen` в DrawerNavigator.
 - **Текст на цветной заливке — токен, не литерал**: `colors.onAccent` (галочка на зелёном), `colors.onGold` («Перейти на Pro»), `colors.onLost` (свайп «Удалить», крестик колеса — белый на мягком красном оливковой и тёмно-синей давал 2.5). `'#fff'` допустим только на `purple` — это правило палитры, его держит тест. У ВЫКЛЮЧЕННОЙ кнопки заливка `bgElevated`, а не `purple`, — её подпись `textMuted` (степперы и «+» букмекера в Настройках были белым по белому на светлой).
@@ -308,9 +309,9 @@ new Date(str).toLocaleDateString(locale, { day: 'numeric', month: 'short' });
 
 ```bash
 # Тесты
-cd packages/core && npx vitest run        # 343 unit-теста core
+cd packages/core && npx vitest run        # 338 unit-тестов core
 cd apps/desktop  && npm test              # 40 smoke-тестов desktop (Vitest)
-cd apps/mobile   && npm test              # 470 тестов mobile (Jest), включая стражей дизайна, тем и переводов
+cd apps/mobile   && npm test              # 469 тестов mobile (Jest), включая стражей дизайна, тем и переводов
 
 # Type-check
 cd apps/mobile  && npx tsc --noEmit
@@ -832,10 +833,10 @@ utils/
   betsCsv.ts          — buildBetsCSV / importBetsFromCSV / importBetsFromRows / parseAmount
                         один импорт-экспорт на оба приложения: BOM, CRLF, `,`/`;`/таб, алиасы колонок
   analytics.ts        — calcStreaks (лучшая W / худшая L / текущая), calcExtremes (макс выигрыш/проигрыш),
-                        calcLastFullMonth(bets, now) (прошлый полный месяц + тренд), calcCLV (closingOdds),
+                        calcCLV (closingOdds),
                         calcTimeStats(bets, use12h) (6 4-часовых промежутков для доната + топ-4 часа с P&L),
                         calcMaxDrawdown (пик→дно кумулятивного P&L), calcEdge (WR vs безубыток),
-                        calcMonthlyPnl(bets, now, months), calcMonthResult(bets, y, m) — итог любого месяца, RELIABLE_SAMPLE_MIN=100
+                        RELIABLE_SAMPLE_MIN=100
                         calcPnlBuckets(bets, 'day'|'week'|'month', count) — чистый P&L по периодам
                         (группировка по bet.date, пустые бакеты сохраняются)
                         calcLuck(bets) — сигма-отклонение результата от безубытка (везение vs решения)

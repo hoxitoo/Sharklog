@@ -51,34 +51,15 @@ export async function trackEvent(event: string, props?: Record<string, unknown>)
 
 export const Analytics = {
   appOpen: () => trackEvent('app_open'),
-  onboardingComplete: () => trackEvent('onboarding_complete'),
 
   betAdded: (p: { sport: string; betType: string; bookmaker: string; status: string }) =>
     trackEvent('bet_added', p),
-
-  betResultSet: (p: { status: string }) =>
-    trackEvent('bet_result_set', p),
-
-  proScreenViewed: (screen: string) =>
-    trackEvent('pro_screen_viewed', { screen }),
 
   proUpgradeStarted: (source: string) =>
     trackEvent('pro_upgrade_started', { source }),
 
   proUpgradeCompleted: () =>
     trackEvent('pro_upgrade_completed'),
-
-  exportTriggered: (format: 'csv' | 'json') =>
-    trackEvent('export_triggered', { format }),
-
-  importTriggered: (format: 'csv' | 'json') =>
-    trackEvent('import_triggered', { format }),
-
-  strategyBuilt: () =>
-    trackEvent('strategy_built'),
-
-  kellyUsed: () =>
-    trackEvent('kelly_used'),
 
   supportAction: (kind: 'pro' | 'rate' | 'share' | 'write') =>
     trackEvent('support_action', { kind }),

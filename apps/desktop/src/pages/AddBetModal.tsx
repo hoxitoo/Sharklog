@@ -221,7 +221,7 @@ const kl: Record<string, React.CSSProperties> = {
 
 type Pick1x2 = 'п1' | 'x' | 'п2';
 
-function initPick1x2(editBet: Bet | undefined, t1: string, t2: string): Pick1x2 {
+function initPick1x2(editBet: Bet | undefined, _t1: string, t2: string): Pick1x2 {
   if (!editBet || editBet.betType !== '1X2') return 'п1';
   if (editBet.pick === 'Ничья') return 'x';
   if (editBet.pick === t2) return 'п2';

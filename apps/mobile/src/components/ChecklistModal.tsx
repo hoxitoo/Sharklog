@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { SPACE, RADIUS, TOUCH } from '../theme/layout';
 import {
-  Modal, View, StyleSheet, TouchableOpacity, ScrollView,
+  Modal, View, TouchableOpacity, ScrollView,
 } from 'react-native';
 import { AppText as Text } from './AppText';
 import { colors } from '../theme/colors';

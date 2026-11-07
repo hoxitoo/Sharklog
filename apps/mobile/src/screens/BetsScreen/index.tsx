@@ -2,7 +2,7 @@ import React, { useState, useMemo, useCallback, useRef, useEffect, useDeferredVa
 import { SPACE, RADIUS, TOUCH, FAB_CLEARANCE, hitSlopFor } from '../../theme/layout';
 import { cardSurface } from '../../components/Card';
 import {
-  View, SectionList, StyleSheet, TouchableOpacity, ScrollView, RefreshControl, Image,
+  View, SectionList, TouchableOpacity, RefreshControl, Image,
   Animated, Easing, Keyboard, type NativeScrollEvent, type NativeSyntheticEvent,
 } from 'react-native';
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';

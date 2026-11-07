@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-  STRATEGY_QUESTIONS, buildStrategy, formatMoney, STRATEGIES, BET_TYPES, strategyPlan,
+  STRATEGY_QUESTIONS, buildStrategy, STRATEGIES, BET_TYPES, strategyPlan,
 } from '@sharklog/core';
 import type { StrategyAnswers, GeneratedStrategy } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';

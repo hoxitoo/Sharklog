@@ -224,7 +224,6 @@ interface BetsStore {
   updateSettings: (updates: Partial<AppSettings>) => void;
   updateBankroll: (updates: Partial<Bankroll>) => void;
   addDiaryEntry: (entry: DiaryEntry) => void;
-  deleteTeam: (id: string) => void;
   /** Add a goal (to the end) or replace the one with its id. */
   saveGoal: (goal: Goal) => void;
   deleteGoal: (id: string) => void;
@@ -735,11 +734,6 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
     set((s) => ({
       diary: [entry, ...s.diary.filter((d) => d.date !== entry.date)],
     }));
-    get().persist();
-  },
-
-  deleteTeam: (id) => {
-    set((s) => ({ teams: s.teams.filter((t) => t.id !== id) }));
     get().persist();
   },
 

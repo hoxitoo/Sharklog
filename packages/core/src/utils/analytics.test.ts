@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
-  calcStreaks, calcExtremes, calcLastFullMonth, calcTimeStats, calcCLV,
-  calcMaxDrawdown, calcEdge, calcMonthlyPnl, calcMonthResult,
+  calcStreaks, calcExtremes, calcTimeStats, calcCLV,
+  calcMaxDrawdown, calcEdge,
 } from './analytics';
 import type { Bet } from '../types/bet';
 
@@ -108,39 +108,6 @@ describe('calcExtremes', () => {
   });
 });
 
-describe('calcLastFullMonth', () => {
-  it('aggregates the previous complete calendar month and trend vs the month before', () => {
-    const now = new Date(2024, 5, 15); // June 15 → previous full month = May
-    const bets = [
-      makeBet({ status: 'won', stake: 100_00, odds: 2.0, date: '2024-05-10' }), // +100 (May)
-      makeBet({ status: 'lost', stake: 40_00, date: '2024-05-20' }),            // -40  (May)
-      makeBet({ status: 'won', stake: 100_00, odds: 2.0, date: '2024-04-10' }), // +100 (April)
-      makeBet({ status: 'won', stake: 100_00, odds: 2.0, date: '2024-06-05' }), // June — excluded
-    ];
-    const r = calcLastFullMonth(bets, now);
-    expect(r.label).toBe('2024-05');
-    expect(r.pnl).toBe(60_00);      // +100 - 40
-    expect(r.count).toBe(2);
-    expect(r.deltaPnl).toBe(60_00 - 100_00); // May minus April
-  });
-
-  it('handles January → previous month is December of last year', () => {
-    const now = new Date(2024, 0, 10);
-    const bets = [makeBet({ status: 'won', stake: 100_00, odds: 2.0, date: '2023-12-15' })];
-    const r = calcLastFullMonth(bets, now);
-    expect(r.label).toBe('2023-12');
-    expect(r.pnl).toBe(100_00);
-  });
-
-  it('counts cashouts as settled (consistent with pnl)', () => {
-    const now = new Date(2024, 5, 15); // June → May
-    const bets = [makeBet({ status: 'cashout', stake: 100_00, cashoutAmount: 150_00, date: '2024-05-10' })];
-    const r = calcLastFullMonth(bets, now);
-    expect(r.pnl).toBe(50_00);
-    expect(r.count).toBe(1); // cashout is a settled bet
-  });
-});
-
 describe('calcTimeStats', () => {
   it('buckets into six 4-hour periods and returns top hours with P&L', () => {
     const bets = [
@@ -240,31 +207,3 @@ describe('calcEdge', () => {
   });
 });
 
-describe('calcMonthlyPnl', () => {
-  it('returns N months oldest→newest incl. current with per-month P&L', () => {
-    const now = new Date(2024, 5, 15); // June
-    const bets = [
-      makeBet({ status: 'won', stake: 100_00, odds: 2.0, date: '2024-06-05' }), // +100 June
-      makeBet({ status: 'lost', stake: 40_00, date: '2024-05-20' }),            // -40 May
-    ];
-    const r = calcMonthlyPnl(bets, now, 6);
-    expect(r).toHaveLength(6);
-    expect(r[r.length - 1]).toMatchObject({ year: 2024, month: 5, pnl: 100_00 }); // June (current)
-    expect(r[r.length - 2]).toMatchObject({ year: 2024, month: 4, pnl: -40_00 }); // May
-    expect(r[0]).toMatchObject({ month: 0 }); // January (6 months back from June)
-  });
-});
-
-describe('calcMonthResult', () => {
-  it('returns the summary for an arbitrary month with trend vs the month before', () => {
-    const bets = [
-      makeBet({ status: 'won', stake: 100_00, odds: 2.0, date: '2024-03-10' }), // +100 March
-      makeBet({ status: 'lost', stake: 30_00, date: '2024-02-20' }),            // -30 February
-    ];
-    const r = calcMonthResult(bets, 2024, 2); // March
-    expect(r.label).toBe('2024-03');
-    expect(r.pnl).toBe(100_00);
-    expect(r.count).toBe(1);
-    expect(r.deltaPnl).toBe(100_00 - (-30_00));
-  });
-});

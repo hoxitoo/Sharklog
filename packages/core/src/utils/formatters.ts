@@ -63,14 +63,6 @@ export function formatPercent(value: number): string {
   return `${sign}${rounded.toFixed(1)}%`;
 }
 
-export function formatDate(isoDate: string): string {
-  return new Date(isoDate).toLocaleDateString('ru-RU', {
-    day: '2-digit',
-    month: '2-digit',
-    year: '2-digit',
-  });
-}
-
 /**
  * Total coefficient of an accumulator, rounded to 2 decimals.
  *
