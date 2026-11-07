@@ -14,7 +14,7 @@ const ASSETS = join(ROOT, 'assets');
 /** Kept in the repo, never shipped: Metro bundles only what is required. */
 const UNUSED: Record<string, string> = {
   // The native splash is icon.png (app.json → splash.image); this tall
-  // placeholder from scripts/gen-assets.js has not been referenced since.
+  // placeholder (from a generator script since deleted) has not been referenced since.
   'splash.png': 'not referenced by app.json or the app',
 };
 

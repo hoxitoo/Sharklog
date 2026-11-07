@@ -1,35 +1,64 @@
 name: CI
 
+# Every branch runs on push (the landing on gh-pages has no code to check).
+# A pull request runs only from a fork: a branch of this repository has already
+# run on its push, and the same commit was checked twice — two runs, two full
+# installs, on every push to a branch with an open PR.
 on:
   push:
-    branches: [main, 'claude/**', 'feat/**', 'fix/**']
+    branches-ignore: [gh-pages]
   pull_request:
-    branches: [main]
 
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
-  test:
-    name: Core tests
+  checks:
+    name: Tests, types, bundle
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.fork
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: 'npm'
-      - run: npm ci --legacy-peer-deps
-      - name: Run vitest (core)
-        run: cd packages/core && npx vitest run --reporter=verbose
-      - name: Run vitest (desktop)
+      # The whole install (all workspaces), keyed by the lockfile: an unchanged
+      # lockfile skips `npm ci` (~840 MB) altogether.
+      - name: Restore node_modules
+        id: nm
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: nm-${{ runner.os }}-node22-${{ hashFiles('package-lock.json') }}
+      - name: Install
+        if: steps.nm.outputs.cache-hit != 'true'
+        run: npm ci --legacy-peer-deps
+
+      - name: Core — tests
+        run: cd packages/core && npx vitest run
+      - name: Core — types
+        run: cd packages/core && npx tsc --noEmit
+
+      - name: Desktop — tests
         run: cd apps/desktop && npm test
-      - name: Run jest (mobile)
+      - name: Desktop — types
+        run: cd apps/desktop && npx tsc --noEmit
+
+      - name: Mobile — tests
         run: cd apps/mobile && npm test
+      - name: Mobile — types
+        run: cd apps/mobile && npx tsc --noEmit
+      # Catches what tsc cannot: an import that does not resolve in the bundle.
+      - name: Mobile — bundle
+        run: cd apps/mobile && npx expo export --platform android --output-dir "$RUNNER_TEMP/expo-export"
 
   e2e:
     name: E2E tests (desktop)
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.fork
     # Pinned: ubuntu-latest moved to 26.04, where Playwright 1.60 cannot install
     # Chromium ("does not support chromium on ubuntu26.04-x64") and the job died
     # before a single test ran. Move back once Playwright supports it.
@@ -40,10 +69,31 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: 'npm'
-      - run: npm ci --legacy-peer-deps
-      - name: Install Playwright browsers
+      - name: Restore node_modules
+        id: nm
+        uses: actions/cache@v4
+        with:
+          path: |
+            node_modules
+            apps/*/node_modules
+            packages/*/node_modules
+          key: nm-${{ runner.os }}-node22-${{ hashFiles('package-lock.json') }}
+      - name: Install
+        if: steps.nm.outputs.cache-hit != 'true'
+        run: npm ci --legacy-peer-deps
+      # The browser is ~170 MB and was downloaded on every run.
+      - name: Restore Playwright browser
+        id: pw
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: pw-${{ runner.os }}-${{ hashFiles('package-lock.json') }}
+      - name: Install Playwright browser
+        if: steps.pw.outputs.cache-hit != 'true'
         run: cd apps/desktop && npx playwright install --with-deps chromium
+      - name: Install Playwright system deps
+        if: steps.pw.outputs.cache-hit == 'true'
+        run: cd apps/desktop && npx playwright install-deps chromium
       - name: Run E2E tests
         run: cd apps/desktop && npm run test:e2e
         env:
@@ -56,23 +106,3 @@ jobs:
           name: playwright-report
           path: apps/desktop/playwright-report/
           retention-days: 7
-
-  type-check:
-    name: Type check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: 'npm'
-      - run: npm ci --legacy-peer-deps
-      - name: Mobile
-        run: |
-          cd apps/mobile
-          npx tsc --noEmit --project tsconfig.json || true
-      - name: Desktop
-        run: |
-          cd apps/desktop
-          npx tsc --noEmit
-

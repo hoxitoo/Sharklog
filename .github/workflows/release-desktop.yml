@@ -68,8 +68,8 @@ jobs:
       - name: Install Node deps
         run: npm ci
 
-      - name: Build @sharklog/core
-        run: cd packages/core && npm run build
+      # No core build step: Vite reads @sharklog/core from its TypeScript
+      # source (alias in apps/desktop/vite.config.ts), like every other consumer.
 
       - name: Build Tauri app
         env:
