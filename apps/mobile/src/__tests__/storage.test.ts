@@ -1,6 +1,8 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { Bet } from '@sharklog/core';
-import { useBetsStore, defaultSettings, defaultBankroll } from '../store/betsStore';
+import { useBetsStore, defaultSettings, defaultBankroll, betsUnchanged, freezeBets } from '../store/betsStore';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import {
   CHUNK_CHARS, MIN_RECORD_CHARS, STORAGE_KEY, LANDED_KEY, assembleGeneration, buildSave, parsePieceKey, recordPieces,
   failedRecordMayLand,
@@ -641,7 +643,7 @@ describe('a save that changes no bet', () => {
     expect(useBetsStore.getState().settings.roundAmounts).toBe(false);
   });
 
-  it('on a full phone it is the save that still fits: a failed whole save, then a setting, lands', async () => {
+  it('a new bet that failed to save keeps the next save whole — the record alone would name pieces without it', async () => {
     await save(many(1_000));
     storage.setMany.mockImplementationOnce(async () => { throw new Error('SQLITE_FULL'); });
     await save(many(1_001)); // a new bet: whole save, and the phone is full
@@ -653,6 +655,76 @@ describe('a save that changes no bet', () => {
     expect(storage.setMany).toHaveBeenCalled();
     await relaunch();
     expect(useBetsStore.getState().bets).toHaveLength(1_001);
+  });
+});
+
+describe('a save that changes no bet — what it stands on', () => {
+  const recordGen = async () => JSON.parse((await storage.getItem(STORAGE_KEY))!).betsGen as number;
+  const toggle = async (on: boolean) => {
+    useBetsStore.setState((st) => ({ settings: { ...st.settings, roundAmounts: on } }));
+    await useBetsStore.getState().persist();
+  };
+  const full = async () => { throw new Error('SQLITE_FULL'); };
+
+  it('on a full phone it still lands: no piece to write', async () => {
+    await save(many(1_000));
+    const real = storage.setMany.getMockImplementation()!;
+    storage.setMany.mockImplementation(full); // not even one piece fits any more
+    try {
+      await toggle(true);
+      expect(useBetsStore.getState().saveFailed).toBe(false);
+      expect(await useBetsStore.getState().flush()).toBe(true);
+    } finally {
+      storage.setMany.mockImplementation(real);
+    }
+    await relaunch();
+    expect(useBetsStore.getState().bets).toHaveLength(1_000);
+    expect(useBetsStore.getState().settings.roundAmounts).toBe(true);
+  });
+
+  for (const step of ['record', 'landed mark'] as const) {
+    it(`a changed bet whose save failed at the ${step}: the next setting save is whole, and the bet survives`, async () => {
+      await save(many(300));
+      useBetsStore.getState().updateBet('bet-7', { status: 'refund' });
+      const real = storage.setItem.getMockImplementation()!;
+      if (step === 'record') storage.setItem.mockImplementationOnce(full);
+      else storage.setItem.mockImplementationOnce(real).mockImplementationOnce(full);
+      await useBetsStore.getState().persist();
+      expect(useBetsStore.getState().saveFailed).toBe(true);
+      const gen = await recordGen();
+      storage.setMany.mockClear();
+      await toggle(true);
+      expect(storage.setMany).toHaveBeenCalled();
+      expect(await recordGen()).toBeGreaterThan(gen);
+      await relaunch();
+      expect(useBetsStore.getState().bets.find((b) => b.id === 'bet-7')!.status).toBe('refund');
+      expect(useBetsStore.getState().bets).toHaveLength(300);
+    });
+  }
+
+  it('compares the items, not only the array: an array changed in place is not "unchanged"', () => {
+    const items = [bet(1), bet(2)];
+    const arr = [...items];
+    expect(betsUnchanged({ bets: arr, items, chunks: 1 }, arr)).toBe(true);
+    const pushed = [...items];
+    const c = { bets: pushed, items: [...pushed], chunks: 1 };
+    pushed.push(bet(3));
+    expect(betsUnchanged(c, pushed)).toBe(false);
+    const swapped = [...items];
+    const c2 = { bets: swapped, items: [...swapped], chunks: 1 };
+    swapped[1] = { ...bet(2), status: 'refund' } as Bet;
+    expect(betsUnchanged(c2, swapped)).toBe(false);
+  });
+
+  it('a dev build freezes the stored bets: a write in place throws instead of being lost on restart', () => {
+    const stored = [bet(1), bet(2)];
+    freezeBets(stored);
+    expect(() => { (stored[0] as { status: string }).status = 'won'; }).toThrow(TypeError);
+    expect(() => { stored.push(bet(3)); }).toThrow(TypeError);
+    // Jest here has no __DEV__, so the subscription itself is held statically:
+    // every change of bets in a dev build goes through freezeBets.
+    const src = readFileSync(join(__dirname, '../store/betsStore.ts'), 'utf8');
+    expect(src).toMatch(/if \(typeof __DEV__ !== 'undefined' && __DEV__\) \{\s*useBetsStore\.subscribe\(\(state, prev\) => \{\s*if \(state\.bets !== prev\.bets\) freezeBets\(state\.bets\);/);
   });
 });
 
