@@ -7,7 +7,7 @@ import {
 } from '@sharklog/core';
 import {
   sendTiltNotification, scheduleBetResultReminder,
-  cancelBetResultReminder, cancelAllBetResultReminders,
+  cancelBetResultReminder, cancelAllBetResultReminders, syncBetResultReminders,
 } from '../utils/notifications';
 import { verifyLicense, resolvePro, trialEnd, extractLicense, hasLicense, readLicense, type LicensePayload } from '../utils/license';
 import { BILLING, LICENSE_PUBKEY } from '../services/billing';
@@ -330,6 +330,18 @@ export const defaultSettings: AppSettings = {
  */
 export function effectiveReminderHour(s: Pick<AppSettings, 'isPro' | 'reminderHour'>): number {
   return s.isPro ? s.reminderHour : defaultSettings.reminderHour;
+}
+
+/**
+ * Bet reminders brought in line with the store as it is NOW: after anything
+ * that changes bets past `addBet`/`updateBet` (CSV/JSON import, restoring a
+ * backup), when the reminders switch or the permission changes, and on every
+ * return to the app. Settings, App.tsx and the permission prompt each had
+ * their own copy of these two lines.
+ */
+export function resyncBetReminders(): void {
+  const { bets, settings } = useBetsStore.getState();
+  syncBetResultReminders(bets, settings.betResultReminders !== false);
 }
 
 /**

@@ -30,15 +30,9 @@ import { strategyName } from '../../utils/strategyText';
 import { themedStyles } from '../../theme/themed';
 import { useBottomPad } from '../../utils/useBottomPad';
 import { dayMonth } from '../../utils/calendar';
+import { PERIOD_OPTIONS, periodCutoff, betsAfter, type Period } from '../../utils/period';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
-
-type PeriodFilter = '7d' | '30d' | 'all';
-const PERIOD_OPTIONS: Array<{ key: PeriodFilter; label: string }> = [
-  { key: '7d', label: 'analytics.period7d' },
-  { key: '30d', label: 'analytics.period30d' },
-  { key: 'all', label: 'analytics.periodAll' },
-];
 
 function WLStrip({ bets }: { bets: Bet[] }) {
   const { t } = useTranslation();
@@ -423,7 +417,7 @@ export function DashboardScreen() {
   const fmtOdds = useFormatOddsRange(); // the strategy's range
   const oddsFormat = useOddsFormat();
   const { t } = useTranslation();
-  const [period, setPeriod] = useState<PeriodFilter>('all');
+  const [period, setPeriod] = useState<Period>('all');
   const [showHeatmap, setShowHeatmap] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [tiltDismissed, setTiltDismissed] = useState(false);
@@ -436,14 +430,7 @@ export function DashboardScreen() {
     });
   }, []);
 
-  const filteredBets = useMemo(() => {
-    if (period === 'all') return bets;
-    const days = period === '7d' ? 7 : 30;
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - days);
-    const cutoffStr = toYmd(cutoff); // local date — toISOString would shift the day
-    return bets.filter((b) => b.date > cutoffStr);
-  }, [bets, period]);
+  const filteredBets = useMemo(() => betsAfter(bets, periodCutoff(period)), [bets, period]);
 
   // Per-day series drives the main dashboard. Running totals always span the full
   // history, so a 10-day window still shows the true balance.

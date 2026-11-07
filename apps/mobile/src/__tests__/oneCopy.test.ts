@@ -2,12 +2,14 @@
  * Small helpers that existed in several copies, each a little different:
  * the short day «ДД.ММ» (eleven copies — some printed «undefined.undefined»
  * for a day stored in another shape, others the string as is) and the event
- * without its per-leg odds (four). One function each now; this keeps it so.
+ * without its per-leg odds (four), the period chips with their cutoff (three)
+ * and the reminder re-sync (three). One function each now; this keeps it so.
  */
 import { readFileSync, readdirSync, statSync } from 'fs';
 import { join, relative } from 'path';
 import { dayMonth } from '../utils/calendar';
 import { displayEvent } from '../utils/labels';
+import { periodCutoff, betsAfter } from '../utils/period';
 
 const ROOT = join(__dirname, '..', '..');
 
@@ -52,5 +54,34 @@ describe('displayEvent', () => {
 
   it('is the only place that strips them for display', () => {
     expect(offenders(/split\(' \/ '\)\.map\(\(?p\)? => p\.split\('\|'\)/, 'utils/labels.ts')).toEqual([]);
+  });
+});
+
+describe('the period window', () => {
+  const now = new Date(2026, 10, 7, 0, 30); // 7 Nov 2026, just past local midnight
+
+  it('«7 дней» is today and the six days before it', () => {
+    const cutoff = periodCutoff('7d', now);
+    expect(cutoff).toBe('2026-10-31');
+    const bets = [{ date: '2026-10-31' }, { date: '2026-11-01' }, { date: '2026-11-07' }];
+    expect(betsAfter(bets, cutoff).map((b) => b.date)).toEqual(['2026-11-01', '2026-11-07']);
+    expect(periodCutoff('30d', now)).toBe('2026-10-08');
+  });
+
+  it('all time keeps the very same array', () => {
+    const bets = [{ date: '2026-01-01' }];
+    expect(periodCutoff('all', now)).toBeNull();
+    expect(betsAfter(bets, null)).toBe(bets);
+  });
+
+  it('is the only period type and cutoff in the app', () => {
+    expect(offenders(/type \w*Period\w* = '7d'|getDate\(\) - \(?(days|period)/, 'utils/period.ts')).toEqual([]);
+  });
+});
+
+describe('reminder re-sync', () => {
+  it('goes through resyncBetReminders, not a local copy', () => {
+    // The two lines every copy had: read bets and the switch, then sync.
+    expect(offenders(/syncBetResultReminders\(\w+\.?bets, (settings\.betResultReminders|true)/, 'store/betsStore.ts')).toEqual([]);
   });
 });

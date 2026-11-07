@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useBetsStore, effectiveReminderHour } from '../store/betsStore';
-import { requestNotificationPermission, scheduleDailyReminder, syncBetResultReminders } from './notifications';
+import { useBetsStore, effectiveReminderHour, resyncBetReminders } from '../store/betsStore';
+import { requestNotificationPermission, scheduleDailyReminder } from './notifications';
 
 const ASKED_KEY = '@sharklog/notif_asked';
 
@@ -25,9 +25,8 @@ export async function askForRemindersOnce(): Promise<void> {
     if (!(await requestNotificationPermission())) return;
     // The bet just saved tried to schedule its reminder before permission
     // existed; arm it (and the rest) now.
-    const fresh = useBetsStore.getState();
-    syncBetResultReminders(fresh.bets, true);
-    await scheduleDailyReminder(effectiveReminderHour(fresh.settings));
+    resyncBetReminders();
+    await scheduleDailyReminder(effectiveReminderHour(useBetsStore.getState().settings));
   } catch {
     // A missing reminder is no reason to break saving a bet.
   }

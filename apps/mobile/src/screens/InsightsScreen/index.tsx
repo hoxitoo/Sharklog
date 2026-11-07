@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { AppText as Text } from '../../components/AppText';
 import {
-  calcByTournament, calcByTeam, formatPercent, toYmd,
+  calcByTournament, calcByTeam, formatPercent,
 } from '@sharklog/core';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
@@ -25,17 +25,12 @@ import { AppIcon, sportGlyph, disciplineGlyph } from '../../components/icons/App
 import type { GlyphName } from '../../components/icons/glyphs';
 import { themedStyles } from '../../theme/themed';
 import { useBottomPad } from '../../utils/useBottomPad';
+import { PERIOD_OPTIONS_SHORT, periodCutoff, betsAfter, type Period } from '../../utils/period';
 
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
 
-type Period = '7d' | '30d' | 'all';
-const PERIOD_OPTIONS: Array<{ key: Period; label: string }> = [
-  { key: '7d', label: 'insights.period7d' },
-  { key: '30d', label: 'insights.period30d' },
-  { key: 'all', label: 'insights.periodAll' },
-];
 
 /** Bets a team needs before it is analysed — shown to the user, so one source. */
 const TEAM_MIN_BETS = 5;
@@ -200,17 +195,8 @@ export function InsightsScreen() {
   const [tOpen, setTOpen] = useState(false);
   const [teamOpen, setTeamOpen] = useState(false);
 
-  const cutoff = useMemo(() => {
-    if (period === 'all') return null;
-    const d = new Date();
-    d.setDate(d.getDate() - (period === '7d' ? 7 : 30));
-    return toYmd(d);
-  }, [period]);
-
-  const filteredBets = useMemo(
-    () => (cutoff ? bets.filter((b) => b.date > cutoff) : bets),
-    [bets, cutoff],
-  );
+  const cutoff = useMemo(() => periodCutoff(period), [period]);
+  const filteredBets = useMemo(() => betsAfter(bets, cutoff), [bets, cutoff]);
 
   // Every tile answers "which bets is this?" — tapping one opens exactly those,
   // period included, so the list length matches the number on the tile.
@@ -256,7 +242,7 @@ export function InsightsScreen() {
       <ScreenHeader title={tr('nav.insights')} subtitle={tr('insights.subtitle')} />
       <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={[s.scroll, { paddingBottom: bottomPad }]} showsVerticalScrollIndicator={false}>
         <View style={s.periodRow}>
-          {PERIOD_OPTIONS.map((p) => (
+          {PERIOD_OPTIONS_SHORT.map((p) => (
             <TouchableOpacity
               key={p.key}
               style={[s.periodBtn, period === p.key && s.periodBtnActive]}

@@ -7,7 +7,7 @@ import {
   calcByField, calcByOddsRange, calcByDayOfWeek, calcDashboard,
   calcStreaks, calcExtremes, calcTimeStats, calcCLV,
   calcMaxDrawdown, calcEdge, calcPnlBuckets, calcLuck, calcPlanAdherence, strategyPlan, strategySince, activeStrategy, RELIABLE_SAMPLE_MIN,
-  formatPercent, toYmd } from '@sharklog/core';
+  formatPercent } from '@sharklog/core';
 import type { SliceStats, Bet, PnlBucket, Granularity, GeneratedStrategy } from '@sharklog/core';
 import { useBetsStore } from '../../store/betsStore';
 import { ProGate } from '../../components/ProGate';
@@ -30,6 +30,7 @@ import { themedStyles } from '../../theme/themed';
 import { useBottomPad } from '../../utils/useBottomPad';
 import { useDrawer } from '../../components/DrawerContext';
 import { dayMonth } from '../../utils/calendar';
+import { PERIOD_OPTIONS, periodCutoff, betsAfter, type Period } from '../../utils/period';
 
 const { width } = Dimensions.get('window');
 
@@ -45,7 +46,7 @@ const PREV_KEY: Record<Granularity, string> = {
 };
 
 /** Bucket size that keeps the bar count readable for the selected period. */
-const BUCKETS: Record<APeriodFilter, { granularity: Granularity; count: number }> = {
+const BUCKETS: Record<Period, { granularity: Granularity; count: number }> = {
   '7d':  { granularity: 'day',   count: 7 },
   '30d': { granularity: 'day',   count: 30 },
   'all': { granularity: 'month', count: 12 },
@@ -61,7 +62,7 @@ function bucketTitle(t: TFunction, b: PnlBucket, granularity: Granularity): stri
   return granularity === 'month' ? t(`monthsLong.${Number(b.start.split('-')[1])}`) : dayMonth(b.start);
 }
 
-function HeroPnl({ bets, period }: { bets: Bet[]; period: APeriodFilter }) {
+function HeroPnl({ bets, period }: { bets: Bet[]; period: Period }) {
   const fmt = useFormatMoney();
   const fmtOdds = useFormatOdds();
   const { t } = useTranslation();
@@ -803,12 +804,6 @@ const sport = themedStyles(() => ({
 
 // ── Screen ───────────────────────────────────────────────────────────────────
 
-type APeriodFilter = '7d' | '30d' | 'all';
-const A_PERIOD_OPTIONS: Array<{ key: APeriodFilter; label: string }> = [
-  { key: '7d', label: 'analytics.period7d' },
-  { key: '30d', label: 'analytics.period30d' },
-  { key: 'all', label: 'analytics.periodAll' },
-];
 
 function AnalyticsContent() {
   const bottomPad = useBottomPad(SPACE.xxl);
@@ -817,17 +812,10 @@ function AnalyticsContent() {
   const plan = useBetsStore((s) => activeStrategy(s.settings));
   const { t } = useTranslation();
   const oddsFormat = useOddsFormat();
-  const [period, setPeriod] = useState<APeriodFilter>('all');
+  const [period, setPeriod] = useState<Period>('all');
   const [extendedOpen, setExtendedOpen] = useState(false);
 
-  const filteredBets = useMemo(() => {
-    if (period === 'all') return bets;
-    const days = period === '7d' ? 7 : 30;
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - days);
-    const cutoffStr = toYmd(cutoff);
-    return bets.filter((b) => b.date > cutoffStr);
-  }, [bets, period]);
+  const filteredBets = useMemo(() => betsAfter(bets, periodCutoff(period)), [bets, period]);
 
   // The raw key: SportBreakdown needs it for the glyph, and names it itself.
   const sportSlices = useMemo(() => calcByField(filteredBets, 'sport'), [filteredBets]);
@@ -848,7 +836,7 @@ function AnalyticsContent() {
   return (
     <ScrollView keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: bottomPad }}>
       <View style={styles.periodRow}>
-        {A_PERIOD_OPTIONS.map((p) => (
+        {PERIOD_OPTIONS.map((p) => (
           <TouchableOpacity
             key={p.key}
             style={[styles.periodBtn, period === p.key && styles.periodBtnActive]}
