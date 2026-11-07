@@ -1,3 +1,16 @@
+/*
+ * UNUSED IN THE RUSTORE BUILD — kept on purpose, do not delete (author's decision).
+ *
+ * The RuStore build sells through Robokassa (`EXPO_PUBLIC_BILLING=robokassa`,
+ * the default — services/billing.ts). There nothing here is called: App.tsx
+ * initialises and syncs only when `BILLING === 'revenuecat'`, ProGate renders
+ * `StoreCheckout` (offerings, purchase, restore) only for that build, and the
+ * Settings «Восстановить покупки» row likewise. The native module
+ * `react-native-purchases` is still linked into every build — the price of
+ * keeping one codebase for the Google Play / App Store release later, where
+ * this file is the payment path (profile `production` in eas.json).
+ * Guard: __tests__/revenueCatUnused.test.ts.
+ */
 import { Platform } from 'react-native';
 import Purchases, {
   LOG_LEVEL,
