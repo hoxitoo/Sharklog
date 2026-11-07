@@ -7,6 +7,7 @@ import { BILLING } from './billing';
 import {
   buildErrorReport, crashToSave, parseSavedCrash, savedCrashError, type ErrorReportInput,
 } from '../utils/errorReport';
+import { makeFatalHandler, type GlobalHandler } from '../utils/fatalHandler';
 
 /*
  * Our own error reporting, in place of a crash service (Sentry was removed: it
@@ -17,7 +18,9 @@ import {
  *  - the data-read error screen (StorageErrorScreen);
  *  - a crash: an error outside rendering (an event handler, a timer) closes the
  *    app, and no screen ever shows it. The global handler keeps it, and the
- *    next launch offers the report (App.tsx).
+ *    next launch offers the report (App.tsx). A render error no boundary
+ *    caught does NOT pass through that handler (React Native sends it straight
+ *    to ExceptionsManager): RootCrashBoundary around the whole app keeps those.
  */
 
 /** The fatal error the last session closed with (one at a time: the newest wins). */
@@ -40,7 +43,6 @@ export function reportFor(
   });
 }
 
-type GlobalHandler = (error: unknown, isFatal?: boolean) => void;
 interface ErrorUtilsLike {
   getGlobalHandler(): GlobalHandler;
   setGlobalHandler(handler: GlobalHandler): void;
@@ -50,36 +52,32 @@ interface ErrorUtilsLike {
 const SAVE_WAIT_MS = 1_500;
 let installed = false;
 
+/** Keep an error for the next launch, which offers its report (App.tsx). */
+export function recordCrash(error: unknown): Promise<void> {
+  try {
+    return AsyncStorage.setItem(LAST_CRASH_KEY, JSON.stringify(crashToSave(error, new Date(), APP_VERSION)))
+      .then(() => {}, () => {});
+  } catch {
+    return Promise.resolve();
+  }
+}
+
 /**
- * Keep a FATAL error for the next launch. The default handler — the one that
- * closes the app (a red screen in development) — still runs, after the save or
- * after SAVE_WAIT_MS, whichever is first: the JS thread keeps going until it
- * is called, and the write is a few milliseconds.
+ * Keep a FATAL error for the next launch (utils/fatalHandler has the rules).
+ * Not in development: there the red screen shows the error, and keeping each
+ * one would greet every reload with a crash prompt.
  */
 export function installCrashCapture(): void {
-  if (installed) return;
+  if (installed || __DEV__) return;
   const eu = (globalThis as { ErrorUtils?: ErrorUtilsLike }).ErrorUtils;
   if (!eu) return;
   installed = true;
-  const previous = eu.getGlobalHandler();
-  eu.setGlobalHandler((error, isFatal) => {
-    if (!isFatal) {
-      previous(error, isFatal);
-      return;
-    }
-    let done = false;
-    const finish = () => {
-      if (done) return;
-      done = true;
-      previous(error, isFatal);
-    };
-    setTimeout(finish, SAVE_WAIT_MS);
-    try {
-      AsyncStorage.setItem(LAST_CRASH_KEY, JSON.stringify(crashToSave(error, new Date(), APP_VERSION))).then(finish, finish);
-    } catch {
-      finish();
-    }
-  });
+  eu.setGlobalHandler(makeFatalHandler({
+    previous: eu.getGlobalHandler(),
+    save: recordCrash,
+    waitMs: SAVE_WAIT_MS,
+    schedule: (fn, ms) => { setTimeout(fn, ms); },
+  }));
 }
 
 /** The crash the last session closed with, as report text — forgotten as it is read, so it is offered once. */

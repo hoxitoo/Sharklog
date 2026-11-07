@@ -3,7 +3,7 @@ import {
   Text as RNText, TextInput as RNTextInput, StyleSheet,
   type TextProps, type TextInputProps, type TextStyle,
 } from 'react-native';
-import { TEXT_LIMITS } from '@sharklog/core';
+import { fieldCap } from '../utils/fieldCap';
 import { resolveFont } from '../theme/typography';
 import { themedStyles } from '../theme/themed';
 
@@ -54,7 +54,9 @@ export function AppText({ style, ...rest }: TextProps) {
 export function AppTextInput({ style, ref, maxLength, ...rest }: TextInputProps & {
   ref?: React.Ref<RNTextInput>;
 }) {
-  const cap = maxLength ?? (rest.multiline ? TEXT_LIMITS.NOTE : TEXT_LIMITS.FIELD);
+  // Never below the text already in it: a note saved before the limit froze
+  // on iOS and was cut on Android (utils/fieldCap).
+  const cap = fieldCap(maxLength, rest.multiline, rest.value);
   return <RNTextInput {...rest} maxLength={cap} ref={ref} style={[base.text, style, fontFor(style)]} />;
 }
 
