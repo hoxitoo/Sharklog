@@ -460,7 +460,7 @@ export function BetsScreen({ filter, onClearFilter }: {
           }
           ListEmptyComponent={
             <View style={styles.empty}>
-              <Image source={require('../../../assets/adaptive-icon.png')} style={styles.emptyIcon} resizeMode="contain" />
+              <Image source={require('../../../assets/app-mark.png')} style={styles.emptyIcon} resizeMode="contain" />
               {/* With bets on hand an empty list means the filters took them
                   all — "no bets yet, tap +" read as lost data. */}
               <Text style={styles.emptyTitle}>{bets.length > 0 ? t('bet.notFound') : t('bet.noBetsYet')}</Text>
