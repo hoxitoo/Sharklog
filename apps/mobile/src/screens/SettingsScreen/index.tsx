@@ -15,7 +15,7 @@ import {
 } from '@sharklog/core';
 import { FilterPicker } from '../../components/FilterPicker';
 import { useOddsFormat } from '../../utils/useOdds';
-import { useBetsStore, effectiveReminderHour, effectiveTiltThreshold } from '../../store/betsStore';
+import { useBetsStore, effectiveReminderHour, effectiveTiltThreshold, resyncBetReminders } from '../../store/betsStore';
 import { colors, alpha, mix } from '../../theme/colors';
 import { strategyName } from '../../utils/strategyText';
 import { useTranslation } from 'react-i18next';
@@ -24,7 +24,7 @@ import { exportBetsCSV } from '../../utils/exportCSV';
 import { importFromCSV, importFromJSON } from '../../utils/importBets';
 import {
   requestNotificationPermission, scheduleDailyReminder,
-  syncBetResultReminders, cancelAllBetResultReminders,
+  cancelAllBetResultReminders,
 } from '../../utils/notifications';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
@@ -43,12 +43,6 @@ import { restorePurchases } from '../../services/revenueCat';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { SIZE, GLYPH, numeric } from '../../theme/typography';
 import { themedStyles } from '../../theme/themed';
-
-/** Re-arm / clear bet reminders from the store's current state. */
-function resyncReminders(): void {
-  const { bets, settings } = useBetsStore.getState();
-  syncBetResultReminders(bets, settings.betResultReminders !== false);
-}
 
 const DAY_MS = 86_400_000;
 
@@ -329,7 +323,7 @@ export function SettingsScreen() {
     const granted = await requestNotificationPermission();
     if (granted) {
       await scheduleDailyReminder(reminderHour);
-      resyncReminders(); // bets logged before permission was granted had no reminder
+      resyncBetReminders(); // bets logged before permission was granted had no reminder
       Alert.alert(t('common.success'), t('settings.notifEnabled', { time: hh(reminderHour) }));
     } else {
       Alert.alert(t('settings.notifDeniedTitle'), t('settings.notifDeniedMsg'));
@@ -338,7 +332,7 @@ export function SettingsScreen() {
 
   function toggleBetReminders(on: boolean) {
     updateSettings({ betResultReminders: on });
-    if (on) resyncReminders();
+    if (on) resyncBetReminders();
     else cancelAllBetResultReminders(); // clear the already-armed ones
   }
 
@@ -479,7 +473,7 @@ export function SettingsScreen() {
             const newGoals = (backup.goals ?? []).filter((g) => !haveGoals.has(g.id));
             useBetsStore.setState({ bets: [...fresh, ...store.bets], goals: [...store.goals, ...newGoals] });
             store.persist();
-            resyncReminders();
+            resyncBetReminders();
             const pro = await licenseNoteFrom(backup.settings);
             Alert.alert(t('common.success'), t('settings.betsAdded', { count: fresh.length }) + skipped + pro);
           },
@@ -500,7 +494,7 @@ export function SettingsScreen() {
               ...(backup.goals ? { goals: backup.goals } : {}),
             });
             store.persist();
-            resyncReminders(); // replaced bets: drop orphan reminders, arm the new ones
+            resyncBetReminders(); // replaced bets: drop orphan reminders, arm the new ones
             const pro = await licenseNoteFrom(backup.settings);
             const cur = otherCurrency ? `\n${t('settings.restoreCurrencySet', { currency: signs.file })}` : '';
             Alert.alert(t('common.success'), t('settings.betsRestored', { count: n }) + skipped + cur + pro);
@@ -559,7 +553,7 @@ export function SettingsScreen() {
             const store = useBetsStore.getState();
             useBetsStore.setState({ bets: [...imported, ...store.bets] });
             store.persist();
-            resyncReminders(); // imported bets bypass addBet, so arm them here
+            resyncBetReminders(); // imported bets bypass addBet, so arm them here
             Alert.alert(t('common.success'), t('settings.betsAdded', { count: imported.length }));
           },
         },

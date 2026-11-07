@@ -21,8 +21,9 @@ describe('startup', () => {
     expect(app).toMatch(/syncRemindersFor\(/);
     expect(app).toMatch(/\$\{APP_VERSION\}\|\$\{i18n\.language\}\|/);
     // The foreground reconcile does not run a second pass at launch.
-    const reconcileEffect = app.slice(app.indexOf('const reconcile = () =>'), app.indexOf('return () => sub.remove();', app.indexOf('const reconcile = () =>')));
-    expect(reconcileEffect).not.toMatch(/^\s*reconcile\(\);/m);
+    // Only the return to the app re-syncs — no bare call when the effect mounts.
+    expect(app).toMatch(/if \(state === 'active'\) resyncBetReminders\(\);/);
+    expect(app).not.toMatch(/^\s*resyncBetReminders\(\);/m);
   });
 
   it('loads the icon font with the app fonts', () => {

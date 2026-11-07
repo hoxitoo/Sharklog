@@ -20,14 +20,14 @@ import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { AnimatedSplash } from './src/components/AnimatedSplash';
 import { StorageErrorScreen } from './src/components/StorageErrorScreen';
-import { useBetsStore, effectiveReminderHour } from './src/store/betsStore';
+import { useBetsStore, effectiveReminderHour, resyncBetReminders } from './src/store/betsStore';
 import { colors, applyTheme, currentTheme } from './src/theme/colors';
 import { PALETTES, THEME_META } from './src/theme/palettes';
 import * as Notifications from 'expo-notifications';
 import { isOddsFormat } from '@sharklog/core';
 import {
   scheduleDailyReminder, registerBetResultCategory,
-  setBetPendingResolver, syncBetResultReminders, syncRemindersFor, setReminderOddsFormat,
+  setBetPendingResolver, syncRemindersFor, setReminderOddsFormat,
 } from './src/utils/notifications';
 import { initRevenueCat, syncEntitlement } from './src/services/revenueCat';
 import { resumePendingPayment, takePaidNotice, checkLicenseStanding } from './src/services/purchase';
@@ -188,12 +188,8 @@ function AppRoot() {
   // one ran a second full pass right behind it.
   useEffect(() => {
     if (!isLoaded) return;
-    const reconcile = () => {
-      const { bets, settings } = useBetsStore.getState();
-      syncBetResultReminders(bets, settings.betResultReminders !== false);
-    };
     const sub = AppState.addEventListener('change', (state) => {
-      if (state === 'active') reconcile();
+      if (state === 'active') resyncBetReminders();
     });
     return () => sub.remove();
   }, [isLoaded]);
