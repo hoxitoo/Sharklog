@@ -29,7 +29,7 @@ import { tourTarget, useTourStore } from '../../components/tour/tour';
 import { haptic } from '../../utils/haptics';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
 import { useTranslation } from 'react-i18next';
-import { formatDate } from '../../utils/dateFormat';
+import { dayTitle } from '../../utils/dateFormat';
 import { SIZE, GLYPH, numeric } from '../../theme/typography';
 import { themedStyles } from '../../theme/themed';
 import { useBottomPad } from '../../utils/useBottomPad';
@@ -37,17 +37,6 @@ import { useOddsFormat } from '../../utils/useOdds';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
-/** A day header: "Сегодня", "Вчера", or "5 ноября". `today`/`yesterday` are YYYY-MM-DD, made once per list. */
-function formatDateTitle(
-  dateStr: string, today: string, yesterday: string, todayLabel: string, yesterdayLabel: string,
-): string {
-  if (dateStr === today) return todayLabel;
-  if (dateStr === yesterday) return yesterdayLabel;
-  const parts = dateStr.split('-').map(Number);
-  const d = new Date(parts[0] ?? 0, (parts[1] ?? 1) - 1, parts[2] ?? 1);
-  return formatDate(d, DAY_TITLE);
-}
-const DAY_TITLE: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long' };
 
 /**
  * Text order without `localeCompare` when every key has the fixed shape —
@@ -262,7 +251,10 @@ export function BetsScreen({ filter, onClearFilter }: {
   );
   // The list follows the search a beat behind the field: typing stays at the
   // speed of the keyboard, and the list catches up when React has the time.
-  const listSearch = useDeferredValue(search);
+  // Cleared, it applies at once: a drill-down from Insights clears the search,
+  // and a list a render behind flashed "nothing found" under the new filter.
+  const deferredSearch = useDeferredValue(search);
+  const listSearch = search.trim() ? deferredSearch : '';
 
   // Working context while logging bets: today's result, money currently at risk, bank.
   const today = useMemo(() => calcDailyBreakdown(bets, [], { days: 1 })[0] ?? null, [bets]);
@@ -388,7 +380,7 @@ export function BetsScreen({ filter, onClearFilter }: {
         sort === 'date_asc' ? byTime(a.time ?? '', b.time ?? '') : byTime(b.time ?? '', a.time ?? ''),
       );
       const dailyPnl = data.reduce((sum, b) => sum + betPnl(b), 0);
-      return { title: formatDateTitle(date, todayStr, yesterdayStr, todayLabel, yesterdayLabel), date, dailyPnl, data };
+      return { title: dayTitle(date, todayStr, yesterdayStr, todayLabel, yesterdayLabel), date, dailyPnl, data };
     });
   }, [bets, statusFilter, listSearch, sort, filter, query, oddsFormat, todayLabel, yesterdayLabel, t]);
 

@@ -37,8 +37,9 @@ const keysOf = new WeakMap<Bet, PlayedKeys>();
 
 function playedKeys(b: Bet): PlayedKeys {
   const k = keysOf.get(b);
-  // Checked against the bet, not trusted: a caller that edits a bet in place
-  // would otherwise sort by its old date.
+  // Checked against the bet: the comparator stays right even for a bet edited
+  // in place. `playedOrder`'s cache does NOT check — it relies on what both
+  // stores do: arrays and bets are replaced, never edited in place.
   if (k && k.date === b.date && k.time === b.time && k.createdAt === b.createdAt) return k;
   const played = `${b.date}T${b.time}`;
   const fresh = {
@@ -59,7 +60,9 @@ const orderOf = new WeakMap<readonly Bet[], Bet[]>();
 /**
  * The bets in `byPlayedAt` order — a sorted copy, cached for this array: the
  * screens of one write ask several times (dashboard, streaks, drawdown, tilt),
- * and the store's array changes only when a bet does. Filter the result, do not
+ * and the store's array changes only when a bet does — a new array, with new
+ * objects for the bets that changed; an array or a bet edited IN PLACE would
+ * keep its old order here. Filter the result, do not
  * sort a filtered copy: order (ties included) is the same, the sort runs once.
  * The returned array is shared — never mutate it.
  */

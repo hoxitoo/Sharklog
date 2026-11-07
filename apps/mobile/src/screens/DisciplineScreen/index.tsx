@@ -250,7 +250,7 @@ export function DisciplineScreen() {
                   <Text style={styles.diaryEmoji}>{moodObj?.emoji ?? '😐'}</Text>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.diaryDate}>
-                      {formatDate(new Date(`${entry.date}T00:00:00`), DIARY_DAY)}
+                      {formatDate(new Date(`${entry.date}T00:00:00`), DIARY_DAY, entry.date)}
                     </Text>
                     {entry.text ? (
                       <Text style={styles.diaryText} numberOfLines={2}>{entry.text}</Text>

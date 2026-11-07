@@ -1,5 +1,5 @@
 import { formatMoney } from '@sharklog/core';
-import { formatDate } from '../utils/dateFormat';
+import { formatDate, dayTitle } from '../utils/dateFormat';
 import { applyLanguage, dateLocale } from '../i18n';
 
 jest.mock('expo-localization', () => ({ getLocales: () => [{ languageTag: 'ru-RU' }] }));
@@ -35,6 +35,22 @@ describe('cached formatters', () => {
     const en = formatDate(d, { day: 'numeric', month: 'long' });
     expect(ru).not.toBe(en);
     expect(en).toBe(d.toLocaleDateString('en-US', { day: 'numeric', month: 'long' }));
+  });
+
+  it('never throws on a date that is not one — the bets list crashed on every launch', () => {
+    // Old CSV imports kept a date as typed, and stored data is not repaired.
+    // toLocaleDateString printed "Invalid Date"; Intl's format THROWS.
+    expect(() => formatDate(new Date('not a date'), { day: 'numeric' })).not.toThrow();
+    expect(formatDate(new Date('not a date'), { day: 'numeric' }, 'as typed')).toBe('as typed');
+    applyLanguage('ru');
+    for (const stored of ['5.11.2024', '2026/11/02', 'вчера']) {
+      expect(dayTitle(stored, '2026-11-07', '2026-11-06', 'Сегодня', 'Вчера')).toBe(stored);
+    }
+    expect(dayTitle('', '2026-11-07', '2026-11-06', 'Сегодня', 'Вчера')).toBe('—');
+    expect(dayTitle('2026-11-07', '2026-11-07', '2026-11-06', 'Сегодня', 'Вчера')).toBe('Сегодня');
+    expect(dayTitle('2026-11-06', '2026-11-07', '2026-11-06', 'Сегодня', 'Вчера')).toBe('Вчера');
+    expect(dayTitle('2026-11-05', '2026-11-07', '2026-11-06', 'Сегодня', 'Вчера'))
+      .toBe(new Date(2026, 10, 5).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' }));
   });
 
   it('formatMoney reads as before', () => {

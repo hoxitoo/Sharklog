@@ -336,7 +336,7 @@ const TX_ICON: Record<BankrollTxType, string> = {
 function TxRow({ tx, onDelete }: { tx: BankrollTransaction; onDelete: () => void }) {
   const fmt = useFormatMoney();
   const { t } = useTranslation();
-  const date = formatDate(new Date(tx.date), TX_DAY);
+  const date = formatDate(new Date(tx.date), TX_DAY, tx.date);
   // A withdrawal's sign lives in its type; an adjustment carries it in the amount.
   const signed = tx.type === 'withdrawal' ? -tx.amount : tx.amount;
   const label = t(TX_LABEL[tx.type]);
