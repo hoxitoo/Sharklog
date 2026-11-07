@@ -10,7 +10,6 @@
     "build:preview": "eas build --profile preview --platform all",
     "build:production": "eas build --profile production --platform all",
     "type-check": "tsc --noEmit",
-    "lint": "eslint src --ext .ts,.tsx",
     "test": "jest"
   },
   "dependencies": {

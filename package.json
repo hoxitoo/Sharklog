@@ -10,7 +10,6 @@
     "dev:desktop": "turbo run dev --filter=@sharklog/desktop",
     "build": "turbo run build",
     "test": "turbo run test",
-    "lint": "turbo run lint",
     "type-check": "turbo run type-check"
   },
   "devDependencies": {
