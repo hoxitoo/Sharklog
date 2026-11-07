@@ -9,7 +9,15 @@ import { dateLocale } from '../i18n';
  */
 const formats = new Map<string, Intl.DateTimeFormat>();
 
-export function formatDate(date: Date, options: Intl.DateTimeFormatOptions): string {
+/**
+ * The date as words — or `fallback` for a date that is not one. That case is
+ * real: old CSV imports kept a date as typed ("5.11.2024"), and stored data is
+ * never repaired. `toLocaleDateString` printed "Invalid Date" for it;
+ * `Intl.DateTimeFormat#format` THROWS (ECMA-402), and the bets list — the first
+ * screen — crashed on every launch (review 2026-11-07).
+ */
+export function formatDate(date: Date, options: Intl.DateTimeFormatOptions, fallback = ''): string {
+  if (Number.isNaN(date.getTime())) return fallback;
   const locale = dateLocale();
   const key = `${locale}|${JSON.stringify(options)}`;
   let f = formats.get(key);
@@ -18,4 +26,23 @@ export function formatDate(date: Date, options: Intl.DateTimeFormatOptions): str
     formats.set(key, f);
   }
   return f.format(date);
+}
+
+const DAY_TITLE: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'long' };
+
+/**
+ * A day header of the bets list: "Сегодня", "Вчера", or "5 ноября".
+ * `today`/`yesterday` are YYYY-MM-DD, made once per list. A stored day that is
+ * not a date is shown as it is stored — what the date picker does with it too.
+ */
+export function dayTitle(
+  dateStr: string, today: string, yesterday: string, todayLabel: string, yesterdayLabel: string,
+): string {
+  if (dateStr === today) return todayLabel;
+  if (dateStr === yesterday) return yesterdayLabel;
+  // Not a YYYY-MM-DD day: as stored — not a guessed date ("" read as 1 January).
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return dateStr || '—';
+  const parts = dateStr.split('-').map(Number);
+  const d = new Date(parts[0] ?? 0, (parts[1] ?? 1) - 1, parts[2] ?? 1);
+  return formatDate(d, DAY_TITLE, dateStr);
 }
