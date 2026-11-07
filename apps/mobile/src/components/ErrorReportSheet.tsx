@@ -1,6 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Modal, View, Pressable, ScrollView, TouchableOpacity, Linking, Share } from 'react-native';
-import * as Clipboard from 'expo-clipboard';
 import { useTranslation } from 'react-i18next';
 import { AppText as Text } from './AppText';
 import { supportUrl } from '../utils/storeLinks';
@@ -28,6 +27,12 @@ export function ErrorReportSheet({ visible, report, onClose }: Props) {
   const bottomPad = useBottomPad(SPACE.lg);
   const contact = supportUrl();
   const [copied, setCopied] = useState(false);
+  // The text stays while the window fades out: every caller clears it on
+  // close, and the modal is still drawn during the fade — it went blank and
+  // shrank on its way out.
+  const shown = useRef(report);
+  if (visible && report) shown.current = report;
+  const text = shown.current;
 
   // A fresh window says nothing about a copy made the last time.
   useEffect(() => { if (visible) setCopied(false); }, [visible]);
@@ -36,7 +41,11 @@ export function ErrorReportSheet({ visible, report, onClose }: Props) {
 
   async function copy(): Promise<boolean> {
     try {
-      await Clipboard.setStringAsync(report);
+      // Loaded on use, not with the window: a build made before the native
+      // module was added fails on importing it — on the error screens, of all
+      // places, and before the crash handler is in (review 2026-11-07).
+      const Clipboard = require('expo-clipboard') as typeof import('expo-clipboard');
+      await Clipboard.setStringAsync(text);
       setCopied(true);
       return true;
     } catch {
@@ -44,13 +53,14 @@ export function ErrorReportSheet({ visible, report, onClose }: Props) {
     }
   }
 
-  async function copyAndContact() {
-    await copy();
-    if (contact) Linking.openURL(contact).catch(() => {});
+  function share() {
+    Share.share({ message: text }).catch(() => {});
   }
 
-  function share() {
-    Share.share({ message: report }).catch(() => {});
+  async function copyAndContact() {
+    // A copy that failed would open the chat with nothing to paste: share instead.
+    if (!(await copy())) { share(); return; }
+    if (contact) Linking.openURL(contact).catch(() => {});
   }
 
   return (
@@ -69,7 +79,7 @@ export function ErrorReportSheet({ visible, report, onClose }: Props) {
             <Text style={s.title} accessibilityRole="header">{t('errorReport.title')}</Text>
             <Text style={s.intro}>{t('errorReport.intro')}</Text>
             <ScrollView style={s.preview} contentContainerStyle={s.previewInner} keyboardShouldPersistTaps="handled" nestedScrollEnabled>
-              <Text style={s.previewText} selectable>{report}</Text>
+              <Text style={s.previewText} selectable>{text}</Text>
             </ScrollView>
             {copied ? <Text style={s.copied} accessibilityLiveRegion="polite">{t('errorReport.copied')}</Text> : null}
             {contact ? (

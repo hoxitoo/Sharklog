@@ -1,6 +1,7 @@
 import { readFileSync, readdirSync } from 'fs';
 import { join } from 'path';
 import { TEXT_LIMITS } from '@sharklog/core';
+import { fieldCap } from '../utils/fieldCap';
 
 /*
  * On Android a stored value is one SQLite row, read whole through a 2 MB
@@ -35,8 +36,19 @@ describe('text fields', () => {
       .map((f) => f.slice(SRC.length + 1));
     expect(raw).toEqual([]);
     const wrapper = readFileSync(join(SRC, 'components', 'AppText.tsx'), 'utf8');
-    expect(wrapper).toMatch(/maxLength \?\? \(rest\.multiline \? TEXT_LIMITS\.NOTE : TEXT_LIMITS\.FIELD\)/);
+    expect(wrapper).toMatch(/const cap = fieldCap\(maxLength, rest\.multiline, rest\.value\)/);
     expect(wrapper).toMatch(/maxLength=\{cap\}/);
+  });
+
+  it('cap at the limit, but never below the text a field already holds', () => {
+    expect(fieldCap(undefined, false, 'abc')).toBe(TEXT_LIMITS.FIELD);
+    expect(fieldCap(undefined, true, 'abc')).toBe(TEXT_LIMITS.NOTE);
+    expect(fieldCap(60, false, undefined)).toBe(60);
+    // A note saved before the limit: iOS refused even a backspace in it, and
+    // Android cut it and saved the cut text back (review 2026-11-07).
+    const old = 'ж'.repeat(TEXT_LIMITS.NOTE + 2_500);
+    expect(fieldCap(undefined, true, old)).toBe(old.length);
+    expect(fieldCap(60, false, 'x'.repeat(75))).toBe(75);
   });
 
   it('leave room for real use and none for a pasted megabyte', () => {

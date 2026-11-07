@@ -25,6 +25,7 @@ import { resumePendingPayment, takePaidNotice, checkLicenseStanding } from './sr
 import { BILLING } from './src/services/billing';
 import { installCrashCapture, takeLastCrashReport } from './src/services/crashReport';
 import { ErrorReportSheet } from './src/components/ErrorReportSheet';
+import { RootCrashBoundary } from './src/components/RootCrashBoundary';
 import { Analytics } from './src/services/analytics';
 import './src/i18n/index';
 import i18n, { applyLanguage } from './src/i18n/index';
@@ -61,7 +62,7 @@ function navigationTheme() {
   };
 }
 
-export default function App() {
+function AppRoot() {
   const load = useBetsStore((s) => s.load);
   const isLoaded = useBetsStore((s) => s.isLoaded);
   const loadError = useBetsStore((s) => s.loadError);
@@ -249,10 +250,13 @@ export default function App() {
     return () => sub.remove();
   }, [isLoaded]);
 
-  // The last session crashed: once the app is on screen (after the splash, in
-  // the user's language), offer the report — once; it is forgotten as read.
+  // The last session crashed: offer the report, in the user's language —
+  // once; it is forgotten as read.
+  // As soon as the app is READY (store and fonts), not after the splash: a
+  // crash that came back before the splash ended would never get its report.
+  const readyForPrompt = isLoaded && (fontsLoaded || !!fontError);
   useEffect(() => {
-    if (!isLoaded || !splashDone || crashOffered.current) return;
+    if (!readyForPrompt || crashOffered.current) return;
     crashOffered.current = true;
     takeLastCrashReport().then((report) => {
       if (!report) return;
@@ -261,7 +265,7 @@ export default function App() {
         { text: i18n.t('errorReport.lastCrashView'), onPress: () => setCrashReport(report) },
       ]);
     });
-  }, [isLoaded, splashDone]);
+  }, [readyForPrompt]);
 
   // A failed font load must not hang the app on the splash forever.
   const fontsSettled = fontsLoaded || !!fontError;
@@ -351,5 +355,18 @@ export default function App() {
         {crashSheet}
       </SafeAreaProvider>
     </ErrorBoundary>
+  );
+}
+
+/**
+ * Everything under one more boundary: the read-error screen, the splash and
+ * the error screen's own window had none above them, and a render error no
+ * boundary catches never reaches the global crash handler (RootCrashBoundary).
+ */
+export default function App() {
+  return (
+    <RootCrashBoundary>
+      <AppRoot />
+    </RootCrashBoundary>
   );
 }
