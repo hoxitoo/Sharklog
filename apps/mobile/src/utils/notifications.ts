@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import i18n from '../i18n';
-import { pickLabel } from './labels';
+import { pickLabel, displayEvent } from './labels';
 import { oddsBadge } from './oddsField';
 import type { OddsFormat } from '@sharklog/core';
 
@@ -167,10 +167,6 @@ export async function registerBetResultCategory(): Promise<void> {
   } catch {
     // category API unavailable — notifications still work, just without buttons
   }
-}
-
-function displayEvent(event: string): string {
-  return event.split(' / ').map((p) => p.split('|')[0] ?? p).join(' / ');
 }
 
 export async function cancelBetResultReminder(betId: string): Promise<void> {

@@ -12,8 +12,7 @@ import { SPACE, RADIUS, TOUCH } from '../theme/layout';
 import { SIZE, GLYPH, numeric } from '../theme/typography';
 import { haptic } from '../utils/haptics';
 import { useBottomPad } from '../utils/useBottomPad';
-import { dayLabel } from '../utils/goalText';
-import { isYmd, monthCells, monthOf, shiftMonth, weekdayOrder, weekStartFor } from '../utils/calendar';
+import { dayMonth, isYmd, monthCells, monthOf, shiftMonth, weekdayOrder, weekStartFor } from '../utils/calendar';
 
 export interface DatePreset {
   label: string;
@@ -102,7 +101,7 @@ export function DateField({ label, value, onChange, placeholder, min, presets, p
     }),
   ).current;
 
-  const shown = valid ? dayLabel(value) : value.trim();
+  const shown = valid ? dayMonth(value, 'yyyy') : value.trim();
   const page = (delta: number) => setView((v) => shiftMonth(v.year, v.month, delta));
   const cells = monthCells(view.year, view.month, weekStart);
   const weeks = Array.from({ length: 6 }, (_, w) => cells.slice(w * 7, w * 7 + 7));
@@ -167,7 +166,7 @@ export function DateField({ label, value, onChange, placeholder, min, presets, p
                         onPress={() => choose(p.value)}
                         activeOpacity={0.75}
                         accessibilityRole="button"
-                        accessibilityLabel={`${p.label}: ${dayLabel(p.value)}`}
+                        accessibilityLabel={`${p.label}: ${dayMonth(p.value, 'yyyy')}`}
                       >
                         <Text style={[s.presetText, on && s.presetTextOn]}>{p.label}</Text>
                       </TouchableOpacity>
@@ -208,7 +207,7 @@ export function DateField({ label, value, onChange, placeholder, min, presets, p
                         disabled={off}
                         activeOpacity={0.7}
                         accessibilityRole="button"
-                        accessibilityLabel={dayLabel(day)}
+                        accessibilityLabel={dayMonth(day, 'yyyy')}
                         accessibilityState={{ selected: chosen, disabled: off }}
                       >
                         <View style={[s.dot, isToday && s.dotToday, chosen && s.dotChosen]}>

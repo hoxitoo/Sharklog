@@ -35,6 +35,7 @@ import { themedStyles } from '../../theme/themed';
 import { useBottomPad } from '../../utils/useBottomPad';
 import { formatDate } from '../../utils/dateFormat';
 import { uuid } from '../../utils/uuid';
+import { dayMonth } from '../../utils/calendar';
 
 const TX_DAY: Intl.DateTimeFormatOptions = { day: 'numeric', month: 'short' };
 
@@ -444,7 +445,7 @@ function BankrollContent() {
         <BalanceChart days={dailySeries} width={width - 64} height={150} series={series} />
         <View style={bk.legendRow}>
           <Text style={bk.legendPeriod}>
-            {t('bankroll.periodSince', { count: dailySeries.length, date: dailySeries[0]!.date.split('-').reverse().slice(0, 2).join('.') })}
+            {t('bankroll.periodSince', { count: dailySeries.length, date: dayMonth(dailySeries[0]!.date) })}
           </Text>
           {isPnl ? (
             <Text style={bk.legendText}>{t('bankroll.pnlLegend')}</Text>

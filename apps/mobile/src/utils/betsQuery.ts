@@ -1,5 +1,6 @@
 import type { Bet, OddsFormat } from '@sharklog/core';
 import { betBacksTeam, parseEventTeams, parseOdds, formatOddsAs, toYmd } from '@sharklog/core';
+import { dayMonth } from './calendar';
 
 /**
  * The advanced bet filter — everything the status and sort pickers do not cover.
@@ -149,9 +150,7 @@ export function suggest(pool: string[], input: string, limit: number): string[] 
  * 01.11.2025 to 05.11.2026 is two taps away, and "01.11–05.11" read as four days.
  */
 function short(ymdStr: string, withYear: boolean): string {
-  const [y, m, d] = ymdStr.split('-');
-  if (!y || !m || !d) return ymdStr;
-  return withYear ? `${d}.${m}.${y.slice(2)}` : `${d}.${m}`;
+  return dayMonth(ymdStr, withYear ? 'yy' : 'none');
 }
 
 /**

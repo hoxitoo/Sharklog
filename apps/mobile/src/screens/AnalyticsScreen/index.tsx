@@ -29,6 +29,7 @@ import { AppIcon, sportGlyph } from '../../components/icons/AppIcon';
 import { themedStyles } from '../../theme/themed';
 import { useBottomPad } from '../../utils/useBottomPad';
 import { useDrawer } from '../../components/DrawerContext';
+import { dayMonth } from '../../utils/calendar';
 
 const { width } = Dimensions.get('window');
 
@@ -53,13 +54,11 @@ const BUCKETS: Record<APeriodFilter, { granularity: Granularity; count: number }
 // Month names come from the locale files, not Intl: the bar labels are three
 // letters wide, and an engine without kk/be month data would fall back silently.
 function bucketLabel(t: TFunction, b: PnlBucket, granularity: Granularity): string {
-  const [, m, d] = b.start.split('-');
-  return granularity === 'month' ? t(`monthsShort.${Number(m)}`) : `${d}.${m}`;
+  return granularity === 'month' ? t(`monthsShort.${Number(b.start.split('-')[1])}`) : dayMonth(b.start);
 }
 
 function bucketTitle(t: TFunction, b: PnlBucket, granularity: Granularity): string {
-  const [, m, d] = b.start.split('-');
-  return granularity === 'month' ? t(`monthsLong.${Number(m)}`) : `${d}.${m}`;
+  return granularity === 'month' ? t(`monthsLong.${Number(b.start.split('-')[1])}`) : dayMonth(b.start);
 }
 
 function HeroPnl({ bets, period }: { bets: Bet[]; period: APeriodFilter }) {

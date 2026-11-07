@@ -24,11 +24,12 @@ import { ExpandedDashboard } from './ExpandedDashboard';
 import { SIZE, GLYPH, numeric } from '../../theme/typography';
 import { useTranslation } from 'react-i18next';
 import { dateLocale } from '../../i18n';
-import { pickLabel } from '../../utils/labels';
+import { pickLabel, displayEvent } from '../../utils/labels';
 import { newestEntered } from '../../utils/recentBets';
 import { strategyName } from '../../utils/strategyText';
 import { themedStyles } from '../../theme/themed';
 import { useBottomPad } from '../../utils/useBottomPad';
+import { dayMonth } from '../../utils/calendar';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -288,7 +289,7 @@ function DailyDashboardCard({ days, onExpand }: { days: DayStats[]; onExpand: ()
       {sel ? (
         <View style={dd.detail}>
           <Text style={dd.detailDate}>
-            {sel.date.split('-').reverse().slice(0, 2).join('.')}
+            {dayMonth(sel.date)}
             {` · ${sel.betCount > 0 ? t('common.betsShort', { count: sel.betCount }) : t('dashboard.noBetsShort')}`}
           </Text>
           <View style={dd.detailGrid}>
@@ -604,7 +605,7 @@ export function DashboardScreen() {
               onPress={() => navigation.navigate('AddBet', { betId: bet.id })}
             >
               <View style={{ flex: 1 }}>
-                <Text style={styles.recentEvent} numberOfLines={1}>{bet.event.split(' / ').map(p => p.split('|')[0] ?? p).join(' / ')}</Text>
+                <Text style={styles.recentEvent} numberOfLines={1}>{displayEvent(bet.event)}</Text>
                 <Text style={styles.recentPick}>{pickLabel(t, bet.pick)} · {oddsBadge(bet.odds, oddsFormat)}</Text>
               </View>
               <View style={[

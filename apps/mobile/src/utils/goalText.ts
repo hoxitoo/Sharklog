@@ -1,5 +1,6 @@
 import type { TFunction } from 'i18next';
 import { MONTH_DAYS } from '@sharklog/core';
+import { dayMonth } from './calendar';
 
 /*
  * The words around a goal's numbers. Pure — no React Native — so it is under test.
@@ -20,11 +21,8 @@ export function durationLabel(t: TFunction, days: number): string {
   return t('goals.dur.yearsMonths', { y, m });
 }
 
-/** A goal's day as the user reads it: DD.MM.YYYY — the same in every language, no month names. */
-export function dayLabel(ymd: string): string {
-  const [y, m, d] = ymd.split('-');
-  return y && m && d ? `${d}.${m}.${y}` : ymd;
-}
+/** A goal's day as the user reads it: DD.MM.YYYY (`dayMonth` in utils/calendar). */
+export const dayLabel = (ymd: string): string => dayMonth(ymd, 'yyyy');
 
 /**
  * How far a goal has come, in whole percent — DOWN, so "100%" never shows

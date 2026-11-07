@@ -5,7 +5,7 @@ import { View, StyleSheet, TouchableOpacity } from 'react-native';
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
 import type { Bet } from '@sharklog/core';
 import { parseMoneyInput, betPnl } from '@sharklog/core';
-import { sportLabel, betTypeLabel, pickLabel } from '../../utils/labels';
+import { sportLabel, betTypeLabel, pickLabel, displayEvent } from '../../utils/labels';
 import { useFormatMoney, useCurrencySymbol } from '../../utils/useFormatMoney';
 import { useOddsFormat } from '../../utils/useOdds';
 import { oddsBadge } from '../../utils/oddsField';
@@ -35,11 +35,6 @@ interface Props {
   cashoutOpen?: boolean;
   onRequestCashout?: () => void;
   onCloseCashout?: () => void;
-}
-
-export function displayEvent(event: string): string {
-  // Strip stored per-leg odds ("M80 vs NRG|1.10 / ...") → "M80 vs NRG / ..."
-  return event.split(' / ').map(p => p.split('|')[0] ?? p).join(' / ');
 }
 
 export const BetCard = React.memo(function BetCard({
