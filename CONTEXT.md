@@ -326,7 +326,7 @@ interface TeamStats {
 13. **parseEventTeams(event)**: разбивает event по ` — `, ` – `, ` vs `, ` против `, ` - ` → массив имён команд.
 14b. **Инсайты: экстремумы → топ-3 → раскрываемый остаток**, внизу разбивка по годам. Список лет — `calcBetYears` (данные + текущий год, поэтому новый год появляется сам). Разбивка считается по ВСЕЙ истории, а не по срезу периода сверху.
 14a. **TournamentStats/TeamStats несут `discipline`** — доминирующую в группе и только когда `sport === 'esports'`. Инсайты показывают её вместо слова «Киберспорт».
-14. **calcByTeam(bets, minBets=10)**: возвращает только команды с ≥10 ставок (PRO "Любимые команды"). Использует внутренний `getPickedTeams(event, pick)` — атрибутирует ставку только той команде, на которую поставил игрок. Наружу тот же предикат выведен как `betBacksTeam(bet, team)` — фильтр списка ставок обязан использовать его, иначе счётчик в списке разойдётся с числом на плитке инсайтов.
+14. **calcByTeam(bets, minBets)**: экран «Любимые команды» (PRO) передаёт `TEAM_MIN_BETS` = 5 — показываются команды с ≥5 ставками. Использует внутренний `getPickedTeams(event, pick)` — атрибутирует ставку только той команде, на которую поставил игрок. Наружу тот же предикат выведен как `betBacksTeam(bet, team)` — фильтр списка ставок обязан использовать его, иначе счётчик в списке разойдётся с числом на плитке инсайтов.
 15. **Банк — только через core**: `currentBank(txs, bets) = bankCash(txs) + P&L`. Ручной `deposit ? + : -` теряет третий тип транзакции (`adjustment`), у которого знак лежит в сумме.
 16. **Банк ≠ баланс у букмекера**: букмекер списывает ставку при постановке, приложение — при расчёте. `балансУБукмекера = currentBank − pendingExposure(bets)`. Первое, что надо исключить при расхождении.
 17. **P&L одной ставки — только `betPnl()`**: ручные ветки по статусу уже давали выкуп нулём и проигранный фрибет полной потерей.
@@ -341,6 +341,10 @@ interface TeamStats {
 26. **Цели — данные** (`goals` рядом с дневником, в бэкапе, стираются «Очистить все данные»). Прогресс — только `calcGoalProgress` (core): `profit` — результат ставок с даты начала (депозиты не двигают), `bank` — `currentBank`, `withdraw` — выведено сверх внесённого, `lossCap` — минус календарного месяца. Free — одна открытая цель (`goalsFor`, лимит на показ, не на хранение). Тексты вида строятся из ключа (`goals.kind/kindHint/how/startHint/amount.<вид>`) — их полноту держит `goals.test.ts`.
 27. **Дата из календаря, не из текстового поля**: `DateField` в форме ставки, фильтре списка и целях. Дату старого формата (импорт CSV) поле показывает как есть и не трогает.
 28. **Хранилище мобилки — ставки кусками, запись поколениями** (`utils/storageLayout.ts`): ни одно значение не приближается к 2 МБ (Android не прочитает строку больше), сохранение переживает обрыв на любом шаге, при загрузке ничего не удаляется, при ошибке чтения — экран ошибки и ни одной записи, при ошибке записи — алерт и повтор (`saveFailed`). Подробно — CLAUDE.md, «Хранилище данных».
+29. **Отчёт об ошибке — свой, без сервиса** (Sentry удалён): пользователь видит текст отчёта и отправляет его сам (`ErrorReportSheet`). Падение вне отрисовки сохраняет `installCrashCapture`, ошибку отрисовки вне границ — `RootCrashBoundary` вокруг всего приложения; следующий запуск предлагает отчёт. Подробно — CLAUDE.md.
+30. **Длина текста — `TEXT_LIMITS`** (поле 2 000, заметка 10 000): мегабайт в заметке делал хранилище нечитаемым на Android. Лимит ставит `AppTextInput`, но не ниже уже лежащего текста; импорт обрезает.
+31. **Хронология — `playedOrder(bets)`, подневный ряд и форматтеры кэшируются**: массивы и ставки сторы заменяют, а не правят на месте — на этом держатся кэши по ссылке. Одно поле — `totalPnl` / `calcCurrentStreak`, а не целый `calcDashboard`.
+32. **Нечитаемая дата — запасной текст, не исключение** (`formatDate(date, options, запасной)`): `Intl.DateTimeFormat#format` бросает на ней, и дата из старого CSV роняла бы список ставок.
 
 ---
 
@@ -462,13 +466,14 @@ VITE_OWNER_PRO=true
 - [x] Переведены все экраны мобилки (locale файлы синхронизированы с десктопом)
 - [x] Визуально проверено на всех 4 языках: нет fallback-ключей, нет обрезанного текста
 
-### Mobile (React Native + Expo 51)
+### Mobile (React Native 0.85 + Expo 56)
 - [x] Все экраны + OnboardingScreen (logo image вместо emoji)
 - [x] InsightsScreen: period filter + Tournaments table (Free) + Teams cards (PRO)
 - [x] StrategyBuilderScreen: PRO wizard (10 вопросов) + ResultScreen + "Применить"
 - [x] DashboardScreen: стратегия-плашка → navigate('StrategyBuilder')
-- [x] SettingsScreen: "Билдер стратегий" кнопка для PRO; roundAmounts toggle; "Проверить обновления";
-                      7-tap dev bypass (активирует PRO без RevenueCat)
+- [x] SettingsScreen: "Билдер стратегий" кнопка для PRO; roundAmounts toggle; "Проверить обновления"
+                      (только сборка `direct`); 7 тапов по строке версии — ТОЛЬКО в `__DEV__` и дают
+                      7 дней пробного, а не Pro (в релизе 7 тапов когда-то раздавали Pro бесплатно)
 - [x] StatusBadge: поддержка cashout (label "Выкуп", refund остался "Возврат")
 - [x] BetsScreen: filter chips refund + cashout; quick-result chip C (cashout);
                   sort by кэф/сумма — flat-section режим (нет groupby дат)
@@ -490,7 +495,7 @@ VITE_OWNER_PRO=true
 - [x] ResponsibleGamblingBanner: коллапсируемый 18+ баннер на DashboardScreen
 - [x] OnboardingScreen: Image компонент (logo) вместо emoji
 - [x] Zustand store с полным CRUD + AsyncStorage persistence
-- [x] RevenueCat paywall (real offerings, purchase, restore)
+- [x] Оплата: RuStore-сборка — «Pro навсегда» через Робокассу (лицензия Ed25519, код восстановления, отзыв после возврата); RevenueCat — только сборка под Google Play (`EXPO_PUBLIC_BILLING`)
 - [x] Push notifications (daily reminder, tilt alert)
 - [x] CSV export (expo-sharing, UTF-8 BOM)
 - [x] Team autocomplete с esports discipline
@@ -502,7 +507,7 @@ VITE_OWNER_PRO=true
 - [x] ScreenHeader убран из BankrollScreen и StrategyBuilderScreen (stack-экраны вне DrawerContext)
 - [x] CI: tests + type-check (все зелёные)
 - [x] EAS: development/preview/production profiles
-- [x] 25 smoke tests
+- [x] Тесты: см. «Tests» ниже (Jest мобилки, Vitest ядра и десктопа)
 - [x] Locale файлы синхронизированы с десктопом (ru/en/kz/by)
 
 ### Desktop (Tauri v2 + React + Vite)
