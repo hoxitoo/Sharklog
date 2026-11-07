@@ -26,6 +26,21 @@ describe('startup', () => {
     expect(app).not.toMatch(/^\s*resyncBetReminders\(\);/m);
   });
 
+  it('mounts the app only once the language is applied (review 2026-11-07)', () => {
+    // A parent's effects run after its children's: mounted on isLoaded alone,
+    // every screen's first render saw Russian, and onboarding guessed the
+    // currency from it.
+    expect(app).toMatch(/const appReady = isLoaded && fontsSettled && languageApplied;/);
+    const langEffect = app.slice(app.indexOf('applyLanguage(language);'), app.indexOf('applyLanguage(language);') + 120);
+    expect(langEffect).toMatch(/setLanguageApplied\(true\)/);
+  });
+
+  it('hides the app under the splash from screen readers (review 2026-11-07)', () => {
+    expect(app.match(/<View style=\{FILL\} \{\.\.\.hiddenUnderSplash\}>/g) ?? []).toHaveLength(2);
+    expect(app).toMatch(/importantForAccessibility: 'no-hide-descendants'/);
+    expect(app).toMatch(/accessibilityElementsHidden: true/);
+  });
+
   it('loads the icon font with the app fonts', () => {
     expect(app).toMatch(/\.\.\.Ionicons\.font/);
   });
