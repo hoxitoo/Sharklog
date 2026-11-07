@@ -9,8 +9,8 @@
 | Файл | Поле | Пример |
 |---|---|---|
 | `apps/mobile/app.json` | `version` | `"1.1.0"` |
-| `apps/mobile/app.json` | `android.versionCode` | `2` (целое, +1 каждый раз — для `rustore` и `preview` руками; профиль `production` поднимает его сам, `autoIncrement`, — руками там не трогай, иначе +2) |
-| `apps/mobile/app.json` | `ios.buildNumber` | `"2"` (строка, +1 каждый раз) |
+| `apps/mobile/app.json` | `android.versionCode` | `2` (целое, +1 каждый раз). Профили `production` и `rustore` (он наследует `production`) поднимают его сами — `autoIncrement` в `eas.json`; перед их сборкой руками НЕ трогай, иначе +2. Руками — только для `preview`/`development` |
+| `apps/mobile/app.json` | `ios.buildNumber` | `"2"` (строка, +1 каждый раз; у `production` — то же `autoIncrement`, руками не трогай) |
 | `apps/desktop/src-tauri/tauri.conf.json` | `version` | `"1.1.0"` |
 | `apps/desktop/package.json` | `version` | `"1.1.0"` |
 
@@ -80,18 +80,20 @@ git push -u origin <рабочая-ветка>
 
 ---
 
-### 4. Создать GitHub Release (запускает сборку десктопа)
+### 4. Тег → черновик релиза → публикация (собирает десктоп)
 
-1. Открой **github.com/hoxitoo/Sharklog/releases/new**
-2. Поле **"Choose a tag"** → введи `v1.1.0` → **"Create new tag: v1.1.0 on publish"**
-3. **Title**: `SharkLog v1.1.0`
-4. **Description**: список изменений
-5. Нажми **Publish release**
+1. Когда PR влит в `main`, поставь тег на этот коммит и отправь ТОЛЬКО тег:
+   ```bash
+   git checkout main && git pull
+   git tag v1.1.0 && git push origin v1.1.0
+   ```
+2. GitHub Actions соберёт инсталлеры Win / Mac / Linux (~15–25 мин) и создаст релиз **черновиком**:
+   при пуше тега у задания нет входа `draft`, и `github.event.inputs.draft != 'false'` всегда истинно.
+3. Открой **Releases** → черновик `SharkLog v1.1.0` → допиши описание → **Publish release**.
 
-→ GitHub Actions автоматически соберёт инсталлеры Win / Mac / Linux (~15–25 мин) и приложит их к релизу.
-
-После сборки проверь, что релиз опубликован, а не стал черновиком: задание передаёт `draft` из ручного
-запуска, а при пуше тега это значение не задано.
+Не создавай релиз заранее кнопкой «Publish release» в интерфейсе: сборка, запущенная этим тегом, обновит
+тот же релиз и, скорее всего, вернёт его в черновики (поведение `softprops/action-gh-release` не проверено) —
+надёжнее публиковать готовый черновик.
 
 **Автообновление десктопа пока не работает** (нет разрешения `updater:default`, CI не выкладывает
 `latest.json` и `.sig` — ROADMAP, «🔐 Безопасность»): кнопка «Проверить обновления» новую версию не найдёт,

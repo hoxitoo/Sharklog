@@ -132,7 +132,7 @@ cd apps/desktop && npx tauri build
 
 ### Desktop — автоматический релиз через GitHub Actions
 
-Создай тег вида `v1.0.0` — CI соберёт инсталлеры для всех трёх платформ и приложит их к GitHub Release (проверь, что релиз опубликован, а не остался черновиком — `docs/RELEASE_GUIDE.md`):
+Создай тег вида `v1.0.0` — CI соберёт инсталлеры для всех трёх платформ и создаст GitHub Release **черновиком**; опубликуй его руками (`docs/RELEASE_GUIDE.md`, шаг 4):
 
 ```bash
 git tag v1.0.0 && git push origin v1.0.0
