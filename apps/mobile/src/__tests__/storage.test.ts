@@ -580,6 +580,31 @@ describe('clear all data', () => {
     expect(await quarantined()).toEqual([]);
   });
 
+  it('a damaged-file copy cut short by a full phone is finished on the next launch, not started again', async () => {
+    // iOS lists the pieces that fitted before the disk ran out; each launch
+    // used to begin a new half-copy and spend the space a save needed.
+    await save(many(3_000));
+    const keys = (await pieceKeys()).sort();
+    await storage.removeMany([keys[1]!]);
+    await storage.setItem(STORAGE_KEY, '{"settings": {');
+    const real = storage.setMany.getMockImplementation()!;
+    storage.setMany.mockImplementationOnce(async (entries: Record<string, string>) => {
+      const [record, first] = Object.entries(entries);
+      await real(Object.fromEntries([record!, first!])); // only these two fitted
+      throw new Error('SQLITE_FULL');
+    });
+    await relaunch();
+    await useBetsStore.getState().flush();
+    const copies = async () => ((await storage.getAllKeys()) as string[]).filter((k) => k.startsWith('@sharklog/data_quarantine'));
+    expect((await copies()).length).toBe(2);
+    await relaunch(); // space again
+    await useBetsStore.getState().flush();
+    const after = await copies();
+    expect(after.filter((k) => !k.includes('#'))).toEqual(['@sharklog/data_quarantine']);
+    const readable = keys.filter((k) => k !== keys[1]).length;
+    expect(after.filter((k) => k.includes('#'))).toHaveLength(readable);
+  });
+
   it('takes a quarantine copy that is still being written, too', async () => {
     // A copy of a big store takes a while; «Clear» tapped meanwhile must not
     // remove the keys before the copy lands, and leave the copy behind.

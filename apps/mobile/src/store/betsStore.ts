@@ -39,7 +39,18 @@ function quarantine(main: string, pieces: readonly (string | null)[] = []): void
       if (copies[base] !== main) continue;
       if (pieces.length === 0) return;
       const saved = await AsyncStorage.getMany(pieces.map((_, i) => `${base}#${i}`));
-      if (pieces.every((p, i) => (saved[`${base}#${i}`] ?? null) === p)) return;
+      const at = (i: number) => saved[`${base}#${i}`] ?? null;
+      if (pieces.every((p, i) => at(i) === p)) return;
+      // This very copy, left half-written (iOS lists the pieces that fitted
+      // before a full disk stopped it): finish it rather than start another —
+      // each launch began a new half and spent the space a save needed. Only
+      // pieces it lacks are written: one that differs means another event.
+      if (pieces.every((p, i) => at(i) === null || at(i) === p)) {
+        const rest: Record<string, string> = {};
+        pieces.forEach((p, i) => { if (p !== null && at(i) === null) rest[`${base}#${i}`] = p; });
+        await AsyncStorage.setMany(rest);
+        return;
+      }
     }
     const base = keys.includes(QUARANTINE_KEY) ? `${QUARANTINE_KEY}:${Date.now()}` : QUARANTINE_KEY;
     const entries: Record<string, string> = { [base]: main };
