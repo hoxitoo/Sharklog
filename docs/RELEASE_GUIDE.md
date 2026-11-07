@@ -9,7 +9,7 @@
 | Файл | Поле | Пример |
 |---|---|---|
 | `apps/mobile/app.json` | `version` | `"1.1.0"` |
-| `apps/mobile/app.json` | `android.versionCode` | `2` (целое, +1 каждый раз) |
+| `apps/mobile/app.json` | `android.versionCode` | `2` (целое, +1 каждый раз — для `rustore` и `preview` руками; профиль `production` поднимает его сам, `autoIncrement`, — руками там не трогай, иначе +2) |
 | `apps/mobile/app.json` | `ios.buildNumber` | `"2"` (строка, +1 каждый раз) |
 | `apps/desktop/src-tauri/tauri.conf.json` | `version` | `"1.1.0"` |
 | `apps/desktop/package.json` | `version` | `"1.1.0"` |
@@ -64,7 +64,9 @@ cd apps/desktop  && npx tsc --noEmit
 
 ---
 
-### 3. Закоммитить и запушить в main
+### 3. Закоммитить в рабочую ветку и влить в main через PR
+
+**Напрямую в `main` не пушить никогда** — только pull request, и только когда CI зелёный.
 
 ```bash
 git add apps/mobile/app.json \
@@ -72,7 +74,8 @@ git add apps/mobile/app.json \
         apps/desktop/package.json
 
 git commit -m "chore: bump version to 1.1.0"
-git push origin main
+git push -u origin <рабочая-ветка>
+# дальше — PR в main (через dev, если он ведётся), мерж после зелёного CI
 ```
 
 ---
@@ -85,9 +88,14 @@ git push origin main
 4. **Description**: список изменений
 5. Нажми **Publish release**
 
-→ GitHub Actions автоматически соберёт инсталлеры Win / Mac / Linux (~15–25 мин)
+→ GitHub Actions автоматически соберёт инсталлеры Win / Mac / Linux (~15–25 мин) и приложит их к релизу.
 
-После сборки кнопка «Проверить обновления» в десктопном приложении начнёт находить новую версию.
+После сборки проверь, что релиз опубликован, а не стал черновиком: задание передаёт `draft` из ручного
+запуска, а при пуше тега это значение не задано.
+
+**Автообновление десктопа пока не работает** (нет разрешения `updater:default`, CI не выкладывает
+`latest.json` и `.sig` — ROADMAP, «🔐 Безопасность»): кнопка «Проверить обновления» новую версию не найдёт,
+пользователь ставит её с GitHub руками.
 
 ---
 
@@ -98,7 +106,7 @@ git push origin main
 eas build -p android --profile rustore
 # готовый APK загрузить в консоль RuStore вручную
 
-# Google Play (позже) — подписки через RevenueCat: задать EXPO_PUBLIC_BILLING=revenuecat
+# Google Play (позже) — подписки через RevenueCat (EXPO_PUBLIC_BILLING=revenuecat уже задан в профиле production)
 eas build -p android --profile production
 eas submit -p android
 
@@ -107,7 +115,8 @@ eas build -p ios --profile production
 eas submit -p ios
 ```
 
-Или вручную: **Actions → EAS Build → Run workflow** → выбери платформу и профиль.
+Или вручную: **Actions → EAS Build → Run workflow** → выбери платформу и профиль. В Actions есть только
+`preview` и `production`; сборка для RuStore (`rustore`) — локально, командой выше.
 
 **OTA-обновлений нет**: `expo-updates` не установлен, `eas update` ничего не доставит. Любое
 изменение — новая сборка. Подключить OTA — отдельная задача (пакет, канал в `eas.json`, новая сборка).
@@ -116,9 +125,10 @@ eas submit -p ios
 
 ## Ручной запуск сборки десктопа без тега
 
-Через GitHub: **Actions → Release Desktop → Run workflow** → ветка `main` → `draft: true`
+Через GitHub: **Actions → Release Desktop → Run workflow** → нужная ветка.
 
-Это создаст черновик без публикации — удобно для тестирования сборок.
+Релиз при этом НЕ создаётся (задание публикации идёт только по тегу `v*`): инсталлеры остаются
+артефактами запуска на 7 дней — удобно проверить, что сборка проходит на всех трёх системах.
 
 ---
 
@@ -153,7 +163,7 @@ v2.0.0  — смена формата данных / major redesign
 
 - [ ] `targetSdkVersion` 36 (требование Google Play с 31.08.2026)
 - [ ] Apple Developer → App ID `app.sharklog.mobile`; Google Play Console → новое приложение
-- [ ] RevenueCat: продукты и ключи `EXPO_PUBLIC_RC_IOS_KEY` / `EXPO_PUBLIC_RC_ANDROID_KEY`, `EXPO_PUBLIC_BILLING=revenuecat`
+- [ ] RevenueCat: продукты и ключи `EXPO_PUBLIC_RC_IOS_KEY` / `EXPO_PUBLIC_RC_ANDROID_KEY` (`EXPO_PUBLIC_BILLING=revenuecat` уже в профиле `production`)
 - [ ] Пейвол подписок: ссылки на условия и политику, текст об автопродлении
 - [ ] Скриншоты: 6.5" iPhone, Pixel (iPad не нужен — `supportsTablet: false`)
 - [ ] Иконка: 1024×1024 PNG без прозрачности (App Store)

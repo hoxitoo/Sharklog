@@ -24,7 +24,7 @@
 | Учёт ставок (до 50) | ✅ | ✅ |
 | Неограниченные ставки | — | ✅ |
 | Аналитика (7 срезов) | — | ✅ |
-| Инсайты по командам (≥5 ставок) | — | ✅ |
+| Инсайты по командам (≥5 ставок на мобилке, ≥10 на десктопе) | — | ✅ |
 | Банкролл + кривая капитала | — | ✅ |
 | Сверка банка с балансом букмекера | — | ✅ |
 | Калькулятор Келли | — | ✅ |
@@ -43,10 +43,9 @@
 | Процент банка на карточке ставки («+3.2% банка») | ✅ | ✅ |
 | Дублирование ставки в один тап | ✅ | ✅ |
 | Билдер стратегий | — | ✅ |
-| Импорт CSV / Excel | ✅ | ✅ |
+| Импорт CSV (Excel — на десктопе) | ✅ | ✅ |
 | Экспорт CSV / JSON | ✅ | ✅ |
 | 5 статусов ставки | ✅ | ✅ |
-| Автообновления (десктоп) | ✅ | ✅ |
 | 4 темы оформления: тёмная, светлая, оливковая, тёмно-синяя (мобилка) | ✅ | ✅ |
 | 4 языка: RU / EN / KZ / BY | ✅ | ✅ |
 
@@ -103,10 +102,10 @@ cd apps/desktop && npx tauri dev
 ### Тесты
 
 ```bash
-cd packages/core && npx vitest run       # 329 unit-тестов
+cd packages/core && npx vitest run       # 338 unit-тестов
 cd apps/desktop  && npm test             # 40 smoke-тестов
 cd apps/desktop  && npx playwright test  # 22 E2E-тестов
-cd apps/mobile   && npm test             # 426 тестов, включая стражей дизайна, тем, переводов и хранилища
+cd apps/mobile   && npm test             # 469 тестов, включая стражей дизайна, тем, переводов и хранилища
 ```
 
 ### Проверка типов
@@ -133,7 +132,7 @@ cd apps/desktop && npx tauri build
 
 ### Desktop — автоматический релиз через GitHub Actions
 
-Создай тег вида `v1.0.0` — CI автоматически соберёт инсталлеры для всех трёх платформ и опубликует GitHub Release:
+Создай тег вида `v1.0.0` — CI соберёт инсталлеры для всех трёх платформ и приложит их к GitHub Release (проверь, что релиз опубликован, а не остался черновиком — `docs/RELEASE_GUIDE.md`):
 
 ```bash
 git tag v1.0.0 && git push origin v1.0.0
@@ -168,8 +167,8 @@ eas submit -p ios
 | Графики | react-native-gifted-charts | Recharts |
 | Шрифты | DM Sans + DM Mono | DM Sans + DM Mono |
 | Оплата | Робокасса + сервер лицензий (RuStore); RevenueCat — для Google Play позже | — (планируется LemonSqueezy) |
-| Обновления | EAS OTA | Tauri updater (подписанные, GitHub Releases) |
-| Тесты | Jest (426) | Vitest (329 core + 40 smoke) + Playwright (22 E2E) |
+| Обновления | новая сборка в магазине (OTA не подключён: `expo-updates` нет) | вручную с GitHub Releases (Tauri updater пока не работает — ROADMAP) |
+| Тесты | Jest (469) | Vitest (338 core + 40 smoke) + Playwright (22 E2E) |
 | Язык | TypeScript strict | TypeScript strict |
 
 ---
@@ -178,7 +177,7 @@ eas submit -p ios
 
 SharkLog поддерживает **4 языка**: 🇷🇺 Русский · 🇬🇧 English · 🇰🇿 Қазақша · 🇧🇾 Беларуская
 
-Язык выбирается в разделе **Настройки → Язык** с помощью флаг-чипов. Выбор сохраняется в хранилище приложения.
+Язык выбирается в разделе **Настройки → Язык**: на мобилке — сегментом RU / EN / KZ / BY, на десктопе — флаг-чипами. Выбор сохраняется в хранилище приложения.
 
 Файлы переводов: `apps/desktop/src/i18n/locales/` и `apps/mobile/src/i18n/locales/`
 
@@ -250,7 +249,7 @@ EXPO_PUBLIC_LICENSE_PUBKEY=...  # публичный ключ Ed25519 для п�
 
 | Workflow | Триггер | Что делает |
 |----------|---------|-----------|
-| `ci.yml` | push / PR → main | unit-тесты, E2E, tsc |
+| `ci.yml` | push в любую ветку, кроме `gh-pages` (PR — только из форка) | тесты и `tsc` ядра, мобилки и десктопа, сборка бандла мобилки, E2E десктопа |
 | `release-desktop.yml` | тег `v*` | сборка Win/Mac/Linux инсталлеров + GitHub Release |
 | `eas-build.yml` | вручную | EAS Build для Android / iOS |
 
@@ -271,4 +270,4 @@ EXPO_PUBLIC_LICENSE_PUBKEY=...  # публичный ключ Ed25519 для п�
 
 ## Лицензия
 
-Proprietary — все права защищены.
+MIT — см. файл [`LICENSE`](LICENSE). Закрыть лицензию для новых версий — решение автора (ROADMAP, строка «Лицензия MIT»).
