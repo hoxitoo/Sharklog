@@ -19,7 +19,7 @@ apps/mobile/src/
     PendingScreen/           — «Ждут результата»: незакрытые ставки по времени матча (старые сверху),
                                шапка: экспозиция / потенциальный возврат / «пора закрыть» (матч давно прошёл),
                                строки = BetCard (W/L/R/C + inline-выкуп). Вход: тап «В игре» на Ставках
-    AddBetScreen/            — react-hook-form, TeamAutocomplete, Kelly calculator (collapsible),
+    AddBetScreen/            — react-hook-form, SingleTeamInput (поле команды с подсказками), Kelly calculator (collapsible),
                                tournament/league TextInput field, «Кэф закрытия (CLV)» optional field, status includes cashout
                                KeyboardAvoidingView: 'padding' iOS / 'height' Android
                                TournamentInput получает scrollRef → scrollToEnd при фокусе (клавиатура не перекрывает)
@@ -73,8 +73,9 @@ apps/mobile/src/
     ResponsibleGamblingBanner.tsx — коллапсируемый 18+ баннер (AsyncStorage @sharklog/responsible_expanded)
   navigation/
     RootNavigator.tsx        — Stack: Drawer + AddBet (modal) + Bankroll + Goals + GoalEdit + StrategyBuilder + Partners + BetsFilter
+                               + Pending + Support
     DrawerNavigator.tsx      — кастомный анимированный drawer (заменяет таббар)
-                               Animated.spring (открытие) / Animated.timing (закрытие)
+                               Animated.timing 240 мс с Easing.out (открытие; пружину запрещает drawerMotion.test.ts) / Animated.timing (закрытие)
                                DrawerContext — openDrawer() доступен из любого экрана
                                FAB «+» — виден ТОЛЬКО на экране Ставок ({screen === 'Bets'})
                                Разделы: Ставки | Дашборд | Инсайты | Аналитика | Дисциплина | Настройки
@@ -113,13 +114,13 @@ apps/mobile/src/
     ../theme/chartColors.ts  — SERIES: единая палитра серий для всех графиков
     clockFormat.ts           — uses12HourClock() → true если система в 12h (Intl.formatToParts dayPeriod)
   __tests__/
-    betsStore.test.ts        — 19 smoke tests (canAddBet, addBet, deleteBet, updateBet, clearAll, express team extraction, clearAll preserves prefs)
+    betsStore.test.ts        — стор: canAddBet, addBet, deleteBet, updateBet, clearAll, команды экспресса, clearAll сохраняет настройки, эффективные лимиты
     __mocks__/
       async-storage.ts       — in-memory AsyncStorage mock
       notifications.ts       — jest.fn() stubs for scheduleDailyReminder/sendTiltNotification
 
 apps/desktop/src/            — React+Vite frontend (TypeScript strict), Tauri v2 backend (src-tauri/)
-  App.tsx                    — routing (8 pages), modal state, Cmd+N hotkey, Esc to close;
+  App.tsx                    — routing (9 pages, включая Партнёры), modal state, Cmd+N hotkey, Esc to close;
                                isLoaded guard (logo spinner), onboarding gate, ErrorBoundary wrapper
   layouts/
     AppLayout.tsx            — sidebar: logo image, nav (8 items, PRO badge на strategy), "+ Новая ставка",
@@ -142,7 +143,7 @@ apps/desktop/src/            — React+Vite frontend (TypeScript strict), Tauri 
     BetsPage.tsx             — date-grouped sections (tbody), daily P&L per section, search,
                                status filter (pending/won/lost/refund/cashout), sort (4 modes),
                                quick-result buttons W/L/R/C
-    AddBetModal.tsx          — full form with TeamAutocomplete + tournament datalist autocomplete,
+    AddBetModal.tsx          — full form with SingleTeamInput + tournament datalist autocomplete,
                                canAddBet() guard, limit banner, potential win preview,
                                status includes cashout; clipboard paste pre-fill
     AnalyticsPage.tsx        — 7 срезов: sport/betType/bookmaker/strategy/oddsRange/dayOfWeek/hour (PRO)
@@ -165,9 +166,9 @@ apps/desktop/src/            — React+Vite frontend (TypeScript strict), Tauri 
   test/
     setup.ts                 — vi.mock for @tauri-apps/plugin-sql + storageService
   store/
-    betsStore.test.ts        — 25 smoke tests
+    betsStore.test.ts        — 14 smoke tests
   utils/
-    importBets.test.ts       — 15 tests for CSV/XLSX parsing
+    importBets.test.ts       — 26 tests for CSV/XLSX parsing
 
   apps/desktop/src-tauri/    — Tauri v2 Rust backend
     tauri.conf.json          — productName, identifier, window config, bundle targets,
@@ -388,10 +389,10 @@ buildStrategy(answers: StrategyAnswers): GeneratedStrategy
 // Логика (rule-based, без ML):
 // stakePercent: base из risk (1/2/3.5%), корректируется по experience/goal, cap 5%
 // betsPerDay: из timePerDay (1/2/3/5), корректируется по priority/experience
-// oddsMin/Max: low(1.30–1.65) / mid(1.65–2.40) / high(2.40–4.00)
+// oddsMin/Max: STRATEGY_ODDS_BANDS — low(1.30–1.70) / mid(1.70–2.50) / high(2.50–4.00); план читает их из ответов (strategyPlan)
 // kellyMultiplier: conservative=0.25 / moderate=0.5 / aggressive=0.75
 // tiltThreshold: stop=2 / reduce=3 / continue=4
-// 6 вариантов названий: Стартовая, Консервативная, Ценностная, Агрессивная, Сбалансированная, Профессиональная
+// 7 вариантов названий: Стартовая, Консервативная, Аутсайдерская (консервативный риск на кэфах 2.50+), Ценностная, Агрессивная, Сбалансированная, Профессиональная
 ```
 
 Сохранённая стратегия:
@@ -404,12 +405,14 @@ buildStrategy(answers: StrategyAnswers): GeneratedStrategy
 
 ## Auto-updater (Desktop)
 
-- **Signing**: `npx tauri signer generate` → private key в GitHub Secret `TAURI_SIGNING_PRIVATE_KEY`
-- **Public key**: заменить `UPDATER_PUBLIC_KEY_PLACEHOLDER` в `tauri.conf.json`
+**Сейчас НЕ работает** (проверено 2026-11-07, задача — ROADMAP, «До релиза десктопа»): в
+`capabilities/` нет разрешения `updater:default`, а `release-desktop.yml` выкладывает только
+установщики — ни `.sig`, ни `latest.json`, который читает клиент. Что уже на месте:
+- **Signing**: `npx tauri signer generate` → закрытый ключ в GitHub Secret `TAURI_SIGNING_PRIVATE_KEY`
+- **Public key**: уже в `tauri.conf.json` (`plugins.updater.pubkey`)
 - **Endpoint**: `https://github.com/hoxitoo/sharklog/releases/latest/download/latest.json`
-- **UI**: кнопка "Проверить обновления" в SettingsPage → "О приложении" карточка
-- **CI**: `release-desktop.yml` собирает подписанные артефакты при теге `v*`
-- **404 handling**: 404 от endpoint трактуется как "последняя версия", не как ошибка
+- **UI**: кнопка "Проверить обновления" в SettingsPage → "О приложении"; 404 от endpoint трактуется как "последняя версия"
+- **CI**: `release-desktop.yml` собирает Windows / macOS / Linux (последний прогон 2026-11-07 — все три зелёные); релиз публикуется только по тегу `v*`
 
 ---
 
@@ -427,7 +430,7 @@ VITE_OWNER_PRO=true
 
 ## CI / Build
 
-- **CI**: `.github/workflows/ci.yml` — `npm ci` → vitest (core 208 + desktop 40) → mobile tests (34) → tsc mobile+desktop
+- **CI**: `.github/workflows/ci.yml` — на push любой ветки, кроме gh-pages (PR — только из форка): одно задание — `node_modules` из кэша по package-lock (иначе `npm ci`) → тесты и `tsc` ядра, десктопа и мобилки → `expo export` мобилки; отдельно E2E десктопа (Playwright, браузер из кэша, не блокирует). Около минуты
 - **EAS Build**: `.github/workflows/eas-build.yml` — ручной `workflow_dispatch`
   - Требует: `EXPO_TOKEN` secret + реальный `projectId` в `app.json`
 - **EAS профили**: development / preview (APK) / production (autoIncrement)
@@ -460,9 +463,9 @@ VITE_OWNER_PRO=true
 - [x] 4 языка: ru / en / kz (казахский) / by (беларуский)
 - [x] Файлы переводов: `apps/desktop/src/i18n/locales/` + `apps/mobile/src/i18n/locales/`
 - [x] i18next + react-i18next; `compatibilityJSON: 'v4'`
-- [x] Desktop: `i18next-browser-languagedetector`; язык сохраняется в localStorage (`sharklog-lang`) и `AppSettings.language`
+- [~] Desktop: `i18next-browser-languagedetector` подключён, но `lng: 'ru'` в `i18n/index.ts` его перекрывает — язык системы не подхватывается (ROADMAP); выбранный язык сохраняется в localStorage (`sharklog-lang`) и `AppSettings.language`
 - [x] Mobile: `applyLanguage()` читает device locale как fallback; смена через SettingsScreen
-- [x] Переведены все страницы десктопа: Dashboard, Bets, Analytics, Insights, Bankroll, Diary, Settings, Onboarding, StrategyBuilder, AppLayout
+- [~] Страницы десктопа на ключах перевода (Dashboard, Bets, Analytics, Insights, Bankroll, Diary, Settings, Onboarding, StrategyBuilder, AppLayout), но ~280 строк русского ещё в коде (ROADMAP, десктопный бэклог)
 - [x] Переведены все экраны мобилки (locale файлы синхронизированы с десктопом)
 - [x] Визуально проверено на всех 4 языках: нет fallback-ключей, нет обрезанного текста
 
@@ -519,23 +522,23 @@ VITE_OWNER_PRO=true
                    "Турнир / Лига" с `<datalist>` autocomplete; статус cashout;
                    clipboard paste для pre-fill формы; Kelly calculator
 - [x] AnalyticsPage: "Топ турниры" блок (calcByTournament, top-3)
-- [x] AppLayout: sidebar logo = img logo.png, nav 8 пунктов (Insights + Strategy с PRO badge)
-- [x] App.tsx: 8 pages + loading screen с logo.png; Ctrl+1..8, Ctrl+N, Esc
+- [x] AppLayout: sidebar logo = img logo.png, nav 9 пунктов (Insights + Strategy с PRO badge, Партнёры)
+- [x] App.tsx: 9 pages + loading screen с logo.png; Ctrl+1..9, Ctrl+N, Esc
 - [x] OnboardingPage: logo image вместо emoji
 - [x] public/logo.png + public/logo-512.png — официальный логотип
 - [x] src-tauri/icons/: полный набор иконок (32/128/256/512, ICO, Windows tiles, AppImage)
-- [x] PAGE_ORDER: 8 страниц, Ctrl+1..8 shortcuts (все страницы), Ctrl+N — новая ставка, Esc — закрыть
-- [x] Auto-updater: 404 трактуется как "уже последняя версия"
+- [x] PAGE_ORDER: 9 страниц, Ctrl+1..9 shortcuts (все страницы), Ctrl+N — новая ставка, Esc — закрыть
+- [~] Auto-updater: 404 трактуется как "уже последняя версия" — но сам updater не работает (см. «Auto-updater»)
 - [x] DashboardPage, BetsPage, AddBetModal, AnalyticsPage, BankrollPage — полные
 - [x] DiaryPage, SettingsPage, AppLayout, OnboardingPage — полные
 - [x] CSV + XLSX import (column aliases, RU/EN, cashout в status map)
 - [x] clipboardParser.ts — paste pre-fill для AddBetModal
 - [x] Owner PRO mode (VITE_OWNER_PRO=true)
-- [x] Auto-updater UI в SettingsPage
+- [~] Auto-updater UI в SettingsPage (кнопка есть, обновление не придёт — см. «Auto-updater»)
 - [x] roundAmounts: false в defaultSettings (type-safe)
-- [x] E2E tests (Playwright, continue-on-error): 40+ тестов
+- [x] E2E tests (Playwright, continue-on-error): 22 теста
 - [x] 40 smoke tests (Vitest)
-- [x] Полный i18n: все страницы переведены на ru/en/kz/by через react-i18next
+- [~] i18n: страницы на react-i18next, но ~280 строк русского ещё захардкожено (форма ставки, тосты Настроек, стратегия) — ROADMAP, десктопный бэклог
 - [x] betsCsv.ts — единый CSV-импорт/экспорт для обеих платформ (BOM, CRLF, `,`/`;`/таб,
       объединённые алиасы колонок); заменил две разъехавшиеся копии
 - [x] betPnl() — общий P&L одной ставки; выкуп и проигранный фрибет считались по-разному
@@ -574,9 +577,9 @@ apps/mobile           469 jest tests (стор, стражи дизайна/те
 ## Команды
 
 ```bash
-cd packages/core && npx vitest run          # 66 тестов
+cd packages/core && npx vitest run          # 338 тестов
 cd apps/desktop && npx vitest run           # 40 тестов
-cd apps/mobile && npm test                  # 25 тестов
+cd apps/mobile && npm test                  # 469 тестов
 
 cd apps/mobile && npx tsc --noEmit          # type-check мобилки
 cd apps/desktop && npx tsc --noEmit         # type-check десктопа
@@ -650,5 +653,5 @@ git push -u origin claude/busy-shannon-jQgRK
 
 ### Известный долг (не входило в этот раунд)
 - **i18n полных экранов**: `AddBetScreen`/`AddBetModal`, `ChecklistModal`, `ConfirmModal`, тосты `SettingsPage`, тилт-баннеры — большой объём хардкод-RU строк. EN/KZ/BY юзеры видят русский в этих местах. Требует добавления десятков ключей × 4 локали × 2 приложения — отдельная крупная задача.
-- Daily-лимит и `bet.date` используют UTC-дату (не локальную) — мелкое смещение границы дня; смена рискованна для существующих данных.
+- ~~Daily-лимит и `bet.date` используют UTC-дату~~ — исправлено: везде `toYmd()` (в коде приложений `toISOString().split` не осталось).
 - `kz`/`by` локали: часть значений — непереведённый русский (нужен проход носителя языка).

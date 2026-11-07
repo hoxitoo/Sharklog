@@ -1,6 +1,6 @@
 # SharkLog — Roadmap
 
-_Обновлено: 2026-10-19 (RuStore: оплата через Робокассу, пробный период, обучение при первом запуске)_
+_Обновлено: 2026-11-07 (аудит оптимизации: пункты 14–28 — запуск, сохранение, переводы, копии, мёртвый код, CI, документация); до этого — 2026-10-19 (RuStore: оплата через Робокассу, пробный период, обучение при первом запуске)_
 
 ---
 
@@ -69,7 +69,7 @@ _Обновлено: 2026-10-19 (RuStore: оплата через Робокас
 - OnboardingPage: 3-step wizard (новые пользователи); существующие видят main app
 - CSV + XLSX import (SheetJS, column aliases, RU/EN headers, date normalization)
 - Owner PRO mode: `VITE_OWNER_PRO=true` → isPro = true на старте
-- Auto-updater UI: "Проверить обновления" в SettingsPage → "О приложении"
+- Auto-updater UI: "Проверить обновления" в SettingsPage → "О приложении" (кнопка есть, само обновление не работает — «🔐 Безопасность», строка про автообновление)
 - Release workflow: `.github/workflows/release-desktop.yml` → signed installers → GitHub Release
 - 40 desktop smoke tests (vitest + happy-dom): betsStore x25, importBets x15
 - 17 mobile smoke tests (jest, plain babel): betsStore x17
@@ -121,11 +121,11 @@ _Обновлено: 2026-10-19 (RuStore: оплата через Робокас
 ### Security audit & fixes (batch 8)
 - **C-2** `eas.json`: удалён `EXPO_PUBLIC_OWNER_PRO=true` из preview-профиля (был запечён в APK-бинарь)
 - **H-2** `tauri.conf.json`: `csp: null` → строгая CSP-политика (`default-src 'self'` + узкие исключения)
-- **H-3** `crypto.randomUUID()` вместо `Math.random()`-UUID во всех 10 местах (mobile + desktop)
+- **H-3** `crypto.randomUUID()` вместо `Math.random()`-UUID во всех 10 местах (mobile + desktop) — на мобилке позже ЗАПРЕЩЁН: на Hermes без `crypto` он бросал (`uuid()` с запасным вариантом, 2026-11-06)
 - **H-4** `google-service-account.json` добавлен в `.gitignore`
 - **M-1** `error.stack` убран из UI ErrorBoundary обоих приложений (остался только в `console.error`)
 - **M-2** JSON-импорт теперь стрипает `isPro`/`proExpiresAt` — нельзя поднять подписку через backup-файл
-- **M-5** `opener:default` удалён из Tauri capabilities (неиспользуемый вектор XSS→IPC)
+- **M-5** ⚠️ НЕ сделано (проверено 2026-11-07): `opener:default` по-прежнему в `capabilities/default.json`, а `lib.rs` регистрирует плагин. Задача открыта — «🔐 Безопасность»
 - **M-7** Лимит 10 МБ на все три типа импорта (JSON / CSV / XLSX)
 
 ### Bug audit & fixes (batch 9)
@@ -135,7 +135,7 @@ _Обновлено: 2026-10-19 (RuStore: оплата через Робокас
 - Тилт-детекция использует полный список ставок, а не фильтрованный
 - `canAddBet()` теперь вызывается в `AddBetScreen.onSubmit` (ранее Free-лимит не соблюдался)
 - `parseEventTeams` экспортирована из `packages/core`
-- Замена `xlsx@0.18.5` (CVE) на `@e965/xlsx@0.20.3` (патченный fork)
+- Замена `xlsx@0.18.5` (CVE) на `@e965/xlsx@0.20.3` (патченный fork) — импорт переведён, но сам `xlsx@0.18.5` ещё в `apps/desktop/package.json` (задача открыта — «🔐 Безопасность»)
 - `schemaVersion: 1` хардкод заменён на `CURRENT_SCHEMA_VERSION` везде
 - 7-дневный trial: `proExpiresAt` → автоотзыв при `load()`, "Отключить" скрыт в production
 - `syncEntitlement` возвращает `null` при нет-сети (сохранить состояние) vs `false` (отписался)
@@ -153,20 +153,20 @@ _Обновлено: 2026-10-19 (RuStore: оплата через Робокас
 
 ### Навигация
 - **Drawer-навигация**: таббар заменён на кастомный анимированный slide-out drawer (hamburger ≡ слева)
-  - `DrawerNavigator.tsx`: `Animated.spring` (открытие) + `Animated.timing` (закрытие с callback)
+  - `DrawerNavigator.tsx`: `Animated.spring` (открытие) + `Animated.timing` (закрытие с callback) — позже открытие тоже `timing` 240 мс: хвост пружины ~0,7 с делал меню мёртвым
   - `DrawerContext.tsx`: React Context — `openDrawer()` доступен из любого экрана
   - `ScreenHeader.tsx`: hamburger кнопка интегрирована во все заголовки
-- **Векторные иконки**: emoji → `@expo/vector-icons` (Ionicons) во всём drawer
+- **Векторные иконки**: emoji → `@expo/vector-icons` (Ionicons) во всём drawer — позже заменены авторским SVG-набором (`AppIcon`)
   - Активное состояние: filled-вариант иконки + `colors.purple`
   - Неактивное: outline-вариант + `colors.textSecondary`
   - Иконки: `receipt`, `bar-chart`, `bulb`, `flask`, `leaf`, `settings`, `wallet`, `options`, `gift`, `menu`
-- **FAB «+»**: кнопка добавления ставки всегда видна (правый нижний угол, поверх всего контента)
+- **FAB «+»**: кнопка добавления ставки всегда видна (правый нижний угол, поверх всего контента) — позже только на экране Ставок
 
 ### Функционал
-- **Партнёры в drawer**: выделенная teal-карточка, всегда на виду (раньше — скрыто в Настройках)
+- **Партнёры в drawer**: выделенная teal-карточка, всегда на виду (раньше — скрыто в Настройках) — позже обычный пункт «скоро» (раздел — заглушка), выделена только «Поддержать автора»
 - **Отключение чек-листа**: PRO-toggle в Настройках (`disableChecklist` в `AppSettings`)
   - `AppSettings.disableChecklist?: boolean` добавлено в `packages/core`
-  - По умолчанию — включён (обратная совместимость)
+  - По умолчанию — включён (обратная совместимость) — позже для НОВЫХ установок выключен (`disableChecklist: true`), сохранённые не тронуты
 - **ResponsibleGamblingBanner**: новый компонент (`components/ResponsibleGamblingBanner.tsx`)
   - Коллапсируемый, AsyncStorage-персистентный (`@sharklog/responsible_expanded`)
   - Required для App Store категории «Sports»
@@ -201,7 +201,7 @@ _Обновлено: 2026-10-19 (RuStore: оплата через Робокас
 ## 🔄 Phase 3 — Пред-релизная подготовка (в работе)
 
 ### ✅ Завершено
-- [x] `TAURI_SIGNING_PRIVATE_KEY` добавлен в GitHub Secrets; desktop-релиз выпущен
+- [x] `TAURI_SIGNING_PRIVATE_KEY` добавлен в GitHub Secrets. ⚠️ Desktop-релиз при этом НЕ выпущен: релизов на GitHub нет (проверено 2026-11-07)
 - [x] Публичный ключ обновления в `tauri.conf.json`
 - [x] `projectId` в `app.json` (`5d3248d5-6413-4bfc-afd6-83d5bfe75c35`)
 - [x] Лендинг + Privacy Policy на GitHub Pages (`gh-pages` ветка)
@@ -209,7 +209,7 @@ _Обновлено: 2026-10-19 (RuStore: оплата через Робокас
 - [x] GitHub Actions: CI + desktop release + EAS build workflows
 - [x] iOS Privacy Manifest (`privacyManifests` в `app.json`) — UserDefaults, FileTimestamp, SystemBootTime, DiskSpace
 - [x] Коучмарки при первом визите (BetsScreen, DashboardScreen) — `Coachmark` компонент с AsyncStorage
-- [x] Тег `v1.0.0` создан локально (запушить вручную: `git push origin v1.0.0`)
+- [~] Тег `v1.0.0` создан локально, на GitHub его нет — там только `v1.0` (6 июня, сборка того дня упала). Публикация релиза — ниже, «🔴»
 
 ### 🎯 Первый релиз — RuStore, оплата через Робокассу
 
@@ -286,7 +286,6 @@ Cloudflare Worker и выдаёт подписанную лицензию, пр�
 | CSV-экспорт экранирует формулы у ЛЮБОГО не-числа; поиск по картам алиасов через `Object.hasOwn` | `=HYPERLINK(…)` в массиве проходит экранирование; `constructor`/`__proto__` в ячейке пишут не-строку в статус |
 | Буфер обмена: ограничить длину и переписать регулярку суммы | 200 тыс. символов вешают окно на 2 минуты |
 | Убрать неиспользуемый `xlsx@0.18.5` и разрешение `opener:default` | Уязвимый пакет в зависимостях; лишнее разрешение для подставленного скрипта |
-| `git rm -r --cached apps/desktop/src-tauri/target` | 3 тыс. файлов сборки в git (секретов нет) |
 | Подписать установщики (Windows) | Инструкция «пропусти SmartScreen» делает поддельный установщик неотличимым |
 
 **Позже / решения:**
@@ -356,7 +355,6 @@ Cloudflare Worker и выдаёт подписанную лицензию, пр�
 | Отчёт об ошибке на десктопе — как на мобилке: текст, который пользователь видит и отправляет сам, без сервиса | Desktop | 2 ч |
 | Аналитика событий (Amplitude / PostHog) | Both | 1–2 дня |
 | Описания приложений (App Store / GP) | — | 2–4 ч |
-| Первый GitHub Release `v1.0.0` для кнопки "Проверить обновления" | Desktop | 15 мин |
 
 ---
 
@@ -476,10 +474,10 @@ Cloudflare Worker и выдаёт подписанную лицензию, пр�
 | 22 | Неиспользуемые зависимости | ✅ 2026-11-07 |
 | 23 | Неиспользуемые ключи перевода | ✅ 2026-11-07 (119 ключей × 4 языка; страж `i18nUnused.test.ts`) |
 | 24 | Копии одного и того же | ✅ 2026-11-07 (uuid, «ДД.ММ», `displayEvent`, период, сверка напоминаний, `Field`/`inputStyle`; страж `oneCopy.test.ts`. Общие с десктопом — в core: список команд, тепловая карта, шаг Келли, разбивка Инсайтов; страж `oneCopyAcrossApps.test.ts`. `pnlColor` — одна строка на палитру своего приложения, в ядро не просится; заголовок дня — у мобилки `dayTitle` с кэшем Intl, у десктопа свой — сводится вместе с переводом десктопа) |
-| 25 | Мёртвый код, `noUnusedLocals` | ⬜ |
-| 26 | Мусор в репозитории | ⬜ |
-| 27 | CI | ⬜ |
-| 28 | Документация (CLAUDE.md по папкам, противоречия, ANALYSIS.md в архив) | ⬜ |
+| 25 | Мёртвый код, `noUnusedLocals` | ✅ 2026-11-07 (`noUnusedLocals`/`noUnusedParameters` во всех трёх пакетах; мёртвые экспорты ядра и мобилки убраны) |
+| 26 | Мусор в репозитории | ✅ 2026-11-07 (генератор заглушек удалён, `lint` без eslint убран, ядро указывает на `src`, один vitest 4, типы React 19 у мобилки) |
+| 27 | CI | ✅ 2026-11-07 (без двойных прогонов, одна установка из кэша, `tsc` мобилки по-настоящему, `expo export`; релиз десктопа собирается) |
+| 28 | Документация (CLAUDE.md по папкам, противоречия, ANALYSIS.md в архив) | ✅ 2026-11-07 (карты файлов — в CLAUDE.md папок, противоречия сверены с кодом, ANALYSIS.md — в `docs/archive/`) |
 
 ## 🖥 Десктоп — бэклог по аудиту оптимизации 2026-11-06
 
@@ -530,19 +528,19 @@ Cloudflare Worker и выдаёт подписанную лицензию, пр�
 | Детектор языка не работает: `lng: 'ru'` перекрывает его, первый запуск всегда по-русски, 14 КБ впустую | `i18n/index.ts:3,25-36` | S |
 | `toLocaleDateString` с `'en' ? 'en-US' : 'ru-RU'` и дата без локали | `DashboardPage.tsx:219`, `SettingsPage.tsx:245` | S |
 | 5 копий `crypto.randomUUID()` → один `utils/uuid.ts` | `AddBetModal.tsx:14`, `BankrollPage.tsx:12`, `DiaryPage.tsx:9`, `betsStore.ts:6`, `utils/importBets.ts:6` | S |
-| Помощники команд одинаковы со стором мобилки; приватный `sanitizeTeams` затеняет одноимённый из ядра с другим смыслом → в ядро | `store/betsStore.ts:14-46` | S |
-| Одинаковые с мобилкой помощники → в ядро: `split` инсайтов, `pnlColor`, цвет тепловой карты, шаг Келли, `formatDateTitle` | `InsightsPage.tsx:36,108`, `DashboardPage.tsx:86`, `AddBetModal.tsx:151`, `BetsPage.tsx:55` | M |
+| ✅ 2026-11-07 Помощники команд одинаковы со стором мобилки; приватный `sanitizeTeams` затенял одноимённый из ядра → в ядре `upsertTeams`/`cleanTeamNames` | `store/betsStore.ts` | — |
+| Одинаковые с мобилкой помощники → в ядро: осталось `pnlColor` (одна строка на палитру приложения — может и не проситься) и `formatDateTitle` (сводится вместе с переводом). `split` инсайтов, тепловая карта и шаг Келли — в ядре с 2026-11-07 | `InsightsPage.tsx:36`, `BetsPage.tsx:55` | S |
 | `currentBank` вручную на дашборде | `DashboardPage.tsx:153-154` | S |
-| Мёртвое: 9 из 11 событий аналитики (в т.ч. `partnerLinkTapped`), стиль `s.logoText`, импорты `DEFAULT_BOOKMAKERS`/`formatMoney`/`isInTilt`, параметр `t1` | `utils/analytics.ts:36-63`, `AppLayout.tsx:114`, `SettingsPage.tsx:2`, `StrategyBuilderPage.tsx:4`, `betsStore.ts:3`, `AddBetModal.tsx:224` | S |
+| Мёртвое: 9 из 11 событий аналитики (в т.ч. `partnerLinkTapped`), стиль `s.logoText`. Неиспользуемые импорты и параметр `t1` убраны 2026-11-07 — теперь их ловит `noUnusedLocals` | `utils/analytics.ts`, `AppLayout.tsx` | S |
 | `public/logo-512.png` (39 КБ) нужен только README, а Vite кладёт `public/` в каждый бандл → перенести в `docs/` | `apps/desktop/public` | S |
 
 **CI и документация десктопа:**
 
 | Задача | Почему | Оценка |
 |---|---|---|
-| Релиз десктопа сломан | Последние 5 запусков (30.05–06.06) упали на «Build Tauri app» (macOS и Linux); собирает ненужный `dist` ядра (`release-desktop.yml:71-72`); `npm ci` без `--legacy-peer-deps` | M |
-| E2E десктопа ставит весь монорепо и браузер без кэша | `npm ci` ~842 МБ с Expo/RN ради Vite + Playwright; поставить только workspace десктопа и кэшировать браузеры Playwright | S |
-| README обещает автообновление десктопа, CLAUDE.md — Ctrl+1..8 при 9 страницах | Документ расходится с продуктом (см. строку про автообновление в «🔐») | S |
+| ✅ 2026-11-07 Релиз десктопа | Ручной прогон с ветки 2026-11-07 собрал Windows, macOS и Linux (июньские падения не повторились; их логи истекли, причину не установить). Шаг сборки `dist` ядра убран — Vite читает исходник. `npm ci` без `--legacy-peer-deps` работает | — |
+| E2E десктопа ставит весь монорепо | Браузер Playwright и `node_modules` теперь из кэша (2026-11-07): без изменений в lock-файле установки нет вовсе. Осталось: при промахе кэша ставится весь монорепо ради Vite + Playwright | S |
+| ✅ 2026-11-07 README обещал автообновление десктопа, CLAUDE.md — Ctrl+1..8 при 9 страницах | Исправлено вместе с пунктом 28 | — |
 
 ## Технические долги
 
