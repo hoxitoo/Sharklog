@@ -7,6 +7,9 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "newArchEnabled": false,
+    "experiments": {
+      "tsconfigPaths": false
+    },
     "splash": {
       "image": "./assets/icon.png",
       "resizeMode": "contain",
