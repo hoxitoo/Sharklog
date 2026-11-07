@@ -311,7 +311,7 @@ new Date(`${ymd}T00:00:00`).toLocaleDateString(dateLocale(), { day: 'numeric', m
 # Тесты
 cd packages/core && npx vitest run        # 338 unit-тестов core
 cd apps/desktop  && npm test              # 40 smoke-тестов desktop (Vitest)
-cd apps/mobile   && npm test              # 469 тестов mobile (Jest), включая стражей дизайна, тем и переводов
+cd apps/mobile   && npm test              # 470 тестов mobile (Jest), включая стражей дизайна, тем и переводов
 
 # Type-check
 cd apps/mobile  && npx tsc --noEmit
