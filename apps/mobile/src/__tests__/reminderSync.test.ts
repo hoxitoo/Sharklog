@@ -31,7 +31,9 @@ jest.mock('expo-notifications', () => ({
 
 // Not '../utils/notifications': jest.config maps that path to the store's mock.
 // eslint-disable-next-line import/first
-import { syncBetResultReminders, reminderFireAt } from '../../src/utils/notifications';
+import { syncBetResultReminders, syncRemindersFor, reminderFireAt } from '../../src/utils/notifications';
+import * as Notifications from 'expo-notifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // 12:00:30 local. Esports reminders fire 150 min after kick-off.
 const NOW = new Date(2026, 9, 5, 12, 0, 30).getTime();
@@ -115,5 +117,40 @@ describe('syncBetResultReminders cap', () => {
     preschedule(settled);
     await syncBetResultReminders([settled], true, { rearm: true });
     expect(mockScheduled.has('bet-result-done')).toBe(false);
+  });
+});
+
+describe('the launch sync', () => {
+  // Re-issuing every scheduled reminder on EVERY launch was up to 50 native
+  // calls before the first screen. A reminder's text is baked from the app
+  // version, the language and the odds format: re-issue when one of them
+  // changed, otherwise only arm what is missing (2026-11-07).
+  beforeEach(async () => { await AsyncStorage.clear(); });
+
+  it('re-issues everything once per version, language and odds format — not on every launch', async () => {
+    const b = bet('a', '15:00');
+    preschedule(b);
+    await syncRemindersFor([b], true, '1.4.0|ru|decimal');
+    expect(mockScheduled.get('bet-result-a')!.content.title).not.toBe('OLD TEXT'); // re-issued
+    preschedule(b);
+    await syncRemindersFor([b], true, '1.4.0|ru|decimal');
+    expect(mockScheduled.get('bet-result-a')!.content.title).toBe('OLD TEXT'); // left alone
+    await syncRemindersFor([b], true, '1.4.0|en|decimal');
+    expect(mockScheduled.get('bet-result-a')!.content.title).not.toBe('OLD TEXT'); // the language changed
+  });
+
+  it('still arms a missing reminder when nothing changed', async () => {
+    await syncRemindersFor([], true, '1.4.0|ru|decimal');
+    await syncRemindersFor([bet('b', '15:00')], true, '1.4.0|ru|decimal');
+    expect(mockScheduled.has('bet-result-b')).toBe(true);
+  });
+
+  it('asks for the permission once per sync, not once per reminder', async () => {
+    const perm = Notifications.getPermissionsAsync as jest.Mock;
+    perm.mockClear();
+    const many = ['13:00', '14:00', '15:00', '16:00', '17:00'].map((t, i) => bet(`p${i}`, t));
+    await syncBetResultReminders(many, true);
+    expect(mockScheduled.size).toBe(5);
+    expect(perm).toHaveBeenCalledTimes(1);
   });
 });

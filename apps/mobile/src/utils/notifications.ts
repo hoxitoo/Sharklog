@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
 import i18n from '../i18n';
 import { pickLabel } from './labels';
@@ -219,26 +220,30 @@ export async function scheduleBetResultReminder(bet: Bet): Promise<void> {
     try {
       const { status } = await Notifications.getPermissionsAsync();
       if (status !== 'granted') return;
-
-      const at = reminderFireAt(bet);
-      if (at === null) return;
-      const fireAt = new Date(at);
-
-      await Notifications.scheduleNotificationAsync({
-        identifier: reminderId(bet.id), // replaces any existing reminder for this bet
-        content: {
-          title: i18n.t('notifications.resultTitle'),
-          // As on the card: "× 1.91" in decimal, a bare "-110" in American —
-          // never the stored float ("× 1.9090909091").
-          body: `${displayEvent(bet.event)} · ${pickLabel(i18n.t, bet.pick)} ${oddsBadge(bet.odds, reminderOddsFormat)}`,
-          categoryIdentifier: BET_RESULT_CATEGORY,
-          data: { type: 'bet_result', betId: bet.id },
-        },
-        trigger: { type: 'date', date: fireAt } as Notifications.DateTriggerInput,
-      });
+      await armReminder(bet);
     } catch {
       // scheduling unavailable — silently skip
     }
+  });
+}
+
+/** The scheduling itself — the permission is the caller's to check (once, for a whole sync). */
+async function armReminder(bet: Bet): Promise<void> {
+  const at = reminderFireAt(bet);
+  if (at === null) return;
+  const fireAt = new Date(at);
+
+  await Notifications.scheduleNotificationAsync({
+    identifier: reminderId(bet.id), // replaces any existing reminder for this bet
+    content: {
+      title: i18n.t('notifications.resultTitle'),
+      // As on the card: "× 1.91" in decimal, a bare "-110" in American —
+      // never the stored float ("× 1.9090909091").
+      body: `${displayEvent(bet.event)} · ${pickLabel(i18n.t, bet.pick)} ${oddsBadge(bet.odds, reminderOddsFormat)}`,
+      categoryIdentifier: BET_RESULT_CATEGORY,
+      data: { type: 'bet_result', betId: bet.id },
+    },
+    trigger: { type: 'date', date: fireAt } as Notifications.DateTriggerInput,
   });
 }
 
@@ -319,9 +324,35 @@ export async function syncBetResultReminders(
         .filter((b) => b.status === 'pending' && !scheduledIds.has(b.id) && reminderFireAt(b, now) !== null)
         .sort((a, b) => reminderFireAt(a, now)! - reminderFireAt(b, now)!)
         .slice(0, Math.max(0, MAX_SCHEDULED - scheduledIds.size));
-      for (const bet of missing) await scheduleBetResultReminder(bet);
+      // The permission once for the whole sync, not once per reminder (up to 50
+      // calls into native code at every launch).
+      const { status } = await Notifications.getPermissionsAsync();
+      if (status === 'granted') {
+        for (const bet of missing) await enqueue(() => armReminder(bet).catch(() => {}));
+      }
     }
   } catch {
     // permissions revoked / API unavailable — skip silently
+  }
+}
+
+/** What the scheduled reminders were last issued for: app version, language, odds format. */
+const ARMED_FOR_KEY = '@sharklog/reminders_armed_for';
+
+/**
+ * The reminder sync of a launch or of a language / odds-format switch. A
+ * reminder's text is baked in when it is scheduled, so everything scheduled is
+ * re-issued (`rearm`) — but only when what it is baked from changed: the app
+ * version (an older build's Russian texts), the language, the odds format.
+ * Re-issuing on EVERY launch was up to 50 native calls before the first screen
+ * for nothing; a plain sync still arms whatever is missing.
+ */
+export async function syncRemindersFor(bets: Bet[], enabled: boolean, armedFor: string): Promise<void> {
+  let before: string | null = null;
+  try { before = await AsyncStorage.getItem(ARMED_FOR_KEY); } catch { /* unknown: re-issue */ }
+  const rearm = before !== armedFor;
+  await syncBetResultReminders(bets, enabled, { rearm });
+  if (rearm) {
+    try { await AsyncStorage.setItem(ARMED_FOR_KEY, armedFor); } catch { /* next launch re-issues again */ }
   }
 }
