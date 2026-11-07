@@ -771,7 +771,7 @@ utils/ (из нового)
   appVersion.ts            — `APP_VERSION` из app.json
   compactMoney.ts          — короткая сумма для кнопки («12,5 тыс ₽»); хук — `useCompactMoney`
   goalText.ts              — `durationLabel` (короткие единицы — без форм мн. числа), `dayLabel`, `goalPercent`
-  uuid.ts                  — UUID v4 с запасным Math.random (для новых экранов; старые держат свою копию)
+  uuid.ts                  — UUID v4 с запасным Math.random — ЕДИНСТВЕННЫЙ генератор (шесть копий по экранам и стору убраны; страж — `uuid.test.ts`)
   calendar.ts              — сетка месяца для `DateField` (`monthCells`, 42 клетки), `shiftMonth`,
                              `addMonths` (конец месяца не переползает), `weekStartFor`, `followStart`
                              (куда уходит срок при сдвиге начала) — чистое, под тестом

@@ -1,6 +1,11 @@
-/** A v4 UUID. `crypto` may be unavailable on Hermes/Android — then Math.random. */
+/**
+ * A v4 UUID — the ONE generator in the app (six copies of it used to live in
+ * the screens and the store). `crypto` may be unavailable on Hermes/Android —
+ * then Math.random. Typed by what it uses, not by the DOM's `Crypto`: that
+ * type came only with a test library the app no longer installs.
+ */
 export function uuid(): string {
-  const c = (globalThis as { crypto?: Crypto }).crypto;
+  const c = (globalThis as { crypto?: { getRandomValues?: (a: Uint8Array) => Uint8Array } }).crypto;
   if (c && typeof c.getRandomValues === 'function') {
     const buf = new Uint8Array(16);
     c.getRandomValues(buf);

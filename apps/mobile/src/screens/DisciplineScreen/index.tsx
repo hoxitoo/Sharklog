@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next';
 import { themedStyles } from '../../theme/themed';
 import { useBottomPad } from '../../utils/useBottomPad';
 import { formatDate } from '../../utils/dateFormat';
+import { uuid } from '../../utils/uuid';
 
 const DIARY_DAY: Intl.DateTimeFormatOptions = { weekday: 'short', day: 'numeric', month: 'long' };
 
@@ -29,25 +30,6 @@ const MOODS: Array<{ value: 1 | 2 | 3 | 4 | 5; emoji: string }> = [
 
 const RULE_KEYS = [1, 2, 3, 4, 5, 6, 7, 8].map((n) => `discipline.rule${n}`);
 
-function uuid(): string {
-  const c = (globalThis as any).crypto;
-  if (c && typeof c.getRandomValues === 'function') {
-    const buf = new Uint8Array(16);
-    c.getRandomValues(buf);
-    buf[6] = (buf[6]! & 0x0f) | 0x40;
-    buf[8] = (buf[8]! & 0x3f) | 0x80;
-    let s = '';
-    for (let i = 0; i < 16; i++) {
-      if (i === 4 || i === 6 || i === 8 || i === 10) s += '-';
-      s += buf[i]!.toString(16).padStart(2, '0');
-    }
-    return s;
-  }
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (ch) => {
-    const r = (Math.random() * 16) | 0;
-    return (ch === 'x' ? r : (r & 0x3) | 0x8).toString(16);
-  });
-}
 
 function todayStr(): string {
   return toYmd(new Date());
