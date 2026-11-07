@@ -62,6 +62,7 @@ docs/            — ROADMAP.md, ANALYSIS.md, PRIVACY_POLICY.md, RELEASE_GUIDE.m
 - **Час ежедневного напоминания — только `effectiveReminderHour(settings)`** (betsStore): у Free час фиксированный, у Pro свой. Бывший Pro хранит свой старый час, и чтение `settings.reminderHour` напрямую давало «20:00» на экране и уведомление в 09:00. Перепланирование — отдельный эффект в `App.tsx` по `[язык, эффективный час]`, он же срабатывает, когда проверка подписки при запуске снимает Pro.
 - **Порог тилта — только `effectiveTiltThreshold(settings)`** (betsStore): у Free фиксированные 3, у Pro свой. Та же ловушка, что с часом напоминания: бывший Pro хранит свой старый порог, и Настройки показывали 3, а баннер, список ставок, дисциплина и уведомление ждали 6. Сырой `settings.tiltThreshold` читает только степпер в Настройках — страж в `betsStore.test.ts`.
 - **`canAddBet()` — единственная стена: у Free кончились 50 ставок.** Дневной лимит Pro — ПРЕДУПРЕЖДЕНИЕ, не запрет (оба приложения): форма пишет «Ставка № N за день — твой лимит M» (`effectiveDailyLimit`, по дате ставки) и сохраняет. Ставку, уже сделанную у букмекера, приложение обязано записать: раньше «+» и форма отказывали, и учёт молча расходился с реальностью. Тест — `betsStore.test.ts` (оба приложения).
+- **Короткий день «ДД.ММ» — только `dayMonth(ymd, year?)`** (`utils/calendar`; `'yy'` → `01.09.25`, `'yyyy'` → `01.09.2025`), событие без кэфов ног экспресса — только `displayEvent` (`utils/labels`). Было одиннадцать и четыре копии, и на дне, сохранённом не как `YYYY-MM-DD`, одни печатали «undefined.undefined», другие — строку как есть; теперь — как есть везде. Страж — `__tests__/oneCopy.test.ts`.
 - **Даты — `toLocaleDateString(dateLocale())`** из `i18n`, а не `language === 'en' ? 'en-US' : 'ru-RU'`: так казахский и белорусский экраны печатали русские месяцы.
 - **Новую функцию в `utils/notifications.ts` добавляй и в мок** `src/__tests__/__mocks__/notifications.ts`, иначе падают тесты стора.
 - **Банк считай только через core**: `currentBank(transactions, bets)` = `bankCash(transactions) + P&L`. Не пиши руками `deposit ? + : -` — транзакций ТРИ типа, и третий (`adjustment`) хранит знак В САМОЙ СУММЕ, а не в типе. Инлайн-редьюс молча его потеряет.
@@ -304,7 +305,7 @@ new Date(str).toLocaleDateString(locale, { day: 'numeric', month: 'short' });
 # Тесты
 cd packages/core && npx vitest run        # 329 unit-тестов core
 cd apps/desktop  && npm test              # 40 smoke-тестов desktop (Vitest)
-cd apps/mobile   && npm test              # 442 теста mobile (Jest), включая стражей дизайна, тем и переводов
+cd apps/mobile   && npm test              # 447 тестов mobile (Jest), включая стражей дизайна, тем и переводов
 
 # Type-check
 cd apps/mobile  && npx tsc --noEmit

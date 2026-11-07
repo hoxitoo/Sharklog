@@ -68,3 +68,13 @@ export function txNoteLabel(t: TFunction, note: string): string {
   if (note === TX_NOTE.INITIAL_DEPOSIT) return t('bankroll.noteInitialDeposit');
   return note;
 }
+
+/**
+ * The event as the user reads it: an express stores each leg's own odds after
+ * a `|` ("M80 vs NRG|1.10 / NaVi vs G2|1.85" — `readLegField` reads them back
+ * when the bet is edited), and that is not for display. One function for the
+ * card, the action wheel, the dashboard and the reminder text — there were four.
+ */
+export function displayEvent(event: string): string {
+  return event.split(' / ').map((p) => p.split('|')[0] ?? p).join(' / ');
+}

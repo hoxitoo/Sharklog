@@ -6,13 +6,12 @@ import type { Bet, BetStatus } from '@sharklog/core';
 import { useFormatMoney } from '../utils/useFormatMoney';
 import { useOddsFormat } from '../utils/useOdds';
 import { oddsBadge } from '../utils/oddsField';
-import { pickLabel } from '../utils/labels';
+import { pickLabel, displayEvent } from '../utils/labels';
 import { useTranslation } from 'react-i18next';
 import { useBetsStore } from '../store/betsStore';
 import { colors } from '../theme/colors';
 import { haptic } from '../utils/haptics';
 import { ActionWheel, type WheelAction } from './ActionWheel';
-import { displayEvent } from '../screens/BetsScreen/BetCard';
 import type { RootStackParamList } from '../navigation/RootNavigator';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;

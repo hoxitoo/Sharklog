@@ -12,6 +12,7 @@ import { SPACE, RADIUS } from '../theme/layout';
 import { useFormatMoney } from '../utils/useFormatMoney';
 import { haptic } from '../utils/haptics';
 import { themedStyles } from '../theme/themed';
+import { dayMonth } from '../utils/calendar';
 
 /**
  * `balance` — the bank itself. `pnl` — cumulative betting result.
@@ -33,12 +34,6 @@ interface Props {
 }
 
 const GUTTER = 46; // room for Y-axis labels
-
-/** `2026-09-11` → `11.09`. */
-function dayLabel(date: string): string {
-  const [, m, d] = date.split('-');
-  return `${d}.${m}`;
-}
 
 /**
  * Bank balance over time, aggregated per DAY (not per bet), so the line reads as a
@@ -219,7 +214,7 @@ export function BalanceChart({ days, width, height, series = 'balance', color }:
             onLayout={(e) => setPillW(e.nativeEvent.layout.width)}
             pointerEvents="none"
           >
-            <Text style={bc.pillDate}>{dayLabel(active.date)}</Text>
+            <Text style={bc.pillDate}>{dayMonth(active.date)}</Text>
             <Text style={[bc.pillValue, { color: valueOf(active) >= 0 ? colors.textPrimary : colors.lost }]}>
               {series === 'pnl' && valueOf(active) > 0 ? '+' : ''}{fmt(valueOf(active))}
             </Text>

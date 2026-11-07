@@ -3,7 +3,8 @@ import type { Goal } from '@sharklog/core';
 import { useBetsStore, defaultSettings, defaultBankroll } from '../store/betsStore';
 import { importFromJSON } from '../utils/importBets';
 import { compactMoney } from '../utils/compactMoney';
-import { dayLabel, durationLabel, goalPercent } from '../utils/goalText';
+import { durationLabel, goalPercent } from '../utils/goalText';
+import { dayMonth } from '../utils/calendar';
 
 /*
  * Goals on the phone: they are data (stored, in the backup, gone with "clear
@@ -147,6 +148,6 @@ describe('the words around a goal', () => {
   });
 
   it('write a day the same way in every language', () => {
-    expect(dayLabel('2029-11-03')).toBe('03.11.2029');
+    expect(dayMonth('2029-11-03', 'yyyy')).toBe('03.11.2029');
   });
 });

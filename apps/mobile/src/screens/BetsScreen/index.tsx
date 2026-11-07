@@ -34,6 +34,7 @@ import { SIZE, GLYPH, numeric } from '../../theme/typography';
 import { themedStyles } from '../../theme/themed';
 import { useBottomPad } from '../../utils/useBottomPad';
 import { useOddsFormat } from '../../utils/useOdds';
+import { dayMonth } from '../../utils/calendar';
 
 type Nav = NativeStackNavigationProp<RootStackParamList>;
 
@@ -290,10 +291,9 @@ export function BetsScreen({ filter, onClearFilter }: {
   }, [filter, setQuery]);
 
   const filterLabel = useMemo(() => {
-    const dm = (ymd: string) => ymd.split('-').reverse().slice(0, 2).join('.');
     // The period suffix matters: without it the count here would not match the
     // Insights tile the user tapped, and a mismatched number reads as a bug.
-    const since = filter?.from ? ` · ${t('bet.filterSince', { date: dm(filter.from) })}` : '';
+    const since = filter?.from ? ` · ${t('bet.filterSince', { date: dayMonth(filter.from) })}` : '';
     const year = filter?.year ? ` · ${filter.year}` : '';
     if (filter?.selection) {
       // The bets still there: one deleted from the run must not leave "· 4" over three.
@@ -301,7 +301,7 @@ export function BetsScreen({ filter, onClearFilter }: {
       const n = bets.reduce((k, b) => k + (ids.has(b.id) ? 1 : 0), 0);
       return n > 1 ? `${t(filter.selection.labelKey)} · ${n}` : t(filter.selection.labelKey);
     }
-    if (filter?.date) return t('bet.filterOnly', { date: dm(filter.date) });
+    if (filter?.date) return t('bet.filterOnly', { date: dayMonth(filter.date) });
     if (filter?.tournament) return `${t('bet.filterTournament', { name: filter.tournament })}${year}${since}`;
     if (filter?.noTournament) return `${t('bet.filterNoTournament')}${year}${since}`;
     if (filter?.team) return `${t('bet.filterTeam', { name: filter.team })}${year}${since}`;

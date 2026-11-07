@@ -15,16 +15,12 @@ import { DailyChart, ChartLegend, SERIES, SCRIM, SCRIM_ALPHA, type ChartToggles 
 import { SIZE, numeric } from '../../theme/typography';
 import { useTranslation } from 'react-i18next';
 import { themedStyles } from '../../theme/themed';
+import { dayMonth } from '../../utils/calendar';
 
 interface Props {
   visible: boolean;
   days: DayStats[];       // full series (unfiltered)
   onClose: () => void;
-}
-
-function fmtDate(date: string): string {
-  const [, m, d] = date.split('-');
-  return `${d}.${m}`;
 }
 
 function Chip({ active, label, color, onPress }: {
@@ -197,7 +193,7 @@ export function ExpandedDashboard({ visible, days, onClose }: Props) {
             {sel ? (
               <View style={ex.dayBar}>
                 <View style={ex.dayDate}>
-                  <Text style={ex.dayDateText}>{fmtDate(sel.date)}</Text>
+                  <Text style={ex.dayDateText}>{dayMonth(sel.date)}</Text>
                 </View>
                 <ScrollView
                   horizontal
@@ -282,7 +278,7 @@ export function ExpandedDashboard({ visible, days, onClose }: Props) {
                   activeOpacity={0.7}
                 >
                   {isSel ? <View style={ex.trMark} /> : null}
-                  <Text style={[ex.td, isSel && ex.tdSel, ex.cDate]}>{fmtDate(item.date)}</Text>
+                  <Text style={[ex.td, isSel && ex.tdSel, ex.cDate]}>{dayMonth(item.date)}</Text>
                   <Text style={[ex.td, isSel && ex.tdSel, ex.cNum]}>{item.betCount || '—'}</Text>
                   <Text style={[ex.td, isSel && ex.tdSel, ex.cMoney]}>{item.turnover ? fmt(item.turnover) : '—'}</Text>
                   <Text style={[ex.td, isSel && ex.tdSel, ex.cMoney, item.wonAmount > 0 && { color: SERIES.win }]}>

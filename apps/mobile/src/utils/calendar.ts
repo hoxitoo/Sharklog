@@ -8,6 +8,27 @@
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
+const DAY_PARTS = /^(\d{4})-(\d{2})-(\d{2})/;
+
+/**
+ * `2026-09-11` → `11.09` — the short day of every chart axis, chip and list
+ * line. `year: 'yy'` → `11.09.26` (a filter range across New Year), `'yyyy'`
+ * → `11.09.2026` (a goal's day, the date field) — the same in every language,
+ * no month names.
+ *
+ * One function instead of eleven copies that disagreed on a day stored in
+ * another shape: some printed «undefined.undefined», others the string as is.
+ * A day that is not YYYY-MM-DD (an old CSV import kept «5.11.2024») is shown
+ * as stored.
+ */
+export function dayMonth(ymd: string, year: 'none' | 'yy' | 'yyyy' = 'none'): string {
+  const m = DAY_PARTS.exec(ymd);
+  if (!m) return ymd;
+  const [, y, mo, d] = m;
+  if (year === 'none') return `${d}.${mo}`;
+  return `${d}.${mo}.${year === 'yy' ? y!.slice(2) : y}`;
+}
+
 export const ymdOf = (year: number, month: number, day: number): string => `${year}-${pad(month)}-${pad(day)}`;
 
 /** A real day written as YYYY-MM-DD — 2026-02-30 is not one. */

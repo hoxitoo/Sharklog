@@ -14,6 +14,7 @@ import { useBetActions } from '../../components/useBetActions';
 import { SIZE, GLYPH } from '../../theme/typography';
 import { themedStyles } from '../../theme/themed';
 import { useBottomPad } from '../../utils/useBottomPad';
+import { dayMonth } from '../../utils/calendar';
 
 /** Kick-off timestamp, parsed as LOCAL time (a bare date string would read as UTC). */
 function startedAt(bet: Bet): number {
@@ -108,7 +109,7 @@ export function PendingScreen() {
             <View>
               <View style={s.timeRow}>
                 <Text style={s.timeText}>
-                  {item.date.split('-').reverse().slice(0, 2).join('.')} · {item.time || '—'}
+                  {dayMonth(item.date)} · {item.time || '—'}
                 </Text>
                 {late && <Text style={s.agoText}>{agoLabel(now - started, t)}</Text>}
               </View>

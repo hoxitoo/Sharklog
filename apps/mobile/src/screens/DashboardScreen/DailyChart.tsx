@@ -9,6 +9,7 @@ import { SERIES } from '../../theme/chartColors';
 import { SIZE } from '../../theme/typography';
 import { useTranslation } from 'react-i18next';
 import { themedStyles } from '../../theme/themed';
+import { dayMonth } from '../../utils/calendar';
 
 export { SERIES } from '../../theme/chartColors';
 
@@ -49,11 +50,6 @@ interface Props {
 function dayLabel(date: string): string {
   const parts = date.split('-');
   return String(Number(parts[2] ?? 0));
-}
-
-function monthDay(date: string): string {
-  const [, m, d] = date.split('-');
-  return `${d}.${m}`;
 }
 
 const LABEL_ROW = 16; // the least; a larger system font grows the row (see the sizer)
@@ -198,7 +194,7 @@ export function DailyChart({ days, width, height, toggles, selected, onSelect, l
           return (
             <View key={`lbl-${d.date}`} style={[ch.xLabelBox, { left: centred(i, labelW), width: labelW }]}>
               <Text style={[ch.xLabel, isSel && ch.xLabelSel]} numberOfLines={1}>
-                {fullDates ? monthDay(d.date) : dayLabel(d.date)}
+                {fullDates ? dayMonth(d.date) : dayLabel(d.date)}
               </Text>
             </View>
           );
@@ -220,7 +216,7 @@ export function DailyChart({ days, width, height, toggles, selected, onSelect, l
           >
             <View style={ch.xLabelPill}>
               <Text style={[ch.xLabel, ch.xLabelSel, ch.xLabelSpot]} numberOfLines={1}>
-                {fullDates ? monthDay(days[spot]!.date) : dayLabel(days[spot]!.date)}
+                {fullDates ? dayMonth(days[spot]!.date) : dayLabel(days[spot]!.date)}
               </Text>
             </View>
           </View>
