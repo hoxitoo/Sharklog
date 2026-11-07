@@ -3,7 +3,7 @@ import { SPACE, RADIUS, TOUCH, hitSlopFor } from '../../theme/layout';
 import {
   View, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator, Share, Linking,
 } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
 import { ScreenHeader } from '../../components/ScreenHeader';
 import { cardSurface } from '../../components/Card';

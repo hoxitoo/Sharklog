@@ -4,8 +4,17 @@ import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { NavigationContainer, DarkTheme, DefaultTheme, type NavigationState } from '@react-navigation/native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { useFonts, DMSans_400Regular, DMSans_500Medium, DMSans_600SemiBold, DMSans_700Bold } from '@expo-google-fonts/dm-sans';
-import { DMMono_400Regular, DMMono_500Medium } from '@expo-google-fonts/dm-mono';
+// Each weight from its own module, and useFonts from expo-font: the packages'
+// index requires ALL 24 files of a family (every weight and italic), and Metro
+// ships every file a module requires — 18 of them unused in the app.
+import { useFonts } from 'expo-font';
+import { DMSans_400Regular } from '@expo-google-fonts/dm-sans/400Regular';
+import { DMSans_500Medium } from '@expo-google-fonts/dm-sans/500Medium';
+import { DMSans_600SemiBold } from '@expo-google-fonts/dm-sans/600SemiBold';
+import { DMSans_700Bold } from '@expo-google-fonts/dm-sans/700Bold';
+import { DMMono_400Regular } from '@expo-google-fonts/dm-mono/400Regular';
+import { DMMono_500Medium } from '@expo-google-fonts/dm-mono/500Medium';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { RootNavigator } from './src/navigation/RootNavigator';
 import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
@@ -90,6 +99,9 @@ function AppRoot() {
     DMSans_700Bold,
     DMMono_400Regular,
     DMMono_500Medium,
+    // Loaded with the app's own fonts, before the first screen: on demand,
+    // the menu and header icons appeared a beat after everything else.
+    ...Ionicons.font,
   });
 
   // Settling a bet straight from a notification button. The action can arrive before
