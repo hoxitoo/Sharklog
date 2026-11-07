@@ -114,7 +114,7 @@ export function OnboardingScreen() {
       {/* Step 0: Welcome */}
       {step === 0 && (
         <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.stepContent} showsVerticalScrollIndicator={false}>
-          <Image source={require('../../../assets/adaptive-icon.png')} style={styles.logo} resizeMode="contain" />
+          <Image source={require('../../../assets/app-mark.png')} style={styles.logo} resizeMode="contain" />
           <Text style={styles.tagline}>{t('onboarding.subtitle')}</Text>
 
           <View style={styles.features}>
