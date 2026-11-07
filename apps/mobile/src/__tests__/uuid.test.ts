@@ -41,5 +41,9 @@ describe('uuid', () => {
     // Any call of it: crypto.randomUUID(), crypto?.randomUUID?.(), c.randomUUID()…
     const hits = files.filter((f) => /\.\s*randomUUID\b|\?\.\s*randomUUID\b/.test(code(f)));
     expect(hits.map((f) => f.slice(SRC.length + 1))).toEqual([]);
+    // And one generator, not a copy per screen (there were six: 2026-11-07).
+    const copies = files.filter((f) => /function uuid\(/.test(readFileSync(f, 'utf8')))
+      .map((f) => f.slice(SRC.length + 1));
+    expect(copies).toEqual([join('utils', 'uuid.ts')]);
   });
 });

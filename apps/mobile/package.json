@@ -18,11 +18,9 @@
     "@expo-google-fonts/dm-sans": "^0.4.2",
     "@expo/vector-icons": "^15.1.1",
     "@react-native-async-storage/async-storage": "3.1.0",
-    "@react-navigation/bottom-tabs": "^6.5.20",
     "@react-navigation/native": "^6.1.17",
     "@react-navigation/native-stack": "^6.9.26",
     "@sharklog/core": "*",
-    "date-fns": "^3.6.0",
     "expo": "~56.0.5",
     "expo-build-properties": "~56.0.15",
     "expo-clipboard": "~56.0.3",
@@ -36,7 +34,6 @@
     "expo-splash-screen": "^56.0.10",
     "expo-status-bar": "~56.0.4",
     "i18next": "^26.3.1",
-    "promise": "^8.3.0",
     "react": "19.2.3",
     "react-freeze": "^1.0.4",
     "react-hook-form": "^7.51.5",
@@ -55,11 +52,9 @@
     "@babel/core": "^7.24.0",
     "@babel/preset-env": "^7.29.5",
     "@babel/preset-typescript": "^7.28.5",
-    "@testing-library/react-native": "^13.3.3",
     "@types/jest": "^30.0.0",
     "@types/react": "^18.3.1",
     "jest": "^29.7.0",
-    "jest-expo": "~56.0.4",
     "typescript": "^5.4.0"
   }
 }

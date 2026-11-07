@@ -12,31 +12,13 @@ import {
 import { getLocales } from 'expo-localization';
 import { useTranslation } from 'react-i18next';
 
-function uuid(): string {
-  const c = (globalThis as any).crypto;
-  if (c && typeof c.getRandomValues === 'function') {
-    const buf = new Uint8Array(16);
-    c.getRandomValues(buf);
-    buf[6] = (buf[6]! & 0x0f) | 0x40;
-    buf[8] = (buf[8]! & 0x3f) | 0x80;
-    let s = '';
-    for (let i = 0; i < 16; i++) {
-      if (i === 4 || i === 6 || i === 8 || i === 10) s += '-';
-      s += buf[i]!.toString(16).padStart(2, '0');
-    }
-    return s;
-  }
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (ch) => {
-    const r = (Math.random() * 16) | 0;
-    return (ch === 'x' ? r : (r & 0x3) | 0x8).toString(16);
-  });
-}
 import { useBetsStore } from '../../store/betsStore';
 import { markTourPending } from '../../components/tour/tour';
 import { colors, currentTheme } from '../../theme/colors';
 import { THEME_META } from '../../theme/palettes';
 import { SIZE, GLYPH } from '../../theme/typography';
 import { themedStyles } from '../../theme/themed';
+import { uuid } from '../../utils/uuid';
 
 const STEPS = 3;
 
