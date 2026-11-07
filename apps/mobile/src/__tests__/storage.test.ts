@@ -567,6 +567,95 @@ describe('a save that fails (a full phone)', () => {
   });
 });
 
+describe('a save that changes no bet', () => {
+  const recordGen = async () => JSON.parse((await storage.getItem(STORAGE_KEY))!).betsGen as number;
+  const toggle = async (on: boolean) => {
+    useBetsStore.setState((st) => ({ settings: { ...st.settings, roundAmounts: on } }));
+    await useBetsStore.getState().persist();
+  };
+
+  it('writes the record alone — the pieces already hold those bets — and the next launch reads both', async () => {
+    await save(many(3_000));
+    const gen = await recordGen();
+    const before = await pieceKeys();
+    storage.setMany.mockClear();
+    await toggle(true);
+    expect(storage.setMany).not.toHaveBeenCalled();
+    expect(await recordGen()).toBe(gen);
+    expect(await storage.getItem(LANDED_KEY)).toBe(String(gen));
+    expect(await pieceKeys()).toEqual(before);
+    expect(await useBetsStore.getState().flush()).toBe(true);
+    await relaunch();
+    expect(useBetsStore.getState().bets).toHaveLength(3_000);
+    expect(useBetsStore.getState().settings.roundAmounts).toBe(true);
+  });
+
+  it('a changed bet makes the next save whole again, under a new generation', async () => {
+    await save(many(100));
+    await toggle(true);
+    const gen = await recordGen();
+    useBetsStore.getState().updateBet('bet-5', { status: 'refund' });
+    await useBetsStore.getState().persist();
+    expect(await recordGen()).toBeGreaterThan(gen);
+    expect(gensOf(await pieceKeys())).toEqual(new Set([await recordGen()]));
+    await relaunch();
+    expect(useBetsStore.getState().bets.find((b) => b.id === 'bet-5')!.status).toBe('refund');
+    expect(useBetsStore.getState().settings.roundAmounts).toBe(true);
+  });
+
+  it('the first save of a session is whole: what was read went through migration and sanitizing', async () => {
+    await save(many(100));
+    await relaunch();
+    storage.setMany.mockClear();
+    await toggle(true);
+    expect(storage.setMany).toHaveBeenCalled();
+    await toggle(false);
+    expect(storage.setMany).toHaveBeenCalledTimes(1);
+  });
+
+  it('killed before its record: the old record and its pieces, whole', async () => {
+    await save(many(500));
+    await toggle(true);
+    storage.setItem.mockImplementationOnce(async () => { throw new Error('killed'); });
+    await toggle(false);
+    expect(useBetsStore.getState().saveFailed).toBe(true);
+    await relaunch();
+    expect(useBetsStore.getState().bets).toHaveLength(500);
+    expect(useBetsStore.getState().settings.roundAmounts).toBe(true);
+  });
+
+  it('its landed mark not written: not saved — and the pieces it names stay', async () => {
+    await save(many(500));
+    const gen = await recordGen();
+    const real = storage.setItem.getMockImplementation()!;
+    storage.setItem.mockImplementationOnce(real).mockImplementationOnce(async () => { throw new Error('SQLITE_FULL'); });
+    await toggle(true);
+    expect(useBetsStore.getState().saveFailed).toBe(true);
+    expect(await useBetsStore.getState().flush()).toBe(false);
+    expect(gensOf(await pieceKeys())).toEqual(new Set([gen]));
+    await toggle(false); // lands now
+    expect(useBetsStore.getState().saveFailed).toBe(false);
+    expect(await recordGen()).toBe(gen);
+    await relaunch();
+    expect(useBetsStore.getState().bets).toHaveLength(500);
+    expect(useBetsStore.getState().settings.roundAmounts).toBe(false);
+  });
+
+  it('on a full phone it is the save that still fits: a failed whole save, then a setting, lands', async () => {
+    await save(many(1_000));
+    storage.setMany.mockImplementationOnce(async () => { throw new Error('SQLITE_FULL'); });
+    await save(many(1_001)); // a new bet: whole save, and the phone is full
+    expect(useBetsStore.getState().saveFailed).toBe(true);
+    // The bet is still in memory, so the next save is whole too — the record
+    // alone would name pieces that do not hold it.
+    storage.setMany.mockClear();
+    await toggle(true);
+    expect(storage.setMany).toHaveBeenCalled();
+    await relaunch();
+    expect(useBetsStore.getState().bets).toHaveLength(1_001);
+  });
+});
+
 describe('clear all data', () => {
   it('takes the quarantine copies too — they hold the bets', async () => {
     await save(many(1_000));

@@ -153,12 +153,21 @@ export function buildSave(
   groups.forEach((parts, i) => {
     pieces[pieceKey(gen, i)] = `{"g":${gen},"i":${i},"n":${n},${b}"bets":[${parts.join(',')}]}`;
   });
-  const meta = { ...rest, betsGen: gen, betChunks: n, betCount: bets.length };
-  let record = JSON.stringify(meta);
-  if (record.length < MIN_RECORD_CHARS) {
-    record = JSON.stringify({ ...meta, pad: ' '.repeat(MIN_RECORD_CHARS - record.length) });
-  }
-  return { pieces, record, chunks: n };
+  return { pieces, record: buildRecord(rest, gen, n, bets.length), chunks: n };
+}
+
+/**
+ * The main record alone: everything but the bets, and the generation whose
+ * pieces hold them. A save whose bets are the very array an earlier landed
+ * save wrote (a setting, a diary line, a deposit) writes only this — the
+ * pieces on disk already hold those bets (persist in betsStore). Padded past
+ * the iOS inline limit, as every record this build writes.
+ */
+export function buildRecord(rest: Record<string, unknown>, gen: number, chunks: number, count: number): string {
+  const meta = { ...rest, betsGen: gen, betChunks: chunks, betCount: count };
+  const record = JSON.stringify(meta);
+  if (record.length >= MIN_RECORD_CHARS) return record;
+  return JSON.stringify({ ...meta, pad: ' '.repeat(MIN_RECORD_CHARS - record.length) });
 }
 
 /** What a main record says about its pieces; null for the old single-key layout. */

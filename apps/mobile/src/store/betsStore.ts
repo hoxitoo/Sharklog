@@ -14,7 +14,7 @@ import { BILLING, LICENSE_PUBKEY } from '../services/billing';
 import { distribution } from '../utils/storeLinks';
 import { uuid } from '../utils/uuid';
 import {
-  STORAGE_KEY, LANDED_KEY, IOS_INLINE_CHARS, pieceKey, parsePieceKey, buildSave, recordPieces, assembleGeneration,
+  STORAGE_KEY, LANDED_KEY, IOS_INLINE_CHARS, pieceKey, parsePieceKey, buildSave, buildRecord, recordPieces, assembleGeneration,
   parsePiece, generationsOnDisk, textHash, failedRecordMayLand,
 } from '../utils/storageLayout';
 
@@ -82,6 +82,16 @@ let committedGen: number | null = null;
  * may still have put it on disk (see persist).
  */
 let keepGens = new Set<number>();
+/**
+ * The bets array a save of THIS session wrote into `committedGen`, and in how
+ * many pieces. While the store still holds that very array, its pieces on disk
+ * are the bets — a save changes only the record (a setting toggled, a diary
+ * line, a deposit wrote ~5 MB on 10 000 bets). By reference: the store never
+ * changes the array or a bet in place, it replaces them. Null after a load —
+ * what was read went through migration and sanitizing, and the pieces may not
+ * be what the store holds — so the first save of a session is always whole.
+ */
+let committedBets: { bets: readonly Bet[]; chunks: number } | null = null;
 /**
  * The record on disk is a FILE on iOS (over 1 024 characters, or written by
  * this build, which pads it). Then rewriting it either lands whole or leaves
@@ -442,6 +452,7 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
         // whose record landed (storageLayout.ts, LANDED_KEY).
         const genFloor = Math.max(named?.gen ?? 0, onDisk[0]?.gen ?? 0, landed ?? 0);
         committedGen = named ? named.gen : null;
+        committedBets = null;
         keepGens = new Set();
         recordIsFile = raw !== null && raw.length > IOS_INLINE_CHARS;
         loadedBase = null;
@@ -604,10 +615,25 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
       // was queued leaves an empty default in memory.
       if (seq < lastQueued || !get().isLoaded || get().loadError) return;
       const { bets, settings, bankroll, diary, teams, goals } = get();
-      gen = ++lastGen;
-      const { pieces, record } = buildSave(
-        { bets, settings, bankroll, diary, teams, goals, version: CURRENT_SCHEMA_VERSION }, gen, undefined, loadedBase,
-      );
+      const rest = { settings, bankroll, diary, teams, goals, version: CURRENT_SCHEMA_VERSION };
+      // The bets are the array a landed save of this session wrote: its pieces
+      // hold them, and only the record changes. The record names that same
+      // generation, so a save killed or failed at any step leaves the old
+      // record or the new one — both naming pieces that are there.
+      const reuse = committedBets !== null && committedBets.bets === bets && committedGen !== null
+        ? { gen: committedGen, chunks: committedBets.chunks }
+        : null;
+      let pieces: Record<string, string> = {};
+      let record: string;
+      let chunks: number;
+      if (reuse) {
+        gen = reuse.gen;
+        chunks = reuse.chunks;
+        record = buildRecord(rest, gen, chunks, bets.length);
+      } else {
+        gen = ++lastGen;
+        ({ pieces, record, chunks } = buildSave({ bets, ...rest }, gen, undefined, loadedBase));
+      }
       // 0. Pieces no record will ever name (a failed save's, a killed save
       //    skipped at load) take, on a full phone, the space this save needs.
       if (orphansPossible) {
@@ -642,6 +668,7 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
         return;
       }
       committedGen = gen;
+      committedBets = { bets, chunks };
       keepGens = new Set();
       recordIsFile = true; // padded past the inline limit (buildSave)
       savedThrough = Math.max(savedThrough, seq);
