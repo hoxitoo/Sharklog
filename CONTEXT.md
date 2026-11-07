@@ -123,7 +123,7 @@ apps/desktop/src/            — React+Vite frontend (TypeScript strict), Tauri 
   App.tsx                    — routing (9 pages, включая Партнёры), modal state, Cmd+N hotkey, Esc to close;
                                isLoaded guard (logo spinner), onboarding gate, ErrorBoundary wrapper
   layouts/
-    AppLayout.tsx            — sidebar: logo image, nav (8 items, PRO badge на strategy), "+ Новая ставка",
+    AppLayout.tsx            — sidebar: logo image, nav (9 items, PRO badge на strategy), "+ Новая ставка",
                                free progress bar
   components/
     ErrorBoundary.tsx        — React class component; friendly web error screen + retry/reload
@@ -557,7 +557,7 @@ VITE_OWNER_PRO=true
 ## Тесты
 
 ```
-packages/core         329 vitest unit tests (stats, analytics, daily, formatters, kelly, migrations,
+packages/core         338 vitest unit tests (stats, analytics, daily, formatters, kelly, migrations,
                           betsCsv x14 — round-trip / P&L / инъекция / разделители,
                           pnlBuckets x10 — границы бакетов, порядок кривой,
                           bankroll x10 — bankCash / currentBank / pendingExposure / сверки,
@@ -567,7 +567,7 @@ packages/core         329 vitest unit tests (stats, analytics, daily, formatters
                           luckAndPlan x24 — сигма-модель везения и соблюдение плана,
                           insightsGroups x8 — дисциплина в группировках (только по esports-ставкам) и порядок по P&L,
                           betYears x16 — список лет, «без турнира», границы диаграммы, тримминг имён)
-apps/desktop           40 vitest smoke tests (betsStore x25, importBets x15)
+apps/desktop           40 vitest smoke tests (betsStore x14, importBets x26)
 apps/mobile           470 jest tests (стор, стражи дизайна/тем/переводов, оплата, цели, календарь…)
 ИТОГО                  848 тестов (core 338 + desktop 40 + mobile 470, на 2026-11-07)
 ```
