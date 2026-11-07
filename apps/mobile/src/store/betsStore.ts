@@ -1,9 +1,10 @@
 import { create } from 'zustand';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import type { Bet, AppSettings, Bankroll, DiaryEntry, Goal, Team, Sport, EsportsDiscipline } from '@sharklog/core';
+import type { Bet, AppSettings, Bankroll, DiaryEntry, Goal, Team } from '@sharklog/core';
 import {
   migrate, CURRENT_SCHEMA_VERSION, FREE_LIMITS, DEFAULT_BANKROLL_NAME, calcCurrentStreak, parseEventTeams,
   preselectedBookmakers, sanitizeBets, sanitizeBankroll, sanitizeDiary, sanitizeTeams, sanitizeGoals,
+  cleanTeamNames, upsertTeams,
 } from '@sharklog/core';
 import {
   sendTiltNotification, scheduleBetResultReminder,
@@ -186,44 +187,6 @@ async function piecesWithoutRecord(
   return { found: partial, skipped, broken };
 }
 
-
-// Extract clean team names from an event string. Delegates to the shared core
-// parser so express events ("A vs B|1.45 / C vs D|1.70") yield individual team
-// names instead of the raw encoded string (pipe odds + " / " leg separators).
-function extractTeamNames(event: string): string[] {
-  return parseEventTeams(event);
-}
-
-// A clean team name never contains the express encoding chars. Drop entries that
-// were polluted by the old extractTeamNames (e.g. "Yellow submarine|1.45 / Reconix").
-function sanitizeTeamNames(teams: Team[]): Team[] {
-  return teams.filter((t) => !t.name.includes('|') && !t.name.includes(' / '));
-}
-
-function upsertTeams(
-  existing: Team[],
-  names: string[],
-  sport: Sport,
-  discipline?: EsportsDiscipline,
-): Team[] {
-  const result = [...existing];
-  const now = new Date().toISOString();
-
-  for (const name of names) {
-    const idx = result.findIndex(
-      (t) => t.name.toLowerCase() === name.toLowerCase() &&
-             t.sport === sport &&
-             t.discipline === discipline,
-    );
-    if (idx >= 0) {
-      result[idx] = { ...result[idx]!, usageCount: (result[idx]!.usageCount) + 1, lastUsed: now };
-    } else {
-      result.push({ id: uuid(), name, sport, ...(discipline !== undefined ? { discipline } : {}), usageCount: 1, lastUsed: now });
-    }
-  }
-
-  return result;
-}
 
 interface BetsStore {
   bets: Bet[];
@@ -575,7 +538,7 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
           },
           bankroll: { ...defaultBankroll, ...bank.bankroll },
           diary: diary.items,
-          teams: sanitizeTeamNames(teams.items),
+          teams: cleanTeamNames(teams.items),
           goals: goals.items,
           isLoaded: true,
           loadError: false,
@@ -708,8 +671,7 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
   },
 
   addBet: (bet) => {
-    const names = extractTeamNames(bet.event);
-    const updatedTeams = upsertTeams(get().teams, names, bet.sport, bet.discipline);
+    const updatedTeams = upsertTeams(get().teams, parseEventTeams(bet.event), bet.sport, bet.discipline, uuid);
     set((s) => ({ bets: [bet, ...s.bets], teams: updatedTeams }));
     if (bet.status === 'pending' && get().settings.betResultReminders !== false) {
       scheduleBetResultReminder(bet);
@@ -728,7 +690,7 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
       // Only upsert teams when event or sport actually changed to avoid inflating usageCount
       const eventChanged = updated && old && (old.event !== updated.event || old.sport !== updated.sport);
       const teams = eventChanged
-        ? upsertTeams(s.teams, extractTeamNames(updated.event), updated.sport, updated.discipline)
+        ? upsertTeams(s.teams, parseEventTeams(updated.event), updated.sport, updated.discipline, uuid)
         : s.teams;
       return { bets, teams };
     });

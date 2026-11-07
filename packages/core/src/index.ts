@@ -12,3 +12,5 @@ export * from './utils/migrations';
 export * from './utils/sanitize';
 export * from './utils/strategyBuilder';
 export * from './utils/goals';
+export * from './utils/teams';
+export * from './utils/heatmap';

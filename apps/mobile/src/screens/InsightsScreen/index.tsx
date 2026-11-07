@@ -6,7 +6,7 @@ import {
 } from 'react-native';
 import { AppText as Text } from '../../components/AppText';
 import {
-  calcByTournament, calcByTeam, formatPercent,
+  calcByTournament, calcByTeam, formatPercent, splitExtremes,
 } from '@sharklog/core';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
@@ -224,16 +224,8 @@ export function InsightsScreen() {
     [filteredBets],
   );
 
-  function split<T>(list: T[]) {
-    const best = list[0];
-    // With a single entry there is no "worst" — one thing cannot be both ends.
-    const worst = list.length > 1 ? list[list.length - 1] : undefined;
-    const middle = list.length > 1 ? list.slice(1, -1) : [];
-    return { best, worst, top: middle.slice(0, TOP_N), rest: middle.slice(TOP_N) };
-  }
-
-  const t = split(tourn);
-  const tm = split(teams);
+  const t = splitExtremes(tourn, TOP_N);
+  const tm = splitExtremes(teams, TOP_N);
   // `tr`: `t` above is the tournament split.
   const { t: tr } = useTranslation();
 
