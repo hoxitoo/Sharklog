@@ -2,8 +2,8 @@ import React, { useState, useMemo } from 'react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts';
-import type { Bet, BetStatus } from '@sharklog/core';
-import { activeStrategy, bankCash, calcDashboard, formatMoney, formatOdds, formatPercent, isInTilt, strategyPlan, toYmd } from '@sharklog/core';
+import type { Bet, BetStatus, HeatDay } from '@sharklog/core';
+import { activeStrategy, bankCash, calcDashboard, calcHeatmap, formatMoney, formatOdds, formatPercent, heatLevel, isInTilt, strategyPlan, toYmd } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
 import { useToastStore } from '../store/toastStore';
 import { colors } from '../theme/colors';
@@ -51,42 +51,19 @@ function WLStrip({ bets }: { bets: Bet[] }) {
   );
 }
 
+/** Cell strength ±1…±3 (`heatLevel`) → opacity suffix of the signal colour. */
+const HEAT_ALPHA = ['44', '88', 'cc'] as const;
+
 function Heatmap({ bets }: { bets: Bet[] }) {
   const { t } = useTranslation();
-  const today = new Date();
-  const weeks = 12;
-  const totalDays = weeks * 7;
+  const columns = calcHeatmap(bets);
+  if (!columns) return null;
 
-  const pnlByDate: Record<string, number> = {};
-  const countByDate: Record<string, number> = {};
-  for (const bet of bets) {
-    if (bet.status === 'pending') continue;
-    const profit = bet.status === 'won'
-      ? Math.round(bet.stake * (bet.odds - 1))
-      : bet.status === 'lost' ? -bet.stake
-      : bet.status === 'cashout' && bet.cashoutAmount != null ? bet.cashoutAmount - bet.stake
-      : 0;
-    pnlByDate[bet.date] = (pnlByDate[bet.date] ?? 0) + profit;
-    countByDate[bet.date] = (countByDate[bet.date] ?? 0) + 1;
-  }
-
-  if (Object.keys(countByDate).length === 0) return null;
-
-  const days: Array<{ dateStr: string; pnl: number; count: number }> = [];
-  for (let i = totalDays - 1; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(today.getDate() - i);
-    const dateStr = toYmd(d);
-    days.push({ dateStr, pnl: pnlByDate[dateStr] ?? 0, count: countByDate[dateStr] ?? 0 });
-  }
-
-  const columns: typeof days[] = [];
-  for (let w = 0; w < weeks; w++) columns.push(days.slice(w * 7, w * 7 + 7));
-
-  function cellBg(day: { pnl: number; count: number }) {
-    if (day.count === 0) return colors.bgElevated;
-    if (day.pnl > 0) return colors.won + (day.pnl > 50000 ? 'cc' : day.pnl > 10000 ? '88' : '44');
-    if (day.pnl < 0) return colors.lost + (day.pnl < -50000 ? 'cc' : day.pnl < -10000 ? '88' : '44');
+  function cellBg(day: HeatDay) {
+    const level = heatLevel(day);
+    if (level === null) return colors.bgElevated;
+    if (level > 0) return colors.won + HEAT_ALPHA[level - 1];
+    if (level < 0) return colors.lost + HEAT_ALPHA[-level - 1];
     return colors.textMuted + '44';
   }
 
@@ -99,7 +76,7 @@ function Heatmap({ bets }: { bets: Bet[] }) {
             {col.map((day, di) => (
               <div
                 key={di}
-                title={day.count > 0 ? `${day.dateStr}: ${day.count} ставок, ${day.pnl >= 0 ? '+' : ''}${(day.pnl / 100).toFixed(0)} ₽` : day.dateStr}
+                title={day.count > 0 ? `${day.date}: ${day.count} ставок, ${day.pnl >= 0 ? '+' : ''}${(day.pnl / 100).toFixed(0)} ₽` : day.date}
                 style={{ width: 14, height: 14, borderRadius: 2, backgroundColor: cellBg(day) }}
               />
             ))}

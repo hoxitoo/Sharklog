@@ -60,3 +60,12 @@ export function recommendedStake(
   // fraction of a kopeck over it, and the plan check calls it a breach.
   return Math.floor(bankroll * fraction);
 }
+
+/**
+ * The "my estimate" stepper of the Kelly helper (both bet forms): ±5 points,
+ * kept within 5–95% — at 0 or 100% Kelly has nothing to say — and rounded to
+ * whole percent, so ten taps do not drift into 0.49999.
+ */
+export function stepProbability(p: number, dir: 1 | -1): number {
+  return Math.min(0.95, Math.max(0.05, Math.round((p + dir * 0.05) * 100) / 100));
+}

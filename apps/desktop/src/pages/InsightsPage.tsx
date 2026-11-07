@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import {
   calcByTournament, calcByTeam, calcBetYears, betsInYear, formatMoney, formatPercent,
-  SPORTS, ESPORTS_DISCIPLINES, toYmd } from '@sharklog/core';
+  SPORTS, ESPORTS_DISCIPLINES, toYmd, splitExtremes } from '@sharklog/core';
 import type { TournamentStats, TeamStats, Bet } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
 import { colors, alpha, mix } from '../theme/colors';
@@ -104,15 +104,6 @@ function MoreToggle({ count, open, onToggle }: {
   );
 }
 
-/** Splits a P&L-ranked list into the two extremes, the next few, and the tail. */
-function split<T>(list: T[]) {
-  const best = list[0];
-  // With a single entry there is no "worst" — one thing cannot be both ends.
-  const worst = list.length > 1 ? list[list.length - 1] : undefined;
-  const middle = list.length > 1 ? list.slice(1, -1) : [];
-  return { best, worst, top: middle.slice(0, TOP_N), rest: middle.slice(TOP_N) };
-}
-
 /** One P&L-ranked row, shared by both sections. */
 function StatRow({ name, sport, discipline, count, winRate, pnl, roi, onOpen }: {
   name: string; sport: string; discipline?: string | undefined;
@@ -143,7 +134,7 @@ function TournamentsSection({ stats, onOpen }: {
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
-  const { best, worst, top, rest } = split(stats);
+  const { best, worst, top, rest } = splitExtremes(stats, TOP_N);
 
   if (!best) {
     return (
@@ -187,7 +178,7 @@ function TeamsSection({ teams, isPro, onOpen }: {
 }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
-  const { best, worst, top, rest } = split(teams);
+  const { best, worst, top, rest } = splitExtremes(teams, TOP_N);
 
   if (!isPro) {
     return (

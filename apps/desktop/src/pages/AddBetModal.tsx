@@ -3,7 +3,7 @@ import type { Sport, BetType, Strategy, BetStatus, EsportsDiscipline, Team } fro
 import {
   SPORTS, BET_TYPES, STRATEGIES, ESPORTS_DISCIPLINES,
   parseMoneyInput, formatMoney, CURRENT_SCHEMA_VERSION, FREE_LIMITS,
-  impliedProbability, expectedValue, halfKelly, recommendedStake, currentBank, toYmd } from '@sharklog/core';
+  impliedProbability, expectedValue, halfKelly, recommendedStake, currentBank, toYmd, stepProbability } from '@sharklog/core';
 import type { Bet } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
 import { ChecklistModal } from '../components/ChecklistModal';
@@ -149,7 +149,7 @@ function KellyHelper({ odds, bankKopecks, onApply }: {
   const stake = bankKopecks > 0 ? recommendedStake(bankKopecks, odds, prob) : 0;
 
   function step(dir: 1 | -1) {
-    setProb((p) => Math.min(0.95, Math.max(0.05, Math.round((p + dir * 0.05) * 100) / 100)));
+    setProb((p) => stepProbability(p, dir));
   }
 
   return (

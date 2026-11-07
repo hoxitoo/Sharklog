@@ -568,3 +568,17 @@ export function pendingStake(bets: Bet[]): number {
     .filter((b) => b.status === 'pending')
     .reduce((sum, b) => sum + b.stake, 0);
 }
+
+/**
+ * A P&L-ranked list (best first) as the Insights screens show it: the two
+ * extremes, the next `topN`, and the rest. With one entry there is no "worst"
+ * — one thing cannot be both ends.
+ */
+export function splitExtremes<T>(list: readonly T[], topN: number): {
+  best: T | undefined; worst: T | undefined; top: T[]; rest: T[];
+} {
+  const best = list[0];
+  const worst = list.length > 1 ? list[list.length - 1] : undefined;
+  const middle = list.length > 1 ? list.slice(1, -1) : [];
+  return { best, worst, top: middle.slice(0, topN), rest: middle.slice(topN) };
+}

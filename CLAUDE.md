@@ -71,6 +71,7 @@ docs/            — ROADMAP.md, ANALYSIS.md, PRIVACY_POLICY.md, RELEASE_GUIDE.m
 - **Банк в приложении ≠ баланс у букмекера**: букмекер списывает ставку сразу при постановке, приложение — только при расчёте. Поэтому `балансУБукмекера = currentBank − pendingExposure(bets)`. Это первое, что надо исключить при расхождении.
 - **«В игре» ≠ то, что вычитается из баланса.** «В игре» — все ставки без результата, ФРИБЕТЫ ВКЛЮЧЕНЫ (`pendingStake`, решение автора): так на экране ставок, в Банкролле и на карточке цели (`inPlayStake`; риск лимита потерь — только свои деньги, `pendingStake` цели: проигранный фрибет ничего не стоит). Из баланса у букмекера и в сверке вычитается только `pendingExposure` — без фрибетов: фрибет — бонус букмекера, с реального баланса он не списан, и вычтенный он записал бы при сверке недостачу, которой нет. Строка Банкролла, когда фрибеты в игре есть, называет их отдельно (`bankroll.atBookLineFree`). Банк на любом экране — `currentBank`, не последний день подневного ряда: ряд пропускает ставку с нечитаемой датой, и дашборд показывал банк меньше на её P&L.
 - **`adjustment`** — сверка с реальным балансом бука без фейкового депозита/вывода. Пользователь вводит реальный баланс, приложение само считает разницу и пишет её со знаком. Разницу считай от `currentBank − pendingExposure`, а НЕ от голого банка: у бука открытые ставки уже списаны, и сверка от банка запишет их как недостачу, которая не рассосётся после расчёта ставок. В `calcDailyBreakdown` у неё свой бакет `adjustments` — она двигает `balance`, но НЕ попадает во «Внесено/Выведено» и не рисует маркер депозита на графике.
+- **Чистый помощник, нужный обоим приложениям, живёт в core, а не копией в каждом**: список команд (`upsertTeams`/`cleanTeamNames`, `utils/teams`), тепловая карта (`calcHeatmap`/`heatLevel` — `utils/heatmap`, P&L через `betPnl`: десктопная копия считала проигранный фрибет за −ставку), шаг вероятности Келли (`stepProbability`), разбивка Инсайтов (`splitExtremes`). Цвет — нет: палитры у приложений свои, поэтому ядро отдаёт уровень (`heatLevel` −3…3), а цвет выбирает экран. Страж — `core/__tests__/oneCopyAcrossApps.test.ts`.
 - **CSV — один модуль на оба приложения**: `packages/core/utils/betsCsv` (`buildBetsCSV` / `importBetsFromCSV` / `importBetsFromRows`). Не заводи парсер или писатель по месту: раньше их было два, они разъехались, и выгрузка с телефона не открывалась на ПК.
 - **Общий кэф экспресса — `combineExpressOdds()`**, округление до 2 знаков. Букмекер показывает и рассчитывает экспресс по округлённому коэффициенту (1.23 × 1.90 = 2.337 → платит по 2.34). Хранение сырого произведения давало «× 2.34» на экране и выплату по 2.337 — расхождение с реальным балансом росло с каждым экспрессом.
 - **P&L одной ставки — только `betPnl()`**. Ручные `status === 'won' ? ... : ...` уже приводили к тому, что выкуп экспортировался нулём, а проигранный фрибет — полной потерей.
@@ -306,9 +307,9 @@ new Date(str).toLocaleDateString(locale, { day: 'numeric', month: 'short' });
 
 ```bash
 # Тесты
-cd packages/core && npx vitest run        # 329 unit-тестов core
+cd packages/core && npx vitest run        # 343 unit-теста core
 cd apps/desktop  && npm test              # 40 smoke-тестов desktop (Vitest)
-cd apps/mobile   && npm test              # 463 теста mobile (Jest), включая стражей дизайна, тем и переводов
+cd apps/mobile   && npm test              # 464 теста mobile (Jest), включая стражей дизайна, тем и переводов
 
 # Type-check
 cd apps/mobile  && npx tsc --noEmit
@@ -845,12 +846,15 @@ utils/
                         calcBetYears(bets, now) — годы из данных + текущий, новые первыми
                         betsInYear(bets, year) — срез по календарному году
   kelly.ts            — kellyFraction, halfKelly, expectedValue, impliedProbability,
-                        recommendedStake(bank, odds, p, maxFraction = 0.05, multiplier = 0.5)
+                        recommendedStake(bank, odds, p, maxFraction = 0.05, multiplier = 0.5),
+                        stepProbability(p, ±1) — шаг «моей оценки» ±5 п.п. в 5–95%
   oddsFormat.ts       — parseOdds / formatOddsAs / rangeFormat / ODDS_FORMATS: шесть форматов кэфов ↔ десятичный
   currency.ts         — CURRENCIES (знаки), currencySymbol, currencyFromUnit, suggestCurrency, BANKROLL_TIERS
   formatters.ts       — formatMoney(kopecks, currency='₽', maxDecimals=2), parseMoneyInput, formatOdds, formatPercent (adds + prefix)
   goals.ts            — calcGoalProgress(goal, bets, txs, now): прогресс, срок, темп, прогноз, ROI, ряд для
                         графика; activeGoals / mainGoal; addDays / daysBetween (календарные дни, без DST)
+  teams.ts            — upsertTeams(список, имена, спорт, дисциплина, newId) / cleanTeamNames — список команд обоих сторов
+  heatmap.ts          — calcHeatmap(bets, weeks, now) (дни × 7, P&L через betPnl) / heatLevel(день) −3…3 или null
   strategyBuilder.ts  — STRATEGY_QUESTIONS (10 вопросов), buildStrategy(answers),
                         STRATEGY_ODDS_BANDS — диапазоны кэфов и для вопроса, и для плана;
                         strategyPlan(strategy) — числа сохранённого плана (кэфы — из ответов);

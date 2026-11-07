@@ -5,8 +5,8 @@ import { AppText as Text } from '../../components/AppText';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { calcDashboard, isInTilt, calcDailyBreakdown, currentBank, summarizeDays, toYmd, activeStrategy, strategyPlan, playedOrder, newestPlayedFirst } from '@sharklog/core';
-import type { Bet, DayStats } from '@sharklog/core';
+import { calcDashboard, isInTilt, calcDailyBreakdown, currentBank, summarizeDays, toYmd, activeStrategy, strategyPlan, playedOrder, newestPlayedFirst, calcHeatmap, heatLevel } from '@sharklog/core';
+import type { Bet, DayStats, HeatDay } from '@sharklog/core';
 import { useBetsStore, effectiveTiltThreshold } from '../../store/betsStore';
 import { colors, signalInk, signalTint, toneSurface } from '../../theme/colors';
 import { cardSurface, tileStyle } from '../../components/Card';
@@ -98,51 +98,23 @@ const wl = themedStyles(() => ({
   letter: { fontSize: SIZE.body, fontWeight: '700' },
 }));
 
+/** Cell strength ±1…±3 (`heatLevel`) → opacity suffix of the signal colour. */
+const HEAT_ALPHA = ['44', '88', 'cc'] as const;
+
 function Heatmap({ bets }: { bets: Bet[] }) {
   const { t } = useTranslation();
-  const today = new Date();
-  const weeks = 12;
-  const totalDays = weeks * 7;
+  // Today is in the key: the window ends today, and the screen lives past midnight.
+  const today = toYmd(new Date());
+  const columns = useMemo(() => calcHeatmap(bets), [bets, today]);
+  if (!columns) return null;
 
-  const pnlByDate: Record<string, number> = {};
-  const countByDate: Record<string, number> = {};
-  for (const bet of bets) {
-    if (bet.status === 'pending') continue;
-    const profit = bet.status === 'won'
-      ? Math.round(bet.stake * (bet.odds - 1))
-      : bet.status === 'lost' ? (bet.isFreebet ? 0 : -bet.stake)
-      : bet.status === 'cashout' && bet.cashoutAmount != null ? bet.cashoutAmount - bet.stake
-      : 0;
-    pnlByDate[bet.date] = (pnlByDate[bet.date] ?? 0) + profit;
-    countByDate[bet.date] = (countByDate[bet.date] ?? 0) + 1;
-  }
-
-  const days: Array<{ dateStr: string; pnl: number; count: number }> = [];
-  for (let i = totalDays - 1; i >= 0; i--) {
-    const d = new Date(today);
-    d.setDate(today.getDate() - i);
-    const dateStr = toYmd(d); // local date — toISOString shifts the day west of UTC
-    days.push({
-      dateStr,
-      pnl: pnlByDate[dateStr] ?? 0,
-      count: countByDate[dateStr] ?? 0,
-    });
-  }
-
-  const columns: typeof days[] = [];
-  for (let w = 0; w < weeks; w++) {
-    columns.push(days.slice(w * 7, w * 7 + 7));
-  }
-
-  function cellColor(day: { pnl: number; count: number }) {
-    if (day.count === 0) return colors.bgElevated;
-    if (day.pnl > 0) return colors.won + (day.pnl > 50000 ? 'cc' : day.pnl > 10000 ? '88' : '44');
-    if (day.pnl < 0) return colors.lost + (day.pnl < -50000 ? 'cc' : day.pnl < -10000 ? '88' : '44');
+  function cellColor(day: HeatDay) {
+    const level = heatLevel(day);
+    if (level === null) return colors.bgElevated;
+    if (level > 0) return colors.won + HEAT_ALPHA[level - 1];
+    if (level < 0) return colors.lost + HEAT_ALPHA[-level - 1];
     return colors.textMuted + '44';
   }
-
-  const hasAny = Object.keys(countByDate).length > 0;
-  if (!hasAny) return null;
 
   return (
     <View style={hm.container}>

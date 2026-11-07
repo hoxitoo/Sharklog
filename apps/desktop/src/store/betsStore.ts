@@ -1,6 +1,6 @@
 import { create } from 'zustand';
-import type { Bet, AppSettings, Bankroll, DiaryEntry, Team, Sport, EsportsDiscipline } from '@sharklog/core';
-import { migrate, CURRENT_SCHEMA_VERSION, FREE_LIMITS, isInTilt, parseEventTeams, preselectedBookmakers } from '@sharklog/core';
+import type { Bet, AppSettings, Bankroll, DiaryEntry, Team } from '@sharklog/core';
+import { migrate, CURRENT_SCHEMA_VERSION, FREE_LIMITS, isInTilt, parseEventTeams, preselectedBookmakers, cleanTeamNames, upsertTeams } from '@sharklog/core';
 import { loadData, saveData } from '../storage/storageService';
 
 function uuid(): string {
@@ -9,41 +9,6 @@ function uuid(): string {
 
 // Serialize all writes so rapid successive mutations can't race and clobber each other.
 let writeChain: Promise<void> = Promise.resolve();
-
-// Extract clean team names from an event string. Delegates to the shared core
-// parser so express events ("A vs B|1.45 / C vs D|1.70") yield individual team
-// names instead of the raw encoded string (pipe odds + " / " leg separators).
-function extractTeamNames(event: string): string[] {
-  return parseEventTeams(event);
-}
-
-// A clean team name never contains the express encoding chars. Drop entries that
-// were polluted by the old extractTeamNames (e.g. "Yellow submarine|1.45 / Reconix").
-function sanitizeTeams(teams: Team[]): Team[] {
-  return teams.filter((t) => !t.name.includes('|') && !t.name.includes(' / '));
-}
-
-function upsertTeams(
-  existing: Team[],
-  names: string[],
-  sport: Sport,
-  discipline?: EsportsDiscipline,
-): Team[] {
-  const result = [...existing];
-  const now = new Date().toISOString();
-  for (const name of names) {
-    const idx = result.findIndex(
-      (t) => t.name.toLowerCase() === name.toLowerCase() &&
-             t.sport === sport && t.discipline === discipline,
-    );
-    if (idx >= 0) {
-      result[idx] = { ...result[idx]!, usageCount: result[idx]!.usageCount + 1, lastUsed: now };
-    } else {
-      result.push({ id: uuid(), name, sport, ...(discipline !== undefined ? { discipline } : {}), usageCount: 1, lastUsed: now });
-    }
-  }
-  return result;
-}
 
 interface BetsStore {
   bets: Bet[];
@@ -115,7 +80,7 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
         },
         bankroll: { ...defaultBankroll, ...schema.bankroll },
         diary: schema.diary ?? [],
-        teams: sanitizeTeams(schema.teams ?? []),
+        teams: cleanTeamNames(schema.teams ?? []),
         isLoaded: true,
       });
     } catch {
@@ -130,7 +95,7 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
   },
 
   addBet: (bet) => {
-    const teams = upsertTeams(get().teams, extractTeamNames(bet.event), bet.sport, bet.discipline);
+    const teams = upsertTeams(get().teams, parseEventTeams(bet.event), bet.sport, bet.discipline, uuid);
     set((s) => ({ bets: [bet, ...s.bets], teams }));
     get().persist();
   },
@@ -146,7 +111,7 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
       // usageCount on every status/notes edit (mirrors the mobile store guard).
       const eventChanged = updated && old && (old.event !== updated.event || old.sport !== updated.sport);
       const teams = eventChanged
-        ? upsertTeams(s.teams, extractTeamNames(updated.event), updated.sport, updated.discipline)
+        ? upsertTeams(s.teams, parseEventTeams(updated.event), updated.sport, updated.discipline, uuid)
         : s.teams;
       return { bets, teams };
     });
