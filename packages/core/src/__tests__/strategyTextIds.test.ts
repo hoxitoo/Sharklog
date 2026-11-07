@@ -18,12 +18,13 @@ describe('strategyTextIds', () => {
   const answers = allAnswers();
 
   it('gives every profile a name, 4 principles and an intro first', () => {
-    for (const a of answers) {
+    // One expect for all 116 640 profiles, not three each: that many calls took
+    // over vitest 4's 5 s, and a failure here now names the profiles.
+    const bad = answers.filter((a) => {
       const ids = strategyTextIds(a);
-      expect(ids.principles).toHaveLength(4);
-      expect(ids.rationale[0]).toBe('intro');
-      expect(new Set(ids.principles).size).toBe(4);
-    }
+      return ids.principles.length !== 4 || ids.rationale[0] !== 'intro' || new Set(ids.principles).size !== 4;
+    });
+    expect(bad).toEqual([]);
   });
 
   it('matches the text buildStrategy bakes in', () => {
