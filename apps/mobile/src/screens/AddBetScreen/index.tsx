@@ -4,7 +4,7 @@ import {
   View, StyleSheet, ScrollView, TouchableOpacity, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
-import type { TextInput as TextInputRef, StyleProp, ViewStyle } from 'react-native';
+import type { TextInput as TextInputRef } from 'react-native';
 import { sportGlyph, disciplineGlyph } from '../../components/icons/AppIcon';
 import { useForm, Controller } from 'react-hook-form';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -17,6 +17,7 @@ import {
 } from '@sharklog/core';
 import { useTranslation } from 'react-i18next';
 import { FilterPicker } from '../../components/FilterPicker';
+import { Field, inputStyle } from '../../components/FormField';
 import { DateField } from '../../components/DateField';
 import { useFormatMoney, useCurrencySymbol } from '../../utils/useFormatMoney';
 import { useOddsFormat, useFormatOddsRange, oddsKeyboard } from '../../utils/useOdds';
@@ -86,38 +87,6 @@ interface ExpressLeg {
 
 // ── Field wrapper ─────────────────────────────────────────────────────────────
 
-function Field({ label, error, hint, style, children }: {
-  label: string; error?: string; hint?: string | null; style?: StyleProp<ViewStyle>; children: React.ReactNode;
-}) {
-  return (
-    <View style={[field.container, style]}>
-      <Text style={field.label}>{label}</Text>
-      {children}
-      {error ? <Text style={field.error}>{error}</Text> : null}
-      {!error && hint ? <Text style={field.hint}>{hint}</Text> : null}
-    </View>
-  );
-}
-
-const field = themedStyles(() => ({
-  container: { marginBottom: SPACE.lg },
-  label: { fontSize: SIZE.caption, color: colors.textSecondary, marginBottom: SPACE.xs, textTransform: 'uppercase', letterSpacing: 0.5 },
-  error: { fontSize: SIZE.caption, color: colors.lost, marginTop: SPACE.xs },
-  hint: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: SPACE.xs },
-}));
-
-// Getters for the colours: a plain object here would keep the theme the app
-// started with.
-const inputStyle = {
-  get backgroundColor() { return colors.bgCard; },
-  borderRadius: RADIUS.sm,
-  paddingHorizontal: SPACE.md,
-  paddingVertical: SPACE.md,
-  get color() { return colors.textPrimary; },
-  fontSize: SIZE.lead,
-  borderWidth: 1,
-  get borderColor() { return colors.border; },
-};
 
 // ── Single Team Input with autocomplete ───────────────────────────────────────
 

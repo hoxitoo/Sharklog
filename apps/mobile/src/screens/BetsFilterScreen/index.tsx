@@ -5,6 +5,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useBetsStore } from '../../store/betsStore';
 import { useBetsQuery } from '../../components/BetsQueryContext';
 import { DateField } from '../../components/DateField';
+import { Field, inputStyle } from '../../components/FormField';
 import { EMPTY_BETS_QUERY, betsVocabulary, suggest, countBetsQuery, type BetsQuery } from '../../utils/betsQuery';
 import { colors } from '../../theme/colors';
 import { SPACE, RADIUS, TOUCH } from '../../theme/layout';
@@ -15,29 +16,6 @@ import { useTranslation } from 'react-i18next';
 import { themedStyles } from '../../theme/themed';
 import { useOddsFormat, oddsKeyboard } from '../../utils/useOdds';
 import { oddsExample } from '../../utils/oddsField';
-
-// Getters for the colours: a plain object here would keep the theme the app
-// started with.
-const inputStyle = {
-  get backgroundColor() { return colors.bgCard; },
-  borderRadius: RADIUS.sm,
-  paddingHorizontal: SPACE.md,
-  paddingVertical: SPACE.md,
-  get color() { return colors.textPrimary; },
-  fontSize: SIZE.lead,
-  borderWidth: 1,
-  get borderColor() { return colors.border; },
-};
-
-function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
-  return (
-    <View style={s.field}>
-      <Text style={s.label}>{label}</Text>
-      {children}
-      {hint ? <Text style={s.hint}>{hint}</Text> : null}
-    </View>
-  );
-}
 
 /**
  * Chips of values that actually exist in the data.
@@ -101,7 +79,7 @@ export function BetsFilterScreen() {
           contentContainerStyle={s.body}
           showsVerticalScrollIndicator={false}
         >
-          <Field label={t('filters.tournament')} hint={t('filters.tournamentHint')}>
+          <Field style={s.field} label={t('filters.tournament')} hint={t('filters.tournamentHint')}>
             <TextInput
               style={inputStyle}
               placeholder={t('filters.anyM')}
@@ -113,7 +91,7 @@ export function BetsFilterScreen() {
             <Suggestions pool={vocab.tournaments} input={draft.tournament} onPick={set('tournament')} />
           </Field>
 
-          <Field label={t('filters.team')} hint={t('filters.teamHint')}>
+          <Field style={s.field} label={t('filters.team')} hint={t('filters.teamHint')}>
             <TextInput
               style={inputStyle}
               placeholder={t('filters.anyF')}
@@ -125,7 +103,7 @@ export function BetsFilterScreen() {
             <Suggestions pool={vocab.teams} input={draft.team} onPick={set('team')} />
           </Field>
 
-          <Field label={t('bet.odds')}>
+          <Field style={s.field} label={t('bet.odds')}>
             <View style={s.pair}>
               <TextInput
                 style={[inputStyle, numeric, s.pairCell]}
@@ -146,7 +124,7 @@ export function BetsFilterScreen() {
             </View>
           </Field>
 
-          <Field label={t('bet.date')} hint={t('filters.dateHint')}>
+          <Field style={s.field} label={t('bet.date')} hint={t('filters.dateHint')}>
             {/* Calendars: typing YYYY-MM-DD by hand was the complaint. Each
                 bound clears on its own — one date is a valid filter. */}
             <View style={s.pair}>
@@ -195,9 +173,8 @@ export function BetsFilterScreen() {
 const s = themedStyles(() => ({
   container: { flex: 1, backgroundColor: colors.bg },
   body: { padding: SPACE.lg, paddingBottom: SPACE.xxl },
+  // The filter's groups stand further apart than the bet form's rows.
   field: { marginBottom: SPACE.xl },
-  label: { fontSize: SIZE.caption, color: colors.textSecondary, marginBottom: SPACE.xs, textTransform: 'uppercase', letterSpacing: 0.5 },
-  hint: { fontSize: SIZE.micro, color: colors.textMuted, marginTop: SPACE.xs, lineHeight: 14 },
   pair: { flexDirection: 'row', gap: SPACE.sm },
   pairCell: { flex: 1 },
   chips: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm, marginTop: SPACE.sm },
