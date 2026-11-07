@@ -1,6 +1,5 @@
-import React from 'react';
 import { SPACE, RADIUS } from '../theme/layout';
-import { View, StyleSheet } from 'react-native';
+import { View } from 'react-native';
 import { AppText as Text } from './AppText';
 import type { BetStatus } from '@sharklog/core';
 import { colors, signalInk, signalTint } from '../theme/colors';

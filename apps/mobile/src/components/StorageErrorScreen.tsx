@@ -1,4 +1,4 @@
-import React, { useLayoutEffect, useState } from 'react';
+import { useLayoutEffect, useState } from 'react';
 import { View, TouchableOpacity, Linking } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { AppText as Text } from './AppText';

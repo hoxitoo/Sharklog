@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { SPACE, RADIUS, TOUCH } from '../../theme/layout';
 import {
-  View, StyleSheet, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StatusBar, Image,
+  View, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, StatusBar, Image,
 } from 'react-native';
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

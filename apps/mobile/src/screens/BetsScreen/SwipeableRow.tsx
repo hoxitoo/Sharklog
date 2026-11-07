@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react';
 import { SPACE, RADIUS } from '../../theme/layout';
 import {
-  Animated, PanResponder, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View,
+  Animated, PanResponder, TouchableOpacity, TouchableWithoutFeedback, View,
 } from 'react-native';
 import { AppText as Text } from '../../components/AppText';
 import { colors } from '../../theme/colors';

@@ -1,7 +1,6 @@
 // Type-only import on purpose: this module stays free of the react-native
 // runtime so the weight→face mapping can be unit-tested in plain Node.
 import type { TextStyle } from 'react-native';
-import { colors } from './colors';
 
 /**
  * The type scale. Seven steps, and nothing between them.
@@ -85,17 +84,6 @@ export function monoFor(weight: TextStyle['fontWeight']): string {
     default: return FONTS.mono;
   }
 }
-
-// Colours as getters so each preset follows the active theme.
-export const typography: Record<string, TextStyle> = {
-  h1: { fontSize: SIZE.hero, fontFamily: FONTS.sansBold, get color() { return colors.textPrimary; }, letterSpacing: -0.5 },
-  h2: { fontSize: SIZE.title, fontFamily: FONTS.sansSemiBold, get color() { return colors.textPrimary; } },
-  h3: { fontSize: SIZE.title, fontFamily: FONTS.sansSemiBold, get color() { return colors.textPrimary; } },
-  body: { fontSize: SIZE.lead, fontFamily: FONTS.sans, get color() { return colors.textPrimary; } },
-  bodySmall: { fontSize: SIZE.body, fontFamily: FONTS.sans, get color() { return colors.textSecondary; } },
-  caption: { fontSize: SIZE.caption, fontFamily: FONTS.sans, get color() { return colors.textMuted; } },
-  mono: { fontSize: SIZE.body, fontFamily: FONTS.mono, get color() { return colors.textPrimary; } },
-};
 
 /**
  * Every `Text` in the app asks for this on every render, so the answer is

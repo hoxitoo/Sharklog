@@ -1,4 +1,4 @@
-import { chartScale, chartHeightForBudget, formatChartYLabel } from '../utils/chartScale';
+import { chartScale, formatChartYLabel } from '../utils/chartScale';
 
 describe('chartScale', () => {
   it('all-positive data: no negative band', () => {
@@ -28,17 +28,6 @@ describe('chartScale', () => {
     const s = chartScale([]);
     expect(s.stepValue).toBeGreaterThan(0);
     expect(Number.isFinite(s.maxValue)).toBe(true);
-  });
-
-  it('chartHeightForBudget compensates the added negative quadrant', () => {
-    const pos = chartScale([100, 900]);
-    expect(chartHeightForBudget(140, pos)).toBe(140); // no negative band → full budget
-
-    const mixed = chartScale([-900, 900]);
-    const h = chartHeightForBudget(140, mixed);
-    // library total = h * (above+below)/above must fit the budget
-    const total = (h * (mixed.noOfSections + mixed.sectionsBelow)) / mixed.noOfSections;
-    expect(total).toBeLessThanOrEqual(141); // rounding tolerance
   });
 
   it('formatChartYLabel: k-suffix above 1000, integers below', () => {

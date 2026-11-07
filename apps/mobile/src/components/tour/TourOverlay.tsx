@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { View, StyleSheet, TouchableOpacity, Animated, ScrollView, type LayoutChangeEvent } from 'react-native';
 import Svg, { Path, Rect } from 'react-native-svg';
 import { useTranslation } from 'react-i18next';

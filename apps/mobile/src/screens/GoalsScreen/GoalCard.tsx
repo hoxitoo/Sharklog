@@ -1,4 +1,3 @@
-import React from 'react';
 import { View, TouchableOpacity } from 'react-native';
 import { useTranslation } from 'react-i18next';
 import { addDays, PACE_MIN_DAYS, toYmd, type Goal, type GoalProgress } from '@sharklog/core';

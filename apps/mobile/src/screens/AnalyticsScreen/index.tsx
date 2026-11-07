@@ -1,6 +1,6 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { SPACE, RADIUS, TOUCH, hitSlopFor } from '../../theme/layout';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Dimensions, Alert } from 'react-native';
+import { View, ScrollView, TouchableOpacity, Dimensions, Alert } from 'react-native';
 import { AppText as Text } from '../../components/AppText';
 import { PieChart } from 'react-native-gifted-charts';
 import {
@@ -581,7 +581,7 @@ function TimeCard({ bets }: { bets: Bet[] }) {
           )}
         />
         <View style={time.legend}>
-          {t.buckets.filter((b) => b.count > 0).map((b, i) => {
+          {t.buckets.filter((b) => b.count > 0).map((b) => {
             const idx = t.buckets.indexOf(b);
             return (
               <View key={b.startHour} style={time.legendRow}>

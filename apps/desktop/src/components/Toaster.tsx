@@ -1,4 +1,3 @@
-import React from 'react';
 import { useToastStore } from '../store/toastStore';
 import { colors } from '../theme/colors';
 

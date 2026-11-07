@@ -1,6 +1,6 @@
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { SPACE, RADIUS, TOUCH } from '../../theme/layout';
-import { View, ScrollView, StyleSheet, TouchableOpacity, useWindowDimensions } from 'react-native';
+import { View, ScrollView, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { AppText as Text } from '../../components/AppText';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
@@ -377,7 +377,6 @@ const dd = themedStyles(() => ({
 export function DashboardScreen() {
   const bottomPad = useBottomPad();
   const navigation = useNavigation<Nav>();
-  const { width } = useWindowDimensions();
   const bets = useBetsStore((s) => s.bets);
   const settings = useBetsStore((s) => s.settings);
   const tiltThreshold = useBetsStore((s) => effectiveTiltThreshold(s.settings));
@@ -385,7 +384,6 @@ export function DashboardScreen() {
   const strategy = activeStrategy(settings);
   const strategyNums = useMemo(() => (strategy ? strategyPlan(strategy) : undefined), [strategy]);
   const bankroll = useBetsStore((s) => s.bankroll);
-  const fmt = useFormatMoney();
   const fmtOdds = useFormatOddsRange(); // the strategy's range
   const oddsFormat = useOddsFormat();
   const { t } = useTranslation();

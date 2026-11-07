@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Linking, Share, Alert, Platform } from 'react-native';
+import { View, ScrollView, TouchableOpacity, Linking, Share, Alert, Platform } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';

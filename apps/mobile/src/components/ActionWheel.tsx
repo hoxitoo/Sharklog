@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { SPACE } from '../theme/layout';
 import {
-  Modal, View, StyleSheet, Animated, Pressable, useWindowDimensions,
+  Modal, View, Animated, Pressable, useWindowDimensions,
 } from 'react-native';
 import { AppText as Text } from './AppText';
 import Svg, { Path } from 'react-native-svg';

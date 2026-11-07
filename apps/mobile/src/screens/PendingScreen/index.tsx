@@ -1,7 +1,7 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { SPACE } from '../../theme/layout';
 import { cardSurface } from '../../components/Card';
-import { View, StyleSheet, FlatList } from 'react-native';
+import { View, FlatList } from 'react-native';
 import { AppText as Text } from '../../components/AppText';
 import type { Bet } from '@sharklog/core';
 import { useFormatMoney } from '../../utils/useFormatMoney';

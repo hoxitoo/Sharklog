@@ -1,8 +1,8 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { SPACE, RADIUS, TOUCH, hitSlopFor } from '../../theme/layout';
 import { cardSurface } from '../../components/Card';
 import {
-  View, StyleSheet, ScrollView, TouchableOpacity, Alert, useWindowDimensions,
+  View, ScrollView, TouchableOpacity, Alert, useWindowDimensions,
 } from 'react-native';
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
 import { haptic } from '../../utils/haptics';

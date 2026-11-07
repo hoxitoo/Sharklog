@@ -1,5 +1,4 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useTranslation } from 'react-i18next';
 import { AppText as Text } from '../../components/AppText';

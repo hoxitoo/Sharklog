@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import type { Bet } from '@sharklog/core';
 import { AppLayout, type Page } from './layouts/AppLayout';
 import type { BetsFilter } from './types/betsFilter';

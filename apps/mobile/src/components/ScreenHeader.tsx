@@ -1,6 +1,6 @@
 import React from 'react';
 import { SPACE, RADIUS, TOUCH } from '../theme/layout';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, TouchableOpacity } from 'react-native';
 import { AppText as Text } from './AppText';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';

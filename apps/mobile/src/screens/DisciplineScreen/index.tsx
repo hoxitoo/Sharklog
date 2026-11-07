@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { SPACE, RADIUS, TOUCH } from '../../theme/layout';
 import {
-  View, StyleSheet, ScrollView, TouchableOpacity, Alert,
+  View, ScrollView, TouchableOpacity, Alert,
 } from 'react-native';
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
 import { calcCurrentStreak, toYmd } from '@sharklog/core';

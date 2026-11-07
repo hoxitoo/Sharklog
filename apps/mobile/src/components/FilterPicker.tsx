@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
 import {
-  View, StyleSheet, TouchableOpacity, Modal, Pressable, ScrollView, Animated, PanResponder, Keyboard,
+  View, TouchableOpacity, Modal, Pressable, ScrollView, Animated, PanResponder, Keyboard,
 } from 'react-native';
 import { AppText as Text } from './AppText';
 import { colors } from '../theme/colors';

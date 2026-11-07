@@ -1,4 +1,3 @@
-import React from 'react';
 import type { StyleProp, ViewStyle } from 'react-native';
 import Svg, { Path, Circle, Ellipse } from 'react-native-svg';
 import { GLYPHS, GLYPH_BOX, type GlyphName, type Paint, type Shape } from './glyphs';
