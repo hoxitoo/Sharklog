@@ -145,6 +145,32 @@ describe('the launch sync', () => {
     expect(mockScheduled.has('bet-result-b')).toBe(true);
   });
 
+  it('without the permission the re-issue is not recorded: granted later, it still happens', async () => {
+    // Review 2026-11-07: the mark was written even when nothing could be
+    // issued, and reminders kept their old language after the permission
+    // came back.
+    const perm = Notifications.getPermissionsAsync as jest.Mock;
+    const b = bet('a', '15:00');
+    preschedule(b, 'RUSSIAN TEXT');
+    await syncRemindersFor([b], true, '1.4.0|ru|decimal'); // the old build's text, now recorded
+    preschedule(b, 'RUSSIAN TEXT');
+    perm.mockResolvedValueOnce({ status: 'denied' });
+    await syncRemindersFor([b], true, '1.4.0|en|decimal'); // switched to English, permission off
+    expect(mockScheduled.get('bet-result-a')!.content.title).toBe('RUSSIAN TEXT');
+    await syncRemindersFor([b], true, '1.4.0|en|decimal'); // permission back on
+    expect(mockScheduled.get('bet-result-a')!.content.title).not.toBe('RUSSIAN TEXT');
+  });
+
+  it('a failure while reading the schedule is not recorded either', async () => {
+    const all = Notifications.getAllScheduledNotificationsAsync as jest.Mock;
+    const b = bet('a', '15:00');
+    preschedule(b, 'OLD TEXT');
+    all.mockRejectedValueOnce(new Error('native module'));
+    await syncRemindersFor([b], true, '1.4.0|en|decimal');
+    await syncRemindersFor([b], true, '1.4.0|en|decimal');
+    expect(mockScheduled.get('bet-result-a')!.content.title).not.toBe('OLD TEXT');
+  });
+
   it('asks for the permission once per sync, not once per reminder', async () => {
     const perm = Notifications.getPermissionsAsync as jest.Mock;
     perm.mockClear();

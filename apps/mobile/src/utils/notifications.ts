@@ -273,12 +273,17 @@ export async function dismissBetResultNotification(betId: string): Promise<void>
  * minute: those are too close to schedule, so they were cancelled and never
  * came back. Since rearm runs on every launch, opening the app just before a
  * match ended silently ate its reminder. Left alone, it fires as planned.
+ *
+ * Resolves true only when the pass did all it set out to: everything it meant
+ * to (re-)issue was issued. Without the permission nothing is issued, and a
+ * reminder scheduled earlier keeps its old text — the caller must not record
+ * that the re-issue happened (`syncRemindersFor`).
  */
 export async function syncBetResultReminders(
   bets: Bet[],
   enabled: boolean,
   opts?: { rearm?: boolean },
-): Promise<void> {
+): Promise<boolean> {
   try {
     const pendingIds = new Set(bets.filter((b) => b.status === 'pending').map((b) => b.id));
 
@@ -323,12 +328,15 @@ export async function syncBetResultReminders(
       // The permission once for the whole sync, not once per reminder (up to 50
       // calls into native code at every launch).
       const { status } = await Notifications.getPermissionsAsync();
-      if (status === 'granted') {
-        for (const bet of missing) await enqueue(() => armReminder(bet).catch(() => {}));
-      }
+      if (status !== 'granted') return false;
+      let all = true;
+      for (const bet of missing) await enqueue(() => armReminder(bet).catch(() => { all = false; }));
+      return all;
     }
+    return true;
   } catch {
     // permissions revoked / API unavailable — skip silently
+    return false;
   }
 }
 
@@ -347,8 +355,12 @@ export async function syncRemindersFor(bets: Bet[], enabled: boolean, armedFor: 
   let before: string | null = null;
   try { before = await AsyncStorage.getItem(ARMED_FOR_KEY); } catch { /* unknown: re-issue */ }
   const rearm = before !== armedFor;
-  await syncBetResultReminders(bets, enabled, { rearm });
-  if (rearm) {
+  const done = await syncBetResultReminders(bets, enabled, { rearm });
+  // Recorded only when the re-issue really happened. Without the permission
+  // (turned off in the system settings) nothing was re-issued: recording it
+  // anyway left every reminder in the old language once the permission came
+  // back — the return-to-app sync only arms what is missing.
+  if (rearm && done) {
     try { await AsyncStorage.setItem(ARMED_FOR_KEY, armedFor); } catch { /* next launch re-issues again */ }
   }
 }

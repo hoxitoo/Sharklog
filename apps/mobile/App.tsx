@@ -72,6 +72,9 @@ function navigationTheme() {
   };
 }
 
+/** The app tree's wrapper — it only carries the splash-time accessibility switch. */
+const FILL = { flex: 1 } as const;
+
 function AppRoot() {
   const load = useBetsStore((s) => s.load);
   const isLoaded = useBetsStore((s) => s.isLoaded);
@@ -89,6 +92,10 @@ function AppRoot() {
   const themeKey = useBetsStore((s) => s.settings.theme ?? 'dark');
   const navState = useRef<NavigationState | undefined>(undefined);
   const [splashDone, setSplashDone] = useState(false);
+  // The language of the loaded settings has been applied (the effect below).
+  // The app tree waits for it: mounted earlier, screens read the default
+  // Russian once — onboarding preselected the currency from it.
+  const [languageApplied, setLanguageApplied] = useState(false);
   // The report of the crash the last session closed with, while its window is open.
   const [crashReport, setCrashReport] = useState<string | null>(null);
   const crashOffered = useRef(false);
@@ -157,6 +164,7 @@ function AppRoot() {
   useEffect(() => {
     if (!isLoaded) return;
     applyLanguage(language); // synchronous: i18next's resources are bundled
+    setLanguageApplied(true);
     // The odds are baked into the text too: a format switch re-issues them.
     setReminderOddsFormat(isOddsFormat(oddsFormat) ? oddsFormat : 'decimal');
     const { bets, settings } = useBetsStore.getState();
@@ -284,7 +292,11 @@ function AppRoot() {
 
   // A failed font load must not hang the app on the splash forever.
   const fontsSettled = fontsLoaded || !!fontError;
-  const appReady = isLoaded && fontsSettled;
+  // The language too: the tree now mounts under the splash at once, not after
+  // it, and React runs a parent's effects after its children's — without this
+  // the first render of every screen saw Russian, and what is read once at
+  // mount (onboarding's currency guess from the language) stayed wrong.
+  const appReady = isLoaded && fontsSettled && languageApplied;
 
   // Hide native splash once React Native is ready to show our custom JS splash
   // — or the read-error screen, which must not wait behind it forever.
@@ -351,6 +363,13 @@ function AppRoot() {
     </View>
   );
 
+  // The overlay takes every touch, but a screen reader walks the tree under it:
+  // TalkBack's double tap clicks the view directly, and the hidden "+" or menu
+  // could be pressed during the splash. Hidden from it until the splash ends.
+  const hiddenUnderSplash = splashDone
+    ? {}
+    : { importantForAccessibility: 'no-hide-descendants' as const, accessibilityElementsHidden: true };
+
   const statusBarStyle = THEME_META[currentTheme()].dark ? 'light' : 'dark';
   const crashSheet = (
     <ErrorReportSheet visible={crashReport !== null} report={crashReport ?? ''} onClose={() => setCrashReport(null)} />
@@ -359,6 +378,7 @@ function AppRoot() {
   if (!onboardingComplete) {
     return (
       <>
+        <View style={FILL} {...hiddenUnderSplash}>
         <ErrorBoundary key={themeKey}>
           <SafeAreaProvider>
             <StatusBar style={statusBarStyle} />
@@ -366,6 +386,7 @@ function AppRoot() {
             {crashSheet}
           </SafeAreaProvider>
         </ErrorBoundary>
+        </View>
         {splash}
       </>
     );
@@ -373,6 +394,7 @@ function AppRoot() {
 
   return (
     <>
+      <View style={FILL} {...hiddenUnderSplash}>
       <ErrorBoundary key={themeKey}>
         <SafeAreaProvider>
           <NavigationContainer
@@ -386,6 +408,7 @@ function AppRoot() {
           {crashSheet}
         </SafeAreaProvider>
       </ErrorBoundary>
+      </View>
       {splash}
     </>
   );
