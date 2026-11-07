@@ -67,6 +67,12 @@ describe('EAS build profiles', () => {
     }
   });
 
+  it('name the payment in every profile too — `development` fell back to the default unsaid', () => {
+    for (const [name, p] of Object.entries(profiles)) {
+      expect(`${name}: ${p.env?.['EXPO_PUBLIC_BILLING'] ?? 'missing'}`).toMatch(/: (robokassa|revenuecat)$/);
+    }
+  });
+
   it('pair each store with the payment it allows', () => {
     // RuStore: Robokassa (RuStore Pay is closed to the self-employed).
     expect(profiles['rustore']?.env).toMatchObject({ EXPO_PUBLIC_DISTRIBUTION: 'rustore', EXPO_PUBLIC_BILLING: 'robokassa' });

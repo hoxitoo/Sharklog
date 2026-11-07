@@ -10,6 +10,7 @@
       "distribution": "internal",
       "environment": "development",
       "env": {
+        "EXPO_PUBLIC_BILLING": "robokassa",
         "EXPO_PUBLIC_ENV": "development",
         "EXPO_PUBLIC_DISTRIBUTION": "direct"
       }
