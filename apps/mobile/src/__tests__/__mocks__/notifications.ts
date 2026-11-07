@@ -8,6 +8,7 @@ export const requestNotificationPermission = jest.fn(async () => true);
 export const BET_RESULT_CATEGORY = 'bet_result';
 export const dismissBetResultNotification = jest.fn();
 export const syncBetResultReminders = jest.fn();
+export const syncRemindersFor = jest.fn();
 export const setBetPendingResolver = jest.fn();
 export const setReminderOddsFormat = jest.fn();
 export const reminderFireAt = jest.fn(() => null);

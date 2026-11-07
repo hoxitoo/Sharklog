@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Alert, AppState, View } from 'react-native';
+import { Alert, AppState, StyleSheet, View } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import { NavigationContainer, DarkTheme, DefaultTheme, type NavigationState } from '@react-navigation/native';
@@ -27,7 +27,7 @@ import * as Notifications from 'expo-notifications';
 import { isOddsFormat } from '@sharklog/core';
 import {
   scheduleDailyReminder, registerBetResultCategory,
-  setBetPendingResolver, syncBetResultReminders, setReminderOddsFormat,
+  setBetPendingResolver, syncBetResultReminders, syncRemindersFor, setReminderOddsFormat,
 } from './src/utils/notifications';
 import { initRevenueCat, syncEntitlement } from './src/services/revenueCat';
 import { resumePendingPayment, takePaidNotice, checkLicenseStanding } from './src/services/purchase';
@@ -35,6 +35,7 @@ import { BILLING } from './src/services/billing';
 import { installCrashCapture, takeLastCrashReport } from './src/services/crashReport';
 import { ErrorReportSheet } from './src/components/ErrorReportSheet';
 import { RootCrashBoundary } from './src/components/RootCrashBoundary';
+import { APP_VERSION } from './src/utils/appVersion';
 import { Analytics } from './src/services/analytics';
 import './src/i18n/index';
 import i18n, { applyLanguage } from './src/i18n/index';
@@ -160,11 +161,16 @@ function AppRoot() {
     setReminderOddsFormat(isOddsFormat(oddsFormat) ? oddsFormat : 'decimal');
     const { bets, settings } = useBetsStore.getState();
     registerBetResultCategory();
-    // Re-issue what is already scheduled — on a switch, AND at launch: the OS
-    // keeps the text a notification was scheduled with, not the key, so the
-    // reminders an older build scheduled in Russian stay Russian until they
-    // fire. Ids are deterministic and the cap is 50, so this is cheap.
-    syncBetResultReminders(bets, settings.betResultReminders !== false, { rearm: true });
+    // The launch's (or the switch's) one sync. It re-issues what is scheduled
+    // when what a reminder's text is baked from changed — app version (an
+    // older build scheduled in Russian), language, odds format — and otherwise
+    // only arms what is missing: re-issuing all of it on every launch was up
+    // to 50 native calls before the first screen.
+    syncRemindersFor(
+      bets,
+      settings.betResultReminders !== false,
+      `${APP_VERSION}|${i18n.language}|${isOddsFormat(oddsFormat) ? oddsFormat : 'decimal'}`,
+    );
   }, [isLoaded, language, oddsFormat]);
 
   // Its own effect, declared AFTER the language one so its text is already in
@@ -177,14 +183,15 @@ function AppRoot() {
   }, [isLoaded, language, reminderHour]);
 
   // Cancelling on settle is fire-and-forget and can be lost (app killed mid-write,
-  // CSV import, edits). Re-reconcile reminders on launch and on every foreground.
+  // CSV import, edits). Re-reconcile reminders on every return to the app. Not
+  // at launch: the language effect above already ran the launch's sync — this
+  // one ran a second full pass right behind it.
   useEffect(() => {
     if (!isLoaded) return;
     const reconcile = () => {
       const { bets, settings } = useBetsStore.getState();
       syncBetResultReminders(bets, settings.betResultReminders !== false);
     };
-    reconcile();
     const sub = AppState.addEventListener('change', (state) => {
       if (state === 'active') reconcile();
     });
@@ -315,7 +322,7 @@ function AppRoot() {
   // family key if the asset is not registered yet. A JS `Text` re-renders when
   // the fonts flip; the native header does not, so the miss sticks for the
   // whole session — five screen titles in Roboto.
-  if (!splashDone || !appReady) {
+  if (!appReady) {
     return (
       // The brand palette, not the theme: the splash continues the native one.
       <View style={{ flex: 1, backgroundColor: PALETTES.dark.bg }}>
@@ -331,10 +338,22 @@ function AppRoot() {
             played before it were played under it, unseen. appReady covers all
             three: right font, right language, and the animation starts when it
             becomes visible. */}
-        {!splashDone && appReady && <AnimatedSplash onFinish={() => setSplashDone(true)} />}
       </View>
     );
   }
+
+  // The splash plays OVER the app, not before it: the app's first render —
+  // the heaviest one of the session — runs underneath while the splash plays
+  // (its animations are on the native driver), instead of after it. The
+  // overlay is last, so it is on top of the tour and takes every touch; its
+  // own status bar wins while it is mounted. The splash still mounts only once
+  // the app is READY (fonts and store), for the reasons above.
+  const splash = splashDone ? null : (
+    <View style={[StyleSheet.absoluteFill, { backgroundColor: PALETTES.dark.bg }]}>
+      <StatusBar style="light" />
+      <AnimatedSplash onFinish={() => setSplashDone(true)} />
+    </View>
+  );
 
   const statusBarStyle = THEME_META[currentTheme()].dark ? 'light' : 'dark';
   const crashSheet = (
@@ -343,30 +362,36 @@ function AppRoot() {
 
   if (!onboardingComplete) {
     return (
-      <ErrorBoundary key={themeKey}>
-        <SafeAreaProvider>
-          <StatusBar style={statusBarStyle} />
-          <OnboardingScreen />
-          {crashSheet}
-        </SafeAreaProvider>
-      </ErrorBoundary>
+      <>
+        <ErrorBoundary key={themeKey}>
+          <SafeAreaProvider>
+            <StatusBar style={statusBarStyle} />
+            <OnboardingScreen />
+            {crashSheet}
+          </SafeAreaProvider>
+        </ErrorBoundary>
+        {splash}
+      </>
     );
   }
 
   return (
-    <ErrorBoundary key={themeKey}>
-      <SafeAreaProvider>
-        <NavigationContainer
-          theme={navigationTheme()}
-          {...(navState.current ? { initialState: navState.current } : {})}
-          onStateChange={(s) => { navState.current = s; }}
-        >
-          <StatusBar style={statusBarStyle} />
-          <RootNavigator />
-        </NavigationContainer>
-        {crashSheet}
-      </SafeAreaProvider>
-    </ErrorBoundary>
+    <>
+      <ErrorBoundary key={themeKey}>
+        <SafeAreaProvider>
+          <NavigationContainer
+            theme={navigationTheme()}
+            {...(navState.current ? { initialState: navState.current } : {})}
+            onStateChange={(s) => { navState.current = s; }}
+          >
+            <StatusBar style={statusBarStyle} />
+            <RootNavigator />
+          </NavigationContainer>
+          {crashSheet}
+        </SafeAreaProvider>
+      </ErrorBoundary>
+      {splash}
+    </>
   );
 }
 
