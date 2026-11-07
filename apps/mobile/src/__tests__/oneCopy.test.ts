@@ -3,7 +3,8 @@
  * the short day «ДД.ММ» (eleven copies — some printed «undefined.undefined»
  * for a day stored in another shape, others the string as is) and the event
  * without its per-leg odds (four), the period chips with their cutoff (three)
- * and the reminder re-sync (three). One function each now; this keeps it so.
+ * the reminder re-sync (three) and the form row with its input style (three).
+ * One function each now; this keeps it so.
  */
 import { readFileSync, readdirSync, statSync } from 'fs';
 import { join, relative } from 'path';
@@ -83,5 +84,11 @@ describe('reminder re-sync', () => {
   it('goes through resyncBetReminders, not a local copy', () => {
     // The two lines every copy had: read bets and the switch, then sync.
     expect(offenders(/syncBetResultReminders\(\w+\.?bets, (settings\.betResultReminders|true)/, 'store/betsStore.ts')).toEqual([]);
+  });
+});
+
+describe('form rows', () => {
+  it('Field and the page input style live in components/FormField only', () => {
+    expect(offenders(/function Field\(|const inputStyle = \{/, 'components/FormField.tsx')).toEqual([]);
   });
 });

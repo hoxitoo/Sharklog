@@ -9,6 +9,7 @@ import {
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
 import { FilterPicker } from '../../components/FilterPicker';
 import { DateField } from '../../components/DateField';
+import { Field, inputStyle } from '../../components/FormField';
 import { addMonths, followStart } from '../../utils/calendar';
 import { useBetsStore } from '../../store/betsStore';
 import { useBottomPad } from '../../utils/useBottomPad';
@@ -165,38 +166,34 @@ export function GoalEditScreen() {
           <Text style={s.hint}>{t(`goals.kindHint.${kind}`)}</Text>
         </View>
 
-        <View style={s.field}>
-          <Text style={s.label}>{t('goals.titleLabel')}</Text>
+        <Field label={t('goals.titleLabel')}>
           <TextInput
-            style={s.input}
+            style={inputStyle}
             value={title}
             onChangeText={setTitle}
             placeholder={t(`goals.titlePh.${kind}`)}
             placeholderTextColor={colors.textMuted}
             maxLength={60}
           />
-        </View>
+        </Field>
 
-        <View style={s.field}>
-          <Text style={s.label}>{t(`goals.amount.${kind}`, { currency })}</Text>
+        <Field label={t(`goals.amount.${kind}`, { currency })}>
           <TextInput
-            style={s.input}
+            style={inputStyle}
             value={amount}
             onChangeText={setAmount}
             placeholder="100000"
             placeholderTextColor={colors.textMuted}
             keyboardType="decimal-pad"
           />
-        </View>
+        </Field>
 
         <View style={s.row}>
-          <View style={[s.field, s.half]}>
-            <Text style={s.label}>{t('goals.startLabel')}</Text>
+          <Field label={t('goals.startLabel')} style={s.half}>
             <DateField label={t('goals.startLabel')} value={start} onChange={changeStart} />
-          </View>
+          </Field>
           {!isCap ? (
-            <View style={[s.field, s.half]}>
-              <Text style={s.label}>{t('goals.deadlineLabel')}</Text>
+            <Field label={t('goals.deadlineLabel')} style={s.half}>
               <DateField
                 label={t('goals.deadlineLabel')}
                 value={deadline}
@@ -208,17 +205,16 @@ export function GoalEditScreen() {
                 onClear={() => setDeadline('')}
                 clearLabel={t('goals.noDeadline')}
               />
-            </View>
+            </Field>
           ) : null}
         </View>
         {/* What the start date does differs by kind: a bank goal counts the
             whole bank and the start only draws the plan. */}
         <Text style={[s.hint, s.hintBelow]}>{t(`goals.startHint.${kind}`)}</Text>
 
-        <View style={s.field}>
-          <Text style={s.label}>{t('goals.noteLabel')}</Text>
+        <Field label={t('goals.noteLabel')}>
           <TextInput
-            style={[s.input, s.note]}
+            style={[inputStyle, s.note]}
             value={note}
             onChangeText={setNote}
             placeholder={t('goals.notePh')}
@@ -226,7 +222,7 @@ export function GoalEditScreen() {
             multiline
             textAlignVertical="top"
           />
-        </View>
+        </Field>
 
         <TouchableOpacity style={s.save} onPress={save} activeOpacity={0.8} accessibilityRole="button">
           <Text style={s.saveText}>{t('common.save')}</Text>
@@ -254,13 +250,8 @@ const s = themedStyles(() => ({
   field: { marginBottom: SPACE.lg },
   row: { flexDirection: 'row', gap: SPACE.md },
   half: { flex: 1, marginBottom: 0 },
-  label: { fontSize: SIZE.caption, color: colors.textSecondary, marginBottom: SPACE.xs, textTransform: 'uppercase', letterSpacing: 0.5 },
   hint: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: SPACE.xs, lineHeight: 17 },
   hintBelow: { marginBottom: SPACE.lg },
-  input: {
-    backgroundColor: colors.bgCard, borderRadius: RADIUS.sm, paddingHorizontal: SPACE.md, paddingVertical: SPACE.md,
-    color: colors.textPrimary, fontSize: SIZE.lead, borderWidth: 1, borderColor: colors.border,
-  },
   note: { minHeight: 96 },
   save: {
     minHeight: TOUCH, justifyContent: 'center', alignItems: 'center',
