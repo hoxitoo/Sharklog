@@ -1,6 +1,6 @@
 # Privacy Policy — SharkLog
 
-**Last updated: 2026-10-24**
+**Last updated: 2026-11-08**
 
 The published version (in Russian) is <https://hoxitoo.github.io/Sharklog/privacy.html>
 (branch `gh-pages`). Keep the two in step.
@@ -11,7 +11,7 @@ SharkLog ("the App", "we", "our") is a personal sports-betting journal. This pol
 
 ## 2. Data on your device
 
-Bet records, bankroll history, diary notes, settings and the Pro licence ("restore code") are stored **only on your device** — in the app's storage on the phone, or localStorage / SQLite on the desktop. A JSON backup is made only when you ask for it and goes wherever you send it. We have no access to this data. There are no accounts.
+Bet records, bankroll history, diary notes, goals, settings and the Pro licence ("restore code") are stored **only on your device** — in the app's storage on the phone, or localStorage / SQLite on the desktop. A JSON backup is made only when you ask for it and goes wherever you send it. We have no access to this data. There are no accounts.
 
 ## 3. Buying Pro
 
@@ -34,7 +34,7 @@ In Google Play / App Store versions (if released), Pro is bought through the sto
 | **PostHog** (if enabled) | Anonymous usage statistics | See section 5 |
 | **RevenueCat, Apple, Google** | Purchases in Google Play / App Store versions | Anonymous purchaser ID, purchase receipt |
 
-**Error reports.** The App uses no crash-reporting service. When it runs into an error, it can show you a report — the error description, app version and build, OS and version, interface language and time; no betting data. It reaches the author only if you send it yourself: copied into a message to support, or through your phone's share menu. The App sends nothing on its own.
+**Error reports.** The App uses no crash-reporting service. When it runs into an error, it can show you a report — the error description, app version and build, OS and version, interface language and time; no betting data. An error that closed the App is remembered on the device and the report is offered at the next launch. It reaches the author only if you send it yourself: copied into a message to support, or through your phone's share menu. The App sends nothing on its own.
 
 ## 5. Usage statistics
 
@@ -48,7 +48,7 @@ The App shows local notifications: a daily journal reminder, a tilt warning, and
 
 ## 7. Retention and deletion
 
-Data on the device stays until you delete it: Settings → "Clear all data", or uninstalling the App. Records of paid invoices on the licence server are kept so a purchase can be restored; after a refund the record is marked as refunded and the code stops working. They can be deleted on request to support with the invoice number.
+Data on the device stays until you delete it: Settings → "Clear all data" deletes bets, bankroll, diary, goals and teams (settings and the Pro licence stay); uninstalling the App deletes everything. Records of paid invoices on the licence server are kept so a purchase can be restored; after a refund the record is marked as refunded and the code stops working. They can be deleted on request to support with the invoice number.
 
 ## 8. Age
 
