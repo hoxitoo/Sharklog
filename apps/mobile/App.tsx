@@ -72,7 +72,13 @@ function navigationTheme() {
   };
 }
 
-/** The app tree's wrapper — it only carries the splash-time accessibility switch. */
+/**
+ * The app tree's wrapper — it carries the splash-time accessibility switch.
+ * `collapsable={false}` on it: once the splash ends those props go away and
+ * Fabric would flatten a layout-only view, re-parenting the whole app under
+ * the root — on Android that detaches react-native-screens' containers and
+ * dismisses an open Modal (the crash report, opened during the splash).
+ */
 const FILL = { flex: 1 } as const;
 
 function AppRoot() {
@@ -378,7 +384,7 @@ function AppRoot() {
   if (!onboardingComplete) {
     return (
       <>
-        <View style={FILL} {...hiddenUnderSplash}>
+        <View style={FILL} collapsable={false} {...hiddenUnderSplash}>
         <ErrorBoundary key={themeKey}>
           <SafeAreaProvider>
             <StatusBar style={statusBarStyle} />
@@ -394,7 +400,7 @@ function AppRoot() {
 
   return (
     <>
-      <View style={FILL} {...hiddenUnderSplash}>
+      <View style={FILL} collapsable={false} {...hiddenUnderSplash}>
       <ErrorBoundary key={themeKey}>
         <SafeAreaProvider>
           <NavigationContainer
