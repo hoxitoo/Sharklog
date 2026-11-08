@@ -5,7 +5,7 @@ import { join, relative } from 'path';
 /*
  * Pure helpers that both apps carried as identical copies now live here, in
  * core (audit 2026-11-06, item 24): the team list, the heatmap, the Kelly
- * probability step, the Insights split. A copy coming back into either app
+ * probability step, the Insights split, the 1X2 side of a stored pick. A copy coming back into either app
  * fails this test — the copies had already started to differ (the desktop
  * heatmap took a lost freebet as minus its stake).
  */
@@ -32,6 +32,7 @@ const COPIES: Array<[string, RegExp, string]> = [
   ['heatmap', /pnlByDate|countByDate/, 'calcHeatmap / heatLevel'],
   ['probability step', /\(p \+ dir \* 0\.05\)/, 'stepProbability'],
   ['Insights split', /function split</, 'splitExtremes'],
+  ['1X2 side of a stored pick', /pick === (PICK\.DRAW|'Ничья')/, 'side1x2'],
 ];
 
 describe('no app keeps its own copy of a core helper', () => {

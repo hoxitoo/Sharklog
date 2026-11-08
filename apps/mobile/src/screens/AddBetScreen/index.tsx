@@ -13,7 +13,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import type { Sport, BetType, Strategy, BetStatus, EsportsDiscipline, Team, Bet } from '@sharklog/core';
 import {
   SPORTS, BET_TYPES, STRATEGIES, ESPORTS_DISCIPLINES, PICK, parseMoneyInput,
-  impliedProbability, kellyFraction, expectedValue, recommendedStake, inPlanOdds, stakeOverPlan, strategyPlan, strategySince, activeStrategy, bankAtBetTime, combineExpressOdds, formatOddsAs, CURRENT_SCHEMA_VERSION, FREE_LIMITS, toYmd, stepProbability,
+  impliedProbability, kellyFraction, expectedValue, recommendedStake, inPlanOdds, stakeOverPlan, strategyPlan, strategySince, activeStrategy, bankAtBetTime, combineExpressOdds, formatOddsAs, CURRENT_SCHEMA_VERSION, FREE_LIMITS, toYmd, stepProbability, side1x2,
 } from '@sharklog/core';
 import { useTranslation } from 'react-i18next';
 import { FilterPicker } from '../../components/FilterPicker';
@@ -271,12 +271,9 @@ function TournamentInput({ value, onChange, scrollRef }: {
 
 // ── Restore pick1x2 value from an existing 1X2 bet ────────────────────────────
 
-function initPick1x2(editBet: { betType: BetType; pick?: string } | undefined, _team1: string, team2: string): Pick1x2 {
+function initPick1x2(editBet: { betType: BetType; pick?: string } | undefined, team2: string): Pick1x2 {
   if (!editBet || editBet.betType !== '1X2') return 'home';
-  const pick = editBet.pick ?? '';
-  if (pick === PICK.DRAW || pick === 'X') return 'draw';
-  if ((team2.trim() && pick === team2.trim()) || pick === PICK.AWAY) return 'away';
-  return 'home';
+  return side1x2(editBet.pick, team2);
 }
 
 // ── Kelly Helper ───────────────────────────────────────────────────────────────
@@ -514,7 +511,7 @@ export function AddBetScreen() {
       tournament: source?.tournament ?? '',
       date: isDuplicate ? defaultDate : (source?.date ?? defaultDate),
       time: isDuplicate ? defaultTime : (source?.time ?? defaultTime),
-      pick1x2: initPick1x2(source, initialTeam1, initialTeam2),
+      pick1x2: initPick1x2(source, initialTeam2),
       customSport: source?.customSport ?? '',
       customBetType: source?.customBetType ?? '',
       customStrategy: source?.customStrategy ?? '',
