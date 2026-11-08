@@ -172,8 +172,12 @@ export function calcGoalProgress(
   if (series.length > 0) series[series.length - 1] = { date: series[series.length - 1]!.date, value: current };
 
   // Where the plan line starts. A bank goal starts from the bank at the START of
-  // its first day with that day's deposits in — the opening deposit is where the
-  // goal begins, not progress toward it (the same rule as bankAtBetTime).
+  // its first day with ALL of that day's transfers in: the opening deposit is where
+  // the goal begins, not progress toward it, and a withdrawal that day is not a
+  // step back from it. Only that day's results (bets, reconciliations) are
+  // movement. NOT bankAtBetTime's rule: that one adds the day's withdrawals back,
+  // because it asks what bank a bet stood on, and winnings are taken out after
+  // the bets that won them; here the question is where the goal begins.
   let startValue = 0;
   if (goal.kind === 'bank') {
     const first = days.find((d) => d.date === start);
