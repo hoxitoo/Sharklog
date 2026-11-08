@@ -406,7 +406,7 @@
     "updateHowTo": "Update the app where you installed it from",
     "clearAll": "Clear all data",
     "clearAllConfirm": "Clear all data?",
-    "clearAllMsg": "Bets, bankroll, diary and teams will be deleted for good. Settings and subscription stay.",
+    "clearAllMsg": "Bets, bankroll, diary, goals and teams will be deleted for good. Settings and subscription stay.",
     "clearProNote": "Your Pro subscription is safe: it's tied to your App Store / Google Play account. After clearing, tap “Restore purchases”.",
     "clearBackupNote": "You don't have a backup yet — better make one first.",
     "clearAction": "Clear",
