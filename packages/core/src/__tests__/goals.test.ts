@@ -99,6 +99,22 @@ describe('what moves a goal', () => {
     expect([p.projectedDays, p.onTrack]).toEqual([null, false]);
   });
 
+  it('a bank goal starts after the start day\'s transfers, before its bets — not bankAtBetTime', () => {
+    // Deposit 20 000 and withdraw 30 000 the day the goal is set: both are where
+    // the goal begins. bankAtBetTime would give 120 000 (it adds the withdrawal
+    // back — a bet's bank), and the card would open 29 000 behind its own line.
+    const g = goal({ kind: 'bank', target: 150_000_00, startDate: day(-20), deadline: day(60) });
+    const txs = [
+      tx('deposit', 100_000_00, day(-60)),
+      tx('deposit', 20_000_00, day(-20)),
+      tx('withdrawal', 30_000_00, day(-20)),
+    ];
+    const p = calcGoalProgress(g, [bet({ date: day(-20), status: 'won' })], txs, NOW);
+    expect(p.startValue).toBe(90_000_00);
+    // The start day's bet is movement: one win above the line.
+    expect(p.current).toBe(91_000_00);
+  });
+
   it('a withdrawal goal counts money taken out beyond what was paid in, from the start', () => {
     const txs = [
       tx('deposit', 10_000_00, day(-90)),      // before the start
