@@ -36,7 +36,9 @@ describe('startup', () => {
   });
 
   it('hides the app under the splash from screen readers (review 2026-11-07)', () => {
-    expect(app.match(/<View style=\{FILL\} \{\.\.\.hiddenUnderSplash\}>/g) ?? []).toHaveLength(2);
+    // collapsable={false}: without the splash props the view is layout-only and
+    // Fabric flattens it, re-parenting the app (and dismissing an open Modal).
+    expect(app.match(/<View style=\{FILL\} collapsable=\{false\} \{\.\.\.hiddenUnderSplash\}>/g) ?? []).toHaveLength(2);
     expect(app).toMatch(/importantForAccessibility: 'no-hide-descendants'/);
     expect(app).toMatch(/accessibilityElementsHidden: true/);
   });
