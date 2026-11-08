@@ -3,7 +3,7 @@ import type { Bet, Team } from '../types/bet';
 import { upsertTeams, cleanTeamNames } from '../utils/teams';
 import { stepProbability } from '../utils/kelly';
 import { calcHeatmap, heatLevel } from '../utils/heatmap';
-import { splitExtremes } from '../utils/stats';
+import { splitExtremes, side1x2 } from '../utils/stats';
 import { toYmd } from '../utils/daily';
 
 /*
@@ -134,5 +134,22 @@ describe('calcHeatmap', () => {
     expect(lv(0)).toBe(0);
     expect([lv(1), lv(10_000), lv(10_001), lv(50_000), lv(50_001)]).toEqual([1, 1, 2, 2, 3]);
     expect([lv(-1), lv(-10_001), lv(-50_001)]).toEqual([-1, -2, -3]);
+  });
+});
+
+describe('side1x2', () => {
+  it('reads the stored token, the team name, or X', () => {
+    expect(side1x2('П1', '')).toBe('home');
+    expect(side1x2('П2', '')).toBe('away');
+    expect(side1x2('Ничья', 'Спартак')).toBe('draw');
+    expect(side1x2('X', '')).toBe('draw');
+    expect(side1x2('Спартак', 'Спартак')).toBe('away');
+    expect(side1x2(' Спартак ', 'Спартак ')).toBe('away');
+    expect(side1x2('Зенит', 'Спартак')).toBe('home');
+    expect(side1x2(undefined, 'Спартак')).toBe('home');
+  });
+
+  it('an event without teams saved as П2 opens as П2 (the desktop form showed П1 and saved the event as the pick)', () => {
+    expect(side1x2('П2', '')).toBe('away');
   });
 });

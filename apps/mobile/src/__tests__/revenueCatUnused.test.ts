@@ -47,10 +47,13 @@ describe('RevenueCat — unused in the RuStore build', () => {
     const found: Record<string, number> = {};
     for (const f of files) {
       const src = readFileSync(f, 'utf8');
-      const imp = /import \{([^}]*)\} from '[./]*\/?(?:src\/)?services\/revenueCat';/.exec(src);
-      if (!imp) continue;
-      const names = imp[1]!.split(',').map((n) => n.replace(/^\s*type\s+/, '').trim()).filter(Boolean);
-      const body = src.replace(imp[0], '');
+      // Any import of the service other than a named one (`* as`, default,
+      // re-export) would hide its calls from the count below.
+      expect(/import\s+\*\s+as\s+\w+\s+from\s+'[^']*services\/revenueCat'|export\s+[^;]*from\s+'[^']*services\/revenueCat'|import\s+\w+\s*(,|from)\s*[^;]*'[^']*services\/revenueCat'/.test(src)).toBe(false);
+      const imports = [...src.matchAll(/import \{([^}]*)\} from '[./]*\/?(?:src\/)?services\/revenueCat';/g)];
+      if (imports.length === 0) continue;
+      const names = imports.flatMap((m) => m[1]!.split(',').map((n) => n.replace(/^\s*type\s+/, '').trim()).filter(Boolean));
+      const body = imports.reduce((acc, m) => acc.replace(m[0], ''), src);
       let calls = 0;
       for (const n of names) calls += (body.match(new RegExp(`\\b${n}\\(`, 'g')) ?? []).length;
       found[relative(ROOT, f)] = calls;

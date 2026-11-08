@@ -3,7 +3,7 @@ import type { Sport, BetType, Strategy, BetStatus, EsportsDiscipline, Team } fro
 import {
   SPORTS, BET_TYPES, STRATEGIES, ESPORTS_DISCIPLINES,
   parseMoneyInput, formatMoney, CURRENT_SCHEMA_VERSION, FREE_LIMITS,
-  impliedProbability, expectedValue, halfKelly, recommendedStake, currentBank, toYmd, stepProbability } from '@sharklog/core';
+  impliedProbability, expectedValue, halfKelly, recommendedStake, currentBank, toYmd, stepProbability, side1x2 } from '@sharklog/core';
 import type { Bet } from '@sharklog/core';
 import { useBetsStore } from '../store/betsStore';
 import { ChecklistModal } from '../components/ChecklistModal';
@@ -221,11 +221,9 @@ const kl: Record<string, React.CSSProperties> = {
 
 type Pick1x2 = 'п1' | 'x' | 'п2';
 
-function initPick1x2(editBet: Bet | undefined, _t1: string, t2: string): Pick1x2 {
+function initPick1x2(editBet: Bet | undefined, t2: string): Pick1x2 {
   if (!editBet || editBet.betType !== '1X2') return 'п1';
-  if (editBet.pick === 'Ничья') return 'x';
-  if (editBet.pick === t2) return 'п2';
-  return 'п1';
+  return ({ home: 'п1', draw: 'x', away: 'п2' } as const)[side1x2(editBet.pick, t2)];
 }
 
 export function AddBetModal({ editBet, onClose }: Props) {
@@ -247,7 +245,7 @@ export function AddBetModal({ editBet, onClose }: Props) {
   const [team1, setTeam1] = useState(initT1);
   const [team2, setTeam2] = useState(initT2);
   const [pick, setPick] = useState(editBet?.betType !== '1X2' ? (editBet?.pick ?? '') : '');
-  const [pick1x2, setPick1x2] = useState<Pick1x2>(() => initPick1x2(editBet, initT1, initT2));
+  const [pick1x2, setPick1x2] = useState<Pick1x2>(() => initPick1x2(editBet, initT2));
   const [odds, setOdds] = useState(editBet ? String(editBet.odds) : '');
   const [stake, setStake] = useState(editBet ? String(editBet.stake / 100) : '');
   const [date, setDate] = useState(editBet?.date ?? defaultDate);

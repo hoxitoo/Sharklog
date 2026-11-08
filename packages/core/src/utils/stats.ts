@@ -1,5 +1,5 @@
 import type { Bet, BankrollTransaction, EsportsDiscipline } from '../types/bet';
-import { ODDS_RANGES } from '../constants/index';
+import { ODDS_RANGES, PICK } from '../constants/index';
 
 /**
  * Chronological order of bets: by when the match was played (date + time), and
@@ -581,4 +581,18 @@ export function splitExtremes<T>(list: readonly T[], topN: number): {
   const worst = list.length > 1 ? list[list.length - 1] : undefined;
   const middle = list.length > 1 ? list.slice(1, -1) : [];
   return { best, worst, top: middle.slice(0, topN), rest: middle.slice(topN) };
+}
+
+/**
+ * Which side a stored 1X2 pick backs — for a form that opens the bet to edit
+ * it. The form saves the team's name, or the token (`П1` / `П2` / `Ничья`) when
+ * the event names no teams; a pick from elsewhere may be `X`. Anything else is
+ * home. Both bet forms had a copy, and the desktop one did not know `П2`:
+ * editing such a bet showed П1 and saved the whole event as the pick.
+ */
+export function side1x2(pick: string | undefined, team2: string): 'home' | 'draw' | 'away' {
+  const p = (pick ?? '').trim();
+  if (p === PICK.DRAW || p === 'X') return 'draw';
+  if (p === PICK.AWAY || (team2.trim() !== '' && p === team2.trim())) return 'away';
+  return 'home';
 }

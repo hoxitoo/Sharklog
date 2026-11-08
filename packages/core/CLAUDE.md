@@ -20,6 +20,7 @@ utils/
   stats.ts            — calcDashboard, calcByField, calcByOddsRange, calcByDayOfWeek,
                         calcByHour, isInTilt, calcByTournament, calcByTeam, parseEventTeams, betPnl
                         betPnl(bet) — реализованный P&L одной ставки в копейках (общий хелпер)
+                        side1x2(pick, team2) — сторона 1X2 сохранённого исхода для формы правки (обе формы)
                         getPickedTeams(event, pick) — внутренний хелпер: возвращает только команды,
                         на которые поставил игрок (П1/П2/Ф1/Ф2 и прямые имена); используется в calcByTeam
                         betBacksTeam(bet, team, { partial }) — тот же предикат наружу, для
