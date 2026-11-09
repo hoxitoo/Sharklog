@@ -548,10 +548,13 @@ export function AddBetScreen() {
   // edited bet keeps the moment it was entered and never counts its own result.
   const watchedDate = watch('date');
   const bankAt = useMemo(() => bankAtBetTime(bets, bankroll.transactions), [bets, bankroll.transactions]);
-  // Not per keystroke: an edited bet's bank is a pass over the whole book.
+  // A new bet is entered now: dated yesterday, that is the start of yesterday
+  // (with its deposits), as the card will say once it is saved — not the end
+  // of yesterday with its evening withdrawal in. Not per keystroke: the bank of
+  // a bet with an entry moment is a pass over the whole book.
   const bankTotal = useMemo(() => bankAt({
     date: watchedDate,
-    ...(editBet ? { id: editBet.id, createdAt: editBet.createdAt } : {}),
+    ...(editBet ? { id: editBet.id, createdAt: editBet.createdAt } : { createdAt: new Date().toISOString() }),
   }) ?? 0, [bankAt, watchedDate, editBet]);
   const bankShare = bankTotal > 0 && stakeKopecks > 0 ? (stakeKopecks / bankTotal) * 100 : null;
   // More own money than the whole bank: a deposit was never entered, or the

@@ -160,16 +160,22 @@ export function dayEndMs(ymd: string): number {
 
 /**
  * When a settled bet saved before `settledAt` existed got its result: its last
- * edit (`updatedAt`), but never past the end of its own day. A note or closing
- * odds edited weeks later moved `updatedAt`, and read as the moment of the
- * result it made a month-old win vanish from the bank of every bet entered in
- * between — invented plan breaches for everyone who upgraded (third review).
+ * edit (`updatedAt`), but never past the end of its own day — and never before
+ * the bet itself went into the book (`createdAt`). A note or closing odds
+ * edited weeks later moved `updatedAt`, and read as the moment of the result
+ * it made a month-old win vanish from the bank of every bet entered in between
+ * — invented plan breaches for everyone who upgraded (third review). A row a
+ * CSV imported before the stamp existed was entered at the import: capped at
+ * its own day alone, it rewrote the cards of every bet entered before it.
  */
 export function legacySettledAt(b: Bet): string {
   const edited = Date.parse(b.updatedAt);
+  let t = edited;
   const end = dayEndMs(b.date);
-  if (!Number.isNaN(end) && (Number.isNaN(edited) || edited > end)) return new Date(end).toISOString();
-  return b.updatedAt;
+  if (!Number.isNaN(end) && (Number.isNaN(t) || t > end)) t = end;
+  const entered = Date.parse(b.createdAt);
+  if (!Number.isNaN(entered) && (Number.isNaN(t) || t < entered)) t = entered;
+  return t === edited || Number.isNaN(t) ? b.updatedAt : new Date(t).toISOString();
 }
 
 /** Realized P&L for a single bet, in kopecks. 0 for pending/refund and lost freebets. */
