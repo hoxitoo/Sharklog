@@ -246,6 +246,10 @@ function mapRow(raw: Record<string, string>, newId: () => string): Bet | null {
     id: newId(),
     createdAt: now,
     updatedAt: now,
+    // An imported result goes into the book at the import: it is the bank of
+    // bets entered after it (bankAtBetTime), never a rewrite of earlier cards.
+    // Without the stamp the fallback for old data would date it to its own day.
+    ...(status !== 'pending' ? { settledAt: now } : {}),
     date,
     time,
     sport,

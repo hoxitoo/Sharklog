@@ -3,7 +3,8 @@ import type { Bet, BankrollTransaction } from '../types/bet';
 import { calcLuck, calcPlanCompliance } from '../utils/analytics';
 
 function bet(over: Partial<Bet> = {}): Bet {
-  const stamp = over.createdAt ?? `${over.date ?? '2026-08-01'}T12:00:00.000Z`;
+  // Local noon of its day, stamped as the apps stamp (`toISOString`).
+  const stamp = over.createdAt ?? new Date(`${over.date ?? '2026-08-01'}T12:00:00`).toISOString();
   return {
     id: Math.random().toString(36).slice(2),
     // Entered and settled on its own day at noon unless the test says otherwise:
@@ -117,12 +118,13 @@ describe('calcPlanCompliance', () => {
   });
 
   it("lets only the day's EARLIER results move the bank it judges against", () => {
+    const local = (hhmm: string) => new Date(`2026-08-01T${hhmm}:00`).toISOString();
     // The evening bet stood on the bank the morning's win left (12 000); the
     // morning bet did not see the evening's result, which had not happened yet.
     // What counts is when each was entered and settled, not the match time.
     const c = calcPlanCompliance([
-      bet({ stake: 100_000, status: 'lost', time: '08:00', createdAt: '2026-08-01T18:00:00.000Z', settledAt: '2026-08-01T21:00:00.000Z' }),
-      bet({ stake: 100_000, odds: 3, status: 'won', time: '23:00', createdAt: '2026-08-01T10:00:00.000Z', settledAt: '2026-08-01T12:00:00.000Z' }),
+      bet({ stake: 100_000, status: 'lost', time: '08:00', createdAt: local('18:00'), settledAt: local('21:00') }),
+      bet({ stake: 100_000, odds: 3, status: 'won', time: '23:00', createdAt: local('10:00'), settledAt: local('12:00') }),
     ], deposit, 50)!;
     expect(c.avgSharePct).toBe(Math.round(((10 + (100_000 / 1_200_000) * 100) / 2) * 10) / 10);
   });
@@ -188,7 +190,9 @@ describe('calcPlanCompliance — bank vs the judged window', () => {
   });
 });
 
-describe('calcPlanCompliance — what belongs in the start-of-day bank', () => {
+describe('calcPlanCompliance — what belongs in the bank a bet was entered on', () => {
+  // Local clock, stamped as the apps stamp it — the bets here are entered at local noon.
+  const local = (day: string, hhmm: string) => new Date(`${day}T${hhmm}:00`).toISOString();
   const dep = (amount: number, date: string): BankrollTransaction =>
     ({ id: 'd' + date + amount, type: 'deposit', amount, date });
   const wd = (amount: number, date: string): BankrollTransaction =>
@@ -198,15 +202,15 @@ describe('calcPlanCompliance — what belongs in the start-of-day bank', () => {
 
   // A withdrawal made in the evening cannot retroactively shrink the bank that
   // the morning's bet was placed against.
-  it('ignores a same-day withdrawal', () => {
-    const txs = [dep(1_000_000, '2026-08-01T09:00:00.000Z'), wd(900_000, '2026-08-01T22:00:00.000Z')];
+  it('ignores a same-day withdrawal entered after the bet', () => {
+    const txs = [dep(1_000_000, local('2026-08-01', '09:00')), wd(900_000, local('2026-08-01', '22:00'))];
     const c = calcPlanCompliance([bet({ date: '2026-08-01', stake: 30_000 })], txs, 5)!;
     expect(c.avgSharePct).toBe(3);
     expect(c.over).toBe(0);
   });
 
-  it('ignores a same-day reconciliation instead of blanking the card', () => {
-    const txs = [dep(1_000_000, '2026-08-01T09:00:00.000Z'), adj(-1_000_000, '2026-08-01T23:00:00.000Z')];
+  it('ignores a same-day reconciliation entered after the bet instead of blanking the card', () => {
+    const txs = [dep(1_000_000, local('2026-08-01', '09:00')), adj(-1_000_000, local('2026-08-01', '23:00'))];
     const c = calcPlanCompliance([bet({ date: '2026-08-01', stake: 30_000 })], txs, 5);
     expect(c).not.toBeNull();
     expect(c!.avgSharePct).toBe(3);

@@ -130,7 +130,8 @@ describe('Kelly at the plan\'s share', () => {
 });
 
 function bet(over: Partial<Bet> = {}): Bet {
-  const stamp = over.createdAt ?? `${over.date ?? '2026-08-02'}T12:00:00.000Z`;
+  // Local noon of its day, stamped as the apps stamp (`toISOString`).
+  const stamp = over.createdAt ?? new Date(`${over.date ?? '2026-08-02'}T12:00:00`).toISOString();
   return {
     id: Math.random().toString(36).slice(2),
     // Entered and settled on its own day at noon unless the test says otherwise:

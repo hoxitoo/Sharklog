@@ -561,6 +561,8 @@ Cloudflare Worker и выдаёт подписанную лицензию, пр�
 
 ## Технические долги
 
+- `core/src/utils/daily.test.ts` «tracks deposits and withdrawals per day» падает в часовых поясах UTC−11 и UTC+14: заготовка транзакций в UTC (`…Z`), а день считается по местному времени. В CI (UTC) зелёный; заготовку перевести на местное время, как в `bankShare.test.ts` (найдено 2026-11-09).
+
 | Долг | Важность | Статус |
 |------|----------|--------|
 | Финальные иконки | 🔴 high | ✅ Новый знак (#37): `icon.png`, `adaptive-icon.png`, `notification-icon.png` |
