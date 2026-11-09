@@ -3,9 +3,12 @@ import type { Bet, BankrollTransaction } from '../types/bet';
 import { calcLuck, calcPlanCompliance } from '../utils/analytics';
 
 function bet(over: Partial<Bet> = {}): Bet {
+  const stamp = over.createdAt ?? `${over.date ?? '2026-08-01'}T12:00:00.000Z`;
   return {
     id: Math.random().toString(36).slice(2),
-    createdAt: '2026-08-01T12:00:00.000Z', updatedAt: '2026-08-01T12:00:00.000Z',
+    // Entered and settled on its own day at noon unless the test says otherwise:
+    // bankAtBetTime orders a book by when things went into it.
+    createdAt: stamp, updatedAt: stamp,
     date: '2026-08-01', time: '12:00', sport: 'football', bookmaker: 'Fonbet',
     event: 'A vs B', betType: '1X2', pick: 'П1', odds: 2, stake: 100_000,
     status: 'won', strategy: 'value', schemaVersion: 3, ...over,
