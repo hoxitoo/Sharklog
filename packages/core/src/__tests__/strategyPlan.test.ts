@@ -184,7 +184,8 @@ describe('plan adherence', () => {
   });
 
   it('judges the stake as calcPlanCompliance does', () => {
-    const bets = [bet({ stake: 2_000_00 }), bet({ stake: 2_000_01 }), bet({ stake: 900_00, isFreebet: true })];
+    // In play, so no result moves the bank between them: 2 000 is the 2% edge.
+    const bets = [bet({ stake: 2_000_00, status: 'pending' }), bet({ stake: 2_000_01, status: 'pending' }), bet({ stake: 900_00, isFreebet: true })];
     const a = calcPlanAdherence(bets, [deposit(100_000_00)], plan)!;
     const c = calcPlanCompliance(bets, [deposit(100_000_00)], plan.stakePercent)!;
     expect([a.stakeWithin, a.stakeTotal]).toEqual([c.within, c.total]);
@@ -196,7 +197,7 @@ describe('plan adherence', () => {
     expect([a.oddsWithin, a.oddsTotal]).toEqual([2, 4]);
   });
 
-  it('judges the stake against the bank at the start of the day, as the plan check does', () => {
+  it('judges the stake against the bank at the bet\'s moment, as the plan check does', () => {
     // Bank 100 000: 1 000 is 1% (within 2%), 3 000 is 3% (over).
     const a = calcPlanAdherence([bet({ stake: 1_000_00 }), bet({ stake: 3_000_00 })], [deposit(100_000_00)], plan)!;
     expect([a.stakeWithin, a.stakeTotal]).toEqual([1, 2]);

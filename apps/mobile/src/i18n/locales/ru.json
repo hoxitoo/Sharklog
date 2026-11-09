@@ -640,6 +640,7 @@
     "bankLine": "банк {{amount}}",
     "overLimit": "выше лимита {{pct}}%",
     "limitPct": "лимит {{pct}}%",
+    "overBank": "больше банка",
     "customSport": "Уточни вид спорта",
     "customSportPh": "MMA, Бокс, Формула-1...",
     "discipline": "Дисциплина",

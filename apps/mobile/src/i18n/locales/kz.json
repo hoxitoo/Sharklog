@@ -594,6 +594,7 @@
     "bankLine": "банк {{amount}}",
     "overLimit": "{{pct}}% шегінен жоғары",
     "limitPct": "шек {{pct}}%",
+    "overBank": "банктан көп",
     "customSport": "Спорт түрін нақтылаңыз",
     "customSportPh": "MMA, Бокс, Формула-1...",
     "discipline": "Дисциплина",

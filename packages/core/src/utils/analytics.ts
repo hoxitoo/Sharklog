@@ -394,16 +394,43 @@ export interface PlanBreach {
 }
 
 /**
- * The bank a bet was placed against: the balance at the START of its day, from
- * the whole history. Shared by the plan check and the bank share on a bet card,
- * so the two can never disagree about what "the bank" was.
+ * The moment the bank is asked for: a bet — its day, its time, and for a saved
+ * bet its id and entry time, which place it among bets of the same minute — or
+ * a bare day, which means the START of that day.
+ */
+export interface BankMoment {
+  date: string;
+  /** `HH:MM`. Without it: the start of the day, before anything that day. */
+  time?: string;
+  /** A saved bet: its own result never counts toward the bank it stood on. */
+  id?: string;
+  /** Orders bets of one minute, as `playedOrder` does. None: after all of them (a bet being entered now). */
+  createdAt?: string;
+}
+
+/** A local `HH:MM` — the bet's clock, not UTC. */
+function clockOf(d: Date): string {
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+/**
+ * The bank a bet was placed against, from the whole history. Shared by the
+ * plan check, the bank share on a bet card, the bet form and Kelly, so none of
+ * them can disagree about what "the bank" was.
  *
- * `balance` already folds in the whole day — its results and its cash moves.
- * Undo the parts that happened after the bet was placed: the day's results, and
- * the withdrawals and reconciliations posted that evening. Deposits stay —
- * topping up and then betting is the normal order. Without this, one evening
- * withdrawal turned every bet made that morning into a plan breach, and a large
- * negative reconciliation could drive the bank to zero and blank the card.
+ * It is the bank at the start of the bet's day with that day's deposits in —
+ * topping up and then betting is the normal order, and a deposit entered after
+ * the bets it paid for must not leave them without a bank — plus what happened
+ * that day BEFORE the bet: the results of the bets played earlier (in
+ * `playedOrder`) and the withdrawals and reconciliations entered earlier (a
+ * transaction carries the moment it was entered).
+ *
+ * Not the start of the day for every bet of it: that hid exactly what a
+ * discipline tool must show. Two losses and a withdrawal in the afternoon, and
+ * the evening bet — almost all of what was left — read "26.6% of bank", while
+ * the bet form called a bank of 25 907 what the Bets screen said was 7. A
+ * withdrawal entered in the evening still moves nothing for the morning's bets,
+ * which is what the start-of-day rule was for.
  *
  * Bets dated ahead of today have no day of their own (the breakdown stops at
  * today); they were placed against the bank as it stands now — dating a bet by
@@ -415,10 +442,10 @@ export interface PlanBreach {
  * deposit dated today, or weeks of bets before the first reconciliation, read
  * "−80% of bank" for an 800 ₽ loss. Money enters on the first deposit's day
  * (a deposit counts from its own morning), or the day AFTER the first
- * reconciliation (a reconciliation is posted in the evening and is taken out
- * of its own day's starting bank).
+ * reconciliation (no bet of that day is judged — whether it came before the
+ * reconciliation or after, the book had no bank of its own until then).
  */
-export function bankAtBetTime(allBets: Bet[], transactions: BankrollTransaction[]): (date: string) => number | null {
+export function bankAtBetTime(allBets: Bet[], transactions: BankrollTransaction[]): (at: string | BankMoment) => number | null {
   const days = calcDailyBreakdown(allBets, transactions);
   const atStart = new Map<string, number>();
   let funded = false;
@@ -430,8 +457,48 @@ export function bankAtBetTime(allBets: Bet[], transactions: BankrollTransaction[
   const latest = days[days.length - 1];
   const bankNow = latest && funded ? latest.balance : 0;
   const lastDay = latest ? latest.date : '';
-  return (date) => {
-    const bank = date > lastDay ? bankNow : atStart.get(date);
+
+  // What moved the bank inside each judged day, in the order it happened. Every
+  // bet of the day in played order, with the result the day's `pnl` sums
+  // (betPnl is 0 for a pending bet, a refund, a cashout with no amount) — the
+  // ones with no result too: a saved bet finds its own place by id, and one
+  // left out would count a bet of the same minute entered after it.
+  // Withdrawals out, reconciliations with their sign, at the minute entered.
+  const results = new Map<string, { time: string; createdAt: string; id: string; pnl: number }[]>();
+  for (const b of playedOrder(allBets)) {
+    if (!atStart.has(b.date)) continue;
+    let list = results.get(b.date);
+    if (!list) { list = []; results.set(b.date, list); }
+    list.push({ time: b.time, createdAt: b.createdAt, id: b.id, pnl: betPnl(b) });
+  }
+  const moves = new Map<string, { time: string; amount: number }[]>();
+  for (const tx of transactions) {
+    if (tx.type === 'deposit') continue;
+    const at = new Date(tx.date);
+    if (isNaN(at.getTime())) continue;
+    const day = toYmd(at);
+    if (!atStart.has(day)) continue;
+    let list = moves.get(day);
+    if (!list) { list = []; moves.set(day, list); }
+    list.push({ time: clockOf(at), amount: tx.type === 'withdrawal' ? -tx.amount : tx.amount });
+  }
+
+  return (at) => {
+    const q: BankMoment = typeof at === 'string' ? { date: at } : at;
+    let bank = q.date > lastDay ? bankNow : atStart.get(q.date);
+    if (bank != null && q.time && q.date <= lastDay) {
+      const time = q.time;
+      for (const r of results.get(q.date) ?? []) {
+        if (q.id !== undefined && r.id === q.id) {
+          // Its own place in the played order: everything before it is in.
+          if (r.time === time) break;
+          continue; // moved to another minute on the form: itself never counts
+        }
+        if (r.time < time || (r.time === time && (q.createdAt === undefined || r.createdAt <= q.createdAt))) bank += r.pnl;
+      }
+      // The same minute counts as before: entered while the bet was being typed.
+      for (const m of moves.get(q.date) ?? []) if (m.time <= time) bank += m.amount;
+    }
     return bank == null || bank <= 0 ? null : bank;
   };
 }
@@ -451,11 +518,11 @@ export function bankAtBetTime(allBets: Bet[], transactions: BankrollTransaction[
  *  - a stake larger than the bank: the bank records are incomplete (a deposit
  *    never entered), and the share would be a fantasy like +250%.
  */
-export function betBankShare(bet: Bet, bankAt: (date: string) => number | null): number | null {
+export function betBankShare(bet: Bet, bankAt: (at: BankMoment) => number | null): number | null {
   if (bet.isFreebet) return null;
   if (bet.status !== 'won' && bet.status !== 'lost' && bet.status !== 'cashout') return null;
   if (bet.status === 'cashout' && bet.cashoutAmount == null) return null;
-  const bank = bankAt(bet.date);
+  const bank = bankAt(bet);
   if (bank == null || bet.stake > bank) return null;
   return (betPnl(bet) / bank) * 100;
 }
@@ -484,7 +551,7 @@ export function calcBankShares(bets: Bet[], transactions: BankrollTransaction[])
  * a stake was bigger than a bank that was never filled in.
  *
  * The stake rule is calcPlanCompliance's: the bank from the WHOLE history,
- * at the start of the bet's day, and no judgement before money first came in.
+ * at the bet's moment (`bankAtBetTime`), and no judgement before money first came in.
  */
 export interface PlanAdherence {
   /** Bets with a price (all of them, in practice) and how many sat in the plan's odds range. */
@@ -582,10 +649,11 @@ export interface PlanCompliance {
  * How often the stake stayed inside the plan's % of bank, and what the breaches
  * cost.
  *
- * The bank a bet was placed against is the balance at the START of its day —
- * that day's deposits count, that day's results do not, because they had not
- * happened yet. Reusing calcDailyBreakdown keeps this consistent with the bank
- * shown everywhere else instead of inventing a second definition.
+ * The bank a bet was placed against is `bankAtBetTime`'s: the day's deposits
+ * count, and of the rest of the day only what came before the bet — the
+ * results of earlier bets, withdrawals and reconciliations entered earlier.
+ * The bet form, the bet card and Kelly use the same function, so the form
+ * cannot call a stake within the plan that this then counts as over it.
  *
  * Freebets are skipped: no own money is at stake, so a plan about bankroll
  * share does not apply to them.
@@ -614,7 +682,7 @@ export function calcPlanCompliance(
 
   for (const bet of evaluate) {
     if (bet.isFreebet) continue;
-    const bank = bankAt(bet.date);
+    const bank = bankAt(bet);
     if (bank == null) continue;
 
     const sharePct = (bet.stake / bank) * 100;

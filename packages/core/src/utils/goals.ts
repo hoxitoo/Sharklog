@@ -175,9 +175,10 @@ export function calcGoalProgress(
   // its first day with ALL of that day's transfers in: the opening deposit is where
   // the goal begins, not progress toward it, and a withdrawal that day is not a
   // step back from it. Only that day's results (bets, reconciliations) are
-  // movement. NOT bankAtBetTime's rule: that one adds the day's withdrawals back,
-  // because it asks what bank a bet stood on, and winnings are taken out after
-  // the bets that won them; here the question is where the goal begins.
+  // movement. NOT bankAtBetTime's rule: at the start of a day that one leaves
+  // the day's withdrawals out (it asks what bank a bet stood on, and counts a
+  // withdrawal only from the minute it was entered); here the question is where
+  // the goal begins.
   let startValue = 0;
   if (goal.kind === 'bank') {
     const first = days.find((d) => d.date === start);

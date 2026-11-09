@@ -113,14 +113,14 @@ describe('calcPlanCompliance', () => {
     expect(c.breachRate).toBe(50);
   });
 
-  it("does not let the day's own results move the bank it judges against", () => {
-    // Both bets sit on the same day; the first winning must not raise the bank
-    // the second is measured against, because it had not settled yet.
+  it("lets only the day's EARLIER results move the bank it judges against", () => {
+    // The evening bet stood on the bank the morning's win left (12 000); the
+    // morning bet did not see the evening's result, which had not happened yet.
     const c = calcPlanCompliance([
-      bet({ stake: 100_000, odds: 3, status: 'won' }),
-      bet({ stake: 100_000, status: 'lost' }),
+      bet({ stake: 100_000, status: 'lost', time: '20:00' }),
+      bet({ stake: 100_000, odds: 3, status: 'won', time: '10:00' }),
     ], deposit, 50)!;
-    expect(c.avgSharePct).toBe(10);
+    expect(c.avgSharePct).toBe(Math.round(((10 + (100_000 / 1_200_000) * 100) / 2) * 10) / 10);
   });
 
   it('ranks the worst breaches first and keeps them countable', () => {
