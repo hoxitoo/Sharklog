@@ -149,7 +149,27 @@ export function stampSettlement(prev: Bet | undefined, next: Bet, now: string): 
     || (next.status === 'cashout' && prev.cashoutAmount !== next.cashoutAmount);
   if (resultChanged) return { ...next, settledAt: now };
   if (prev.settledAt !== undefined) return { ...next, settledAt: prev.settledAt };
-  return { ...next, settledAt: prev.updatedAt };
+  return { ...next, settledAt: legacySettledAt(prev) };
+}
+
+/** Local midnight after a `YYYY-MM-DD` day, in ms; NaN for any other string. */
+export function dayEndMs(ymd: string): number {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd);
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]) + 1).getTime() : NaN;
+}
+
+/**
+ * When a settled bet saved before `settledAt` existed got its result: its last
+ * edit (`updatedAt`), but never past the end of its own day. A note or closing
+ * odds edited weeks later moved `updatedAt`, and read as the moment of the
+ * result it made a month-old win vanish from the bank of every bet entered in
+ * between — invented plan breaches for everyone who upgraded (third review).
+ */
+export function legacySettledAt(b: Bet): string {
+  const edited = Date.parse(b.updatedAt);
+  const end = dayEndMs(b.date);
+  if (!Number.isNaN(end) && (Number.isNaN(edited) || edited > end)) return new Date(end).toISOString();
+  return b.updatedAt;
 }
 
 /** Realized P&L for a single bet, in kopecks. 0 for pending/refund and lost freebets. */

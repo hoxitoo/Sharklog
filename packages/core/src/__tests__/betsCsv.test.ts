@@ -108,6 +108,16 @@ describe('round trip', () => {
 });
 
 describe('importBetsFromCSV', () => {
+  it('records a settled row\'s result at the import, a pending row\'s not at all', () => {
+    // bankAtBetTime: imported results are the bank of bets entered after the
+    // import — without the stamp, the fallback for old data dated them to their
+    // own day and an import rewrote every card entered since.
+    const csv = ['Дата,Событие,Коэф.,Ставка,Статус', '2026-02-01,A vs B,1.85,1000,Победа', '2026-02-02,C vs D,2,1000,Ожидание'].join('\n');
+    const { bets } = importBetsFromCSV(csv, newId);
+    expect(bets[0]!.settledAt).toBe(bets[0]!.createdAt);
+    expect(bets[1]!.settledAt).toBeUndefined();
+  });
+
   it('reads comma, semicolon and tab separated files alike', () => {
     const rows = [
       ['Дата,Событие,Коэф.,Ставка,Статус', '2026-02-01,A vs B,1.85,1000,Победа'],

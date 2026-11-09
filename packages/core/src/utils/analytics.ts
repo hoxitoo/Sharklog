@@ -1,6 +1,6 @@
 import type { Bet, BankrollTransaction, OddsFormat } from '../types/bet';
 import { formatOddsAs, parseOdds } from './oddsFormat';
-import { betPnl, calcDashboard, playedOrder } from './stats';
+import { betPnl, calcDashboard, dayEndMs, legacySettledAt, playedOrder } from './stats';
 import { toYmd, calcDailyBreakdown } from './daily';
 
 // ── Streaks (best win / worst loss / current) ────────────────────────────────
@@ -409,12 +409,12 @@ export interface BankMoment {
 const YMD_DAY = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
- * When a bet's result went into the book: `settledAt`, or `updatedAt` for bets
- * saved before it existed. Unreadable: long ago — counted for every later bet,
- * as all results were before the bank looked at the moment of entry.
+ * When a bet's result went into the book: `settledAt`, or for bets saved before
+ * it existed their last edit capped at the end of their day (`legacySettledAt`).
+ * Unreadable: long ago — counted for every later bet.
  */
 function resultRecordedAt(b: Bet): number {
-  const t = Date.parse(typeof b.settledAt === 'string' ? b.settledAt : b.updatedAt);
+  const t = Date.parse(typeof b.settledAt === 'string' ? b.settledAt : legacySettledAt(b));
   return Number.isNaN(t) ? -Infinity : t;
 }
 
@@ -430,6 +430,12 @@ function resultRecordedAt(b: Bet): number {
  * the moment they were entered. Deposits always count, all of the day's too:
  * topping up and then betting is the normal order, and a deposit entered after
  * the bets it paid for must not leave them without a bank.
+ *
+ * A bet entered AFTER its day was over (yesterday's bets typed in this
+ * morning) stands on the start of its day with that day's deposits: when on
+ * the day it was placed nobody recorded, and the day's evening withdrawal read
+ * as that morning's bank turned a 5% loss into "−50% of bank" and a plan breach.
+ * What of the days BEFORE it went in after it was entered is still left out.
  *
  * Not the start of the day for every bet of it: that hid exactly what a
  * discipline tool must show. Two losses and a withdrawal in the afternoon, and
@@ -498,10 +504,19 @@ export function bankAtBetTime(allBets: Bet[], transactions: BankrollTransaction[
     events.push({ day, at: when.getTime(), amount: tx.type === 'withdrawal' ? -tx.amount : tx.amount });
   }
 
-  /** What of the book dated up to `day` went in at or after `t` — one question. */
-  const recordedFrom = (day: string, t: number): number => {
+  /**
+   * How a saved bet's bank is read: from the end of its day less what went in
+   * at or after its entry ('end'), or — entered once its day was over — from
+   * the start of its day less what of the days before went in after it
+   * ('start'). Unreadable entry: the start of its day, nothing taken out.
+   */
+  const modeOf = (date: string, t: number): 'end' | 'start' | 'unknown' =>
+    Number.isNaN(t) ? 'unknown' : date <= lastDay && t >= dayEndMs(date) ? 'start' : 'end';
+
+  /** What of the book dated up to `day` (`before`: strictly before it) went in at or after `t`. */
+  const recordedFrom = (day: string, before: boolean, t: number): number => {
     let sum = 0;
-    for (const e of events) if (e.at >= t && e.day <= day) sum += e.amount;
+    for (const e of events) if (e.at >= t && (before ? e.day < day : e.day <= day)) sum += e.amount;
     return sum;
   };
 
@@ -509,38 +524,42 @@ export function bankAtBetTime(allBets: Bet[], transactions: BankrollTransaction[
   // bet card and the plan check ask for all of them on each write. Entry
   // moments from the latest down, events added as they become "later", summed
   // by day in a Fenwick tree — n log n, not n² (10 000 bets on one day were
-  // seconds per write on Hermes when each asked on its own).
-  let perBet: Map<string, number> | undefined;
-  const allSaved = (): Map<string, number> => {
-    const out = new Map<string, number>();
+  // seconds per write on Hermes when each asked on its own). Keyed by the bet
+  // object: two copies of one id (a desktop book is not de-duplicated) each
+  // get their own.
+  let perBet: Map<Bet, number> | undefined;
+  const allSaved = (): Map<Bet, number> => {
+    const out = new Map<Bet, number>();
     const dates = [...new Set(events.map((e) => e.day))].sort();
     const tree = new Array<number>(dates.length + 1).fill(0);
-    const daysUpTo = (day: string) => {
+    /** How many event days are ≤ `day` (or < it). */
+    const rank = (day: string, before: boolean) => {
       let lo = 0;
       let hi = dates.length;
       while (lo < hi) {
         const mid = (lo + hi) >> 1;
-        if (dates[mid]! <= day) lo = mid + 1;
+        if (before ? dates[mid]! < day : dates[mid]! <= day) lo = mid + 1;
         else hi = mid;
       }
       return lo;
     };
     const queries = allBets
-      .map((b) => ({ id: b.id, day: b.date, t: Date.parse(b.createdAt) }))
-      .filter((q) => !Number.isNaN(q.t))
-      .sort((a, b) => b.t - a.t);
-    const later = [...events].sort((a, b) => b.at - a.at);
+      .map((b) => ({ b, t: Date.parse(b.createdAt) }))
+      .filter((q) => modeOf(q.b.date, q.t) !== 'unknown')
+      .sort((x, y) => y.t - x.t);
+    const later = [...events].sort((x, y) => y.at - x.at);
     let next = 0;
     for (const q of queries) {
       for (; next < later.length && later[next]!.at >= q.t; next++) {
-        for (let i = daysUpTo(later[next]!.day); i <= dates.length; i += i & -i) tree[i]! += later[next]!.amount;
+        for (let i = rank(later[next]!.day, false); i <= dates.length; i += i & -i) tree[i]! += later[next]!.amount;
       }
       let sum = 0;
-      for (let i = daysUpTo(q.day); i > 0; i -= i & -i) sum += tree[i]!;
-      out.set(q.id, sum);
+      for (let i = rank(q.b.date, modeOf(q.b.date, q.t) === 'start'); i > 0; i -= i & -i) sum += tree[i]!;
+      out.set(q.b, sum);
     }
     return out;
   };
+  let saved: Set<Bet> | undefined;
   let byId: Map<string, Bet> | undefined;
 
   return (at) => {
@@ -550,25 +569,33 @@ export function bankAtBetTime(allBets: Bet[], transactions: BankrollTransaction[
     }
     const date = at.date;
     if (date > lastDay ? !funded || !latest : !atStart.has(date)) return null;
-    // A saved bet with no readable entry moment: the start of its day, as before.
+    saved ??= new Set(allBets);
+    const isSaved = saved.has(at as Bet);
+    // A saved bet with no readable entry moment: the start of its day.
     const t = at.createdAt !== undefined ? Date.parse(at.createdAt) : at.id !== undefined ? NaN : Infinity;
-    byId ??= new Map(allBets.map((b) => [b.id, b]));
-    const own = at.id !== undefined ? byId.get(at.id) : undefined;
+    const mode = t === Infinity ? 'now' : modeOf(date, t);
     let bank: number;
-    if (Number.isNaN(t)) {
+    if (mode === 'unknown') {
       bank = date > lastDay ? bankNow : atStart.get(date)!;
+    } else if (mode === 'now') {
+      bank = date > lastDay ? bankNow : atEnd.get(date)!;
     } else {
-      const end = date > lastDay ? bankNow : atEnd.get(date)!;
-      if (t === Infinity) bank = end;
-      else if (own && own.date === date && own.createdAt === at.createdAt) bank = end - (perBet ??= allSaved()).get(own.id)!;
-      else bank = end - recordedFrom(date, t);
+      const base = mode === 'start' ? atStart.get(date)! : date > lastDay ? bankNow : atEnd.get(date)!;
+      const taken = isSaved
+        ? (perBet ??= allSaved()).get(at as Bet)!
+        : recordedFrom(date, mode === 'start', t);
+      bank = base - taken;
     }
     // Its own result is never its bank — wherever it went in: this day, or an
     // earlier day the form moved it away from.
+    byId ??= new Map(allBets.map((b) => [b.id, b]));
+    const own = isSaved ? (at as Bet) : at.id !== undefined ? byId.get(at.id) : undefined;
     const pnl = own ? betPnl(own) : 0;
     if (own && pnl !== 0 && inSeries(own.date)) {
-      const dated = date > lastDay || (Number.isNaN(t) ? own.date < date : own.date <= date);
-      if (dated && (Number.isNaN(t) || t === Infinity || resultRecordedAt(own) < t)) bank -= pnl;
+      const inBase = date > lastDay
+        || (mode === 'unknown' || mode === 'start' ? own.date < date : own.date <= date);
+      const notTaken = mode === 'unknown' || mode === 'now' || resultRecordedAt(own) < t;
+      if (inBase && notTaken) bank -= pnl;
     }
     return bank <= 0 ? null : bank;
   };

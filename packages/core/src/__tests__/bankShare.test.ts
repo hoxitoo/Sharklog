@@ -267,11 +267,45 @@ describe('bankAtBetTime — across days, and against a plain recount', () => {
     // A CSV writes its rows at the moment of the import: those results are the
     // bank of bets entered after it, not a rewrite of what earlier cards showed.
     const inApp = bet({ date: '2026-08-05', stake: 20_000, createdAt: at('2026-08-05', '12:00') });
-    const imported = bet({ date: '2026-08-02', stake: 500_000, odds: 3, createdAt: at('2026-08-09', '10:00') }); // +10 000
+    // As importBetsFromRows writes a settled row: entered and settled at the import.
+    const imported = bet({ date: '2026-08-02', stake: 500_000, odds: 3, createdAt: at('2026-08-09', '10:00'), settledAt: at('2026-08-09', '10:00') }); // +10 000
     const after = bet({ date: '2026-08-09', stake: 20_000, status: 'pending', createdAt: at('2026-08-09', '11:00') });
     const bankAt = bankAtBetTime([inApp, imported, after], [dep('2026-08-01')]);
     expect(bankAt(inApp)).toBe(1_000_000);
     expect(bankAt(after)).toBe(1_000_000 + 20_000 + 1_000_000);
+  });
+
+  it('dates an old result by its own day, not by a note edited weeks later', () => {
+    // Third review: a +5 000 win settled a month ago, its note edited two days
+    // ago. With the edit read as the moment of the result, it vanished from the
+    // bank of every bet entered in between and a plan saw breaches nobody made.
+    const old = bet({ date: '2026-07-01', stake: 500_000, createdAt: at('2026-07-01', '10:00'), updatedAt: at('2026-07-29', '20:00') });
+    const mid = bet({ date: '2026-07-10', stake: 30_000, status: 'pending', createdAt: at('2026-07-10', '12:00') });
+    const bankAt = bankAtBetTime([old, mid], [tx('deposit', 1_000_000, '2026-06-30')]);
+    expect(bankAt(mid)).toBe(1_500_000);
+  });
+
+  it('puts a bet entered after its day on the start of that day', () => {
+    // Deposit 10 000, 9 000 withdrawn at 21:00; the morning's 500 bet typed in
+    // the next day. Its bank was 10 000 (−5%), not the evening's 1 000 (−50%).
+    const d = '2026-08-04';
+    const late = bet({ date: d, stake: 50_000, status: 'lost', createdAt: at('2026-08-05', '08:00'), settledAt: at('2026-08-05', '08:00') });
+    const funds = [tx('deposit', 1_000_000, d, '08:00'), tx('withdrawal', 900_000, d, '21:00')];
+    expect(bankAtBetTime([late], funds)(late)).toBe(1_000_000);
+    expect(calcBankShares([late], funds).get(late.id)).toBeCloseTo(-5);
+    // Entered on the day, before the withdrawal: the same.
+    const onTime = { ...late, createdAt: at(d, '10:00'), settledAt: at(d, '12:00') };
+    expect(bankAtBetTime([onTime], funds)(onTime)).toBe(1_000_000);
+  });
+
+  it('gives two copies of one id each their own bank', () => {
+    // A desktop book is not de-duplicated on load: the cache is the bet itself.
+    const a = bet({ id: 'same', date: '2026-08-02', status: 'pending', createdAt: at('2026-08-02', '09:00') });
+    const b = bet({ id: 'same', date: '2026-08-02', status: 'pending', createdAt: at('2026-08-02', '20:00') });
+    const loss = bet({ date: '2026-08-02', status: 'lost', stake: 300_000, createdAt: at('2026-08-02', '10:00'), settledAt: at('2026-08-02', '12:00') });
+    const bankAt = bankAtBetTime([a, b, loss], [tx('deposit', 1_000_000, '2026-08-01')]);
+    expect(bankAt(a)).toBe(1_000_000);
+    expect(bankAt(b)).toBe(700_000);
   });
 
   it('matches a plain recount on random books', () => {
@@ -291,8 +325,9 @@ describe('bankAtBetTime — across days, and against a plain recount', () => {
         const settled = at(dayOf(Math.min(9, d + Math.floor(rnd() * 3))), hh());
         book.push(bet({
           date: dayOf(d), status, stake: 10_000 + Math.floor(rnd() * 50_000), odds: 1.2 + rnd() * 3,
-          createdAt: entered, updatedAt: entered,
-          ...(status === 'pending' ? {} : { settledAt: settled }),
+          createdAt: entered, updatedAt: rnd() < 0.15 ? at(dayOf(9), hh()) : entered,
+          // Some saved before settledAt existed: their last edit stands in, capped at their day's end.
+          ...(status === 'pending' || rnd() < 0.2 ? {} : { settledAt: settled }),
           ...(status === 'cashout' ? { cashoutAmount: Math.floor(rnd() * 60_000) } : {}),
           ...(rnd() < 0.1 ? { isFreebet: true } : {}),
         }));
@@ -307,23 +342,29 @@ describe('bankAtBetTime — across days, and against a plain recount', () => {
       const pnl = (b: Bet) => (b.status === 'won' ? Math.round(b.stake * b.odds) - b.stake
         : b.status === 'lost' ? (b.isFreebet ? 0 : -b.stake)
         : b.status === 'cashout' && b.cashoutAmount != null ? b.cashoutAmount - b.stake : 0);
+      const dayEnd = (d: string) => { const [y, m, dd] = d.split('-').map(Number); return new Date(y!, m! - 1, dd! + 1).getTime(); };
+      const recorded = (o: Bet) => o.settledAt !== undefined ? Date.parse(o.settledAt) : Math.min(Date.parse(o.updatedAt), dayEnd(o.date));
       for (const b of book) {
         const t = Date.parse(b.createdAt);
+        // Entered once its day was over: the start of its day (and the days
+        // before, as they stood at entry); otherwise the day itself as it stood.
+        const late = t >= dayEnd(b.date);
+        const counts = (day: string) => (late ? day < b.date : day <= b.date);
         let want = 0;
         for (const x of txs) {
           const when = new Date(x.date);
           if (toYmd(when) > b.date) continue;
           if (x.type === 'deposit') want += x.amount;
-          else if (when.getTime() < t) want += x.type === 'withdrawal' ? -x.amount : x.amount;
+          else if (counts(toYmd(when)) && when.getTime() < t) want += x.type === 'withdrawal' ? -x.amount : x.amount;
         }
         for (const o of book) {
-          if (o.id === b.id || o.date > b.date) continue;
-          if (Date.parse(o.settledAt ?? o.updatedAt) < t) want += pnl(o);
+          if (o.id === b.id || !counts(o.date)) continue;
+          if (recorded(o) < t) want += pnl(o);
         }
         expect(bankAt(b)).toBe(want > 0 ? want : null);
         // The same question asked one by one (the form's path) gives the same.
-        expect(bankAt({ date: b.date, createdAt: b.createdAt, id: `${b.id}-copy` })).toBe(want + (Date.parse(b.settledAt ?? b.updatedAt) < t ? pnl(b) : 0) > 0
-          ? want + (Date.parse(b.settledAt ?? b.updatedAt) < t ? pnl(b) : 0) : null);
+        const withOwn = want + (!late && recorded(b) < t ? pnl(b) : 0);
+        expect(bankAt({ date: b.date, createdAt: b.createdAt, id: `${b.id}-copy` })).toBe(withOwn > 0 ? withOwn : null);
       }
     }
   });
@@ -352,9 +393,12 @@ describe('stampSettlement — when a result went into the book', () => {
   });
 
   it('pins an old bet\'s last edit before the edit moves it, and drops the stamp back to pending', () => {
-    const old = { ...pending, status: 'lost' as const, updatedAt: '2026-08-01T15:00:00.000Z' };
-    expect(stampSettlement(old, { ...old, notes: 'fixed later', updatedAt: now }, now).settledAt).toBe('2026-08-01T15:00:00.000Z');
-    const back = stampSettlement(old, { ...old, status: 'pending', settledAt: '2026-08-01T15:00:00.000Z' }, now);
+    const old = { ...pending, status: 'lost' as const, updatedAt: at('2026-08-01', '15:00') };
+    expect(stampSettlement(old, { ...old, notes: 'fixed later', updatedAt: now }, now).settledAt).toBe(at('2026-08-01', '15:00'));
+    // An old last edit past the end of its day stands for the end of its day.
+    const edited = { ...old, updatedAt: at('2026-08-20', '15:00') };
+    expect(stampSettlement(edited, { ...edited, notes: 'again', updatedAt: now }, now).settledAt).toBe(new Date(2026, 7, 2).toISOString());
+    const back = stampSettlement(old, { ...old, status: 'pending', settledAt: at('2026-08-01', '15:00') }, now);
     expect('settledAt' in back).toBe(false);
   });
 });
