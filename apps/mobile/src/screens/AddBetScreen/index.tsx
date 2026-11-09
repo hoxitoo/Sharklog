@@ -539,15 +539,24 @@ export function AddBetScreen() {
 
   // Stake as a share of the bank — discipline feedback at the moment of the decision,
   // not in a report afterwards. Compared against the generated strategy's limit if set.
-  // The bank is the one the bet will be judged by: at the START of the bet's day
-  // (bankAtBetTime — the bet card's and the plan card's bank), none before money
-  // first came in. Measured against the bank of this minute, the form called a
-  // stake within the plan that Analytics then counted as over it, and the other
-  // way round after a same-day withdrawal.
+  // The bank is the one the bet will be judged by (bankAtBetTime — the bet card's
+  // and the plan card's): the bank at the bet's day and time, after that day's
+  // earlier results, withdrawals and reconciliations; none before money first
+  // came in. A new bet entered now stands on the Bets screen's bank. Measured
+  // from the start of the day, the form said "bank 25 907" after two losses and
+  // a withdrawal had left 7. An edited bet keeps its place and never counts its
+  // own result.
   const watchedDate = watch('date');
+  const watchedTime = watch('time');
   const bankAt = useMemo(() => bankAtBetTime(bets, bankroll.transactions), [bets, bankroll.transactions]);
-  const bankTotal = bankAt(watchedDate) ?? 0;
+  const bankTotal = bankAt({
+    date: watchedDate,
+    time: (watchedTime ?? '').trim() || defaultTime,
+    ...(editBet ? { id: editBet.id, createdAt: editBet.createdAt } : {}),
+  }) ?? 0;
   const bankShare = bankTotal > 0 && stakeKopecks > 0 ? (stakeKopecks / bankTotal) * 100 : null;
+  // More than the whole bank: a percent like "71 428.6%" says nothing a person reads.
+  const overBank = bankShare != null && stakeKopecks > bankTotal;
   // The plan's numbers — odds from the strategy's answers (strategyPlan) — and
   // none at all when the user switched the strategy off (activeStrategy).
   const strategy = activeStrategy(settings);
@@ -1013,14 +1022,14 @@ export function AddBetScreen() {
         )}
 
         {bankShare != null && (
-          <View style={[styles.bankShare, overLimit && styles.bankShareWarn]}>
+          <View style={[styles.bankShare, (overLimit || overBank) && styles.bankShareWarn]}>
             <View style={{ flex: 1 }}>
               <Text style={styles.bankShareLabel}>{t('addBet.bankShare')}</Text>
               <Text style={styles.bankShareBank}>{t('addBet.bankLine', { amount: fmt(bankTotal) })}</Text>
             </View>
             <View style={{ alignItems: 'flex-end' }}>
-              <Text style={[styles.bankShareValue, { color: overLimit ? colors.lost : colors.accent }]}>
-                {bankShare.toFixed(1)}%
+              <Text style={[styles.bankShareValue, { color: overLimit || overBank ? colors.lost : colors.accent }]}>
+                {overBank ? t('addBet.overBank') : `${bankShare.toFixed(1)}%`}
               </Text>
               {strategyLimit != null && (
                 <Text style={[styles.bankShareHint, overLimit && { color: colors.lost }]}>

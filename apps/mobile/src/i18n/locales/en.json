@@ -594,6 +594,7 @@
     "bankLine": "bank {{amount}}",
     "overLimit": "over the {{pct}}% limit",
     "limitPct": "limit {{pct}}%",
+    "overBank": "more than the bank",
     "customSport": "Name the sport",
     "customSportPh": "MMA, Boxing, Formula 1...",
     "discipline": "Game",
