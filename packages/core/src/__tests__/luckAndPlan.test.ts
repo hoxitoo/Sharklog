@@ -116,9 +116,10 @@ describe('calcPlanCompliance', () => {
   it("lets only the day's EARLIER results move the bank it judges against", () => {
     // The evening bet stood on the bank the morning's win left (12 000); the
     // morning bet did not see the evening's result, which had not happened yet.
+    // What counts is when each was entered and settled, not the match time.
     const c = calcPlanCompliance([
-      bet({ stake: 100_000, status: 'lost', time: '20:00' }),
-      bet({ stake: 100_000, odds: 3, status: 'won', time: '10:00' }),
+      bet({ stake: 100_000, status: 'lost', time: '08:00', createdAt: '2026-08-01T18:00:00.000Z', settledAt: '2026-08-01T21:00:00.000Z' }),
+      bet({ stake: 100_000, odds: 3, status: 'won', time: '23:00', createdAt: '2026-08-01T10:00:00.000Z', settledAt: '2026-08-01T12:00:00.000Z' }),
     ], deposit, 50)!;
     expect(c.avgSharePct).toBe(Math.round(((10 + (100_000 / 1_200_000) * 100) / 2) * 10) / 10);
   });

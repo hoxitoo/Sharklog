@@ -52,6 +52,13 @@ export interface Bet {
   id: string;              // UUID v4
   createdAt: string;       // ISO-8601
   updatedAt: string;       // ISO-8601
+  /**
+   * ISO-8601: when the result went into the book (`stampSettlement`) — not the
+   * match. None on a pending bet, and on bets saved before the field existed
+   * (their last edit, `updatedAt`, stands in). Tells `bankAtBetTime` which
+   * results a bet entered later could already have seen.
+   */
+  settledAt?: string;
   date: string;            // YYYY-MM-DD
   time: string;            // HH:MM
   sport: Sport;

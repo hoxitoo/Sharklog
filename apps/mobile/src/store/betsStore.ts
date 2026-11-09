@@ -4,7 +4,7 @@ import type { Bet, AppSettings, Bankroll, DiaryEntry, Goal, Team } from '@sharkl
 import {
   migrate, CURRENT_SCHEMA_VERSION, FREE_LIMITS, DEFAULT_BANKROLL_NAME, calcCurrentStreak, parseEventTeams,
   preselectedBookmakers, sanitizeBets, sanitizeBankroll, sanitizeDiary, sanitizeTeams, sanitizeGoals,
-  cleanTeamNames, upsertTeams,
+  cleanTeamNames, upsertTeams, stampSettlement,
 } from '@sharklog/core';
 import {
   sendTiltNotification, scheduleBetResultReminder,
@@ -669,7 +669,9 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
     }
   },
 
-  addBet: (bet) => {
+  addBet: (entered) => {
+    // Entered with a result: the result went into the book with it.
+    const bet = stampSettlement(undefined, entered, entered.createdAt);
     const updatedTeams = upsertTeams(get().teams, parseEventTeams(bet.event), bet.sport, bet.discipline, uuid);
     set((s) => ({ bets: [bet, ...s.bets], teams: updatedTeams }));
     if (bet.status === 'pending' && get().settings.betResultReminders !== false) {
@@ -682,8 +684,10 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
     const prevStatus = get().bets.find((b) => b.id === id)?.status;
     set((s) => {
       const old = s.bets.find((b) => b.id === id);
+      const now = new Date().toISOString();
+      // settledAt moves only with the result — bankAtBetTime orders by it.
       const bets = s.bets.map((b) =>
-        b.id === id ? { ...b, ...updates, updatedAt: new Date().toISOString() } : b,
+        b.id === id ? stampSettlement(b, { ...b, ...updates, updatedAt: now }, now) : b,
       );
       const updated = bets.find((b) => b.id === id);
       // Only upsert teams when event or sport actually changed to avoid inflating usageCount

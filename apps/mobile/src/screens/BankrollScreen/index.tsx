@@ -47,16 +47,15 @@ function KellyCalculator({ bankroll }: { bankroll: number }) {
   const { t } = useTranslation();
   // A saved strategy sizes by its own Kelly share, capped at its stake — the
   // same stake the bet form's Kelly gives, so the two never disagree. That
-  // takes the same BANK too: bankAtBetTime at this minute, the bank a bet
-  // entered now stands on in the form (today's results and withdrawals in).
+  // takes the same BANK too: bankAtBetTime for a bet entered now, today — the
+  // bank the form shows for a new bet (today's results and withdrawals in).
   const plan = useBetsStore((s) => activeStrategy(s.settings));
   const allBets = useBetsStore((s) => s.bets);
   const transactions = useBetsStore((s) => s.bankroll.transactions);
-  const planBank = useMemo(() => {
-    if (!plan) return 0;
-    const now = new Date();
-    return bankAtBetTime(allBets, transactions)({ date: toYmd(now), time: now.toTimeString().slice(0, 5) }) ?? 0;
-  }, [plan, allBets, transactions]);
+  const planBank = useMemo(
+    () => (plan ? bankAtBetTime(allBets, transactions)({ date: toYmd(new Date()) }) ?? 0 : 0),
+    [plan, allBets, transactions],
+  );
   const fmt = useFormatMoney();
   const oddsFormat = useOddsFormat();
   const [odds, setOdds] = useState('');

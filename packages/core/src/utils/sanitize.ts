@@ -127,6 +127,7 @@ export function sanitizeBet(raw: unknown, mode: SanitizeMode = 'import'): Bet | 
     schemaVersion: num(b['schemaVersion']) ? b['schemaVersion'] : CURRENT_SCHEMA_VERSION,
   };
   optional(b, out, {
+    settledAt: okTs,
     closingOdds: (v) => num(v) && (!strict || v > 0),
     cashoutAmount: (v) => num(v) && (!strict || v >= 0),
     isFreebet: (v) => typeof v === 'boolean',

@@ -336,7 +336,7 @@ interface TeamStats {
 20. **Общий кэф экспресса округляется до 2 знаков** (`combineExpressOdds`): букмекер показывает и рассчитывает именно округлённый коэффициент. Сырое произведение легов расходится с реальной выплатой на каждой ставке.
 21. **Колесо действий**: тап по карточке ставки открывает `ActionWheel`, а не редактор. Набор действий — только в `useBetActions()`, общий для `BetsScreen` и `PendingScreen`. Открытое поле выкупа принадлежит родителю (`cashoutFor`), не карточке.
 22. **Везение считается от нуля, а не от «в плюсе ли я»**: ставка по цене букмекера имеет нулевое матожидание, поэтому `calcLuck` меряет отклонение результата в сигмах. До 1σ — обычный разброс, от 2σ — результат вряд ли объясняется везением.
-23. **Доля банка берётся на момент ставки** (`bankAtBetTime`): результаты того же дня, сыгранные ПОСЛЕ ставки, не меняют банк, против которого она мерялась, а сыгранные ДО неё — меняют (2026-11-09: банк на начало дня прятал ставку почти на весь остаток после проигрышей и вывода).
+23. **Доля банка берётся на момент ввода ставки** (`bankAtBetTime`): результаты, выводы и сверки того же дня, записанные ДО ввода ставки, меняют её банк, записанные после — нет (`Bet.settledAt`, 2026-11-09: банк на начало дня прятал ставку почти на весь остаток после проигрышей и вывода, а порядок по времени матча судил ставки по результатам, которых при них никто не знал).
 24. **`Alert.alert` после закрытия `Modal`** откладывается на кадр — иначе алерт может быть снят вместе с размонтируемым контроллером.
 25. **JSON-восстановление проходит через `migrate()`**: иначе бэкап, снятый до исправления схемы, возвращает в приложение уже вылеченные баги.
 26. **Цели — данные** (`goals` рядом с дневником, в бэкапе, стираются «Очистить все данные»). Прогресс — только `calcGoalProgress` (core): `profit` — результат ставок с даты начала (депозиты не двигают), `bank` — `currentBank`, `withdraw` — выведено сверх внесённого, `lossCap` — минус календарного месяца. Free — одна открытая цель (`goalsFor`, лимит на показ, не на хранение). Тексты вида строятся из ключа (`goals.kind/kindHint/how/startHint/amount.<вид>`) — их полноту держит `goals.test.ts`.
@@ -537,7 +537,7 @@ VITE_OWNER_PRO=true
 - [~] Auto-updater UI в SettingsPage (кнопка есть, обновление не придёт — см. «Auto-updater»)
 - [x] roundAmounts: false в defaultSettings (type-safe)
 - [x] E2E tests (Playwright, continue-on-error): 22 теста
-- [x] 40 smoke tests (Vitest)
+- [x] 41 smoke tests (Vitest)
 - [~] i18n: страницы на react-i18next, но ~280 строк русского ещё захардкожено (форма ставки, тосты Настроек, стратегия) — ROADMAP, десктопный бэклог
 - [x] betsCsv.ts — единый CSV-импорт/экспорт для обеих платформ (BOM, CRLF, `,`/`;`/таб,
       объединённые алиасы колонок); заменил две разъехавшиеся копии
@@ -557,7 +557,7 @@ VITE_OWNER_PRO=true
 ## Тесты
 
 ```
-packages/core         342 vitest unit tests (stats, analytics, daily, formatters, kelly, migrations,
+packages/core         355 vitest unit tests (stats, analytics, daily, formatters, kelly, migrations,
                           betsCsv x14 — round-trip / P&L / инъекция / разделители,
                           pnlBuckets x10 — границы бакетов, порядок кривой,
                           bankroll x10 — bankCash / currentBank / pendingExposure / сверки,
@@ -567,9 +567,9 @@ packages/core         342 vitest unit tests (stats, analytics, daily, formatters
                           luckAndPlan x24 — сигма-модель везения и соблюдение плана,
                           insightsGroups x8 — дисциплина в группировках (только по esports-ставкам) и порядок по P&L,
                           betYears x16 — список лет, «без турнира», границы диаграммы, тримминг имён)
-apps/desktop           40 vitest smoke tests (betsStore x14, importBets x26)
-apps/mobile           470 jest tests (стор, стражи дизайна/тем/переводов, оплата, цели, календарь…)
-ИТОГО                  852 теста (core 342 + desktop 40 + mobile 470, на 2026-11-08)
+apps/desktop           41 vitest smoke tests (betsStore x15, importBets x26)
+apps/mobile           471 jest tests (стор, стражи дизайна/тем/переводов, оплата, цели, календарь…)
+ИТОГО                  867 тестов (core 355 + desktop 41 + mobile 471, на 2026-11-09)
 ```
 
 ---
@@ -577,9 +577,9 @@ apps/mobile           470 jest tests (стор, стражи дизайна/те
 ## Команды
 
 ```bash
-cd packages/core && npx vitest run          # 342 теста
-cd apps/desktop && npx vitest run           # 40 тестов
-cd apps/mobile && npm test                  # 470 тестов
+cd packages/core && npx vitest run          # 355 тестов
+cd apps/desktop && npx vitest run           # 41 тест
+cd apps/mobile && npm test                  # 471 тест
 
 cd apps/mobile && npx tsc --noEmit          # type-check мобилки
 cd apps/desktop && npx tsc --noEmit         # type-check десктопа

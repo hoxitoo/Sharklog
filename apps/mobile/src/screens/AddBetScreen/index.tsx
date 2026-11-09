@@ -540,23 +540,23 @@ export function AddBetScreen() {
   // Stake as a share of the bank — discipline feedback at the moment of the decision,
   // not in a report afterwards. Compared against the generated strategy's limit if set.
   // The bank is the one the bet will be judged by (bankAtBetTime — the bet card's
-  // and the plan card's): the bank at the bet's day and time, after that day's
-  // earlier results, withdrawals and reconciliations; none before money first
-  // came in. A new bet entered now stands on the Bets screen's bank. Measured
-  // from the start of the day, the form said "bank 25 907" after two losses and
-  // a withdrawal had left 7. An edited bet keeps its place and never counts its
-  // own result.
+  // and the plan card's): what the book held when the bet was entered — the
+  // day's deposits, and the results, withdrawals and reconciliations recorded
+  // before it; none before money first came in. A new bet entered now stands on
+  // the Bets screen's bank: measured from the start of the day, the form said
+  // "bank 25 907" after two losses and a withdrawal had left 7. An edited bet
+  // keeps the moment it was entered and never counts its own result.
   const watchedDate = watch('date');
-  const watchedTime = watch('time');
   const bankAt = useMemo(() => bankAtBetTime(bets, bankroll.transactions), [bets, bankroll.transactions]);
   const bankTotal = bankAt({
     date: watchedDate,
-    time: (watchedTime ?? '').trim() || defaultTime,
     ...(editBet ? { id: editBet.id, createdAt: editBet.createdAt } : {}),
   }) ?? 0;
   const bankShare = bankTotal > 0 && stakeKopecks > 0 ? (stakeKopecks / bankTotal) * 100 : null;
-  // More than the whole bank: a percent like "71 428.6%" says nothing a person reads.
-  const overBank = bankShare != null && stakeKopecks > bankTotal;
+  // More own money than the whole bank: a deposit was never entered, or the
+  // stake is not there to bet. Said in words — "71 428.6%" reads as nothing —
+  // and not judged against the plan, as Analytics and the bet card do not.
+  const overBank = !isFreebet && bankShare != null && stakeKopecks > bankTotal;
   // The plan's numbers — odds from the strategy's answers (strategyPlan) — and
   // none at all when the user switched the strategy off (activeStrategy).
   const strategy = activeStrategy(settings);
@@ -568,7 +568,7 @@ export function AddBetScreen() {
   const planApplies = plan != null && watchedDate >= planSince;
   const strategyLimit = plan && planApplies ? plan.stakePercent : null;
   // A freebet is not own money: the plan does not judge it (nor does Analytics).
-  const overLimit = !isFreebet && bankShare != null && strategyLimit != null
+  const overLimit = !isFreebet && bankShare != null && !overBank && strategyLimit != null
     && stakeOverPlan(stakeKopecks, bankTotal, strategyLimit);
   const fmtOddsRange = useFormatOddsRange();
   // Bets already on the chosen day: a new bet past a daily limit is said before
@@ -1031,7 +1031,7 @@ export function AddBetScreen() {
               <Text style={[styles.bankShareValue, { color: overLimit || overBank ? colors.lost : colors.accent }]}>
                 {overBank ? t('addBet.overBank') : `${bankShare.toFixed(1)}%`}
               </Text>
-              {strategyLimit != null && (
+              {strategyLimit != null && !overBank && (
                 <Text style={[styles.bankShareHint, overLimit && { color: colors.lost }]}>
                   {overLimit ? t('addBet.overLimit', { pct: strategyLimit }) : t('addBet.limitPct', { pct: strategyLimit })}
                 </Text>
