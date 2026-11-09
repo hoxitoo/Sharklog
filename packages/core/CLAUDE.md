@@ -8,7 +8,7 @@
 ## Структура core (packages/core/src/)
 
 ```
-types/bet.ts          — BetStatus: 'pending'|'won'|'lost'|'refund'|'cashout'
+types/bet.ts          — Bet.settledAt — когда записан результат (не матч); BetStatus: 'pending'|'won'|'lost'|'refund'|'cashout'
                         BankrollTxType: 'deposit'|'withdrawal'|'adjustment' (у последнего amount ЗНАКОВЫЙ)
                         Bet: + tournament?: string, + closingOdds?: number (для CLV)
                         AppSettings: + generatedStrategy?: GeneratedStrategy, + roundAmounts: boolean, + disableChecklist?: boolean
@@ -42,9 +42,11 @@ utils/
                         calcPnlBuckets(bets, 'day'|'week'|'month', count) — чистый P&L по периодам
                         (группировка по bet.date, пустые бакеты сохраняются)
                         calcLuck(bets) — сигма-отклонение результата от безубытка (везение vs решения)
-                        bankAtBetTime(bets, txs)(ставка | { date, time, id?, createdAt? } | день) — банк на момент
-                        ставки: начало дня с депозитами дня + результаты, выводы и сверки до неё
-                        (общий для плана, карточки, формы и Келли; голый день — начало дня);
+                        bankAtBetTime(bets, txs)(ставка | { date, id?, createdAt? } | день) — что было в учёте, когда
+                        ставку вносили: начало дня с депозитами дня + результаты (settledAt), выводы
+                        и сверки, записанные до её createdAt; без createdAt — «сейчас»; голый день —
+                        начало дня. Общий для плана, карточки, формы и Келли
+                        stampSettlement(prev, next, now) (stats.ts) — settledAt в шаг с результатом; оба стора
                         betBankShare / calcBankShares — сколько % банка ставка принесла/забрала
                         calcPlanCompliance(bets, txs, limitPct) — доля ставок сверх лимита плана,
                         P&L в лимите / сверх него, топ отклонений

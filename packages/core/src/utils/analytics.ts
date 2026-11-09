@@ -394,43 +394,70 @@ export interface PlanBreach {
 }
 
 /**
- * The moment the bank is asked for: a bet — its day, its time, and for a saved
- * bet its id and entry time, which place it among bets of the same minute — or
- * a bare day, which means the START of that day.
+ * The moment the bank is asked for: a saved bet — its day, the moment it was
+ * entered, its id — or a bet being entered now (no `createdAt`), or a bare
+ * day, which means the START of that day.
  */
 export interface BankMoment {
   date: string;
-  /** `HH:MM`. Without it: the start of the day, before anything that day. */
-  time?: string;
+  /** When the bet was entered. None: now, after everything the book holds. */
+  createdAt?: string;
   /** A saved bet: its own result never counts toward the bank it stood on. */
   id?: string;
-  /** Orders bets of one minute, as `playedOrder` does. None: after all of them (a bet being entered now). */
-  createdAt?: string;
 }
 
-/** A local `HH:MM` — the bet's clock, not UTC. */
-function clockOf(d: Date): string {
-  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+/** When a bet's result went into the book; `updatedAt` for bets saved before `settledAt` existed. */
+function resultRecordedAt(b: Bet): number {
+  const t = Date.parse(typeof b.settledAt === 'string' ? b.settledAt : b.updatedAt);
+  return Number.isNaN(t) ? Infinity : t;
+}
+
+/** Amounts in the order they went into the book, summed as they come. */
+interface Flow { at: number[]; sum: number[] }
+
+function flowOf(items: { at: number; amount: number }[]): Flow {
+  items.sort((a, b) => a.at - b.at);
+  const sum = [0];
+  for (const it of items) sum.push(sum[sum.length - 1]! + it.amount);
+  return { at: items.map((it) => it.at), sum };
+}
+
+/** What went in strictly before `t` — everything for "now" (Infinity), nothing for an unreadable moment (NaN). */
+function flowBefore(f: Flow | undefined, t: number): number {
+  if (!f) return 0;
+  if (t === Infinity) return f.sum[f.sum.length - 1]!;
+  let lo = 0;
+  let hi = f.at.length;
+  while (lo < hi) {
+    const mid = (lo + hi) >> 1;
+    if (f.at[mid]! < t) lo = mid + 1;
+    else hi = mid;
+  }
+  return f.sum[lo]!;
 }
 
 /**
- * The bank a bet was placed against, from the whole history. Shared by the
- * plan check, the bank share on a bet card, the bet form and Kelly, so none of
- * them can disagree about what "the bank" was.
+ * The bank a bet was placed against, from the whole history: what the book
+ * held when the bet was ENTERED. Shared by the plan check, the bank share on a
+ * bet card, the bet form and Kelly, so none of them can disagree about what
+ * "the bank" was — and a number, once shown, does not move when later results
+ * come in.
  *
- * It is the bank at the start of the bet's day with that day's deposits in —
- * topping up and then betting is the normal order, and a deposit entered after
- * the bets it paid for must not leave them without a bank — plus what happened
- * that day BEFORE the bet: the results of the bets played earlier (in
- * `playedOrder`) and the withdrawals and reconciliations entered earlier (a
- * transaction carries the moment it was entered).
+ * It is the bank at the start of the bet's day with all of that day's deposits
+ * in — topping up and then betting is the normal order, and a deposit entered
+ * after the bets it paid for must not leave them without a bank — plus what of
+ * that day was in the book before the bet was entered: the results recorded
+ * earlier (`settledAt`), the withdrawals and reconciliations entered earlier
+ * (a transaction carries the moment it was entered).
  *
  * Not the start of the day for every bet of it: that hid exactly what a
  * discipline tool must show. Two losses and a withdrawal in the afternoon, and
  * the evening bet — almost all of what was left — read "26.6% of bank", while
- * the bet form called a bank of 25 907 what the Bets screen said was 7. A
- * withdrawal entered in the evening still moves nothing for the morning's bets,
- * which is what the start-of-day rule was for.
+ * the bet form called a bank of 25 907 what the Bets screen said was 7.
+ * And not the match times: five bets placed together in the morning were all
+ * within the plan in the form, and once four of them lost, Analytics measured
+ * each later one against what the earlier ones' results left — results nobody
+ * knew when the bets were placed. What counts is what had been recorded.
  *
  * Bets dated ahead of today have no day of their own (the breakdown stops at
  * today); they were placed against the bank as it stands now — dating a bet by
@@ -458,48 +485,62 @@ export function bankAtBetTime(allBets: Bet[], transactions: BankrollTransaction[
   const bankNow = latest && funded ? latest.balance : 0;
   const lastDay = latest ? latest.date : '';
 
-  // What moved the bank inside each judged day, in the order it happened. Every
-  // bet of the day in played order, with the result the day's `pnl` sums
-  // (betPnl is 0 for a pending bet, a refund, a cashout with no amount) — the
-  // ones with no result too: a saved bet finds its own place by id, and one
-  // left out would count a bet of the same minute entered after it.
-  // Withdrawals out, reconciliations with their sign, at the minute entered.
-  const results = new Map<string, { time: string; createdAt: string; id: string; pnl: number }[]>();
-  for (const b of playedOrder(allBets)) {
+  // What moved the bank inside each judged day, in the order it went into the
+  // book: the results the day's `pnl` sums (betPnl is 0 for a pending bet, a
+  // refund, a cashout with no amount) at the moment each was recorded;
+  // withdrawals out and reconciliations with their sign at the moment entered.
+  const resultItems = new Map<string, { at: number; amount: number }[]>();
+  for (const b of allBets) {
     if (!atStart.has(b.date)) continue;
-    let list = results.get(b.date);
-    if (!list) { list = []; results.set(b.date, list); }
-    list.push({ time: b.time, createdAt: b.createdAt, id: b.id, pnl: betPnl(b) });
+    const pnl = betPnl(b);
+    if (pnl === 0) continue;
+    let list = resultItems.get(b.date);
+    if (!list) { list = []; resultItems.set(b.date, list); }
+    list.push({ at: resultRecordedAt(b), amount: pnl });
   }
-  const moves = new Map<string, { time: string; amount: number }[]>();
+  const moveItems = new Map<string, { at: number; amount: number }[]>();
   for (const tx of transactions) {
     if (tx.type === 'deposit') continue;
     const at = new Date(tx.date);
     if (isNaN(at.getTime())) continue;
     const day = toYmd(at);
     if (!atStart.has(day)) continue;
-    let list = moves.get(day);
-    if (!list) { list = []; moves.set(day, list); }
-    list.push({ time: clockOf(at), amount: tx.type === 'withdrawal' ? -tx.amount : tx.amount });
+    let list = moveItems.get(day);
+    if (!list) { list = []; moveItems.set(day, list); }
+    list.push({ at: at.getTime(), amount: tx.type === 'withdrawal' ? -tx.amount : tx.amount });
   }
+  const results = new Map<string, Flow>();
+  for (const [day, items] of resultItems) results.set(day, flowOf(items));
+  const moves = new Map<string, Flow>();
+  for (const [day, items] of moveItems) moves.set(day, flowOf(items));
+  let byId: Map<string, Bet> | undefined;
+  // Days whose results `balance` folds in: the series skips an unreadable date
+  // and one after its last day.
+  const inSeries = (d: string) => /^\d{4}-\d{2}-\d{2}$/.test(d) && d <= lastDay;
 
   return (at) => {
     const q: BankMoment = typeof at === 'string' ? { date: at } : at;
-    let bank = q.date > lastDay ? bankNow : atStart.get(q.date);
-    if (bank != null && q.time && q.date <= lastDay) {
-      const time = q.time;
-      for (const r of results.get(q.date) ?? []) {
-        if (q.id !== undefined && r.id === q.id) {
-          // Its own place in the played order: everything before it is in.
-          if (r.time === time) break;
-          continue; // moved to another minute on the form: itself never counts
+    const date = q.date;
+    let bank = date > lastDay ? bankNow : atStart.get(date);
+    if (bank == null) return null;
+    if (typeof at !== 'string') {
+      const t = q.createdAt === undefined ? Infinity : Date.parse(q.createdAt);
+      if (date <= lastDay) bank += flowBefore(results.get(date), t) + flowBefore(moves.get(date), t);
+      // Its own result is never its bank — wherever it went in: this day's
+      // flow, or (moved to another day on the form) an earlier day's balance.
+      if (q.id !== undefined) {
+        byId ??= new Map(allBets.map((b) => [b.id, b]));
+        const own = byId.get(q.id);
+        const pnl = own ? betPnl(own) : 0;
+        if (own && pnl !== 0) {
+          const counted = own.date === date
+            ? date <= lastDay && (t === Infinity || resultRecordedAt(own) < t)
+            : inSeries(own.date) && (date > lastDay || own.date < date);
+          if (counted) bank -= pnl;
         }
-        if (r.time < time || (r.time === time && (q.createdAt === undefined || r.createdAt <= q.createdAt))) bank += r.pnl;
       }
-      // The same minute counts as before: entered while the bet was being typed.
-      for (const m of moves.get(q.date) ?? []) if (m.time <= time) bank += m.amount;
     }
-    return bank == null || bank <= 0 ? null : bank;
+    return bank <= 0 ? null : bank;
   };
 }
 
@@ -683,7 +724,10 @@ export function calcPlanCompliance(
   for (const bet of evaluate) {
     if (bet.isFreebet) continue;
     const bank = bankAt(bet);
-    if (bank == null) continue;
+    // A stake larger than the bank is a book with a deposit never entered, as
+    // on the bet card (betBankShare): not a share to judge — one such bet read
+    // as an average ">999%" on the desktop card.
+    if (bank == null || bet.stake > bank) continue;
 
     const sharePct = (bet.stake / bank) * 100;
     const pnl = betPnl(bet);

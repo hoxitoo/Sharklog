@@ -110,6 +110,22 @@ describe('canAddBet – PRO daily limit', () => {
 // ─── addBet / deleteBet ───────────────────────────────────────────────────────
 
 describe('addBet', () => {
+  it('stamps when a result goes into the book — the moment the bank of later bets orders by', () => {
+    // bankAtBetTime counts a result for a bet entered after it was RECORDED,
+    // not after its match: settledAt is that moment, and only the result moves it.
+    const settled = makeBet({ status: 'won', createdAt: '2026-08-01T10:00:00.000Z' });
+    useBetsStore.getState().addBet(settled);
+    expect(useBetsStore.getState().bets.find((b) => b.id === settled.id)?.settledAt).toBe('2026-08-01T10:00:00.000Z');
+    const open = makeBet({ status: 'pending' });
+    useBetsStore.getState().addBet(open);
+    expect(useBetsStore.getState().bets.find((b) => b.id === open.id)?.settledAt).toBeUndefined();
+    useBetsStore.getState().updateBet(open.id, { status: 'lost' });
+    const stamped = useBetsStore.getState().bets.find((b) => b.id === open.id)?.settledAt;
+    expect(stamped).toBeDefined();
+    useBetsStore.getState().updateBet(open.id, { notes: 'later' });
+    expect(useBetsStore.getState().bets.find((b) => b.id === open.id)?.settledAt).toBe(stamped);
+  });
+
   it('prepends the bet to the list', () => {
     const bet = makeBet();
     useBetsStore.getState().addBet(bet);

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { Bet, AppSettings, Bankroll, DiaryEntry, Team } from '@sharklog/core';
-import { migrate, CURRENT_SCHEMA_VERSION, FREE_LIMITS, parseEventTeams, preselectedBookmakers, cleanTeamNames, upsertTeams } from '@sharklog/core';
+import { migrate, CURRENT_SCHEMA_VERSION, FREE_LIMITS, parseEventTeams, preselectedBookmakers, cleanTeamNames, upsertTeams, stampSettlement } from '@sharklog/core';
 import { loadData, saveData } from '../storage/storageService';
 
 function uuid(): string {
@@ -94,7 +94,9 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
     writeChain = writeChain.then(() => saveData(payload)).catch(console.error);
   },
 
-  addBet: (bet) => {
+  addBet: (entered) => {
+    // Entered with a result: the result went into the book with it (bankAtBetTime orders by it).
+    const bet = stampSettlement(undefined, entered, entered.createdAt);
     const teams = upsertTeams(get().teams, parseEventTeams(bet.event), bet.sport, bet.discipline, uuid);
     set((s) => ({ bets: [bet, ...s.bets], teams }));
     get().persist();
@@ -103,8 +105,10 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
   updateBet: (id, updates) => {
     set((s) => {
       const old = s.bets.find((b) => b.id === id);
+      const now = new Date().toISOString();
+      // settledAt moves only with the result — bankAtBetTime orders by it.
       const bets = s.bets.map((b) =>
-        b.id === id ? { ...b, ...updates, updatedAt: new Date().toISOString() } : b,
+        b.id === id ? stampSettlement(b, { ...b, ...updates, updatedAt: now }, now) : b,
       );
       const updated = bets.find((b) => b.id === id);
       // Only upsert teams when event or sport actually changed — avoids inflating
