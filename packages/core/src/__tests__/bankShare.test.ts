@@ -298,6 +298,28 @@ describe('bankAtBetTime — across days, and against a plain recount', () => {
     expect(bankAtBetTime([onTime], funds)(onTime)).toBe(1_000_000);
   });
 
+  it('never dates an old result before its bet went into the book', () => {
+    // A row a CSV imported before settledAt existed: entered at the import, a
+    // day long gone as its date. Capped at its own day alone, it rewrote the
+    // card of a bet entered five days before the import.
+    const earlier = bet({ date: '2026-08-05', stake: 20_000, status: 'pending', createdAt: at('2026-08-05', '12:00') });
+    const oldImport = bet({ date: '2026-07-01', stake: 250_000, odds: 3, createdAt: at('2026-08-09', '10:00'), updatedAt: at('2026-08-09', '10:00') }); // +5 000
+    const bankAt = bankAtBetTime([earlier, oldImport], [tx('deposit', 1_000_000, '2026-06-30')]);
+    expect(bankAt(earlier)).toBe(1_000_000);
+  });
+
+  it('gives a new bet dated yesterday the bank its card will show once saved', () => {
+    // The form sends "entered now": a bet for yesterday typed this morning is on
+    // the start of yesterday, as the card reads it after the save.
+    const d = '2026-08-04';
+    const funds = [tx('deposit', 1_000_000, d, '08:00'), tx('withdrawal', 900_000, d, '21:00')];
+    const typed = at('2026-08-05', '08:00');
+    const form = bankAtBetTime([], funds)({ date: d, createdAt: typed });
+    const saved = bet({ date: d, stake: 50_000, status: 'lost', createdAt: typed, settledAt: typed });
+    expect(form).toBe(1_000_000);
+    expect(bankAtBetTime([saved], funds)(saved)).toBe(form);
+  });
+
   it('gives two copies of one id each their own bank', () => {
     // A desktop book is not de-duplicated on load: the cache is the bet itself.
     const a = bet({ id: 'same', date: '2026-08-02', status: 'pending', createdAt: at('2026-08-02', '09:00') });
@@ -343,7 +365,8 @@ describe('bankAtBetTime — across days, and against a plain recount', () => {
         : b.status === 'lost' ? (b.isFreebet ? 0 : -b.stake)
         : b.status === 'cashout' && b.cashoutAmount != null ? b.cashoutAmount - b.stake : 0);
       const dayEnd = (d: string) => { const [y, m, dd] = d.split('-').map(Number); return new Date(y!, m! - 1, dd! + 1).getTime(); };
-      const recorded = (o: Bet) => o.settledAt !== undefined ? Date.parse(o.settledAt) : Math.min(Date.parse(o.updatedAt), dayEnd(o.date));
+      const recorded = (o: Bet) => o.settledAt !== undefined ? Date.parse(o.settledAt)
+        : Math.max(Date.parse(o.createdAt), Math.min(Date.parse(o.updatedAt), dayEnd(o.date)));
       for (const b of book) {
         const t = Date.parse(b.createdAt);
         // Entered once its day was over: the start of its day (and the days
