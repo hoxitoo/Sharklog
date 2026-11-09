@@ -540,18 +540,19 @@ export function AddBetScreen() {
   // Stake as a share of the bank — discipline feedback at the moment of the decision,
   // not in a report afterwards. Compared against the generated strategy's limit if set.
   // The bank is the one the bet will be judged by (bankAtBetTime — the bet card's
-  // and the plan card's): what the book held when the bet was entered — the
-  // day's deposits, and the results, withdrawals and reconciliations recorded
-  // before it; none before money first came in. A new bet entered now stands on
-  // the Bets screen's bank: measured from the start of the day, the form said
-  // "bank 25 907" after two losses and a withdrawal had left 7. An edited bet
-  // keeps the moment it was entered and never counts its own result.
+  // and the plan card's): what the book held when the bet was entered — every
+  // deposit up to its day, and the results, withdrawals and reconciliations
+  // recorded before it; none before money first came in. A new bet entered now
+  // stands on the Bets screen's bank: measured from the start of the day, the
+  // form said "bank 25 907" after two losses and a withdrawal had left 7. An
+  // edited bet keeps the moment it was entered and never counts its own result.
   const watchedDate = watch('date');
   const bankAt = useMemo(() => bankAtBetTime(bets, bankroll.transactions), [bets, bankroll.transactions]);
-  const bankTotal = bankAt({
+  // Not per keystroke: an edited bet's bank is a pass over the whole book.
+  const bankTotal = useMemo(() => bankAt({
     date: watchedDate,
     ...(editBet ? { id: editBet.id, createdAt: editBet.createdAt } : {}),
-  }) ?? 0;
+  }) ?? 0, [bankAt, watchedDate, editBet]);
   const bankShare = bankTotal > 0 && stakeKopecks > 0 ? (stakeKopecks / bankTotal) * 100 : null;
   // More own money than the whole bank: a deposit was never entered, or the
   // stake is not there to bet. Said in words — "71 428.6%" reads as nothing —

@@ -126,11 +126,13 @@ export interface DashboardStats {
   pnlCurve: Array<{ index: number; pnl: number }>;
 }
 
-/** Realized P&L for a single bet, in kopecks. 0 for pending/refund and lost freebets. */
 /**
  * The bet as it should be saved, with `settledAt` in step with its result:
  * stamped `now` when a result is recorded or changed (status, or a cashout's
- * amount), gone when the bet goes back to pending, kept on any other edit. An
+ * amount — only on a cashout: a stale amount a won bet carried from an old
+ * import is not a result, and a note fixed on it must not re-stamp it), gone
+ * when the bet goes back to pending, kept on any other edit — stake, odds or
+ * freebet corrections included: the result was known when it was. An
  * edit of a settled bet saved before the field existed pins the moment its
  * last edit stood for — `updatedAt` is about to move, and a note fixed in the
  * evening must not tell the bank that the morning's result came in then.
@@ -143,11 +145,14 @@ export function stampSettlement(prev: Bet | undefined, next: Bet, now: string): 
     delete out.settledAt;
     return out;
   }
-  if (!prev || prev.status !== next.status || prev.cashoutAmount !== next.cashoutAmount) return { ...next, settledAt: now };
+  const resultChanged = !prev || prev.status !== next.status
+    || (next.status === 'cashout' && prev.cashoutAmount !== next.cashoutAmount);
+  if (resultChanged) return { ...next, settledAt: now };
   if (prev.settledAt !== undefined) return { ...next, settledAt: prev.settledAt };
   return { ...next, settledAt: prev.updatedAt };
 }
 
+/** Realized P&L for a single bet, in kopecks. 0 for pending/refund and lost freebets. */
 export function betPnl(bet: Bet): number {
   if (bet.status === 'won') return Math.round(bet.stake * bet.odds) - bet.stake;
   if (bet.status === 'lost') return bet.isFreebet ? 0 : -bet.stake;
