@@ -48,6 +48,14 @@ jobs:
         run: cd packages/core && npx vitest run
       - name: Core — types
         run: cd packages/core && npx tsc --noEmit
+      # A bet's bank (bankAtBetTime) turns on local days and instants: the tests
+      # that pin it, and the ones built on it, run again at both ends of the clock.
+      - name: Core — bank tests at UTC−11 and UTC+14
+        run: |
+          cd packages/core
+          for tz in Pacific/Pago_Pago Pacific/Kiritimati; do
+            TZ=$tz npx vitest run src/__tests__/bankShare.test.ts src/__tests__/luckAndPlan.test.ts src/__tests__/strategyPlan.test.ts src/__tests__/betsCsv.test.ts src/__tests__/goals.test.ts
+          done
 
       - name: Desktop — tests
         run: cd apps/desktop && npm test

@@ -320,6 +320,52 @@ describe('bankAtBetTime — across days, and against a plain recount', () => {
     expect(bankAtBetTime([saved], funds)(saved)).toBe(form);
   });
 
+  it('gives bets typed in after the fact the same bank whatever order they were typed in', () => {
+    // Review before the merge: the weekend typed in on Monday. Oldest first,
+    // Sunday's 1 500 loss read −75% (bank 2 000); newest first — the order a
+    // bookmaker's history lists them — −15%. Both are the start of Sunday: 2 000.
+    const fri = '2026-08-07';
+    const sat = '2026-08-08';
+    const sun = '2026-08-09';
+    const monday = (hhmm: string) => at('2026-08-10', hhmm);
+    const typed = (order: string[]) => {
+      const t = Object.fromEntries(order.map((d, i) => [d, monday(`09:0${i}`)]));
+      return [
+        bet({ id: 'fri', date: fri, stake: 600_000, status: 'lost', createdAt: t[fri]!, settledAt: t[fri]! }),
+        bet({ id: 'sat', date: sat, stake: 200_000, status: 'lost', createdAt: t[sat]!, settledAt: t[sat]! }),
+        bet({ id: 'sun', date: sun, stake: 150_000, status: 'lost', createdAt: t[sun]!, settledAt: t[sun]! }),
+      ];
+    };
+    const funds = [tx('deposit', 1_000_000, '2026-08-01')];
+    for (const order of [[fri, sat, sun], [sun, sat, fri], [sat, sun, fri]]) {
+      const book = typed(order);
+      const bankAt = bankAtBetTime(book, funds);
+      expect(book.map((b) => bankAt(b))).toEqual([1_000_000, 400_000, 200_000]);
+    }
+  });
+
+  it('lets an imported history judge itself as if it had been entered day by day', () => {
+    // Sixty rows at 3% of the running bank, imported in one millisecond: under
+    // a 5% plan not one is a breach — nine were, when the rows took each
+    // other's results out.
+    const funds = [tx('deposit', 1_000_000, '2026-06-01')];
+    const importedAt = at('2026-09-01', '10:00');
+    const rows: Bet[] = [];
+    let bank = 1_000_000;
+    for (let i = 0; i < 60; i++) {
+      const date = toYmd(new Date(2026, 5, 2 + i));
+      const stake = Math.floor(bank * 0.03);
+      const won = i % 3 !== 2;
+      rows.push(bet({ date, stake, odds: 2, status: won ? 'won' : 'lost', createdAt: importedAt, updatedAt: importedAt, settledAt: importedAt }));
+      bank += won ? stake : -stake;
+    }
+    const c = calcPlanCompliance(rows, funds, 5)!;
+    expect([c.over, c.total]).toEqual([0, 60]);
+    // The same rows saved before the stamp existed (no settledAt): the same.
+    const legacy = rows.map(({ settledAt: _s, ...b }) => b as Bet);
+    expect(calcPlanCompliance(legacy, funds, 5)!.over).toBe(0);
+  });
+
   it('gives two copies of one id each their own bank', () => {
     // A desktop book is not de-duplicated on load: the cache is the bet itself.
     const a = bet({ id: 'same', date: '2026-08-02', status: 'pending', createdAt: at('2026-08-02', '09:00') });
@@ -369,20 +415,20 @@ describe('bankAtBetTime — across days, and against a plain recount', () => {
         : Math.max(Date.parse(o.createdAt), Math.min(Date.parse(o.updatedAt), dayEnd(o.date)));
       for (const b of book) {
         const t = Date.parse(b.createdAt);
-        // Entered once its day was over: the start of its day (and the days
-        // before, as they stood at entry); otherwise the day itself as it stood.
+        // Entered once its day was over: the start of its day, every earlier
+        // day in full; otherwise its day and the days before as they stood at entry.
         const late = t >= dayEnd(b.date);
-        const counts = (day: string) => (late ? day < b.date : day <= b.date);
         let want = 0;
         for (const x of txs) {
           const when = new Date(x.date);
-          if (toYmd(when) > b.date) continue;
+          const day = toYmd(when);
+          if (day > b.date) continue;
           if (x.type === 'deposit') want += x.amount;
-          else if (counts(toYmd(when)) && when.getTime() < t) want += x.type === 'withdrawal' ? -x.amount : x.amount;
+          else if (late ? day < b.date : when.getTime() < t) want += x.type === 'withdrawal' ? -x.amount : x.amount;
         }
         for (const o of book) {
-          if (o.id === b.id || !counts(o.date)) continue;
-          if (recorded(o) < t) want += pnl(o);
+          if (o.id === b.id) continue;
+          if (late ? o.date < b.date : o.date <= b.date && recorded(o) < t) want += pnl(o);
         }
         expect(bankAt(b)).toBe(want > 0 ? want : null);
         // The same question asked one by one (the form's path) gives the same.
