@@ -34,7 +34,6 @@
     "pick": "Pick",
     "odds": "Odds",
     "date": "Date",
-    "time": "Time",
     "bookmaker": "Bookmaker",
     "notes": "Notes",
     "tournament": "Tournament / League",
@@ -561,7 +560,8 @@
     "resultTitle": "Match over — what's the result?",
     "actionWon": "Won",
     "actionLost": "Lost",
-    "actionLater": "Later"
+    "actionLater": "Later",
+    "snoozed": "I'll remind you about the result at {{time}}"
   },
   "picks": {
     "home": "Home",
@@ -610,6 +610,9 @@
     "customStrategy": "Name the strategy",
     "customStrategyPh": "Match bet, Arbitrage...",
     "timePh": "HH:MM",
+    "remindAt": "Result reminder at about {{when}}",
+    "matchTimeExpress": "Last kick-off",
+    "matchTime": "Kick-off",
     "tournamentPh": "Champions League, Premier League, CS2 Major...",
     "closingOdds": "Closing odds (CLV) — optional",
     "closingOddsPh": "E.g. {{example}} — the odds at kick-off",

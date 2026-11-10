@@ -12,3 +12,6 @@ export const syncRemindersFor = jest.fn();
 export const setBetPendingResolver = jest.fn();
 export const setReminderOddsFormat = jest.fn();
 export const reminderFireAt = jest.fn(() => null);
+export const SNOOZE_MIN = 60;
+export const snoozeBetResultReminder = jest.fn(async () => null);
+export const readBetResultAction = jest.fn(() => null);

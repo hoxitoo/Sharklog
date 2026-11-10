@@ -156,17 +156,44 @@ export function reminderFireAt(bet: Bet, now = Date.now()): number | null {
   return at > now + 60_000 ? at : null;
 }
 
-/** Registers the W/L action buttons. Safe to call repeatedly. */
+/** How far «Позже» pushes a result reminder. */
+export const SNOOZE_MIN = 60;
+
+/**
+ * Registers the W/L/Later action buttons. Safe to call repeatedly.
+ *
+ * Every button opens the app — «Позже» too. A button that does not
+ * (`opensAppToForeground: false`) reaches JS only if the app is alive in the
+ * background: killed, expo-notifications parks the response until the next
+ * launch and nothing happens on the tap (ExpoHandlingDelegate.kt,
+ * handleNotificationResponse; a background task would need expo-task-manager,
+ * which the app does not ship). Android does not take a notification down when
+ * one of its buttons is pressed either, so «Позже» left the reminder sitting in
+ * the shade, doing nothing — the report from a phone. Opened, the app snoozes
+ * the reminder and says until when (App.tsx).
+ */
 export async function registerBetResultCategory(): Promise<void> {
   try {
     await Notifications.setNotificationCategoryAsync(BET_RESULT_CATEGORY, [
       { identifier: 'won', buttonTitle: i18n.t('notifications.actionWon'), options: { opensAppToForeground: true } },
       { identifier: 'lost', buttonTitle: i18n.t('notifications.actionLost'), options: { opensAppToForeground: true } },
-      { identifier: 'later', buttonTitle: i18n.t('notifications.actionLater'), options: { opensAppToForeground: false } },
+      { identifier: 'later', buttonTitle: i18n.t('notifications.actionLater'), options: { opensAppToForeground: true } },
     ]);
   } catch {
     // category API unavailable — notifications still work, just without buttons
   }
+}
+
+/** A tap on a result reminder's button: which bet, and what to do with it. Anything else — null. */
+export function readBetResultAction(
+  response: Notifications.NotificationResponse | null,
+): { betId: string; action: 'won' | 'lost' | 'later' } | null {
+  const data = response?.notification?.request?.content?.data as Record<string, unknown> | undefined;
+  if (!data || data['type'] !== 'bet_result') return null;
+  const action = response!.actionIdentifier;
+  if (action !== 'won' && action !== 'lost' && action !== 'later') return null;
+  const betId = typeof data['betId'] === 'string' ? data['betId'] : '';
+  return betId ? { betId, action } : null;
 }
 
 export async function cancelBetResultReminder(betId: string): Promise<void> {
@@ -227,8 +254,10 @@ export async function scheduleBetResultReminder(bet: Bet): Promise<void> {
 async function armReminder(bet: Bet): Promise<void> {
   const at = reminderFireAt(bet);
   if (at === null) return;
-  const fireAt = new Date(at);
+  await scheduleReminderAt(bet, at);
+}
 
+async function scheduleReminderAt(bet: Bet, at: number): Promise<void> {
   await Notifications.scheduleNotificationAsync({
     identifier: reminderId(bet.id), // replaces any existing reminder for this bet
     content: {
@@ -239,8 +268,33 @@ async function armReminder(bet: Bet): Promise<void> {
       categoryIdentifier: BET_RESULT_CATEGORY,
       data: { type: 'bet_result', betId: bet.id },
     },
-    trigger: { type: 'date', date: fireAt } as Notifications.DateTriggerInput,
+    trigger: { type: 'date', date: new Date(at) } as Notifications.DateTriggerInput,
   });
+}
+
+/**
+ * «Позже»: takes the reminder down from the shade and brings it back in
+ * `minutes`. Resolves to the moment it will come, or null when it could not be
+ * scheduled (no permission) — the caller says "I'll remind you at …" only then.
+ * The reconcile on launch keeps it: the bet is still pending and something is
+ * scheduled for it.
+ */
+export async function snoozeBetResultReminder(bet: Bet, minutes = SNOOZE_MIN, now = Date.now()): Promise<number | null> {
+  let at: number | null = null;
+  await enqueue(async () => {
+    await dismissBetResultNotification(bet.id);
+    if (bet.status !== 'pending') return;
+    try {
+      const { status } = await Notifications.getPermissionsAsync();
+      if (status !== 'granted') return;
+      const when = now + minutes * 60_000;
+      await scheduleReminderAt(bet, when);
+      at = when;
+    } catch {
+      // scheduling unavailable
+    }
+  });
+  return at;
 }
 
 /** Removes an already-delivered reminder from the tray (cancelling only kills pending ones). */

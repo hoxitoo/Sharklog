@@ -26,6 +26,8 @@ import { sportLabel, betTypeLabel, strategyLabel, disciplineLabel } from '../../
 import { colors, signalTint, signalInk } from '../../theme/colors';
 import { useBetsStore, effectiveDailyLimit } from '../../store/betsStore';
 import { askForRemindersOnce } from '../../utils/reminderPermission';
+import { reminderFireAt } from '../../utils/notifications';
+import { dayMonth } from '../../utils/calendar';
 import { haptic } from '../../utils/haptics';
 import { Analytics } from '../../services/analytics';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
@@ -585,6 +587,21 @@ export function AddBetScreen() {
   // at the bookmaker belongs in the book — refusing it made the tracker lie.
   const dailyLimit = effectiveDailyLimit(settings);
   const overDailyLimit = !editBet && dailyLimit > 0 && dayCount + 1 > dailyLimit;
+
+  // When the result reminder will come — the same reminderFireAt the reminder
+  // is scheduled with (kick-off plus the sport's length; an accumulator's sport
+  // is its first leg's, as it is saved). Only for a bet still in play, with
+  // reminders on; none once that moment is past.
+  const watchedTime = watch('time');
+  const reminderSport = isSingle ? watchedSport : (legs[0]?.sport ?? watchedSport);
+  const reminderWhen = useMemo(() => {
+    if (watchedStatus !== 'pending' || settings.betResultReminders === false) return null;
+    const at = reminderFireAt({ date: watchedDate, time: (watchedTime ?? '').trim() || defaultTime, sport: reminderSport } as Bet);
+    if (at === null) return null;
+    const when = new Date(at);
+    const clock = when.toTimeString().slice(0, 5);
+    return toYmd(when) === toYmd(new Date()) ? clock : `${dayMonth(toYmd(when))} ${clock}`;
+  }, [watchedStatus, settings.betResultReminders, watchedDate, watchedTime, reminderSport, defaultTime]);
 
   // Same rounding the bet is saved with, so the preview cannot promise a payout
   // the stored bet will not produce.
@@ -1299,6 +1316,45 @@ export function AddBetScreen() {
           </Field>
         )}
 
+        {/* ── Date + kick-off ─── */}
+        {/* Out of the folded extras: the result reminder fires at kick-off plus
+            the match's length, and with the time hidden it stayed the moment the
+            bet was typed in — a bet placed in the morning on an evening match
+            reminded by lunchtime (report from a phone). The line under it says
+            when the reminder will come. */}
+        <View style={styles.row2}>
+          <Field style={styles.half} label={t('bet.date')}>
+            {/* A calendar, not a YYYY-MM-DD box: a typed "5.11" was saved as
+                is and the bet fell out of every day it belonged to. */}
+            <Controller
+              control={control}
+              name="date"
+              render={({ field: { onChange, value } }) => (
+                <DateField label={t('bet.date')} value={value} onChange={onChange} placeholder={t('datePicker.pick')} />
+              )}
+            />
+          </Field>
+          <Field style={styles.half} label={isSingle ? t('addBet.matchTime') : t('addBet.matchTimeExpress')}>
+            <Controller
+              control={control}
+              name="time"
+              render={({ field: { onChange, value } }) => (
+                <TextInput
+                  style={inputStyle}
+                  placeholder={t('addBet.timePh')}
+                  placeholderTextColor={colors.textMuted}
+                  value={value}
+                  onChangeText={onChange}
+                  keyboardType="numbers-and-punctuation"
+                />
+              )}
+            />
+          </Field>
+        </View>
+        {reminderWhen !== null && (
+          <Text style={styles.remindAt}>{t('addBet.remindAt', { when: reminderWhen })}</Text>
+        )}
+
         {/* ── Extra fields toggle ─── */}
         <TouchableOpacity
           style={styles.extraToggle}
@@ -1360,37 +1416,6 @@ export function AddBetScreen() {
                 )}
               />
             </Field>
-
-            {/* ── Date + Time ─── */}
-            <View style={styles.row2}>
-              <Field style={styles.half} label={t('bet.date')}>
-                {/* A calendar, not a YYYY-MM-DD box: a typed "5.11" was saved as
-                    is and the bet fell out of every day it belonged to. */}
-                <Controller
-                  control={control}
-                  name="date"
-                  render={({ field: { onChange, value } }) => (
-                    <DateField label={t('bet.date')} value={value} onChange={onChange} placeholder={t('datePicker.pick')} />
-                  )}
-                />
-              </Field>
-              <Field style={styles.half} label={t('bet.time')}>
-                <Controller
-                  control={control}
-                  name="time"
-                  render={({ field: { onChange, value } }) => (
-                    <TextInput
-                      style={inputStyle}
-                      placeholder={t('addBet.timePh')}
-                      placeholderTextColor={colors.textMuted}
-                      value={value}
-                      onChangeText={onChange}
-                      keyboardType="numbers-and-punctuation"
-                    />
-                  )}
-                />
-              </Field>
-            </View>
 
             {/* ── Tournament + Notes ─── */}
             <Field label={t('bet.tournament')}>
@@ -1675,6 +1700,8 @@ const styles = themedStyles(() => ({
     backgroundColor: signalTint(colors.pending, 0.094), borderWidth: 1, borderColor: signalTint(colors.pending, 0.333),
   },
   planNoteText: { fontSize: SIZE.caption, fontWeight: '600', color: signalInk(colors.pending) },
+  // Under the date and kick-off: when the result reminder will come.
+  remindAt: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: -SPACE.sm, marginBottom: SPACE.lg },
   outcomePicker: {
     flexDirection: 'row',
     gap: SPACE.sm,

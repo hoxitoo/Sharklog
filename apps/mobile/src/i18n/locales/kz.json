@@ -34,7 +34,6 @@
     "pick": "Нәтиже",
     "odds": "Коэффициент",
     "date": "Күні",
-    "time": "Уақыты",
     "bookmaker": "Букмекер",
     "notes": "Жазбалар",
     "tournament": "Турнир / Лига",
@@ -561,7 +560,8 @@
     "resultTitle": "Матч аяқталды — нәтиже қандай?",
     "actionWon": "Жеңді",
     "actionLost": "Жеңілді",
-    "actionLater": "Кейінірек"
+    "actionLater": "Кейінірек",
+    "snoozed": "Нәтиже туралы {{time}} еске саламын"
   },
   "picks": {
     "home": "П1",
@@ -610,6 +610,9 @@
     "customStrategy": "Стратегияны нақтылаңыз",
     "customStrategyPh": "Матч-ставка, Арбитраж...",
     "timePh": "СС:ММ",
+    "remindAt": "Нәтиже туралы шамамен {{when}} еске саламын",
+    "matchTimeExpress": "Соңғы матчтың басталуы",
+    "matchTime": "Матч басталуы",
     "tournamentPh": "Чемпиондар лигасы, РПЛ, CS2 Major...",
     "closingOdds": "Жабылу коэфі (CLV) — міндетті емес",
     "closingOddsPh": "Мыс. {{example}} — матч басталар алдындағы коэф",

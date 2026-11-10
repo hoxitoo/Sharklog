@@ -34,7 +34,6 @@
     "pick": "Исход",
     "odds": "Коэффициент",
     "date": "Дата",
-    "time": "Время",
     "bookmaker": "Букмекер",
     "notes": "Заметки",
     "tournament": "Турнир / Лига",
@@ -607,7 +606,8 @@
     "resultTitle": "Матч завершён — какой результат?",
     "actionWon": "Выиграла",
     "actionLost": "Проиграла",
-    "actionLater": "Позже"
+    "actionLater": "Позже",
+    "snoozed": "Напомню о результате в {{time}}"
   },
   "picks": {
     "home": "П1",
@@ -656,6 +656,9 @@
     "customStrategy": "Уточни стратегию",
     "customStrategyPh": "Матч-ставка, Арбитраж...",
     "timePh": "ЧЧ:ММ",
+    "remindAt": "Напомню о результате около {{when}}",
+    "matchTimeExpress": "Начало последнего матча",
+    "matchTime": "Начало матча",
     "tournamentPh": "Лига Чемпионов, РПЛ, CS2 Major...",
     "closingOdds": "Кэф закрытия (CLV) — необязательно",
     "closingOddsPh": "Напр. {{example}} — кэф перед стартом матча",

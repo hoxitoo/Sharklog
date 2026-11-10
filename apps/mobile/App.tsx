@@ -28,6 +28,7 @@ import { isOddsFormat } from '@sharklog/core';
 import {
   scheduleDailyReminder, registerBetResultCategory,
   setBetPendingResolver, syncRemindersFor, setReminderOddsFormat,
+  readBetResultAction, snoozeBetResultReminder,
 } from './src/utils/notifications';
 import { initRevenueCat, syncEntitlement } from './src/services/revenueCat';
 import { resumePendingPayment, takePaidNotice, checkLicenseStanding } from './src/services/purchase';
@@ -121,7 +122,7 @@ function AppRoot() {
   // Settling a bet straight from a notification button. The action can arrive before
   // the store has loaded (cold start) — applying it then would mutate an EMPTY store
   // and persist that over real data, so buffer it until `isLoaded`.
-  const queuedAction = useRef<{ betId: string; status: 'won' | 'lost' } | null>(null);
+  const queuedAction = useRef<{ betId: string; action: 'won' | 'lost' | 'later' } | null>(null);
 
   const flushQueuedAction = useCallback(() => {
     const queued = queuedAction.current;
@@ -130,8 +131,19 @@ function AppRoot() {
     if (!store.isLoaded) return;
     queuedAction.current = null;
     const bet = store.bets.find((b) => b.id === queued.betId);
+    if (queued.action === 'later') {
+      // «Позже»: the reminder leaves the shade and comes back in an hour —
+      // said out loud, since the tap opened the app (notifications.ts says why).
+      if (!bet) return;
+      snoozeBetResultReminder(bet).then((at) => {
+        if (at === null) return;
+        const when = new Date(at).toTimeString().slice(0, 5);
+        requestAnimationFrame(() => Alert.alert(i18n.t('notifications.snoozed', { time: when })));
+      }).catch(() => {});
+      return;
+    }
     if (!bet || bet.status !== 'pending') return; // already settled elsewhere
-    store.updateBet(queued.betId, { status: queued.status });
+    store.updateBet(queued.betId, { status: queued.action });
   }, []);
 
   useEffect(() => {
@@ -141,16 +153,19 @@ function AppRoot() {
       return !!bet && bet.status === 'pending';
     });
 
+    // One tap can arrive twice on a cold start: as the last response AND as the
+    // response expo-notifications parked for the first listener. Won/Lost are
+    // idempotent (the bet is no longer pending); «Позже» would snooze and say
+    // so twice — so each tap is handled once, and the last response cleared.
+    const handled = new Set<string>();
     const handle = (response: Notifications.NotificationResponse | null) => {
-      const data = response?.notification?.request?.content?.data as
-        | Record<string, unknown>
-        | undefined;
-      if (!data || data['type'] !== 'bet_result') return;
-      const action = response!.actionIdentifier;
-      if (action !== 'won' && action !== 'lost') return;
-      const betId = typeof data['betId'] === 'string' ? data['betId'] : '';
-      if (!betId) return;
-      queuedAction.current = { betId, status: action };
+      const tapped = readBetResultAction(response);
+      if (!tapped) return;
+      const key = `${response!.notification.request.identifier}|${response!.actionIdentifier}|${response!.notification.date}`;
+      if (handled.has(key)) return;
+      handled.add(key);
+      try { Notifications.clearLastNotificationResponse(); } catch { /* older native module */ }
+      queuedAction.current = tapped;
       flushQueuedAction();
     };
 

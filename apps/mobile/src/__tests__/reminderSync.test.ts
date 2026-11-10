@@ -7,7 +7,7 @@ import type { Bet } from '@sharklog/core';
  * notice: a reminder that never comes.
  */
 
-type Scheduled = { identifier: string; content: { title?: string; data?: Record<string, unknown> } };
+type Scheduled = { identifier: string; content: { title?: string; data?: Record<string, unknown> }; trigger?: { date?: Date } };
 const mockScheduled = new Map<string, Scheduled>();
 const mockCancelled: string[] = [];
 
@@ -24,14 +24,17 @@ jest.mock('expo-notifications', () => ({
     mockScheduled.delete(id);
   }),
   scheduleNotificationAsync: jest.fn(async (req: Scheduled) => {
-    mockScheduled.set(req.identifier, { identifier: req.identifier, content: req.content });
+    mockScheduled.set(req.identifier, { identifier: req.identifier, content: req.content, ...(req.trigger ? { trigger: req.trigger } : {}) });
     return req.identifier;
   }),
 }));
 
 // Not '../utils/notifications': jest.config maps that path to the store's mock.
 // eslint-disable-next-line import/first
-import { syncBetResultReminders, syncRemindersFor, reminderFireAt } from '../../src/utils/notifications';
+import {
+  syncBetResultReminders, syncRemindersFor, reminderFireAt,
+  registerBetResultCategory, snoozeBetResultReminder, readBetResultAction, SNOOZE_MIN,
+} from '../../src/utils/notifications';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -178,5 +181,54 @@ describe('the launch sync', () => {
     await syncBetResultReminders(many, true);
     expect(mockScheduled.size).toBe(5);
     expect(perm).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('«Позже» on a result reminder', () => {
+  it('opens the app — a button that does not, does nothing on a killed app', async () => {
+    // expo-notifications parks a non-foreground action until the next launch
+    // when the app is not running, and Android leaves the notification in the
+    // shade: «Позже» was a dead button (report from a phone).
+    await registerBetResultCategory();
+    const [, actions] = (Notifications.setNotificationCategoryAsync as jest.Mock).mock.calls.at(-1)!;
+    for (const a of actions as { identifier: string; options: { opensAppToForeground: boolean } }[]) {
+      expect(`${a.identifier}: ${a.options.opensAppToForeground}`).toBe(`${a.identifier}: true`);
+    }
+  });
+
+  it('takes the reminder down and brings it back in an hour, under the same id', async () => {
+    (Notifications.getPresentedNotificationsAsync as jest.Mock).mockClear();
+    const b = bet('s', '09:00');
+    const at = await snoozeBetResultReminder(b, SNOOZE_MIN, NOW);
+    expect(at).toBe(NOW + 60 * 60_000);
+    expect(mockScheduled.get('bet-result-s')?.trigger?.date?.getTime()).toBe(NOW + 60 * 60_000);
+    expect(Notifications.getPresentedNotificationsAsync).toHaveBeenCalled();
+  });
+
+  it('promises nothing it cannot keep: no permission, or the bet already settled', async () => {
+    (Notifications.getPermissionsAsync as jest.Mock).mockResolvedValueOnce({ status: 'denied' });
+    expect(await snoozeBetResultReminder(bet('p', '09:00'), SNOOZE_MIN, NOW)).toBeNull();
+    expect(await snoozeBetResultReminder(bet('w', '09:00', { status: 'won' }), SNOOZE_MIN, NOW)).toBeNull();
+    expect(mockScheduled.size).toBe(0);
+  });
+
+  it('is kept by the launch reconcile while the bet is pending', async () => {
+    const b = bet('k', '09:00'); // its own reminder time is long past
+    await snoozeBetResultReminder(b, SNOOZE_MIN, NOW);
+    await syncBetResultReminders([b], true);
+    expect(mockScheduled.has('bet-result-k')).toBe(true);
+    expect(mockCancelled).not.toContain('bet-result-k');
+  });
+
+  it('reads which bet and which button a tap was', () => {
+    const tap = (actionIdentifier: string, data: Record<string, unknown>) =>
+      ({ actionIdentifier, notification: { request: { content: { data } } } }) as unknown as Notifications.NotificationResponse;
+    expect(readBetResultAction(tap('later', { type: 'bet_result', betId: 'x' }))).toEqual({ betId: 'x', action: 'later' });
+    expect(readBetResultAction(tap('won', { type: 'bet_result', betId: 'x' }))).toEqual({ betId: 'x', action: 'won' });
+    // The body tap, another notification, no bet: nothing to do.
+    expect(readBetResultAction(tap('expo.modules.notifications.actions.DEFAULT', { type: 'bet_result', betId: 'x' }))).toBeNull();
+    expect(readBetResultAction(tap('won', { type: 'tilt' }))).toBeNull();
+    expect(readBetResultAction(tap('won', { type: 'bet_result' }))).toBeNull();
+    expect(readBetResultAction(null)).toBeNull();
   });
 });

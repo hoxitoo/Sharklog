@@ -34,7 +34,6 @@
     "pick": "Вынік",
     "odds": "Каэфіцыент",
     "date": "Дата",
-    "time": "Час",
     "bookmaker": "Букмекер",
     "notes": "Нататкі",
     "tournament": "Турнір / Ліга",
@@ -607,7 +606,8 @@
     "resultTitle": "Матч скончаны — які вынік?",
     "actionWon": "Выйграла",
     "actionLost": "Прайграла",
-    "actionLater": "Пазней"
+    "actionLater": "Пазней",
+    "snoozed": "Нагадаю пра вынік у {{time}}"
   },
   "picks": {
     "home": "П1",
@@ -656,6 +656,9 @@
     "customStrategy": "Удакладніце стратэгію",
     "customStrategyPh": "Матч-стаўка, Арбітраж...",
     "timePh": "ГГ:ХХ",
+    "remindAt": "Нагадаю пра вынік каля {{when}}",
+    "matchTimeExpress": "Пачатак апошняга матча",
+    "matchTime": "Пачатак матча",
     "tournamentPh": "Ліга чэмпіёнаў, РПЛ, CS2 Major...",
     "closingOdds": "Каэф закрыцця (CLV) — неабавязкова",
     "closingOddsPh": "Напр. {{example}} — каэф перад пачаткам матча",
