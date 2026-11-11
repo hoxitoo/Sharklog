@@ -67,6 +67,8 @@ utils/
   goals.ts            — calcGoalProgress(goal, bets, txs, now): прогресс, срок, темп, прогноз, ROI, ряд для
                         графика; activeGoals / mainGoal; addDays / daysBetween (календарные дни, без DST)
   teams.ts            — upsertTeams(список, имена, спорт, дисциплина, newId) / cleanTeamNames — список команд обоих сторов
+                        teamsFromBets(bets) — подсказки команд из самих ставок (спорт и дисциплина — как у ставок сейчас;
+                        у экспресса — первая нога), кэш на массив; sportOfTeam(team) — что ставит форма при выборе команды
   heatmap.ts          — calcHeatmap(bets, weeks, now) (дни × 7, P&L через betPnl) / heatLevel(день) −3…3 или null
   strategyBuilder.ts  — STRATEGY_QUESTIONS (10 вопросов), buildStrategy(answers),
                         STRATEGY_ODDS_BANDS — диапазоны кэфов и для вопроса, и для плана;

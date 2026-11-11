@@ -14,6 +14,7 @@ import type { Sport, BetType, Strategy, BetStatus, EsportsDiscipline, Team, Bet 
 import {
   SPORTS, BET_TYPES, STRATEGIES, ESPORTS_DISCIPLINES, PICK, parseMoneyInput,
   impliedProbability, kellyFraction, expectedValue, recommendedStake, inPlanOdds, stakeOverPlan, strategyPlan, strategySince, activeStrategy, bankAtBetTime, combineExpressOdds, formatOddsAs, CURRENT_SCHEMA_VERSION, FREE_LIMITS, toYmd, stepProbability, side1x2,
+  teamsFromBets, sportOfTeam,
 } from '@sharklog/core';
 import { useTranslation } from 'react-i18next';
 import { FilterPicker } from '../../components/FilterPicker';
@@ -93,33 +94,33 @@ interface ExpressLeg {
 // ── Single Team Input with autocomplete ───────────────────────────────────────
 
 function SingleTeamInput({
-  value, onChange, onSubmitEditing, textInputRef, placeholder, sport, discipline,
+  value, onChange, onSubmitEditing, onPickTeam, textInputRef, placeholder, sport, discipline,
 }: {
   value: string;
   onChange: (v: string) => void;
   onSubmitEditing?: () => void;
+  /** A known team picked from the list — the form takes its sport and discipline (sportOfTeam). */
+  onPickTeam?: (team: Team) => void;
   textInputRef?: React.RefObject<TextInputRef | null>;
   placeholder?: string;
   sport: Sport;
   discipline: EsportsDiscipline;
 }) {
-  const teams = useBetsStore((s) => s.teams);
+  // From the bets as they are, not the stored team list: that one only added,
+  // and a team whose bet moved from football to hockey stayed under both.
+  const bets = useBetsStore((s) => s.bets);
+  const teams = teamsFromBets(bets);
   const { t } = useTranslation();
   const [focused, setFocused] = useState(false);
 
+  // Every sport and discipline a name has, closest to the form first: a pick
+  // sets the sport, so Spirit (Dota 2) is offered on a CS2 form too — badged.
   const suggestions = useMemo<Team[]>(() => {
     if (!focused || value.length < 1) return [];
+    const near = (x: Team) => (x.sport === sport ? 2 : 0) + (x.sport === 'esports' && x.discipline === discipline ? 1 : 0);
     return teams
-      .filter((t) => {
-        if (sport === 'esports' && t.sport === 'esports' && t.discipline && t.discipline !== discipline) return false;
-        return t.name.toLowerCase().includes(value.toLowerCase());
-      })
-      .sort((a, b) => {
-        const sameA = a.sport === sport ? 1 : 0;
-        const sameB = b.sport === sport ? 1 : 0;
-        if (sameB !== sameA) return sameB - sameA;
-        return b.usageCount - a.usageCount;
-      })
+      .filter((x) => x.name.toLowerCase().includes(value.toLowerCase()))
+      .sort((a, b) => near(b) - near(a) || b.usageCount - a.usageCount)
       .slice(0, 5);
   }, [teams, value, sport, discipline, focused]);
 
@@ -146,6 +147,7 @@ function SingleTeamInput({
               style={ac.item}
               onPress={() => {
                 onChange(team.name);
+                onPickTeam?.(team);
                 setFocused(false);
                 onSubmitEditing?.();
               }}
@@ -638,6 +640,21 @@ export function AddBetScreen() {
   function updateLeg<K extends keyof ExpressLeg>(idx: number, key: K, val: ExpressLeg[K]) {
     setLegs((prev) => prev.map((l, i) => i === idx ? { ...l, [key]: val } : l));
   }
+  // Picking a known team sets its sport — and, for esports, its discipline —
+  // from where its bets are (sportOfTeam): Spirit as a Dota 2 team makes the
+  // bet Киберспорт · Dota 2 without opening the two pickers.
+  function pickTeamSport(team: Team) {
+    const s = sportOfTeam(team);
+    if (!s) return;
+    setValue('sport', s.sport);
+    if (s.discipline) setValue('discipline', s.discipline);
+  }
+  function pickLegSport(idx: number, team: Team) {
+    const s = sportOfTeam(team);
+    if (!s) return;
+    setLegs((prev) => prev.map((l, i) => (i === idx ? { ...l, sport: s.sport, ...(s.discipline ? { discipline: s.discipline } : {}) } : l)));
+  }
+
 
   function onSubmit(data: FormData) { try {
     const stakeVal = parseMoneyInput(data.stake);
@@ -853,6 +870,7 @@ export function AddBetScreen() {
                     value={value}
                     onChange={onChange}
                     onSubmitEditing={() => team2Ref.current?.focus()}
+                    onPickTeam={pickTeamSport}
                     placeholder="NaVi, FC Barcelona..."
                     sport={watchedSport}
                     discipline={watchedDiscipline}
@@ -870,6 +888,7 @@ export function AddBetScreen() {
                     value={value}
                     onChange={onChange}
                     textInputRef={team2Ref}
+                    onPickTeam={pickTeamSport}
                     placeholder="Virtus.pro, Real Madrid..."
                     sport={watchedSport}
                     discipline={watchedDiscipline}
@@ -965,6 +984,7 @@ export function AddBetScreen() {
                   <SingleTeamInput
                     value={leg.team1}
                     onChange={(v) => updateLeg(i, 'team1', v)}
+                    onPickTeam={(team) => pickLegSport(i, team)}
                     placeholder={t('bet.team1')}
                     sport={leg.sport}
                     discipline={leg.discipline}
@@ -974,6 +994,7 @@ export function AddBetScreen() {
                   <SingleTeamInput
                     value={leg.team2}
                     onChange={(v) => updateLeg(i, 'team2', v)}
+                    onPickTeam={(team) => pickLegSport(i, team)}
                     placeholder={t('bet.team2')}
                     sport={leg.sport}
                     discipline={leg.discipline}
