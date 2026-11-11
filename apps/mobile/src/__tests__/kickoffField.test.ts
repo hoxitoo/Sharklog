@@ -24,4 +24,16 @@ describe('kick-off on the bet form', () => {
     expect(src).toContain("t('addBet.remindAt'");
     expect(src).toMatch(/reminderFireAt\(/);
   });
+
+  it('is checked as HH:MM — the reminder is timed by it', () => {
+    // «21.00», «2130» or «21:» were saved as typed, and the reminder never came.
+    expect(src).toMatch(/name="time"\s+rules=\{\{ validate: [^\n]*parseClock\(v\)[^\n]*t\('addBet\.errTime'\)/);
+    expect(src).toContain('parseClock(data.time)');
+  });
+
+  it('promises a reminder only when one can come', () => {
+    // With notifications off, "I'll remind you at 21:15" could not come true.
+    expect(src).toContain('remindersCanCome(');
+    expect(src).toContain("t('addBet.remindOff')");
+  });
 });

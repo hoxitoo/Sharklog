@@ -61,6 +61,19 @@ export async function requestNotificationPermission(): Promise<boolean> {
   return status === 'granted';
 }
 
+/**
+ * Whether notifications may be shown, and whether the system would still ask —
+ * without asking. Null when the module cannot say (it threw).
+ */
+export async function notificationPermission(): Promise<{ granted: boolean; canAskAgain: boolean } | null> {
+  try {
+    const { status, canAskAgain } = await Notifications.getPermissionsAsync();
+    return { granted: status === 'granted', canAskAgain: canAskAgain !== false };
+  } catch {
+    return null;
+  }
+}
+
 export async function scheduleDailyReminder(hour = 20): Promise<void> {
   try {
     const { status } = await Notifications.getPermissionsAsync();

@@ -28,7 +28,7 @@ import { isOddsFormat } from '@sharklog/core';
 import {
   scheduleDailyReminder, registerBetResultCategory,
   setBetPendingResolver, syncRemindersFor, setReminderOddsFormat,
-  readBetResultAction, snoozeBetResultReminder,
+  readBetResultAction, snoozeBetResultReminder, dismissBetResultNotification,
 } from './src/utils/notifications';
 import { initRevenueCat, syncEntitlement } from './src/services/revenueCat';
 import { resumePendingPayment, takePaidNotice, checkLicenseStanding } from './src/services/purchase';
@@ -134,7 +134,12 @@ function AppRoot() {
     if (queued.action === 'later') {
       // «Позже»: the reminder leaves the shade and comes back in an hour —
       // said out loud, since the tap opened the app (notifications.ts says why).
-      if (!bet) return;
+      // With result reminders switched off since it was delivered, it only
+      // leaves the shade: an hour later it would come back against the switch.
+      if (!bet || store.settings.betResultReminders === false) {
+        dismissBetResultNotification(queued.betId).catch(() => {});
+        return;
+      }
       snoozeBetResultReminder(bet).then((at) => {
         if (at === null) return;
         const when = new Date(at).toTimeString().slice(0, 5);
@@ -154,9 +159,11 @@ function AppRoot() {
     });
 
     // One tap can arrive twice on a cold start: as the last response AND as the
-    // response expo-notifications parked for the first listener. Won/Lost are
-    // idempotent (the bet is no longer pending); «Позже» would snooze and say
-    // so twice — so each tap is handled once, and the last response cleared.
+    // response expo-notifications parked for the first listener. A second
+    // Won/Lost finds the bet settled and does nothing; a second «Позже» would
+    // snooze again and show the alert twice. So each tap (notification, button,
+    // delivery time — a snoozed reminder is a new delivery) is handled once,
+    // and the last response is cleared so the next launch does not replay it.
     const handled = new Set<string>();
     const handle = (response: Notifications.NotificationResponse | null) => {
       const tapped = readBetResultAction(response);

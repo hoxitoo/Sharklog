@@ -18,7 +18,15 @@ describe('team suggestions on the bet form', () => {
   });
 
   it('set the sport and discipline when a team is picked — in all four team fields', () => {
-    expect(src).toContain('sportOfTeam(');
     expect(src.match(/onPickTeam=\{/g)?.length).toBe(4);
+    // Through choiceAfterPick (teamPick.test.ts) — never over a choice already made.
+    expect(src.match(/choiceAfterPick\(/g)?.length).toBe(2);
+    expect(src).not.toContain('sportOfTeam(');
+  });
+
+  it('count a sport chosen in a picker, or from the saved bet, as the user\'s', () => {
+    expect(src).toContain("useRef<PickSource | undefined>(source ? 'user' : undefined)");
+    expect(src.match(/sportFrom(?:\.current = |: )'user'/g)?.length).toBeGreaterThanOrEqual(3);
+    expect(src.match(/disciplineFrom(?:\.current = |: )'user'/g)?.length).toBeGreaterThanOrEqual(2);
   });
 });

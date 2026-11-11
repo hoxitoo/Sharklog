@@ -19,7 +19,10 @@ apps/mobile/src/
     PendingScreen/           — «Ждут результата»: незакрытые ставки по времени матча (старые сверху),
                                шапка: экспозиция / потенциальный возврат / «пора закрыть» (матч давно прошёл),
                                строки = BetCard (W/L/R/C + inline-выкуп). Вход: тап «В игре» на Ставках
-    AddBetScreen/            — react-hook-form, SingleTeamInput (поле команды с подсказками), Kelly calculator (collapsible),
+    AddBetScreen/            — react-hook-form, SingleTeamInput (поле команды с подсказками — из самих ставок, teamsFromBets;
+                               выбор команды ставит её спорт и дисциплину, но не поверх выбранного — utils/teamPick),
+                               дата и «Начало матча» (ЧЧ:ММ, parseClock) на самой форме + строка «Напомню о результате около …»
+                               (только когда напоминание может прийти — remindersCanCome), Kelly calculator (collapsible),
                                tournament/league TextInput field, «Кэф закрытия (CLV)» optional field, status includes cashout
                                KeyboardAvoidingView: 'padding' iOS / 'height' Android
                                TournamentInput получает scrollRef → scrollToEnd при фокусе (клавиатура не перекрывает)
@@ -100,6 +103,9 @@ apps/mobile/src/
                                scheduleBetResultReminder(bet) на время конца матча (старт + END_OFFSET_MIN по спорту),
                                cancel(All)BetResultReminder — стор сам ставит/снимает их в addBet/updateBet/deleteBet
                                dismissBetResultNotification — убрать уже доставленное из шторки
+                               reminderFireAt(bet) — момент напоминания (дата + время матча + длительность спорта)
+                               snoozeBetResultReminder — «Позже»: снять с шторки и вернуть через час (SNOOZE_MIN)
+                               readBetResultAction — разбор ответа на кнопку; notificationPermission — без запроса
                                syncBetResultReminders(bets, enabled) — сверка расписания с реальностью
                                (запуск + каждый возврат в foreground); setBetPendingResolver — глушилка показа
                                в foreground, чтобы напоминание НЕ пришло по уже закрытой ставке
@@ -315,7 +321,7 @@ interface TeamStats {
 
 1. **Money = kopecks integer**: `1000 ₽ → 100_000`. `formatMoney()` / `parseMoneyInput()`.
 2. **IDs = UUID v4**: все сущности (Bet, Team, BankrollTransaction, DiaryEntry) — UUID v4, не Date.now().
-3. **Team memory**: `upsertTeams()` в store вызывается при каждом addBet/updateBet.
+3. **Team memory**: `upsertTeams()` в store вызывается при каждом addBet/updateBet (хранимый список — в данных и бэкапе). Подсказки формы ставки мобилки — из самих ставок (`teamsFromBets`): хранимый список только добавляет, и команда ставки, перенесённой с футбола на хоккей, оставалась под обоими.
 4. **Esports discipline**: `sport === 'esports'` → discipline обязателен. Compound key: `name+sport+discipline`.
 5. **exactOptionalPropertyTypes: true**: `prop={undefined}` → ошибка. Используй `{...(x ? { prop: x } : {})}`.
 6. **PRO gate (mobile)**: любой PRO-контент через `<ProGate feature="...">`.
@@ -347,6 +353,8 @@ interface TeamStats {
 30. **Длина текста — `TEXT_LIMITS`** (поле 2 000, заметка 10 000): мегабайт в заметке делал хранилище нечитаемым на Android. Лимит ставит `AppTextInput`, но не ниже уже лежащего текста; импорт обрезает.
 31. **Хронология — `playedOrder(bets)`, подневный ряд и форматтеры кэшируются**: массивы и ставки сторы заменяют, а не правят на месте — на этом держатся кэши по ссылке. Одно поле — `totalPnl` / `calcCurrentStreak`, а не целый `calcDashboard`.
 32. **Нечитаемая дата — запасной текст, не исключение** (`formatDate(date, options, запасной)`): `Intl.DateTimeFormat#format` бросает на ней, и дата из старого CSV роняла бы список ставок.
+33. **Напоминание о результате — по времени матча** (`reminderFireAt`: дата + «Начало матча» + длительность спорта), поэтому время — на самой форме и проверяется как ЧЧ:ММ (`parseClock`). Строка «Напомню около 21:15» — только когда напоминание может прийти (разрешение есть или будет спрошено после этой ставки), иначе «Уведомления выключены». Кнопки пуша открывают приложение — все, и «Позже» (переносит на час; при выключенных напоминаниях только убирает из шторки).
+34. **Выбор команды из подсказки ставит её вид спорта и дисциплину** (`choiceAfterPick`, `utils/teamPick`), но не поверх выбора пользователя (пикер, сохранённая ставка) и не поверх команды из другого поля; повторный выбор в том же поле — исправляет. Команды 2-й и следующих ног экспресса подсказываются без спорта (он не хранится) и спорт не ставят.
 
 ---
 
@@ -502,7 +510,8 @@ VITE_OWNER_PRO=true
 - [x] Оплата: RuStore-сборка — «Pro навсегда» через Робокассу (лицензия Ed25519, код восстановления, отзыв после возврата); RevenueCat — только сборка под Google Play (`EXPO_PUBLIC_BILLING`)
 - [x] Push notifications (daily reminder, tilt alert)
 - [x] CSV export (expo-sharing, UTF-8 BOM)
-- [x] Team autocomplete с esports discipline
+- [x] Team autocomplete с esports discipline; подсказки — из самих ставок, выбор ставит спорт/дисциплину (2026-11-11)
+- [x] Напоминание о результате по времени матча, «Начало матча» на форме, рабочая «Позже» (2026-11-10…11)
 - [x] Pre-bet checklist modal (PRO)
 - [x] useFormatMoney() хук — учитывает roundAmounts
 - [x] AnalyticsScreen: исправлен double-plus перед ROI (formatPercent уже добавляет +)
@@ -558,7 +567,7 @@ VITE_OWNER_PRO=true
 ## Тесты
 
 ```
-packages/core         367 vitest unit tests (stats, analytics, daily, formatters, kelly, migrations,
+packages/core         378 vitest unit tests (stats, analytics, daily, formatters, kelly, migrations,
                           betsCsv x14 — round-trip / P&L / инъекция / разделители,
                           pnlBuckets x10 — границы бакетов, порядок кривой,
                           bankroll x10 — bankCash / currentBank / pendingExposure / сверки,
@@ -569,8 +578,8 @@ packages/core         367 vitest unit tests (stats, analytics, daily, formatters
                           insightsGroups x8 — дисциплина в группировках (только по esports-ставкам) и порядок по P&L,
                           betYears x16 — список лет, «без турнира», границы диаграммы, тримминг имён)
 apps/desktop           41 vitest smoke tests (betsStore x15, importBets x26)
-apps/mobile           480 jest tests (стор, стражи дизайна/тем/переводов, оплата, цели, календарь…)
-ИТОГО                  895 тестов (core 374 + desktop 41 + mobile 480, на 2026-11-11)
+apps/mobile           495 jest tests (стор, стражи дизайна/тем/переводов, оплата, цели, календарь…)
+ИТОГО                  914 тестов (core 378 + desktop 41 + mobile 495, на 2026-11-11)
 ```
 
 ---
@@ -578,9 +587,9 @@ apps/mobile           480 jest tests (стор, стражи дизайна/те
 ## Команды
 
 ```bash
-cd packages/core && npx vitest run          # 374 теста
+cd packages/core && npx vitest run          # 378 тестов
 cd apps/desktop && npx vitest run           # 41 тест
-cd apps/mobile && npm test                  # 480 тестов
+cd apps/mobile && npm test                  # 495 тестов
 
 cd apps/mobile && npx tsc --noEmit          # type-check мобилки
 cd apps/desktop && npx tsc --noEmit         # type-check десктопа

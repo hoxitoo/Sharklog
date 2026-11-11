@@ -111,13 +111,18 @@ screens/
                              форма с полем Турнир/Лига, статус cashout
                              Подсказки команд — `teamsFromBets(bets)` (из ставок, не из хранимого `teams`: тот только
                              добавлял, и команда перенесённой с футбола на хоккей ставки висела под обоими);
-                             выбор команды ставит её спорт и дисциплину (`sportOfTeam`), в ноге экспресса — спорт ноги;
-                             страж `teamSuggestions.test.ts`
+                             выбор команды ставит её спорт и дисциплину, в ноге экспресса — спорт ноги, но не поверх
+                             выбора пользователя, сохранённой ставки или другого поля (`utils/teamPick`, `choiceAfterPick`;
+                             кто поставил — `sportFrom`/`disciplineFrom`, рефы формы и поля ноги); команды 2-й и дальше
+                             ног — без спорта и без бейджа; стражи `teamSuggestions.test.ts`, `teamPick.test.ts`
                              collapsible доп. поля (стратегия, букмекер, турнир, заметки, фрибет); дата и «Начало матча» —
                              НЕ в них, а на самой форме: по времени матча ставится напоминание о результате,
                              и спрятанное время оставалось моментом ввода (утренняя ставка на вечерний матч
                              напоминала к обеду). Под ними — «Напомню о результате около 21:15» из того же
-                             `reminderFireAt` (у экспресса — «Начало последнего матча»); страж `kickoffField.test.ts`
+                             `reminderFireAt` (у экспресса — «Последний матч», спорт — первой заполненной ноги), только
+                             если напоминание может прийти (`remindersCanCome`), иначе `addBet.remindOff`; время —
+                             `ЧЧ:ММ` по `parseClock` (ошибка `addBet.errTime`, сохранённое до проверки — как было);
+                             страж `kickoffField.test.ts`
                              автораскрытие при edit если доп. поля заполнены
                              KeyboardAvoidingView: behavior='padding' iOS / 'height' Android
                              TournamentInput: onFocus → scrollRef.scrollToEnd (поле не перекрывается клавиатурой)
@@ -385,6 +390,10 @@ utils/ (из нового)
   oddsField.ts             — поле кэфа в формате пользователя (чистое, под тестом): oddsFieldText,
                              readOddsField, readLegField, legFieldText, oddsBadge, oddsRangeLabel
   useOdds.ts               — useOddsFormat / useFormatOdds / useFormatOddsRange / oddsKeyboard
+  teamPick.ts              — `choiceAfterPick(форма, поле, команда)`: что выбор команды из подсказки делает со спортом и
+                             дисциплиной формы или ноги (чистое, под тестом `teamPick.test.ts`)
+  reminderPermission.ts    — `askForRemindersOnce` (разрешение — один раз, после первой ставки в игре) и
+                             `remindersCanCome(спросим после сохранения)` — может ли прийти напоминание ставки, сохраняемой сейчас
 assets/
   icon.png                 — 1024×1024 на тёмном фоне
   adaptive-icon.png        — 1024×1024 прозрачный фон (Android, только лаунчер)

@@ -47,7 +47,17 @@ export function upsertTeams(
   return result;
 }
 
-const fromBetsCache = new WeakMap<readonly Bet[], Team[]>();
+/** A team the bet form can suggest. No `sport` when the bets do not say which (later legs of an accumulator). */
+export interface TeamSuggestion {
+  id: string;
+  name: string;
+  sport?: Sport;
+  discipline?: EsportsDiscipline;
+  usageCount: number;
+  lastUsed: string;
+}
+
+const fromBetsCache = new WeakMap<readonly Bet[], TeamSuggestion[]>();
 
 /**
  * The team list as the bets have it NOW — what the bet form suggests. Every
@@ -61,35 +71,46 @@ const fromBetsCache = new WeakMap<readonly Bet[], Team[]>();
  *
  * A discipline only on an esports bet: one moved from esports to football keeps
  * its old discipline (the form omits the key and updateBet merges). Of an
- * accumulator, only the first leg's teams: the bet stores that leg's sport, and
- * the other legs' sports are not stored at all — a hockey team in leg two would
- * be filed under the first leg's football, and picking it would switch the form
- * to the wrong sport. Cached per bets array (four team fields ask at once).
+ * accumulator, the first leg's teams carry the bet's sport — the one stored —
+ * and the other legs' teams carry none: their sports are not stored, and filed
+ * under the first leg's sport a hockey team in leg two would be "football", and
+ * picking it would switch the form. Such a team is still suggested (a user of
+ * accumulators lost most suggestions without it), with no badge, unless it is
+ * already known with a sport. Cached per bets array.
  */
-export function teamsFromBets(bets: readonly Bet[]): Team[] {
+export function teamsFromBets(bets: readonly Bet[]): TeamSuggestion[] {
   const hit = fromBetsCache.get(bets);
   if (hit) return hit;
-  const byKey = new Map<string, Team>();
+  const byKey = new Map<string, TeamSuggestion>();
+  const add = (raw: string, sport: Sport | undefined, discipline: EsportsDiscipline | undefined, when: string) => {
+    const name = raw.trim();
+    const key = `${sport ?? '?'}|${discipline ?? ''}|${name.toLowerCase()}`;
+    const seen = byKey.get(key);
+    if (!seen) {
+      byKey.set(key, {
+        id: key, name, ...(sport !== undefined ? { sport } : {}), ...(discipline !== undefined ? { discipline } : {}),
+        usageCount: 1, lastUsed: when,
+      });
+    } else {
+      // The spelling of the latest bet: a typo fixed later is the one offered.
+      const later = when > seen.lastUsed;
+      byKey.set(key, { ...seen, usageCount: seen.usageCount + 1, ...(later ? { name, lastUsed: when } : {}) });
+    }
+  };
   for (const bet of bets) {
-    const event = bet.betType === 'express' ? bet.event.split(' / ')[0] ?? '' : bet.event;
     const discipline = bet.sport === 'esports' ? bet.discipline : undefined;
     const when = typeof bet.updatedAt === 'string' ? bet.updatedAt : '';
-    for (const raw of parseEventTeams(event)) {
-      const name = raw.trim();
-      const key = `${bet.sport}|${discipline ?? ''}|${name.toLowerCase()}`;
-      const seen = byKey.get(key);
-      if (!seen) {
-        byKey.set(key, {
-          id: key, name, sport: bet.sport, ...(discipline !== undefined ? { discipline } : {}), usageCount: 1, lastUsed: when,
-        });
-      } else {
-        // The spelling of the latest bet: a typo fixed later is the one offered.
-        const later = when > seen.lastUsed;
-        byKey.set(key, { ...seen, usageCount: seen.usageCount + 1, ...(later ? { name, lastUsed: when } : {}) });
+    const legs = bet.betType === 'express' ? bet.event.split(' / ') : [bet.event];
+    legs.forEach((leg, i) => {
+      for (const name of parseEventTeams(leg)) {
+        if (i === 0) add(name, bet.sport, discipline, when);
+        else add(name, undefined, undefined, when);
       }
-    }
+    });
   }
-  const out = [...byKey.values()];
+  const known = new Set<string>();
+  for (const t of byKey.values()) if (t.sport !== undefined) known.add(t.name.toLowerCase());
+  const out = [...byKey.values()].filter((t) => t.sport !== undefined || !known.has(t.name.toLowerCase()));
   fromBetsCache.set(bets, out);
   return out;
 }
@@ -97,9 +118,10 @@ export function teamsFromBets(bets: readonly Bet[]): Team[] {
 /**
  * What picking a known team sets on the bet form: its sport, and for esports
  * its discipline — Spirit as a Dota 2 team sets Киберспорт · Dota 2. Nothing
- * for «Другое»: which sport it was is the free text the team list does not keep.
+ * for «Другое» (which sport it was is free text the list does not keep) or for
+ * a team whose sport the bets do not say.
  */
-export function sportOfTeam(team: Pick<Team, 'sport' | 'discipline'>): { sport: Sport; discipline?: EsportsDiscipline } | null {
-  if (team.sport === 'other') return null;
+export function sportOfTeam(team: { sport?: Sport; discipline?: EsportsDiscipline }): { sport: Sport; discipline?: EsportsDiscipline } | null {
+  if (team.sport === undefined || team.sport === 'other') return null;
   return team.sport === 'esports' && team.discipline ? { sport: 'esports', discipline: team.discipline } : { sport: team.sport };
 }

@@ -37,6 +37,21 @@ export function normalizeTime(raw: string): string | null {
   return m ? `${m[1]!.padStart(2, '0')}:${m[2]}` : null;
 }
 
+/**
+ * A time typed into a form, as `HH:MM`, or null when it is not one. Stricter
+ * than `normalizeTime` (which reads a CSV cell's leading time): the whole text,
+ * hours to 23 and minutes to 59; a dot is read as the colon a Russian keyboard
+ * puts out of reach. The bet form saved what was typed — «21.00», «21:», «2130»
+ * — and the result reminder, timed by this field, silently never came.
+ */
+export function parseClock(raw: string): string | null {
+  const m = /^(\d{1,2})[:.](\d{2})$/.exec(raw.trim());
+  if (!m) return null;
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  return h <= 23 && min <= 59 ? `${String(h).padStart(2, '0')}:${m[2]}` : null;
+}
+
 const MAX_DAYS = 3650; // safety cap (10 years) so a stray old date can't explode the range
 const YMD = /^\d{4}-\d{2}-\d{2}$/;
 
