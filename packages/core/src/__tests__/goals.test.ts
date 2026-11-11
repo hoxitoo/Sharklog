@@ -188,6 +188,48 @@ describe('pace, not a daily quota', () => {
   });
 });
 
+describe('a reached goal — when, and what it took', () => {
+  it('says the first day the goal stood at its target, the days it took, and the bets\' result per day', () => {
+    const bets = [
+      bet({ date: day(-30), status: 'won', stake: 30_000_00 }),   // +30 000 on the start day
+      bet({ date: day(-21), status: 'won', stake: 30_000_00 }),   // +30 000 → 60 000 ≥ 50 000: reached
+      bet({ date: day(-10), status: 'lost', stake: 5_000_00 }),   // after it: not part of what it took
+    ];
+    const p = calcGoalProgress(goal({ target: 50_000_00 }), bets, [], NOW);
+    expect(p.achieved).toBe(true);
+    expect(p.reachedOn).toBe(day(-21));
+    expect(p.reachedInDays).toBe(10);
+    expect(p.pnlPerDayToReach).toBe(60_000_00 / 10);
+  });
+
+  it('keeps the FIRST day it was reached, even if it dipped below and came back', () => {
+    const bets = [
+      bet({ date: day(-20), status: 'won', stake: 60_000_00 }),   // 60 000: reached
+      bet({ date: day(-15), status: 'lost', stake: 20_000_00 }),  // 40 000: below
+      bet({ date: day(-5), status: 'won', stake: 20_000_00 }),    // 60 000: reached again
+    ];
+    const p = calcGoalProgress(goal({ target: 50_000_00 }), bets, [], NOW);
+    expect(p.reachedOn).toBe(day(-20));
+    expect(p.reachedInDays).toBe(11);
+  });
+
+  it('is a bank goal\'s BETS per day — a deposit is not a result', () => {
+    const txs = [tx('deposit', 40_000_00, day(-30)), tx('deposit', 50_000_00, day(-21))];
+    const bets = [bet({ date: day(-25), status: 'won', stake: 5_000_00 })]; // +5 000
+    const p = calcGoalProgress(goal({ kind: 'bank', target: 90_000_00 }), bets, txs, NOW);
+    expect(p.reachedOn).toBe(day(-21));
+    expect(p.pnlPerDayToReach).toBe(5_000_00 / 10);
+  });
+
+  it('says nothing for a goal not reached now, or a loss cap', () => {
+    const bets = [bet({ date: day(-20), status: 'won', stake: 60_000_00 }), bet({ date: day(-5), status: 'lost', stake: 30_000_00 })];
+    const open = calcGoalProgress(goal({ target: 50_000_00 }), bets, [], NOW);
+    expect([open.achieved, open.reachedOn, open.reachedInDays, open.pnlPerDayToReach]).toEqual([false, null, null, null]);
+    const cap = calcGoalProgress(goal({ kind: 'lossCap', target: 10_000_00 }), bets, [], NOW);
+    expect([cap.reachedOn, cap.pnlPerDayToReach]).toEqual([null, null]);
+  });
+});
+
 describe('a loss cap', () => {
   const cap = goal({ kind: 'lossCap', target: 10_000_00, startDate: '2026-01-01' });
 
@@ -243,6 +285,15 @@ describe('the goal list', () => {
     expect(activeGoals(goals).map((g) => g.id)).toEqual(['b', 'c']);
     expect(mainGoal(goals)?.id).toBe('b');
     expect(mainGoal(undefined)).toBeUndefined();
+  });
+
+  it('makes the first goal still to reach the main one — a reached goal moves down', () => {
+    const goals = [goal({ id: 'a' }), goal({ id: 'b', archived: true }), goal({ id: 'c' }), goal({ id: 'd' })];
+    const reached = new Set(['a']);
+    expect(mainGoal(goals, (g) => reached.has(g.id))?.id).toBe('c');
+    // Every goal reached: the first one, not nothing on the button.
+    expect(mainGoal(goals, () => true)?.id).toBe('a');
+    expect(mainGoal([], () => false)).toBeUndefined();
   });
 
   it('keeps every goal, and opens on Free only what Free allows', () => {

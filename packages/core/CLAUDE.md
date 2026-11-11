@@ -67,7 +67,9 @@ utils/
   currency.ts         — CURRENCIES (знаки), currencySymbol, currencyFromUnit, suggestCurrency, BANKROLL_TIERS
   formatters.ts       — formatMoney(kopecks, currency='₽', maxDecimals=2), parseMoneyInput, formatOdds, formatPercent (adds + prefix)
   goals.ts            — calcGoalProgress(goal, bets, txs, now): прогресс, срок, темп, прогноз, ROI, ряд для
-                        графика; activeGoals / mainGoal; addDays / daysBetween (календарные дни, без DST)
+                        графика; у достигнутой — reachedOn (первый день на цели), reachedInDays, pnlPerDayToReach
+                        (только ставки); activeGoals / mainGoal(goals, достигнута?) — первая недостигнутая;
+                        addDays / daysBetween (календарные дни, без DST)
   teams.ts            — upsertTeams(список, имена, спорт, дисциплина, newId) / cleanTeamNames — список команд обоих сторов
                         teamsFromBets(bets) → TeamSuggestion[] — подсказки команд из самих ставок (спорт и дисциплина —
                         как у ставок сейчас; у экспресса спорт — только у первой ноги, команды остальных — без спорта,

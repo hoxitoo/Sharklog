@@ -61,9 +61,17 @@ export function activeGoals(goals: readonly Goal[] | undefined): Goal[] {
   return (goals ?? []).filter((g) => !g.archived);
 }
 
-/** The goal the header button shows: the first active one. */
-export function mainGoal(goals: readonly Goal[] | undefined): Goal | undefined {
-  return activeGoals(goals)[0];
+/**
+ * The main goal — on the bets screen's header button, first on the goals
+ * screen, with the chart: the first active goal still to reach. A reached goal
+ * is done: it folds to one line at the bottom of the list, and the button moves
+ * on to the next one. With every goal reached — the first. Without `reached`,
+ * the first active goal. Pass the goals that are OPEN (`goalsFor`): on Free the
+ * next goal may be locked.
+ */
+export function mainGoal(goals: readonly Goal[] | undefined, reached?: (g: Goal) => boolean): Goal | undefined {
+  const active = activeGoals(goals);
+  return (reached ? active.find((g) => !reached(g)) : undefined) ?? active[0];
 }
 
 /**
@@ -126,6 +134,21 @@ export interface GoalProgress {
   capState: 'ok' | 'near' | 'over' | null;
   /** `lossCap`: the bets in play would take the month past the cap if they all lost. */
   wouldExceed: boolean;
+  /**
+   * The day the measure FIRST stood at the target at the end of a day — when
+   * the goal was reached. Only while it is reached now; null otherwise, for a
+   * loss cap, and for a goal that has not started.
+   */
+  reachedOn: string | null;
+  /** Days from the start to `reachedOn`, both counted (reached on the start day — 1). */
+  reachedInDays: number | null;
+  /**
+   * The bets' result per day from the start to `reachedOn` — what the goal
+   * took, looking back. The bets only, for every kind: a deposit is not a
+   * result (the same rule as the bank goal's pace). Never a quota for a goal
+   * still open: "win X a day" grows after every loss and reads as "chase".
+   */
+  pnlPerDayToReach: number | null;
   /** Where the measure stood just before the start — the plan line starts here. */
   startValue: number;
   /** The measure at the end of each day from the start to today, for the chart. */
@@ -189,6 +212,14 @@ export function calcGoalProgress(
   const remaining = Math.max(0, target - current);
   const ratio = target > 0 ? Math.min(1, Math.max(0, current / target)) : 0;
 
+  // When it was reached: the first day that ended at the target. The series'
+  // last point is `current`, so a goal reached now always finds one.
+  const reachedOn = achieved && started ? series.find((pt) => pt.value >= target)?.date ?? null : null;
+  const reachedInDays = reachedOn ? daysBetween(start, reachedOn) + 1 : null;
+  let pnlToReach = 0;
+  if (reachedOn) for (const d of days) if (d.date >= start && d.date <= reachedOn) pnlToReach += d.pnl;
+  const pnlPerDayToReach = reachedInDays ? pnlToReach / reachedInDays : null;
+
   // The recent pace: the last PACE_WINDOW_DAYS, never reaching before the start.
   const windowStart = started
     ? (daysBetween(start, today) + 1 > PACE_WINDOW_DAYS ? addDays(today, -(PACE_WINDOW_DAYS - 1)) : start)
@@ -250,7 +281,7 @@ export function calcGoalProgress(
     pendingCount: goal.kind === 'profit' ? pendingCount : 0,
     inPlayStake: goal.kind === 'profit' ? inPlayStake : 0,
     pendingStake: goal.kind === 'profit' ? pendingStake : 0,
-    capState: null, wouldExceed: false, startValue, series,
+    capState: null, wouldExceed: false, reachedOn, reachedInDays, pnlPerDayToReach, startValue, series,
   };
 }
 
@@ -298,6 +329,7 @@ function lossCapProgress(goal: Goal, bets: Bet[], today: string): GoalProgress {
     // The month's net loss if every bet in play lost — a month in plus has room:
     // +5 000 won and 12 000 in play is at worst −7 000, under a 10 000 cap.
     wouldExceed: capState !== 'over' && target > 0 && Math.max(0, pendingStake - pnl) > target,
+    reachedOn: null, reachedInDays: null, pnlPerDayToReach: null,
     startValue: 0,
     series: [],
   };

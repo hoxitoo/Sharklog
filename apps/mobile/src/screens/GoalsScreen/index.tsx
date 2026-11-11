@@ -3,7 +3,7 @@ import { View, ScrollView, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
-import { activeGoals, calcGoalProgress, goalsFor, isInTilt, toYmd, FREE_LIMITS, type GoalProgress } from '@sharklog/core';
+import { activeGoals, calcGoalProgress, goalsFor, isInTilt, mainGoal, toYmd, FREE_LIMITS, type Goal, type GoalProgress } from '@sharklog/core';
 import { AppText as Text } from '../../components/AppText';
 import { AppIcon } from '../../components/icons/AppIcon';
 import { PaywallSheet } from '../../components/PaywallSheet';
@@ -21,9 +21,11 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
 
 /**
  * Goals: what the book is working toward, measured from the bets themselves.
- * The first active goal is the main one — on the bets screen's header button,
- * with the chart. Free keeps one active goal; more goals, the pace and the
- * reality check are Pro.
+ * The first goal still to reach is the main one (mainGoal) — on the bets
+ * screen's header button, with the chart. A reached goal is done: it folds to
+ * one line at the bottom, and a tap opens it whole on its own screen (when it
+ * was reached, what it took). Free keeps one active goal; more goals, the pace
+ * and the reality check are Pro.
  */
 export function GoalsScreen() {
   const navigation = useNavigation<Nav>();
@@ -52,6 +54,11 @@ export function GoalsScreen() {
     return out;
   }, [goals, bets, transactions, today]); // `today`: re-run after midnight
   const inTilt = useMemo(() => isInTilt(bets, tiltThreshold), [bets, tiltThreshold]);
+  // Still to reach — full cards, the main one first; reached — one line each, below.
+  const { main, going, reached } = useMemo(() => {
+    const isReached = (g: Goal) => progress.get(g.id)!.achieved;
+    return { main: mainGoal(open, isReached), going: open.filter((g) => !isReached(g)), reached: open.filter(isReached) };
+  }, [open, progress]);
 
   function addGoal() {
     if (!isPro && active.length >= FREE_LIMITS.MAX_GOALS) {
@@ -79,12 +86,13 @@ export function GoalsScreen() {
             <Text style={s.emptyText}>{t('goals.emptyText')}</Text>
           </View>
         ) : (
-          open.map((g, i) => (
+          going.map((g) => (
             <GoalCard
               key={g.id}
               goal={g}
               p={progress.get(g.id)!}
-              main={i === 0}
+              main={g.id === main?.id}
+              chart={g.id === main?.id}
               isPro={isPro}
               inTilt={inTilt}
               onEdit={() => edit(g.id)}
@@ -94,6 +102,23 @@ export function GoalsScreen() {
             />
           ))
         )}
+
+        {reached.length > 0 ? <Text style={s.sectionLabel}>{t('goals.reachedSection')}</Text> : null}
+        {reached.map((g) => (
+          <TouchableOpacity
+            key={g.id}
+            style={s.archived}
+            onPress={() => navigation.navigate('Goal', { goalId: g.id })}
+            activeOpacity={0.75}
+            accessibilityRole="button"
+            accessibilityLabel={t('goals.reachedRowA11y', { title: g.title })}
+          >
+            <Text style={s.check}>✓</Text>
+            <Text style={s.archivedTitle} numberOfLines={1}>{g.title}</Text>
+            <Text style={s.reachedValue}>{fmt(progress.get(g.id)!.current)}</Text>
+            <Text style={s.chevron}>›</Text>
+          </TouchableOpacity>
+        ))}
 
         {locked.map((g) => (
           <TouchableOpacity
@@ -178,5 +203,12 @@ const s = themedStyles(() => ({
   lockedText: { flex: 1, paddingVertical: SPACE.sm },
   lockedHint: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: 2 },
   archivedValue: { ...numeric, fontSize: SIZE.caption, fontWeight: '400', color: colors.textMuted },
+  sectionLabel: {
+    fontSize: SIZE.caption, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5,
+    marginTop: SPACE.sm, marginBottom: SPACE.sm,
+  },
+  check: { fontSize: SIZE.body, fontWeight: '700', color: signalInk(colors.won) },
+  reachedValue: { ...numeric, fontSize: SIZE.caption, fontWeight: '700', color: signalInk(colors.won) },
+  chevron: { fontSize: SIZE.title, fontWeight: '400', color: colors.textMuted },
   disclaimer: { fontSize: SIZE.caption, color: colors.textMuted, lineHeight: 17, marginTop: SPACE.xl, textAlign: 'center' },
 }));

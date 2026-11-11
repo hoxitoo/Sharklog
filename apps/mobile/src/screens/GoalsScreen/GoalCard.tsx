@@ -17,8 +17,10 @@ const pct = (n: number) => (Math.abs(n) >= 10 ? Math.round(n) : Math.round(n * 1
 interface Props {
   goal: Goal;
   p: GoalProgress;
-  /** The first active goal: on the header button, with the chart. */
+  /** The main goal (mainGoal): on the header button, badged. */
   main: boolean;
+  /** Draw the chart: the main goal on the list, any goal on its own screen. */
+  chart: boolean;
   isPro: boolean;
   /** A losing streak right now: "behind schedule" is not what to say then. */
   inTilt: boolean;
@@ -76,7 +78,7 @@ function Bar({ ratio, color }: { ratio: number; color: string }) {
   );
 }
 
-function AccumulationCard({ goal, p, main, isPro, inTilt, onEdit, onMakeMain, onPaywall, onBankroll }: Props) {
+function AccumulationCard({ goal, p, main, chart, isPro, inTilt, onEdit, onMakeMain, onPaywall, onBankroll }: Props) {
   const { t } = useTranslation();
   const fmt = useFormatMoney();
   const today = toYmd(new Date());
@@ -108,7 +110,29 @@ function AccumulationCard({ goal, p, main, isPro, inTilt, onEdit, onMakeMain, on
 
       {p.achieved ? (
         <View style={card.done}>
-          <Text style={card.doneTitle}>{t('goals.achieved')}</Text>
+          <Text style={card.doneTitle}>
+            {p.reachedOn ? t('goals.achievedOn', { date: dayLabel(p.reachedOn) }) : t('goals.achieved')}
+          </Text>
+          {p.reachedInDays !== null ? (
+            <Text style={card.doneText}>{t('goals.reachedIn', { days: durationLabel(t, p.reachedInDays) })}</Text>
+          ) : null}
+          {/* Looking back at what it took, not a quota for what is left — a
+              reached goal has nothing left. The bets only: a deposit is not a
+              result (the bank goal's pace rule). A pace, so Pro. A sentence in
+              whole units: as a label-and-sum row the mono sum pushed its sign
+              onto a line of its own, and kopecks of an average are noise. */}
+          {p.pnlPerDayToReach !== null ? (
+            isPro ? (
+              <Text style={[card.donePace, p.pnlPerDayToReach < 0 ? { color: colors.lost } : null]}>
+                {t('goals.perDay', { amount: fmt(Math.round(p.pnlPerDayToReach / 100) * 100) })}
+              </Text>
+            ) : (
+              <TouchableOpacity style={card.locked} onPress={onPaywall} activeOpacity={0.75} accessibilityRole="button">
+                <Text style={card.lockedText}>{t('goals.perDayPro')}</Text>
+                <Text style={card.proBadge}>{t('common.pro')}</Text>
+              </TouchableOpacity>
+            )
+          ) : null}
           {goal.kind !== 'withdraw' ? (
             <>
               <Text style={card.doneText}>{t('goals.achievedHint')}</Text>
@@ -174,13 +198,14 @@ function AccumulationCard({ goal, p, main, isPro, inTilt, onEdit, onMakeMain, on
         <Text style={card.note}>{t('goals.inPlay', { n: p.pendingCount, amount: fmt(p.inPlayStake) })}</Text>
       ) : null}
 
-      {main ? <GoalChart goal={goal} p={p} /> : null}
+      {chart ? <GoalChart goal={goal} p={p} /> : null}
 
       <How goal={goal} />
 
       {goal.note ? <Text style={card.userNote}>{goal.note}</Text> : null}
 
-      {!main ? (
+      {/* A reached goal cannot be the main one (mainGoal skips it). */}
+      {!main && !p.achieved ? (
         <TouchableOpacity style={card.linkBtn} onPress={onMakeMain} activeOpacity={0.7} accessibilityRole="button">
           <Text style={card.link}>{t('goals.makeMain')}</Text>
         </TouchableOpacity>
@@ -260,6 +285,7 @@ const card = themedStyles(() => ({
   },
   doneTitle: { fontSize: SIZE.body, fontWeight: '700', color: signalInk(colors.won) },
   doneText: { fontSize: SIZE.caption, color: colors.textSecondary, marginTop: SPACE.xs, lineHeight: 17 },
+  donePace: { fontSize: SIZE.body, fontWeight: '600', color: colors.textPrimary, marginTop: SPACE.sm, lineHeight: 20 },
   doneBtn: { minHeight: TOUCH, justifyContent: 'center', alignSelf: 'flex-start' },
   doneBtnText: { fontSize: SIZE.body, fontWeight: '700', color: colors.purpleText },
   pace: { marginTop: SPACE.md, gap: SPACE.xs },
