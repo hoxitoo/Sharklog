@@ -123,6 +123,7 @@ export async function sendTiltNotification(streakCount: number): Promise<void> {
 // buttons so the bet can be settled straight from the shade.
 
 import type { Bet } from '@sharklog/core';
+import { matchEndAt, reminderFireAt } from './reminderTime';
 
 export const BET_RESULT_CATEGORY = 'bet_result';
 
@@ -140,34 +141,8 @@ function enqueue(task: () => Promise<void>): Promise<void> {
   return notifChain;
 }
 
-/** Rough time-to-finish per sport, minutes from kick-off (incl. breaks + settling lag). */
-const END_OFFSET_MIN: Record<string, number> = {
-  football: 135,
-  hockey: 165,
-  basketball: 135,
-  tennis: 150,
-  esports: 150,
-  volleyball: 120,
-  baseball: 195,
-  other: 150,
-};
-
-/**
- * When this bet's result reminder should fire — or null when that moment is
- * already past (or under a minute away, too close to schedule reliably).
- *
- * Shared by scheduling AND by the sync's cap, which used to count bets whose
- * reminder could no longer be scheduled: a backlog of old unsettled bets took
- * the 50 slots, and future matches got no reminder at all.
- */
-export function reminderFireAt(bet: Bet, now = Date.now()): number | null {
-  // Parse as LOCAL time — a bare "YYYY-MM-DD" string would be read as UTC.
-  const start = new Date(`${bet.date}T${(bet.time || '12:00')}:00`).getTime();
-  if (isNaN(start)) return null;
-  const offset = END_OFFSET_MIN[bet.sport] ?? END_OFFSET_MIN['other']!;
-  const at = start + offset * 60_000;
-  return at > now + 60_000 ? at : null;
-}
+// The timing is pure and lives on its own (the bet form reads it too).
+export { reminderFireAt } from './reminderTime';
 
 /** How far «Позже» pushes a result reminder. */
 export const SNOOZE_MIN = 60;
@@ -198,9 +173,12 @@ export async function registerBetResultCategory(): Promise<void> {
 }
 
 /** A tap on a result reminder's button: which bet, and what to do with it. Anything else — null. */
+/** A tap on a result reminder's button: which bet, which button. */
+export type BetResultAction = { betId: string; action: 'won' | 'lost' | 'later' };
+
 export function readBetResultAction(
   response: Notifications.NotificationResponse | null,
-): { betId: string; action: 'won' | 'lost' | 'later' } | null {
+): BetResultAction | null {
   const data = response?.notification?.request?.content?.data as Record<string, unknown> | undefined;
   if (!data || data['type'] !== 'bet_result') return null;
   const action = response!.actionIdentifier;
@@ -254,13 +232,30 @@ export async function scheduleBetResultReminder(bet: Bet): Promise<void> {
   if (bet.status !== 'pending') return cancelBetResultReminder(bet.id);
   return enqueue(async () => {
     try {
-      const { status } = await Notifications.getPermissionsAsync();
-      if (status !== 'granted') return;
+      // Kick-off moved to a match already over (or a time that cannot be
+      // read): the reminder armed for the old time would still come at it —
+      // take it off. Not a «Позже» the user asked for; and a reminder due
+      // within the minute stays (armReminder leaves it, as the sync does).
+      const end = matchEndAt(bet);
+      if (end === null || end <= Date.now()) {
+        await cancelUnlessSnoozed(bet.id);
+        return;
+      }
+      const perm = await notificationPermission();
+      if (!perm?.granted) return;
       await armReminder(bet);
     } catch {
       // scheduling unavailable — silently skip
     }
   });
+}
+
+async function cancelUnlessSnoozed(betId: string): Promise<void> {
+  const id = reminderId(betId);
+  const mine = (await Notifications.getAllScheduledNotificationsAsync()).find((n) => n.identifier === id);
+  if (mine && (mine.content.data as Record<string, unknown> | undefined)?.['snoozed'] !== true) {
+    await Notifications.cancelScheduledNotificationAsync(id);
+  }
 }
 
 /** The scheduling itself — the permission is the caller's to check (once, for a whole sync). */
@@ -270,7 +265,7 @@ async function armReminder(bet: Bet): Promise<void> {
   await scheduleReminderAt(bet, at);
 }
 
-async function scheduleReminderAt(bet: Bet, at: number): Promise<void> {
+async function scheduleReminderAt(bet: Bet, at: number, snoozed = false): Promise<void> {
   await Notifications.scheduleNotificationAsync({
     identifier: reminderId(bet.id), // replaces any existing reminder for this bet
     content: {
@@ -279,35 +274,72 @@ async function scheduleReminderAt(bet: Bet, at: number): Promise<void> {
       // never the stored float ("× 1.9090909091").
       body: `${displayEvent(bet.event)} · ${pickLabel(i18n.t, bet.pick)} ${oddsBadge(bet.odds, reminderOddsFormat)}`,
       categoryIdentifier: BET_RESULT_CATEGORY,
-      data: { type: 'bet_result', betId: bet.id },
+      // `snoozed`: a «Позже» — an edit of the bet does not take it off.
+      data: { type: 'bet_result', betId: bet.id, ...(snoozed ? { snoozed: true } : {}) },
     },
     trigger: { type: 'date', date: new Date(at) } as Notifications.DateTriggerInput,
   });
 }
 
 /**
- * «Позже»: takes the reminder down from the shade and brings it back in
- * `minutes`. Resolves to the moment it will come, or null when it could not be
- * scheduled (no permission) — the caller says "I'll remind you at …" only then.
- * The reconcile on launch keeps it: the bet is still pending and something is
- * scheduled for it.
+ * «Позже»: takes the reminder down from the shade and brings it back in an
+ * hour — or at the bet's own reminder, if that is later: «Позже» on an old
+ * notification of a bet whose match was moved to tomorrow replaced tomorrow's
+ * reminder (same id) with one tonight. Resolves to the moment it will come,
+ * or null when nothing was scheduled (no permission, the bet already settled)
+ * — the caller says "I'll remind you at …" only then. The reconcile on launch
+ * keeps it: the bet is still pending and something is scheduled for it.
  */
-export async function snoozeBetResultReminder(bet: Bet, minutes = SNOOZE_MIN, now = Date.now()): Promise<number | null> {
+export async function snoozeBetResultReminder(bet: Bet, now = Date.now()): Promise<number | null> {
   let at: number | null = null;
   await enqueue(async () => {
     await dismissBetResultNotification(bet.id);
     if (bet.status !== 'pending') return;
     try {
-      const { status } = await Notifications.getPermissionsAsync();
-      if (status !== 'granted') return;
-      const when = now + minutes * 60_000;
-      await scheduleReminderAt(bet, when);
+      const perm = await notificationPermission();
+      if (!perm?.granted) return;
+      const due = reminderFireAt(bet, now);
+      const when = Math.max(now + SNOOZE_MIN * 60_000, due ?? 0);
+      await scheduleReminderAt(bet, when, when !== due);
       at = when;
     } catch {
       // scheduling unavailable
     }
   });
   return at;
+}
+
+/**
+ * A tap on «Позже», once the store is loaded: snooze — or, with the bet gone
+ * or result reminders switched off since it was delivered, only take it off
+ * the shade (an hour later it would come back against the switch).
+ */
+export async function handleLater(betId: string, bet: Bet | undefined, remindersOn: boolean, now = Date.now()): Promise<number | null> {
+  if (!bet || !remindersOn) {
+    await dismissBetResultNotification(betId);
+    return null;
+  }
+  return snoozeBetResultReminder(bet, now);
+}
+
+/**
+ * Each tap on a reminder's button handled once. On a cold start one tap
+ * arrives twice — as the last response AND as the response expo-notifications
+ * parked for the first listener: a second Won/Lost finds the bet settled, but
+ * a second «Позже» would snooze again and show its alert twice. A tap is the
+ * notification, the button and the delivery — a snoozed reminder is a new
+ * delivery and gets through.
+ */
+export function tapOnce(): (response: Notifications.NotificationResponse | null) => BetResultAction | null {
+  const handled = new Set<string>();
+  return (response) => {
+    const tapped = readBetResultAction(response);
+    if (!tapped || !response) return null;
+    const key = `${response.notification.request.identifier}|${response.actionIdentifier}|${response.notification.date}`;
+    if (handled.has(key)) return null;
+    handled.add(key);
+    return tapped;
+  };
 }
 
 /** Removes an already-delivered reminder from the tray (cancelling only kills pending ones). */

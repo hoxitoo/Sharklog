@@ -3,7 +3,7 @@ import { View, ScrollView, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
-import { activeGoals, isInTilt } from '@sharklog/core';
+import { activeGoals, calcGoalProgress, isInTilt } from '@sharklog/core';
 import { AppText as Text } from '../../components/AppText';
 import { AppIcon } from '../../components/icons/AppIcon';
 import { PaywallSheet } from '../../components/PaywallSheet';
@@ -35,6 +35,7 @@ export function GoalsScreen() {
   const bottomPad = useBottomPad(SPACE.xxl);
   const goals = useBetsStore((s) => s.goals);
   const bets = useBetsStore((s) => s.bets);
+  const transactions = useBetsStore((s) => s.bankroll.transactions);
   const isPro = useBetsStore((s) => s.settings.isPro);
   const tiltThreshold = useBetsStore((s) => effectiveTiltThreshold(s.settings));
   const makeMainGoal = useBetsStore((s) => s.makeMainGoal);
@@ -48,6 +49,11 @@ export function GoalsScreen() {
   // goals take no slot (useGoalBoard → goalsFor).
   const { progress, reached: isReached, open, locked, main, full } = useGoalBoard();
   const archived = useMemo(() => goals.filter((g) => g.archived), [goals]);
+  // The archive's numbers only while it is open: the board counts active goals.
+  const archivedProgress = useMemo(
+    () => (showArchive ? new Map(archived.map((g) => [g.id, calcGoalProgress(g, bets, transactions)] as const)) : null),
+    [showArchive, archived, bets, transactions],
+  );
   const inTilt = useMemo(() => isInTilt(bets, tiltThreshold), [bets, tiltThreshold]);
   // Still to reach — full cards, the main one first; reached — one line each, below.
   const going = useMemo(() => open.filter((g) => !isReached(g)), [open, isReached]);
@@ -96,23 +102,8 @@ export function GoalsScreen() {
           ))
         )}
 
-        {reached.length > 0 ? <Text style={s.sectionLabel}>{t('goals.reachedSection')}</Text> : null}
-        {reached.map((g) => (
-          <TouchableOpacity
-            key={g.id}
-            style={s.archived}
-            onPress={() => navigation.navigate('Goal', { goalId: g.id })}
-            activeOpacity={0.75}
-            accessibilityRole="button"
-            accessibilityLabel={t('goals.reachedRowA11y', { title: g.title })}
-          >
-            <Text style={s.check}>✓</Text>
-            <Text style={s.archivedTitle} numberOfLines={1}>{g.title}</Text>
-            <Text style={s.reachedValue}>{fmt(progress.get(g.id)!.current)}</Text>
-            <Text style={s.chevron}>›</Text>
-          </TouchableOpacity>
-        ))}
-
+        {/* Locked goals first: drawn under «Достигнутые», a goal still to reach
+            read as reached. */}
         {locked.map((g) => (
           <TouchableOpacity
             key={g.id}
@@ -127,6 +118,23 @@ export function GoalsScreen() {
               <Text style={s.lockedHint}>{t('goals.lockedHint')}</Text>
             </View>
             <Text style={s.proBadge}>{t('common.pro')}</Text>
+          </TouchableOpacity>
+        ))}
+
+        {reached.length > 0 ? <Text style={[s.archiveText, s.sectionGap]}>{t('goals.reachedSection')}</Text> : null}
+        {reached.map((g) => (
+          <TouchableOpacity
+            key={g.id}
+            style={s.archived}
+            onPress={() => navigation.navigate('Goal', { goalId: g.id })}
+            activeOpacity={0.75}
+            accessibilityRole="button"
+            accessibilityLabel={t('goals.reachedRowA11y', { title: g.title, amount: fmt(progress.get(g.id)!.current) })}
+          >
+            <Text style={s.check}>✓</Text>
+            <Text style={s.archivedTitle} numberOfLines={1}>{g.title}</Text>
+            <Text style={s.reachedValue}>{fmt(progress.get(g.id)!.current)}</Text>
+            <Text style={s.chevron}>›</Text>
           </TouchableOpacity>
         ))}
 
@@ -147,8 +155,8 @@ export function GoalsScreen() {
               <Text style={s.archiveText}>{t('goals.archive', { n: archived.length })}</Text>
               <Text style={s.archiveText}>{showArchive ? '▲' : '▼'}</Text>
             </TouchableOpacity>
-            {showArchive ? archived.map((g) => {
-              const p = progress.get(g.id)!;
+            {archivedProgress ? archived.map((g) => {
+              const p = archivedProgress.get(g.id)!;
               return (
                 <TouchableOpacity key={g.id} style={s.archived} onPress={() => edit(g.id)} activeOpacity={0.75}>
                   <Text style={s.archivedTitle} numberOfLines={1}>{g.title}</Text>
@@ -196,10 +204,7 @@ const s = themedStyles(() => ({
   lockedText: { flex: 1, paddingVertical: SPACE.sm },
   lockedHint: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: 2 },
   archivedValue: { ...numeric, fontSize: SIZE.caption, fontWeight: '400', color: colors.textMuted },
-  sectionLabel: {
-    fontSize: SIZE.caption, fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', letterSpacing: 0.5,
-    marginTop: SPACE.sm, marginBottom: SPACE.sm,
-  },
+  sectionGap: { marginTop: SPACE.sm, marginBottom: SPACE.sm },
   check: { fontSize: SIZE.body, fontWeight: '700', color: signalInk(colors.won) },
   reachedValue: { ...numeric, fontSize: SIZE.caption, fontWeight: '700', color: signalInk(colors.won) },
   chevron: { fontSize: SIZE.title, fontWeight: '400', color: colors.textMuted },

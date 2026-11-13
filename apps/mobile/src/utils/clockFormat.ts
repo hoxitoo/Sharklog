@@ -8,3 +8,6 @@ export function uses12HourClock(): boolean {
     return false; // default to 24-hour on older engines
   }
 }
+
+/** A moment's local clock, "HH:MM" — the one way the app writes a time of day (a bet's kick-off, a reminder). */
+export const clockOf = (d: Date): string => d.toTimeString().slice(0, 5);

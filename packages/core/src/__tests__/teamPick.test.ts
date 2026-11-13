@@ -1,4 +1,5 @@
-import { choiceAfterPick, type SportChoice } from '../utils/teamPick';
+import { describe, it, expect } from 'vitest';
+import { choiceAfterPick, choiceAfterClear, type SportChoice } from '../utils/teams';
 
 /*
  * What picking a known team does to the bet form's sport and discipline.
@@ -57,5 +58,14 @@ describe('choiceAfterPick', () => {
   it('changes nothing for «Другое» or a team whose sport the bets do not say', () => {
     expect(choiceAfterPick(fresh, 'team1', { sport: 'other' })).toBe(fresh);
     expect(choiceAfterPick(fresh, 'team1', {})).toBe(fresh);
+  });
+
+  it('frees the sport a field set once that field is emptied — not the user\'s choice', () => {
+    const picked = choiceAfterPick(fresh, 'team1', akBarsHockey);
+    const cleared = choiceAfterClear(picked, 'team1');
+    expect(cleared.sportFrom).toBeUndefined();
+    expect(choiceAfterPick(cleared, 'team2', spartakFootball).sport).toBe('football');
+    const chosen: SportChoice = { sport: 'hockey', discipline: 'csgo', sportFrom: 'user' };
+    expect(choiceAfterClear(chosen, 'team1')).toBe(chosen);
   });
 });

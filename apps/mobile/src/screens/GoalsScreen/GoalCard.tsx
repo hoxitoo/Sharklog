@@ -83,6 +83,8 @@ function AccumulationCard({ goal, p, main, chart, isPro, inTilt, onEdit, onMakeM
   const fmt = useFormatMoney();
   const today = toYmd(new Date());
   const tint = p.achieved ? colors.accent : colors.purpleText;
+  // Whole units, rounded BEFORE the sign is read: −0.30 a day was «−0 ₽» in red.
+  const perDay = p.pnlPerDayToReach === null ? null : Math.round(p.pnlPerDayToReach / 100) * 100 || 0;
 
   let when: string;
   if (!p.started) when = t('goals.startsOn', { date: dayLabel(goal.startDate) });
@@ -121,10 +123,10 @@ function AccumulationCard({ goal, p, main, chart, isPro, inTilt, onEdit, onMakeM
               result (the bank goal's pace rule). A pace, so Pro. A sentence in
               whole units: as a label-and-sum row the mono sum pushed its sign
               onto a line of its own, and kopecks of an average are noise. */}
-          {p.pnlPerDayToReach !== null ? (
+          {perDay !== null ? (
             isPro ? (
-              <Text style={[card.donePace, p.pnlPerDayToReach < 0 ? { color: colors.lost } : null]}>
-                {t('goals.perDay', { amount: fmt(Math.round(p.pnlPerDayToReach / 100) * 100) })}
+              <Text style={[card.donePace, perDay < 0 ? { color: colors.lost } : null]}>
+                {t('goals.perDay', { amount: fmt(perDay) })}
               </Text>
             ) : (
               <TouchableOpacity style={card.locked} onPress={onPaywall} activeOpacity={0.75} accessibilityRole="button">
@@ -204,7 +206,8 @@ function AccumulationCard({ goal, p, main, chart, isPro, inTilt, onEdit, onMakeM
 
       {goal.note ? <Text style={card.userNote}>{goal.note}</Text> : null}
 
-      {/* A reached goal cannot be the main one (mainGoal skips it). */}
+      {/* A reached goal is done: not offered as the main one (mainGoal makes it
+          main only when every goal is reached). */}
       {!main && !p.achieved ? (
         <TouchableOpacity style={card.linkBtn} onPress={onMakeMain} activeOpacity={0.7} accessibilityRole="button">
           <Text style={card.link}>{t('goals.makeMain')}</Text>

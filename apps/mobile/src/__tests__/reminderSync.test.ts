@@ -34,6 +34,7 @@ jest.mock('expo-notifications', () => ({
 import {
   syncBetResultReminders, syncRemindersFor, reminderFireAt,
   registerBetResultCategory, snoozeBetResultReminder, readBetResultAction, SNOOZE_MIN,
+  scheduleBetResultReminder, handleLater, tapOnce,
 } from '../../src/utils/notifications';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -197,27 +198,64 @@ describe('«Позже» on a result reminder', () => {
   });
 
   it('takes the reminder down and brings it back in an hour, under the same id', async () => {
-    (Notifications.getPresentedNotificationsAsync as jest.Mock).mockClear();
+    (Notifications.getPresentedNotificationsAsync as jest.Mock).mockResolvedValueOnce([
+      { request: { identifier: 'shown-s', content: { data: { type: 'bet_result', betId: 's' } } } },
+      { request: { identifier: 'shown-other', content: { data: { type: 'bet_result', betId: 'other' } } } },
+    ]);
+    (Notifications.dismissNotificationAsync as jest.Mock).mockClear();
     const b = bet('s', '09:00');
-    const at = await snoozeBetResultReminder(b, SNOOZE_MIN, NOW);
-    expect(at).toBe(NOW + 60 * 60_000);
+    const at = await snoozeBetResultReminder(b, NOW);
+    expect(at).toBe(NOW + SNOOZE_MIN * 60_000);
     expect(mockScheduled.get('bet-result-s')?.trigger?.date?.getTime()).toBe(NOW + 60 * 60_000);
-    expect(Notifications.getPresentedNotificationsAsync).toHaveBeenCalled();
+    expect((Notifications.dismissNotificationAsync as jest.Mock).mock.calls).toEqual([['shown-s']]);
+  });
+
+  it('never brings a reminder EARLIER: a match moved to tomorrow keeps tomorrow\'s', async () => {
+    // «Позже» on an old notification of a bet edited to tomorrow replaced
+    // tomorrow's reminder (same id) with one tonight.
+    const tomorrow = bet('t', '21:00', { date: '2026-10-06' });
+    const due = reminderFireAt(tomorrow, NOW)!;
+    expect(await snoozeBetResultReminder(tomorrow, NOW)).toBe(due);
+    expect(mockScheduled.get('bet-result-t')?.trigger?.date?.getTime()).toBe(due);
+    // Its own reminder, not a «Позже»: an edit may move it.
+    expect(mockScheduled.get('bet-result-t')?.content.data?.['snoozed']).toBeUndefined();
   });
 
   it('promises nothing it cannot keep: no permission, or the bet already settled', async () => {
     (Notifications.getPermissionsAsync as jest.Mock).mockResolvedValueOnce({ status: 'denied' });
-    expect(await snoozeBetResultReminder(bet('p', '09:00'), SNOOZE_MIN, NOW)).toBeNull();
-    expect(await snoozeBetResultReminder(bet('w', '09:00', { status: 'won' }), SNOOZE_MIN, NOW)).toBeNull();
+    expect(await snoozeBetResultReminder(bet('p', '09:00'), NOW)).toBeNull();
+    expect(await snoozeBetResultReminder(bet('w', '09:00', { status: 'won' }), NOW)).toBeNull();
     expect(mockScheduled.size).toBe(0);
   });
 
   it('is kept by the launch reconcile while the bet is pending', async () => {
     const b = bet('k', '09:00'); // its own reminder time is long past
-    await snoozeBetResultReminder(b, SNOOZE_MIN, NOW);
+    await snoozeBetResultReminder(b, NOW);
     await syncBetResultReminders([b], true);
     expect(mockScheduled.has('bet-result-k')).toBe(true);
     expect(mockCancelled).not.toContain('bet-result-k');
+  });
+
+  it('with result reminders switched off since, or the bet gone, only clears the shade', async () => {
+    (Notifications.getPresentedNotificationsAsync as jest.Mock).mockClear();
+    expect(await handleLater('off', bet('off', '09:00'), false, NOW)).toBeNull();
+    expect(await handleLater('gone', undefined, true, NOW)).toBeNull();
+    expect(mockScheduled.size).toBe(0);
+    expect(Notifications.getPresentedNotificationsAsync).toHaveBeenCalledTimes(2);
+    expect(await handleLater('on', bet('on', '09:00'), true, NOW)).toBe(NOW + SNOOZE_MIN * 60_000);
+  });
+
+  it('handles each tap once — the cold start delivers it twice — and a new delivery again', () => {
+    const tap = (date: number) => ({
+      actionIdentifier: 'later',
+      notification: { date, request: { identifier: 'bet-result-x', content: { data: { type: 'bet_result', betId: 'x' } } } },
+    }) as unknown as Notifications.NotificationResponse;
+    const once = tapOnce();
+    expect(once(tap(1))).toEqual({ betId: 'x', action: 'later' });
+    expect(once(tap(1))).toBeNull();
+    // The snoozed reminder, delivered an hour later: a new tap.
+    expect(once(tap(2))).toEqual({ betId: 'x', action: 'later' });
+    expect(once(null)).toBeNull();
   });
 
   it('reads which bet and which button a tap was', () => {
@@ -230,5 +268,28 @@ describe('«Позже» on a result reminder', () => {
     expect(readBetResultAction(tap('won', { type: 'tilt' }))).toBeNull();
     expect(readBetResultAction(tap('won', { type: 'bet_result' }))).toBeNull();
     expect(readBetResultAction(null)).toBeNull();
+  });
+});
+
+describe('an edit that moves the kick-off', () => {
+  it('into a match already over takes the old reminder off — not a «Позже»', async () => {
+    // At 12:00 the bet is corrected from 11:00 to 08:00: its match ended at
+    // 10:30, and the 13:30 reminder for the old time would still come.
+    const b = bet('m', '11:00');
+    preschedule(b);
+    await scheduleBetResultReminder({ ...b, time: '08:00' });
+    expect(mockScheduled.has('bet-result-m')).toBe(false);
+
+    const s = bet('z', '09:00');
+    await snoozeBetResultReminder(s, NOW);
+    await scheduleBetResultReminder({ ...s, notes: 'edited' } as Bet);
+    expect(mockScheduled.has('bet-result-z')).toBe(true);
+  });
+
+  it('to later re-arms it at the new time', async () => {
+    const b = bet('l', '11:00');
+    preschedule(b);
+    await scheduleBetResultReminder({ ...b, time: '18:00' });
+    expect(mockScheduled.get('bet-result-l')?.trigger?.date?.getTime()).toBe(reminderFireAt({ ...b, time: '18:00' }, NOW));
   });
 });

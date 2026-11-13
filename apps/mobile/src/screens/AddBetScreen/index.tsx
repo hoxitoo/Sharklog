@@ -6,7 +6,7 @@ import {
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
 import type { TextInput as TextInputRef } from 'react-native';
 import { sportGlyph, disciplineGlyph } from '../../components/icons/AppIcon';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, type FieldErrors } from 'react-hook-form';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -14,7 +14,7 @@ import type { Sport, BetType, Strategy, BetStatus, EsportsDiscipline, TeamSugges
 import {
   SPORTS, BET_TYPES, STRATEGIES, ESPORTS_DISCIPLINES, PICK, parseMoneyInput,
   impliedProbability, kellyFraction, expectedValue, recommendedStake, inPlanOdds, stakeOverPlan, strategyPlan, strategySince, activeStrategy, bankAtBetTime, combineExpressOdds, formatOddsAs, CURRENT_SCHEMA_VERSION, FREE_LIMITS, toYmd, stepProbability, side1x2,
-  teamsFromBets, parseClock,
+  teamsFromBets, parseClock, choiceAfterPick, choiceAfterClear, type PickSource,
 } from '@sharklog/core';
 import { useTranslation } from 'react-i18next';
 import { FilterPicker } from '../../components/FilterPicker';
@@ -27,8 +27,8 @@ import { sportLabel, betTypeLabel, strategyLabel, disciplineLabel } from '../../
 import { colors, signalTint, signalInk } from '../../theme/colors';
 import { useBetsStore, effectiveDailyLimit } from '../../store/betsStore';
 import { askForRemindersOnce, remindersCanCome } from '../../utils/reminderPermission';
-import { choiceAfterPick, type PickSource } from '../../utils/teamPick';
-import { reminderFireAt } from '../../utils/notifications';
+import { reminderHint } from '../../utils/reminderTime';
+import { clockOf } from '../../utils/clockFormat';
 import { dayMonth } from '../../utils/calendar';
 import { haptic } from '../../utils/haptics';
 import { Analytics } from '../../services/analytics';
@@ -107,7 +107,7 @@ function SingleTeamInput({
   onChange: (v: string) => void;
   onSubmitEditing?: () => void;
   /** A known team picked from the list — the form takes its sport and discipline (sportOfTeam). */
-  onPickTeam?: (team: TeamSuggestion) => void;
+  onPickTeam: (team: TeamSuggestion) => void;
   textInputRef?: React.RefObject<TextInputRef | null>;
   placeholder?: string;
   sport: Sport;
@@ -154,7 +154,7 @@ function SingleTeamInput({
               style={ac.item}
               onPress={() => {
                 onChange(team.name);
-                onPickTeam?.(team);
+                onPickTeam(team);
                 setFocused(false);
                 onSubmitEditing?.();
               }}
@@ -451,7 +451,7 @@ export function AddBetScreen() {
 
   const now = new Date();
   const defaultDate = toYmd(now); // LOCAL day — toISOString would stamp tomorrow's UTC date
-  const defaultTime = now.toTimeString().slice(0, 5);
+  const defaultTime = clockOf(now);
 
   const initialBetMode: BetMode = source?.betType === 'express' ? 'express' : 'single';
   const eventParts = source?.betType !== 'express' ? (source?.event ?? '').split(' vs ') : [];
@@ -600,12 +600,11 @@ export function AddBetScreen() {
   const dailyLimit = effectiveDailyLimit(settings);
   const overDailyLimit = !editBet && dailyLimit > 0 && dayCount + 1 > dailyLimit;
 
-  // When the result reminder will come — the same reminderFireAt the reminder
-  // is scheduled with (kick-off plus the sport's length; an accumulator's sport
-  // is its first filled leg's, as it is saved). Only for a bet still in play,
-  // with reminders on and a readable time; none once that moment is past. With
-  // notifications off (and not to be asked for after this save) it says so
-  // instead: "I'll remind you at 21:15" was a promise that could not come.
+  // When the result reminder will come — reminderHint, from the same
+  // reminderFireAt the reminder is scheduled with (kick-off plus the sport's
+  // length; an accumulator's sport is its first filled leg's, as it is saved).
+  // With notifications off (and not to be asked for after this save) it says
+  // so instead: "I'll remind you at 21:15" was a promise that could not come.
   const watchedTime = watch('time');
   const reminderSport = isSingle ? watchedSport : (legs.find(legFilled)?.sport ?? watchedSport);
   const [remindersOk, setRemindersOk] = useState<boolean | null>(null);
@@ -614,18 +613,15 @@ export function AddBetScreen() {
     remindersCanCome(!editBet).then((ok) => { if (live) setRemindersOk(ok); }).catch(() => {});
     return () => { live = false; };
   }, [editBet]);
-  const remindersOn = watchedStatus === 'pending' && settings.betResultReminders !== false;
+  const hint = useMemo(() => reminderHint({
+    status: watchedStatus, remindersOn: settings.betResultReminders !== false, canCome: remindersOk,
+    date: watchedDate, time: watchedTime ?? '', sport: reminderSport, defaultTime,
+  }), [watchedStatus, settings.betResultReminders, remindersOk, watchedDate, watchedTime, reminderSport, defaultTime]);
   const reminderWhen = useMemo(() => {
-    if (!remindersOn || remindersOk !== true) return null;
-    const typed = (watchedTime ?? '').trim();
-    const time = typed ? parseClock(typed) : defaultTime;
-    if (time === null) return null;
-    const at = reminderFireAt({ date: watchedDate, time, sport: reminderSport } as Bet);
-    if (at === null) return null;
-    const when = new Date(at);
-    const clock = when.toTimeString().slice(0, 5);
-    return toYmd(when) === toYmd(new Date()) ? clock : `${dayMonth(toYmd(when))} ${clock}`;
-  }, [remindersOn, remindersOk, watchedDate, watchedTime, reminderSport, defaultTime]);
+    if (hint?.kind !== 'at') return null;
+    const when = new Date(hint.at);
+    return toYmd(when) === toYmd(new Date()) ? clockOf(when) : `${dayMonth(toYmd(when))} ${clockOf(when)}`;
+  }, [hint]);
 
   // Same rounding the bet is saved with, so the preview cannot promise a payout
   // the stored bet will not produce.
@@ -682,6 +678,26 @@ export function AddBetScreen() {
   function pickLegSport(idx: number, field: 'team1' | 'team2', team: TeamSuggestion) {
     setLegs((prev) => prev.map((l, i) => (i === idx ? choiceAfterPick(l, field, team) : l)));
   }
+  // A team field emptied by hand gives up the sport it set (choiceAfterClear).
+  function typeTeam(field: 'team1' | 'team2', v: string, onChange: (v: string) => void) {
+    onChange(v);
+    if (v.trim()) return;
+    const next = choiceAfterClear({
+      sport: getValues('sport'), discipline: getValues('discipline'),
+      sportFrom: sportFrom.current, disciplineFrom: disciplineFrom.current,
+    }, field);
+    sportFrom.current = next.sportFrom;
+    disciplineFrom.current = next.disciplineFrom;
+  }
+  function typeLegTeam(idx: number, field: 'team1' | 'team2', v: string) {
+    setLegs((prev) => prev.map((l, i) => (i !== idx ? l : v.trim() ? { ...l, [field]: v } : choiceAfterClear({ ...l, [field]: v }, field))));
+  }
+  // Save with a field that does not pass (an empty team, a time like «2130»):
+  // its error line can be far up the form, under opened extras — say it here.
+  function onInvalid(errs: FieldErrors<FormData>) {
+    const first = Object.values(errs).find((e) => typeof e?.message === 'string')?.message;
+    if (typeof first === 'string') Alert.alert(t('common.error'), first);
+  }
 
 
   function onSubmit(data: FormData) { try {
@@ -735,7 +751,9 @@ export function AddBetScreen() {
     // carried: the field says "pick a date", and saving without one must not
     // quietly move the bet to today.
     const dateVal = data.date.trim() || (editBet ? editBet.date : defaultDate);
-    // Validated as HH:MM (or left as the saved bet had it — see the field).
+    // HH:MM. A time saved before the field was checked passes untouched; at
+    // save, a readable one («21.00») is written as «21:00» — the reminder reads
+    // it either way — and an unreadable one stays as it was.
     const timeVal = data.time.trim() ? (parseClock(data.time) ?? data.time.trim()) : defaultTime;
 
     if (isSingle) {
@@ -897,7 +915,7 @@ export function AddBetScreen() {
                 render={({ field: { onChange, value } }) => (
                   <SingleTeamInput
                     value={value}
-                    onChange={onChange}
+                    onChange={(v) => typeTeam('team1', v, onChange)}
                     onSubmitEditing={() => team2Ref.current?.focus()}
                     onPickTeam={(team) => pickTeamSport('team1', team)}
                     placeholder="NaVi, FC Barcelona..."
@@ -915,7 +933,7 @@ export function AddBetScreen() {
                 render={({ field: { onChange, value } }) => (
                   <SingleTeamInput
                     value={value}
-                    onChange={onChange}
+                    onChange={(v) => typeTeam('team2', v, onChange)}
                     textInputRef={team2Ref}
                     onPickTeam={(team) => pickTeamSport('team2', team)}
                     placeholder="Virtus.pro, Real Madrid..."
@@ -1012,7 +1030,7 @@ export function AddBetScreen() {
                 <View style={{ marginBottom: SPACE.sm }}>
                   <SingleTeamInput
                     value={leg.team1}
-                    onChange={(v) => updateLeg(i, 'team1', v)}
+                    onChange={(v) => typeLegTeam(i, 'team1', v)}
                     onPickTeam={(team) => pickLegSport(i, 'team1', team)}
                     placeholder={t('bet.team1')}
                     sport={leg.sport}
@@ -1022,7 +1040,7 @@ export function AddBetScreen() {
                 <View style={{ marginBottom: SPACE.sm }}>
                   <SingleTeamInput
                     value={leg.team2}
-                    onChange={(v) => updateLeg(i, 'team2', v)}
+                    onChange={(v) => typeLegTeam(i, 'team2', v)}
                     onPickTeam={(team) => pickLegSport(i, 'team2', team)}
                     placeholder={t('bet.team2')}
                     sport={leg.sport}
@@ -1389,15 +1407,17 @@ export function AddBetScreen() {
             label={isSingle ? t('addBet.matchTime') : t('addBet.matchTimeExpress')}
             {...(errors.time?.message ? { error: errors.time.message } : {})}
           >
-            {/* HH:MM, or as the saved bet had it: «21.00», «2130» or «21:» were
-                saved as typed, and the reminder timed by them never came. A
-                time saved before the check is left alone while untouched. */}
+            {/* HH:MM: «2130», «21:» or «25:00» were saved as typed, and the
+                reminder timed by them never came. A time saved before the
+                check passes while untouched. The ref lets a failed save focus
+                the field. */}
             <Controller
               control={control}
               name="time"
               rules={{ validate: (v) => !v.trim() || parseClock(v) !== null || (editBet != null && v === editBet.time) || t('addBet.errTime') }}
-              render={({ field: { onChange, value } }) => (
+              render={({ field: { onChange, value, ref } }) => (
                 <TextInput
+                  ref={ref}
                   style={inputStyle}
                   placeholder={t('addBet.timePh')}
                   placeholderTextColor={colors.textMuted}
@@ -1411,7 +1431,7 @@ export function AddBetScreen() {
         </View>
         {reminderWhen !== null ? (
           <Text style={styles.remindAt}>{t('addBet.remindAt', { when: reminderWhen })}</Text>
-        ) : remindersOn && remindersOk === false ? (
+        ) : hint?.kind === 'off' ? (
           <Text style={styles.remindAt}>{t('addBet.remindOff')}</Text>
         ) : null}
 
@@ -1587,7 +1607,7 @@ export function AddBetScreen() {
           </>
         )}
 
-        <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit(onSubmit)} activeOpacity={0.85}>
+        <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit(onSubmit, onInvalid)} activeOpacity={0.85}>
           <Text style={styles.submitText}>
             {editBet ? t('addBet.submitEdit') : t('bet.add')}
           </Text>

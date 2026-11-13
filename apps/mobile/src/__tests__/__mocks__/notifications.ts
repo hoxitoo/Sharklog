@@ -16,3 +16,5 @@ export const reminderFireAt = jest.fn(() => null);
 export const SNOOZE_MIN = 60;
 export const snoozeBetResultReminder = jest.fn(async () => null);
 export const readBetResultAction = jest.fn(() => null);
+export const handleLater = jest.fn(async () => null);
+export const tapOnce = jest.fn(() => () => null);

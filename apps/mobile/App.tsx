@@ -28,8 +28,9 @@ import { isOddsFormat } from '@sharklog/core';
 import {
   scheduleDailyReminder, registerBetResultCategory,
   setBetPendingResolver, syncRemindersFor, setReminderOddsFormat,
-  readBetResultAction, snoozeBetResultReminder, dismissBetResultNotification,
+  handleLater, tapOnce, type BetResultAction,
 } from './src/utils/notifications';
+import { clockOf } from './src/utils/clockFormat';
 import { initRevenueCat, syncEntitlement } from './src/services/revenueCat';
 import { resumePendingPayment, takePaidNotice, checkLicenseStanding } from './src/services/purchase';
 import { BILLING } from './src/services/billing';
@@ -119,10 +120,11 @@ function AppRoot() {
     ...Ionicons.font,
   });
 
-  // Settling a bet straight from a notification button. The action can arrive before
-  // the store has loaded (cold start) — applying it then would mutate an EMPTY store
-  // and persist that over real data, so buffer it until `isLoaded`.
-  const queuedAction = useRef<{ betId: string; action: 'won' | 'lost' | 'later' } | null>(null);
+  // A reminder's button — settling the bet from it, or «Позже». The tap can
+  // arrive before the store has loaded (cold start) — applying it then would
+  // mutate an EMPTY store and persist that over real data, so it is buffered
+  // until `isLoaded`.
+  const queuedAction = useRef<BetResultAction | null>(null);
 
   const flushQueuedAction = useCallback(() => {
     const queued = queuedAction.current;
@@ -134,16 +136,9 @@ function AppRoot() {
     if (queued.action === 'later') {
       // «Позже»: the reminder leaves the shade and comes back in an hour —
       // said out loud, since the tap opened the app (notifications.ts says why).
-      // With result reminders switched off since it was delivered, it only
-      // leaves the shade: an hour later it would come back against the switch.
-      if (!bet || store.settings.betResultReminders === false) {
-        dismissBetResultNotification(queued.betId).catch(() => {});
-        return;
-      }
-      snoozeBetResultReminder(bet).then((at) => {
+      handleLater(queued.betId, bet, store.settings.betResultReminders !== false).then((at) => {
         if (at === null) return;
-        const when = new Date(at).toTimeString().slice(0, 5);
-        requestAnimationFrame(() => Alert.alert(i18n.t('notifications.snoozed', { time: when })));
+        requestAnimationFrame(() => Alert.alert(i18n.t('notifications.snoozed', { time: clockOf(new Date(at)) })));
       }).catch(() => {});
       return;
     }
@@ -158,31 +153,22 @@ function AppRoot() {
       return !!bet && bet.status === 'pending';
     });
 
-    // One tap can arrive twice on a cold start: as the last response AND as the
-    // response expo-notifications parked for the first listener. A second
-    // Won/Lost finds the bet settled and does nothing; a second «Позже» would
-    // snooze again and show the alert twice. So each tap (notification, button,
-    // delivery time — a snoozed reminder is a new delivery) is handled once,
-    // and the last response is cleared so the next launch does not replay it.
-    const handled = new Set<string>();
+    // Each tap handled once (tapOnce: on a cold start one tap arrives twice),
+    // and the last response cleared so the next launch does not replay it.
+    const once = tapOnce();
     const handle = (response: Notifications.NotificationResponse | null) => {
-      const tapped = readBetResultAction(response);
+      const tapped = once(response);
       if (!tapped) return;
-      const key = `${response!.notification.request.identifier}|${response!.actionIdentifier}|${response!.notification.date}`;
-      if (handled.has(key)) return;
-      handled.add(key);
       try { Notifications.clearLastNotificationResponse(); } catch { /* older native module */ }
       queuedAction.current = tapped;
       flushQueuedAction();
     };
 
     // Cold start: the app was launched by tapping the action button.
-    Notifications.getLastNotificationResponseAsync().then(handle).catch(() => {});
+    try { handle(Notifications.getLastNotificationResponse()); } catch { /* older native module */ }
     const sub = Notifications.addNotificationResponseReceivedListener(handle);
     return () => sub.remove();
   }, [flushQueuedAction]);
-
-  useEffect(() => { flushQueuedAction(); }, [isLoaded, flushQueuedAction]);
 
   // Language FIRST — this effect is declared before the reconcile below on
   // purpose: React runs a commit's effects in declaration order, and every
@@ -208,6 +194,10 @@ function AppRoot() {
       `${APP_VERSION}|${i18n.language}|${isOddsFormat(oddsFormat) ? oddsFormat : 'decimal'}`,
     );
   }, [isLoaded, language, oddsFormat]);
+
+  // A tap buffered until the store loaded — AFTER the language effect: a
+  // «Позже» bakes the reminder's text when it schedules it.
+  useEffect(() => { flushQueuedAction(); }, [isLoaded, flushQueuedAction]);
 
   // Its own effect, declared AFTER the language one so its text is already in
   // the right language — and keyed on the effective hour, which moves when Pro

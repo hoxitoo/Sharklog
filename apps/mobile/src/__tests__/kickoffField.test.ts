@@ -19,21 +19,20 @@ describe('kick-off on the bet form', () => {
     expect(time).toBeLessThan(extras);
   });
 
-  it('is called the kick-off, and says when the reminder comes — from the function that schedules it', () => {
+  it('is called the kick-off, and its line comes from the module that times the reminder (reminderTime.test.ts)', () => {
     expect(src).toContain("t('addBet.matchTime')");
-    expect(src).toContain("t('addBet.remindAt'");
-    expect(src).toMatch(/reminderFireAt\(/);
+    expect(src).toMatch(/const hint = useMemo\(\(\) => reminderHint\(\{/);
+    expect(src).toContain("t('addBet.remindAt', { when: reminderWhen })");
+    expect(src).toMatch(/hint\?\.kind === 'off' \? \(\s*<Text style=\{styles\.remindAt\}>\{t\('addBet\.remindOff'\)\}/);
+    expect(src).toContain('remindersCanCome(');
   });
 
-  it('is checked as HH:MM — the reminder is timed by it', () => {
+  it('is checked as HH:MM, and a failed save says why', () => {
     // «21.00», «2130» or «21:» were saved as typed, and the reminder never came.
     expect(src).toMatch(/name="time"\s+rules=\{\{ validate: [^\n]*parseClock\(v\)[^\n]*t\('addBet\.errTime'\)/);
     expect(src).toContain('parseClock(data.time)');
-  });
-
-  it('promises a reminder only when one can come', () => {
-    // With notifications off, "I'll remind you at 21:15" could not come true.
-    expect(src).toContain('remindersCanCome(');
-    expect(src).toContain("t('addBet.remindOff')");
+    // The error line can be far up the form, under opened extras.
+    expect(src).toContain('handleSubmit(onSubmit, onInvalid)');
+    expect(src).toMatch(/render=\{\(\{ field: \{ onChange, value, ref \} \}\) => \(\s*<TextInput\s+ref=\{ref\}/);
   });
 });

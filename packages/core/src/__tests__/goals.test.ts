@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { Bet, BankrollTransaction, Goal } from '../types/bet';
 import {
-  calcGoalProgress, activeGoals, mainGoal, goalsFor, addDays, daysBetween, MONTH_DAYS, PACE_WINDOW_DAYS, GOAL_ROI_MIN_BETS,
+  calcGoalProgress, activeGoals, mainGoal, goalsFor, goalFitsPlan, goalBoard, addDays, daysBetween, MONTH_DAYS, PACE_WINDOW_DAYS, GOAL_ROI_MIN_BETS,
 } from '../utils/goals';
 import { currentBank } from '../utils/stats';
 import { sanitizeGoals } from '../utils/sanitize';
@@ -221,12 +221,95 @@ describe('a reached goal — when, and what it took', () => {
     expect(p.pnlPerDayToReach).toBe(5_000_00 / 10);
   });
 
-  it('says nothing for a goal not reached now, or a loss cap', () => {
+  it('stays reached when the measure drops back — the goal is done, its slot stays free', () => {
+    // Reached, then a loss (or the withdrawal the card itself suggests): taking
+    // the slot back would lock another goal on Free and move the header button.
     const bets = [bet({ date: day(-20), status: 'won', stake: 60_000_00 }), bet({ date: day(-5), status: 'lost', stake: 30_000_00 })];
+    const p = calcGoalProgress(goal({ target: 50_000_00 }), bets, [], NOW);
+    expect([p.achieved, p.reachedOn, p.reachedInDays, p.current]).toEqual([true, day(-20), 11, 30_000_00]);
+  });
+
+  it('says nothing for a goal never reached, or a loss cap', () => {
+    const bets = [bet({ date: day(-20), status: 'won', stake: 30_000_00 })];
     const open = calcGoalProgress(goal({ target: 50_000_00 }), bets, [], NOW);
     expect([open.achieved, open.reachedOn, open.reachedInDays, open.pnlPerDayToReach]).toEqual([false, null, null, null]);
     const cap = calcGoalProgress(goal({ kind: 'lossCap', target: 10_000_00 }), bets, [], NOW);
-    expect([cap.reachedOn, cap.pnlPerDayToReach]).toEqual([null, null]);
+    expect([cap.achieved, cap.reachedOn, cap.pnlPerDayToReach]).toEqual([false, null, null]);
+  });
+
+  it('is not reached before its start day — a bank already over the target included', () => {
+    const txs = [tx('deposit', 200_000_00, day(-10))];
+    const p = calcGoalProgress(goal({ kind: 'bank', target: 100_000_00, startDate: day(7) }), [], txs, NOW);
+    expect([p.started, p.achieved, p.reachedOn]).toEqual([false, false, null]);
+  });
+
+  it('has no date when only a bet no day can place brings the bank to the target', () => {
+    // A settled bet with an unreadable date counts in the bank (currentBank)
+    // but on no day: "reached today" would move forward every day.
+    const txs = [tx('deposit', 90_000_00, day(-10))];
+    const odd = bet({ date: '5.11.2026', status: 'won', stake: 20_000_00 });
+    const p = calcGoalProgress(goal({ kind: 'bank', target: 100_000_00 }), [odd], txs, NOW);
+    expect([p.achieved, p.reachedOn, p.reachedInDays, p.pnlPerDayToReach]).toEqual([true, null, null, null]);
+  });
+});
+
+describe('the goal board — what the list, a goal\'s screen and the header button show', () => {
+  const bets = [bet({ date: day(-20), status: 'won', stake: 60_000_00 })]; // +60 000 since day −30
+  const done = goal({ id: 'done', target: 50_000_00 });
+  const next = goal({ id: 'next', target: 500_000_00 });
+  const third = goal({ id: 'third', target: 500_000_00 });
+  const old = goal({ id: 'old', target: 10_000_00, archived: true });
+
+  it('on Free: the reached goal open and folded, the next goal main, the one after locked', () => {
+    const b = goalBoard([done, next, third, old], bets, [], false, 1, NOW);
+    expect([b.open.map((g) => g.id), b.locked.map((g) => g.id), b.main?.id, b.full]).toEqual([['done', 'next'], ['third'], 'next', true]);
+    expect([b.reached(done), b.reached(next)]).toEqual([true, false]);
+    // The archive has no say: not counted, not computed.
+    expect(b.progress.has('old')).toBe(false);
+  });
+
+  it('has a slot left beside reached goals only', () => {
+    expect(goalBoard([done, old], bets, [], false, 1, NOW).full).toBe(false);
+    expect(goalBoard([done, next], bets, [], true, 1, NOW).full).toBe(false);
+  });
+
+  it('makes the first goal main when every goal is reached', () => {
+    const b = goalBoard([done, goal({ id: 'done2', target: 20_000_00 })], bets, [], false, 1, NOW);
+    expect([b.main?.id, b.locked.length, b.full]).toEqual(['done', 0, false]);
+  });
+});
+
+describe('a goal saved on Free — goalFitsPlan', () => {
+  const won = (n: number, stake: number) => bet({ date: day(n), status: 'won', stake });
+  const bets = [won(-20, 60_000_00)]; // +60 000 since day −30
+  const reachedGoal = goal({ id: 'r', target: 50_000_00 });
+  const openGoal = goal({ id: 'o', target: 500_000_00 });
+
+  it('lets a new goal in beside a reached one, not beside one still to reach', () => {
+    expect(goalFitsPlan(goal({ id: 'n', target: 900_000_00 }), [reachedGoal], bets, [], false, 1, NOW)).toBe(true);
+    expect(goalFitsPlan(goal({ id: 'n', target: 900_000_00 }), [reachedGoal, openGoal], bets, [], false, 1, NOW)).toBe(false);
+    expect(goalFitsPlan(goal({ id: 'n', target: 900_000_00 }), [reachedGoal, openGoal], bets, [], true, 1, NOW)).toBe(true);
+  });
+
+  it('checks an edit as saved: raising a reached goal\'s target past reach takes a slot', () => {
+    const raised = { ...reachedGoal, target: 900_000_00 };
+    expect(goalFitsPlan(raised, [reachedGoal, openGoal], bets, [], false, 1, NOW)).toBe(false);
+    expect(goalFitsPlan(raised, [reachedGoal], bets, [], false, 1, NOW)).toBe(true);
+    // Renaming the goal still to reach changes nothing.
+    expect(goalFitsPlan({ ...openGoal, title: 'x' }, [reachedGoal, openGoal], bets, [], false, 1, NOW)).toBe(true);
+  });
+
+  it('checks a goal back from the archive as restored — reached, it needs no slot', () => {
+    const archivedReached = { ...reachedGoal, archived: true };
+    const { archived: _a, ...back } = archivedReached;
+    expect(goalFitsPlan(back, [archivedReached, openGoal], bets, [], false, 1, NOW)).toBe(true);
+    expect(goalFitsPlan({ ...back, target: 900_000_00 }, [archivedReached, openGoal], bets, [], false, 1, NOW)).toBe(false);
+  });
+
+  it('does not make it worse when a trial that ended left goals locked', () => {
+    const goals = [goal({ id: 'a', target: 900_000_00 }), goal({ id: 'b', target: 900_000_00 })];
+    expect(goalFitsPlan({ ...goals[1]!, title: 'x' }, goals, bets, [], false, 1, NOW)).toBe(true);
+    expect(goalFitsPlan(goal({ id: 'c', target: 900_000_00 }), goals, bets, [], false, 1, NOW)).toBe(false);
   });
 });
 
@@ -283,8 +366,8 @@ describe('the goal list', () => {
   it('shows active goals in the user\'s order, the first one on the header button', () => {
     const goals = [goal({ id: 'a', archived: true }), goal({ id: 'b' }), goal({ id: 'c' })];
     expect(activeGoals(goals).map((g) => g.id)).toEqual(['b', 'c']);
-    expect(mainGoal(goals)?.id).toBe('b');
-    expect(mainGoal(undefined)).toBeUndefined();
+    expect(mainGoal(goals, () => false)?.id).toBe('b');
+    expect(mainGoal(undefined, () => false)).toBeUndefined();
   });
 
   it('makes the first goal still to reach the main one — a reached goal moves down', () => {
@@ -300,9 +383,9 @@ describe('the goal list', () => {
     // Pro bought during the trial and lost, or a backup from a Pro phone, left
     // a Free user with four open goals. Locked, not deleted.
     const goals = [goal({ id: 'a' }), goal({ id: 'b' }), goal({ id: 'c', archived: true }), goal({ id: 'd' })];
-    const free = goalsFor(goals, false, 1);
+    const free = goalsFor(goals, false, 1, () => false);
     expect([free.open.map((g) => g.id), free.locked.map((g) => g.id)]).toEqual([['a'], ['b', 'd']]);
-    expect(goalsFor(goals, true, 1).locked).toEqual([]);
+    expect(goalsFor(goals, true, 1, () => false).locked).toEqual([]);
   });
 
   it('gives a reached goal no slot — on Free the next goal opens beside it', () => {
