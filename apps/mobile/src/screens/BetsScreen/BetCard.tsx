@@ -88,6 +88,7 @@ export const BetCard = React.memo(function BetCard({
   }
 
   const accent = STATUS_COLORS[bet.status];
+  const tournament = bet.tournament?.trim();
 
   return (
     <TouchableOpacity
@@ -107,8 +108,14 @@ export const BetCard = React.memo(function BetCard({
 
       <View style={styles.row}>
         <View style={styles.left}>
-          <Text style={styles.sport}>
-            {bet.customSport || sportLabel(t, bet.sport)} · {bet.customBetType || betTypeLabel(t, bet.betType)}
+          {/* The league between the sport and the market — «Хоккей · NHL ·
+              Исход (1X2)» — a step brighter than the line, so NHL, KHL or BLAST
+              reads at a glance (request from a phone). Two lines at most: a
+              name the user typed can be any length. */}
+          <Text style={styles.sport} numberOfLines={2}>
+            {bet.customSport || sportLabel(t, bet.sport)}
+            {tournament ? <>{' · '}<Text style={styles.tournament}>{tournament}</Text></> : null}
+            {' · '}{bet.customBetType || betTypeLabel(t, bet.betType)}
           </Text>
           <Text style={styles.event} numberOfLines={1}>{displayEvent(bet.event)}</Text>
           <Text style={styles.pick}>{pickLabel(t, bet.pick)}</Text>
@@ -249,6 +256,8 @@ const styles = themedStyles(() => ({
   left: { flex: 1, marginRight: SPACE.md },
   right: { alignItems: 'flex-end' },
   sport: { fontSize: SIZE.caption, color: colors.textMuted, marginBottom: 2 },
+  // Nested in the line above: its own weight, or AppText draws it regular.
+  tournament: { fontSize: SIZE.caption, fontWeight: '600', color: colors.textSecondary },
   event: { fontSize: SIZE.lead, fontWeight: '600', color: colors.textPrimary, marginBottom: 2 },
   pick: { fontSize: SIZE.body, color: colors.accent },
   odds: { ...numeric, fontSize: SIZE.title, fontWeight: '700', color: colors.textPrimary },
