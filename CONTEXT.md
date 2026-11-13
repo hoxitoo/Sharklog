@@ -580,8 +580,8 @@ packages/core         403 vitest unit tests (stats, analytics, daily, formatters
                           insightsGroups x8 — дисциплина в группировках (только по esports-ставкам) и порядок по P&L,
                           betYears x16 — список лет, «без турнира», границы диаграммы, тримминг имён)
 apps/desktop           41 vitest smoke tests (betsStore x15, importBets x26)
-apps/mobile           506 jest tests (стор, стражи дизайна/тем/переводов, оплата, цели, календарь…)
-ИТОГО                  950 тестов (core 403 + desktop 41 + mobile 506, на 2026-11-13)
+apps/mobile           508 jest tests (стор, стражи дизайна/тем/переводов, оплата, цели, календарь…)
+ИТОГО                  952 теста (core 403 + desktop 41 + mobile 508, на 2026-11-13)
 ```
 
 ---
@@ -591,7 +591,7 @@ apps/mobile           506 jest tests (стор, стражи дизайна/те
 ```bash
 cd packages/core && npx vitest run          # 403 теста
 cd apps/desktop && npx vitest run           # 41 тест
-cd apps/mobile && npm test                  # 506 тестов
+cd apps/mobile && npm test                  # 508 тестов
 
 cd apps/mobile && npx tsc --noEmit          # type-check мобилки
 cd apps/desktop && npx tsc --noEmit         # type-check десктопа

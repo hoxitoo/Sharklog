@@ -29,6 +29,20 @@ export function disciplineLabel(t: TFunction, d: EsportsDiscipline | string): st
     : d;
 }
 
+/**
+ * What a team suggestion in the bet form is badged with: an esports team's
+ * discipline (CS2, Dota 2), any other team's sport — ALWAYS, the form's own
+ * sport too. Shown only when it differed from the form, «Трактор» on a hockey
+ * form had no badge under «Navi · CS2» and read as a team of unknown sport
+ * (report from a phone). Null only for a team whose sport the bets do not say
+ * (a later leg of an accumulator — teamsFromBets).
+ */
+export function teamSportLabel(t: TFunction, team: { sport?: Sport; discipline?: EsportsDiscipline }): string | null {
+  if (team.sport === undefined) return null;
+  if (team.sport === 'esports' && team.discipline) return disciplineLabel(t, team.discipline);
+  return sportLabel(t, team.sport);
+}
+
 /** Stored pick token → its display key. Longest-first is not needed: no token is a prefix of another. */
 const PICK_KEYS: Array<[string, string]> = [
   [PICK.HOME, 'picks.home'], [PICK.AWAY, 'picks.away'], [PICK.DRAW, 'picks.draw'],

@@ -1,5 +1,7 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import type { TFunction } from 'i18next';
+import { teamSportLabel } from '../utils/labels';
 
 /*
  * The bet form's team suggestions come from the bets as they are
@@ -28,5 +30,23 @@ describe('team suggestions on the bet form', () => {
     expect(src).toContain("useRef<PickSource | undefined>(source ? 'user' : undefined)");
     expect(src.match(/sportFrom(?:\.current = |: )'user'/g)?.length).toBeGreaterThanOrEqual(3);
     expect(src.match(/disciplineFrom(?:\.current = |: )'user'/g)?.length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe('the sport on a team suggestion', () => {
+  const t = ((key: string) => `«${key}»`) as unknown as TFunction;
+
+  it('is shown for every team whose sport is known — the form\'s own sport too', () => {
+    // «Трактор» on a hockey form had no badge under «Navi · CS2» and read as
+    // a team of unknown sport (report from a phone).
+    expect(teamSportLabel(t, { sport: 'hockey' })).toBe('«sports.hockey»');
+    expect(teamSportLabel(t, { sport: 'esports', discipline: 'csgo' })).toBe('CS2');
+    expect(teamSportLabel(t, { sport: 'esports' })).toBe('«sports.esports»');
+    expect(src).toContain('const badge = teamSportLabel(t, team);');
+    expect(src).not.toMatch(/team\.sport !== sport \?/);
+  });
+
+  it('is nothing only when the bets do not say the sport (a later leg of an accumulator)', () => {
+    expect(teamSportLabel(t, {})).toBeNull();
   });
 });
