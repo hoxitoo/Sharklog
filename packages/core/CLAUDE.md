@@ -67,14 +67,18 @@ utils/
   currency.ts         — CURRENCIES (знаки), currencySymbol, currencyFromUnit, suggestCurrency, BANKROLL_TIERS
   formatters.ts       — formatMoney(kopecks, currency='₽', maxDecimals=2), parseMoneyInput, formatOdds, formatPercent (adds + prefix)
   goals.ts            — calcGoalProgress(goal, bets, txs, now): прогресс, срок, темп, прогноз, ROI, ряд для
-                        графика; у достигнутой — reachedOn (первый день на цели), reachedInDays, pnlPerDayToReach
-                        (только ставки); activeGoals / mainGoal(goals, достигнута?) — первая недостигнутая;
+                        графика; achieved — день на цели был ИЛИ сумма на цели сейчас (остаётся достигнутой), не до
+                        даты начала; reachedOn (первый ДЕНЬ ряда на цели), reachedInDays, pnlPerDayToReach (только ставки);
+                        goalsFor(цели, isPro, лимит, достигнута) → open/locked/taken — достигнутые слот не занимают;
+                        goalBoard(…) — сводка экранов целей (главная, открытые, full); goalFitsPlan(цель как сохраняемая, …)
+                        — проверка Free при сохранении; activeGoals / mainGoal(цели, достигнута);
                         addDays / daysBetween (календарные дни, без DST)
   teams.ts            — upsertTeams(список, имена, спорт, дисциплина, newId) / cleanTeamNames — список команд обоих сторов
                         teamsFromBets(bets) → TeamSuggestion[] — подсказки команд из самих ставок (спорт и дисциплина —
                         как у ставок сейчас; у экспресса спорт — только у первой ноги, команды остальных — без спорта,
                         если имя не известно со спортом), кэш на массив; sportOfTeam(team) — что ставит форма при выборе
-                        команды (null для «Другое» и команды без спорта)
+                        команды (null для «Другое» и команды без спорта); choiceAfterPick / choiceAfterClear — что выбор
+                        и очистка команды делают со спортом формы (не поверх выбора пользователя и другого поля)
   heatmap.ts          — calcHeatmap(bets, weeks, now) (дни × 7, P&L через betPnl) / heatLevel(день) −3…3 или null
   strategyBuilder.ts  — STRATEGY_QUESTIONS (10 вопросов), buildStrategy(answers),
                         STRATEGY_ODDS_BANDS — диапазоны кэфов и для вопроса, и для плана;

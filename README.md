@@ -102,10 +102,10 @@ cd apps/desktop && npx tauri dev
 ### Тесты
 
 ```bash
-cd packages/core && npx vitest run       # 383 unit-теста
+cd packages/core && npx vitest run       # 403 unit-теста
 cd apps/desktop  && npm test             # 41 smoke-тест
 cd apps/desktop  && npx playwright test  # 22 E2E-тестов
-cd apps/mobile   && npm test             # 501 тест, включая стражей дизайна, тем, переводов и хранилища
+cd apps/mobile   && npm test             # 506 тестов, включая стражей дизайна, тем, переводов и хранилища
 ```
 
 ### Проверка типов
@@ -168,7 +168,7 @@ eas submit -p ios
 | Шрифты | DM Sans + DM Mono | DM Sans + DM Mono |
 | Оплата | Робокасса + сервер лицензий (RuStore); RevenueCat — для Google Play позже | — (планируется LemonSqueezy) |
 | Обновления | новая сборка в магазине (OTA не подключён: `expo-updates` нет) | вручную с GitHub Releases (Tauri updater пока не работает — ROADMAP) |
-| Тесты | Jest (501) | Vitest (383 core + 41 smoke) + Playwright (22 E2E) |
+| Тесты | Jest (506) | Vitest (403 core + 41 smoke) + Playwright (22 E2E) |
 | Язык | TypeScript strict | TypeScript strict |
 
 ---
