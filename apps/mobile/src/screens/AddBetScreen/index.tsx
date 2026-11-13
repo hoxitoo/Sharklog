@@ -6,14 +6,15 @@ import {
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
 import type { TextInput as TextInputRef } from 'react-native';
 import { sportGlyph, disciplineGlyph } from '../../components/icons/AppIcon';
-import { useForm, Controller } from 'react-hook-form';
+import { useForm, Controller, type FieldErrors } from 'react-hook-form';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import type { Sport, BetType, Strategy, BetStatus, EsportsDiscipline, Team, Bet } from '@sharklog/core';
+import type { Sport, BetType, Strategy, BetStatus, EsportsDiscipline, TeamSuggestion, Bet } from '@sharklog/core';
 import {
   SPORTS, BET_TYPES, STRATEGIES, ESPORTS_DISCIPLINES, PICK, parseMoneyInput,
   impliedProbability, kellyFraction, expectedValue, recommendedStake, inPlanOdds, stakeOverPlan, strategyPlan, strategySince, activeStrategy, bankAtBetTime, combineExpressOdds, formatOddsAs, CURRENT_SCHEMA_VERSION, FREE_LIMITS, toYmd, stepProbability, side1x2,
+  teamsFromBets, parseClock, choiceAfterPick, choiceAfterClear, type PickSource,
 } from '@sharklog/core';
 import { useTranslation } from 'react-i18next';
 import { FilterPicker } from '../../components/FilterPicker';
@@ -25,7 +26,10 @@ import { oddsFieldText, readOddsField, readLegField, legFieldText, oddsExample }
 import { sportLabel, betTypeLabel, strategyLabel, disciplineLabel } from '../../utils/labels';
 import { colors, signalTint, signalInk } from '../../theme/colors';
 import { useBetsStore, effectiveDailyLimit } from '../../store/betsStore';
-import { askForRemindersOnce } from '../../utils/reminderPermission';
+import { askForRemindersOnce, remindersCanCome } from '../../utils/reminderPermission';
+import { reminderHint } from '../../utils/reminderTime';
+import { clockOf } from '../../utils/clockFormat';
+import { dayMonth } from '../../utils/calendar';
 import { haptic } from '../../utils/haptics';
 import { Analytics } from '../../services/analytics';
 import type { RootStackParamList } from '../../navigation/RootNavigator';
@@ -82,7 +86,13 @@ interface ExpressLeg {
   pick: string;
   sport: Sport;
   discipline: EsportsDiscipline;
+  /** Who set the leg's sport / discipline — a picked team does not override the user or the other field (choiceAfterPick). */
+  sportFrom?: PickSource | undefined;
+  disciplineFrom?: PickSource | undefined;
 }
+
+/** A leg with anything in it — the legs an accumulator is saved with. */
+const legFilled = (l: ExpressLeg) => !!(l.team1.trim() || l.team2.trim() || l.odds.trim() || l.pick.trim());
 
 
 // ── Field wrapper ─────────────────────────────────────────────────────────────
@@ -91,35 +101,35 @@ interface ExpressLeg {
 // ── Single Team Input with autocomplete ───────────────────────────────────────
 
 function SingleTeamInput({
-  value, onChange, onSubmitEditing, textInputRef, placeholder, sport, discipline,
+  value, onChange, onSubmitEditing, onPickTeam, textInputRef, placeholder, sport, discipline,
 }: {
   value: string;
   onChange: (v: string) => void;
   onSubmitEditing?: () => void;
+  /** A known team picked from the list — the form takes its sport and discipline (sportOfTeam). */
+  onPickTeam: (team: TeamSuggestion) => void;
   textInputRef?: React.RefObject<TextInputRef | null>;
   placeholder?: string;
   sport: Sport;
   discipline: EsportsDiscipline;
 }) {
-  const teams = useBetsStore((s) => s.teams);
+  // From the bets as they are, not the stored team list: that one only added,
+  // and a team whose bet moved from football to hockey stayed under both.
+  const bets = useBetsStore((s) => s.bets);
   const { t } = useTranslation();
   const [focused, setFocused] = useState(false);
 
-  const suggestions = useMemo<Team[]>(() => {
+  // Every sport and discipline a name has, closest to the form first: a pick
+  // sets the sport, so Spirit (Dota 2) is offered on a CS2 form too — badged.
+  // Built only for the field being typed in (four fields watch the bets).
+  const suggestions = useMemo<TeamSuggestion[]>(() => {
     if (!focused || value.length < 1) return [];
-    return teams
-      .filter((t) => {
-        if (sport === 'esports' && t.sport === 'esports' && t.discipline && t.discipline !== discipline) return false;
-        return t.name.toLowerCase().includes(value.toLowerCase());
-      })
-      .sort((a, b) => {
-        const sameA = a.sport === sport ? 1 : 0;
-        const sameB = b.sport === sport ? 1 : 0;
-        if (sameB !== sameA) return sameB - sameA;
-        return b.usageCount - a.usageCount;
-      })
+    const near = (x: TeamSuggestion) => (x.sport === sport ? 2 : 0) + (x.sport === 'esports' && x.discipline === discipline ? 1 : 0);
+    return teamsFromBets(bets)
+      .filter((x) => x.name.toLowerCase().includes(value.toLowerCase()))
+      .sort((a, b) => near(b) - near(a) || b.usageCount - a.usageCount)
       .slice(0, 5);
-  }, [teams, value, sport, discipline, focused]);
+  }, [bets, value, sport, discipline, focused]);
 
   return (
     <View style={ac.wrapper}>
@@ -144,6 +154,7 @@ function SingleTeamInput({
               style={ac.item}
               onPress={() => {
                 onChange(team.name);
+                onPickTeam(team);
                 setFocused(false);
                 onSubmitEditing?.();
               }}
@@ -155,7 +166,7 @@ function SingleTeamInput({
                   <View style={ac.badge}>
                     <Text style={ac.badgeText}>{disciplineLabel(t, team.discipline)}</Text>
                   </View>
-                ) : team.sport !== sport ? (
+                ) : team.sport !== undefined && team.sport !== sport ? (
                   <View style={ac.badge}>
                     <Text style={ac.badgeText}>{sportLabel(t, team.sport)}</Text>
                   </View>
@@ -440,7 +451,7 @@ export function AddBetScreen() {
 
   const now = new Date();
   const defaultDate = toYmd(now); // LOCAL day — toISOString would stamp tomorrow's UTC date
-  const defaultTime = now.toTimeString().slice(0, 5);
+  const defaultTime = clockOf(now);
 
   const initialBetMode: BetMode = source?.betType === 'express' ? 'express' : 'single';
   const eventParts = source?.betType !== 'express' ? (source?.event ?? '').split(' vs ') : [];
@@ -469,6 +480,9 @@ export function AddBetScreen() {
             pick: pickParts[i] ?? '',
             sport: defSport,
             discipline: defDiscipline,
+            // Only the first leg's sport is stored — the user's; the others
+            // are a copy of it, and a picked team may still set them.
+            ...(i === 0 ? { sportFrom: 'user' as const, ...(source.sport === 'esports' ? { disciplineFrom: 'user' as const } : {}) } : {}),
           };
         });
       }
@@ -491,7 +505,7 @@ export function AddBetScreen() {
   const editBetType = (source?.betType && source.betType !== 'express') ? source.betType : '1X2';
   const editPickParsed = source ? parseEditPick(editBetType, source.pick ?? '') : null;
 
-  const { control, handleSubmit, watch, setValue, clearErrors, formState: { errors } } = useForm<FormData>({
+  const { control, handleSubmit, watch, setValue, getValues, clearErrors, formState: { errors } } = useForm<FormData>({
     defaultValues: {
       betMode: initialBetMode,
       team1: initialTeam1,
@@ -586,6 +600,29 @@ export function AddBetScreen() {
   const dailyLimit = effectiveDailyLimit(settings);
   const overDailyLimit = !editBet && dailyLimit > 0 && dayCount + 1 > dailyLimit;
 
+  // When the result reminder will come — reminderHint, from the same
+  // reminderFireAt the reminder is scheduled with (kick-off plus the sport's
+  // length; an accumulator's sport is its first filled leg's, as it is saved).
+  // With notifications off (and not to be asked for after this save) it says
+  // so instead: "I'll remind you at 21:15" was a promise that could not come.
+  const watchedTime = watch('time');
+  const reminderSport = isSingle ? watchedSport : (legs.find(legFilled)?.sport ?? watchedSport);
+  const [remindersOk, setRemindersOk] = useState<boolean | null>(null);
+  useEffect(() => {
+    let live = true;
+    remindersCanCome(!editBet).then((ok) => { if (live) setRemindersOk(ok); }).catch(() => {});
+    return () => { live = false; };
+  }, [editBet]);
+  const hint = useMemo(() => reminderHint({
+    status: watchedStatus, remindersOn: settings.betResultReminders !== false, canCome: remindersOk,
+    date: watchedDate, time: watchedTime ?? '', sport: reminderSport, defaultTime,
+  }), [watchedStatus, settings.betResultReminders, remindersOk, watchedDate, watchedTime, reminderSport, defaultTime]);
+  const reminderWhen = useMemo(() => {
+    if (hint?.kind !== 'at') return null;
+    const when = new Date(hint.at);
+    return toYmd(when) === toYmd(new Date()) ? clockOf(when) : `${dayMonth(toYmd(when))} ${clockOf(when)}`;
+  }, [hint]);
+
   // Same rounding the bet is saved with, so the preview cannot promise a payout
   // the stored bet will not produce.
   const expressOdds = legsUntouched && source ? source.odds : combineExpressOdds(legs.map(legPrice));
@@ -621,6 +658,47 @@ export function AddBetScreen() {
   function updateLeg<K extends keyof ExpressLeg>(idx: number, key: K, val: ExpressLeg[K]) {
     setLegs((prev) => prev.map((l, i) => i === idx ? { ...l, [key]: val } : l));
   }
+  // Picking a known team sets its sport — and, for esports, its discipline —
+  // from where its bets are: Spirit as a Dota 2 team makes the bet
+  // Киберспорт · Dota 2 without opening the two pickers. Not over a choice
+  // already made — the user's, the saved bet's, the other field's
+  // (choiceAfterPick). Who set them lives beside the form values.
+  const sportFrom = useRef<PickSource | undefined>(source ? 'user' : undefined);
+  const disciplineFrom = useRef<PickSource | undefined>(source?.sport === 'esports' ? 'user' : undefined);
+  function pickTeamSport(field: 'team1' | 'team2', team: TeamSuggestion) {
+    const next = choiceAfterPick({
+      sport: getValues('sport'), discipline: getValues('discipline'),
+      sportFrom: sportFrom.current, disciplineFrom: disciplineFrom.current,
+    }, field, team);
+    sportFrom.current = next.sportFrom;
+    disciplineFrom.current = next.disciplineFrom;
+    if (next.sport !== getValues('sport')) setValue('sport', next.sport);
+    if (next.discipline !== getValues('discipline')) setValue('discipline', next.discipline);
+  }
+  function pickLegSport(idx: number, field: 'team1' | 'team2', team: TeamSuggestion) {
+    setLegs((prev) => prev.map((l, i) => (i === idx ? choiceAfterPick(l, field, team) : l)));
+  }
+  // A team field emptied by hand gives up the sport it set (choiceAfterClear).
+  function typeTeam(field: 'team1' | 'team2', v: string, onChange: (v: string) => void) {
+    onChange(v);
+    if (v.trim()) return;
+    const next = choiceAfterClear({
+      sport: getValues('sport'), discipline: getValues('discipline'),
+      sportFrom: sportFrom.current, disciplineFrom: disciplineFrom.current,
+    }, field);
+    sportFrom.current = next.sportFrom;
+    disciplineFrom.current = next.disciplineFrom;
+  }
+  function typeLegTeam(idx: number, field: 'team1' | 'team2', v: string) {
+    setLegs((prev) => prev.map((l, i) => (i !== idx ? l : v.trim() ? { ...l, [field]: v } : choiceAfterClear({ ...l, [field]: v }, field))));
+  }
+  // Save with a field that does not pass (an empty team, a time like «2130»):
+  // its error line can be far up the form, under opened extras — say it here.
+  function onInvalid(errs: FieldErrors<FormData>) {
+    const first = Object.values(errs).find((e) => typeof e?.message === 'string')?.message;
+    if (typeof first === 'string') Alert.alert(t('common.error'), first);
+  }
+
 
   function onSubmit(data: FormData) { try {
     const stakeVal = parseMoneyInput(data.stake);
@@ -673,7 +751,10 @@ export function AddBetScreen() {
     // carried: the field says "pick a date", and saving without one must not
     // quietly move the bet to today.
     const dateVal = data.date.trim() || (editBet ? editBet.date : defaultDate);
-    const timeVal = data.time.trim() || defaultTime;
+    // HH:MM. A time saved before the field was checked passes untouched; at
+    // save, a readable one («21.00») is written as «21:00» — the reminder reads
+    // it either way — and an unreadable one stays as it was.
+    const timeVal = data.time.trim() ? (parseClock(data.time) ?? data.time.trim()) : defaultTime;
 
     if (isSingle) {
       // Untouched, the stored price comes back as it was (see readOddsField).
@@ -711,7 +792,7 @@ export function AddBetScreen() {
     } else {
       // A leg with anything in it must be a whole leg. Dropping a mistyped one
       // saved a two-leg accumulator out of three, its teams and pick gone.
-      const validLegs = legs.filter((l) => l.team1.trim() || l.team2.trim() || l.odds.trim() || l.pick.trim());
+      const validLegs = legs.filter(legFilled);
       const broken = validLegs.find((l) => !l.team1.trim() || !(legPrice(l) > 1));
       if (broken) {
         Alert.alert(
@@ -834,8 +915,9 @@ export function AddBetScreen() {
                 render={({ field: { onChange, value } }) => (
                   <SingleTeamInput
                     value={value}
-                    onChange={onChange}
+                    onChange={(v) => typeTeam('team1', v, onChange)}
                     onSubmitEditing={() => team2Ref.current?.focus()}
+                    onPickTeam={(team) => pickTeamSport('team1', team)}
                     placeholder="NaVi, FC Barcelona..."
                     sport={watchedSport}
                     discipline={watchedDiscipline}
@@ -851,8 +933,9 @@ export function AddBetScreen() {
                 render={({ field: { onChange, value } }) => (
                   <SingleTeamInput
                     value={value}
-                    onChange={onChange}
+                    onChange={(v) => typeTeam('team2', v, onChange)}
                     textInputRef={team2Ref}
+                    onPickTeam={(team) => pickTeamSport('team2', team)}
                     placeholder="Virtus.pro, Real Madrid..."
                     sport={watchedSport}
                     discipline={watchedDiscipline}
@@ -932,14 +1015,14 @@ export function AddBetScreen() {
                     label={t('bet.sport')}
                     options={sportOptions}
                     value={leg.sport}
-                    onChange={(v) => updateLeg(i, 'sport', v)}
+                    onChange={(v) => setLegs((prev) => prev.map((l, j) => (j === i ? { ...l, sport: v, sportFrom: 'user' } : l)))}
                   />
                   {leg.sport === 'esports' && (
                     <FilterPicker
                       label={t('addBet.discipline')}
                       options={disciplineOptions}
                       value={leg.discipline}
-                      onChange={(v) => updateLeg(i, 'discipline', v)}
+                      onChange={(v) => setLegs((prev) => prev.map((l, j) => (j === i ? { ...l, discipline: v, disciplineFrom: 'user' } : l)))}
                     />
                   )}
                 </View>
@@ -947,7 +1030,8 @@ export function AddBetScreen() {
                 <View style={{ marginBottom: SPACE.sm }}>
                   <SingleTeamInput
                     value={leg.team1}
-                    onChange={(v) => updateLeg(i, 'team1', v)}
+                    onChange={(v) => typeLegTeam(i, 'team1', v)}
+                    onPickTeam={(team) => pickLegSport(i, 'team1', team)}
                     placeholder={t('bet.team1')}
                     sport={leg.sport}
                     discipline={leg.discipline}
@@ -956,7 +1040,8 @@ export function AddBetScreen() {
                 <View style={{ marginBottom: SPACE.sm }}>
                   <SingleTeamInput
                     value={leg.team2}
-                    onChange={(v) => updateLeg(i, 'team2', v)}
+                    onChange={(v) => typeLegTeam(i, 'team2', v)}
+                    onPickTeam={(team) => pickLegSport(i, 'team2', team)}
                     placeholder={t('bet.team2')}
                     sport={leg.sport}
                     discipline={leg.discipline}
@@ -1086,7 +1171,7 @@ export function AddBetScreen() {
                 control={control}
                 name="sport"
                 render={({ field: { onChange, value } }) => (
-                  <FilterPicker label={t('bet.sport')} options={sportOptions} value={value} onChange={onChange} />
+                  <FilterPicker label={t('bet.sport')} options={sportOptions} value={value} onChange={(v) => { sportFrom.current = 'user'; onChange(v); }} />
                 )}
               />
               <Controller
@@ -1122,7 +1207,7 @@ export function AddBetScreen() {
                   control={control}
                   name="discipline"
                   render={({ field: { onChange, value } }) => (
-                    <FilterPicker label={t('addBet.discipline')} options={disciplineOptions} value={value} onChange={onChange} />
+                    <FilterPicker label={t('addBet.discipline')} options={disciplineOptions} value={value} onChange={(v) => { disciplineFrom.current = 'user'; onChange(v); }} />
                   )}
                 />
               </View>
@@ -1299,6 +1384,57 @@ export function AddBetScreen() {
           </Field>
         )}
 
+        {/* ── Date + kick-off ─── */}
+        {/* Out of the folded extras: the result reminder fires at kick-off plus
+            the match's length, and with the time hidden it stayed the moment the
+            bet was typed in — a bet placed in the morning on an evening match
+            reminded by lunchtime (report from a phone). The line under it says
+            when the reminder will come. */}
+        <View style={styles.row2}>
+          <Field style={styles.half} label={t('bet.date')}>
+            {/* A calendar, not a YYYY-MM-DD box: a typed "5.11" was saved as
+                is and the bet fell out of every day it belonged to. */}
+            <Controller
+              control={control}
+              name="date"
+              render={({ field: { onChange, value } }) => (
+                <DateField label={t('bet.date')} value={value} onChange={onChange} placeholder={t('datePicker.pick')} />
+              )}
+            />
+          </Field>
+          <Field
+            style={styles.half}
+            label={isSingle ? t('addBet.matchTime') : t('addBet.matchTimeExpress')}
+            {...(errors.time?.message ? { error: errors.time.message } : {})}
+          >
+            {/* HH:MM: «2130», «21:» or «25:00» were saved as typed, and the
+                reminder timed by them never came. A time saved before the
+                check passes while untouched. The ref lets a failed save focus
+                the field. */}
+            <Controller
+              control={control}
+              name="time"
+              rules={{ validate: (v) => !v.trim() || parseClock(v) !== null || (editBet != null && v === editBet.time) || t('addBet.errTime') }}
+              render={({ field: { onChange, value, ref } }) => (
+                <TextInput
+                  ref={ref}
+                  style={inputStyle}
+                  placeholder={t('addBet.timePh')}
+                  placeholderTextColor={colors.textMuted}
+                  value={value}
+                  onChangeText={onChange}
+                  keyboardType="numbers-and-punctuation"
+                />
+              )}
+            />
+          </Field>
+        </View>
+        {reminderWhen !== null ? (
+          <Text style={styles.remindAt}>{t('addBet.remindAt', { when: reminderWhen })}</Text>
+        ) : hint?.kind === 'off' ? (
+          <Text style={styles.remindAt}>{t('addBet.remindOff')}</Text>
+        ) : null}
+
         {/* ── Extra fields toggle ─── */}
         <TouchableOpacity
           style={styles.extraToggle}
@@ -1360,37 +1496,6 @@ export function AddBetScreen() {
                 )}
               />
             </Field>
-
-            {/* ── Date + Time ─── */}
-            <View style={styles.row2}>
-              <Field style={styles.half} label={t('bet.date')}>
-                {/* A calendar, not a YYYY-MM-DD box: a typed "5.11" was saved as
-                    is and the bet fell out of every day it belonged to. */}
-                <Controller
-                  control={control}
-                  name="date"
-                  render={({ field: { onChange, value } }) => (
-                    <DateField label={t('bet.date')} value={value} onChange={onChange} placeholder={t('datePicker.pick')} />
-                  )}
-                />
-              </Field>
-              <Field style={styles.half} label={t('bet.time')}>
-                <Controller
-                  control={control}
-                  name="time"
-                  render={({ field: { onChange, value } }) => (
-                    <TextInput
-                      style={inputStyle}
-                      placeholder={t('addBet.timePh')}
-                      placeholderTextColor={colors.textMuted}
-                      value={value}
-                      onChangeText={onChange}
-                      keyboardType="numbers-and-punctuation"
-                    />
-                  )}
-                />
-              </Field>
-            </View>
 
             {/* ── Tournament + Notes ─── */}
             <Field label={t('bet.tournament')}>
@@ -1502,7 +1607,7 @@ export function AddBetScreen() {
           </>
         )}
 
-        <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit(onSubmit)} activeOpacity={0.85}>
+        <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit(onSubmit, onInvalid)} activeOpacity={0.85}>
           <Text style={styles.submitText}>
             {editBet ? t('addBet.submitEdit') : t('bet.add')}
           </Text>
@@ -1675,6 +1780,8 @@ const styles = themedStyles(() => ({
     backgroundColor: signalTint(colors.pending, 0.094), borderWidth: 1, borderColor: signalTint(colors.pending, 0.333),
   },
   planNoteText: { fontSize: SIZE.caption, fontWeight: '600', color: signalInk(colors.pending) },
+  // Under the date and kick-off: when the result reminder will come.
+  remindAt: { fontSize: SIZE.caption, color: colors.textMuted, marginTop: -SPACE.sm, marginBottom: SPACE.lg },
   outcomePicker: {
     flexDirection: 'row',
     gap: SPACE.sm,

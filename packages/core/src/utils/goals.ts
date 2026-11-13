@@ -61,21 +61,108 @@ export function activeGoals(goals: readonly Goal[] | undefined): Goal[] {
   return (goals ?? []).filter((g) => !g.archived);
 }
 
-/** The goal the header button shows: the first active one. */
-export function mainGoal(goals: readonly Goal[] | undefined): Goal | undefined {
-  return activeGoals(goals)[0];
+/**
+ * The main goal — on the bets screen's header button, first on the goals
+ * screen, with the chart: the first active goal still to reach. A reached goal
+ * is done: it folds to one line at the bottom of the list, and the button moves
+ * on to the next one. With every goal reached — the first. Pass the goals that
+ * are OPEN (`goalsFor`): on Free the next goal may be locked.
+ */
+export function mainGoal(goals: readonly Goal[] | undefined, reached: (g: Goal) => boolean): Goal | undefined {
+  const active = activeGoals(goals);
+  return active.find((g) => !reached(g)) ?? active[0];
 }
 
 /**
- * Which active goals are open on this plan. Free keeps `limit` of them (the
- * first, so the header button's goal is always open); the rest stay stored but
- * locked — not deleted. Pro bought during the trial and lost, or a backup from a
- * Pro phone, must not leave a Free user with every goal: limited is what is
- * SHOWN, as with the tilt threshold, never what is kept.
+ * Which active goals are open on this plan. A goal still to reach takes a
+ * slot: Free keeps `limit` of them (the first, so the header button's goal is
+ * open) and the rest stay stored but locked — not deleted. Pro bought during
+ * the trial and lost, or a backup from a Pro phone, must not leave a Free user
+ * with every goal: limited is what is SHOWN, as with the tilt threshold, never
+ * what is kept. A REACHED goal takes no slot — it is done, like an archived
+ * one (owner's decision 2026-11-13): it stays open, folded at the bottom of
+ * the list, and a Free user can set the next goal without archiving it.
+ * `taken` — the slots in use: active goals still to reach, locked ones too.
  */
-export function goalsFor(goals: readonly Goal[] | undefined, isPro: boolean, limit: number): { open: Goal[]; locked: Goal[] } {
-  const active = activeGoals(goals);
-  return isPro ? { open: active, locked: [] } : { open: active.slice(0, limit), locked: active.slice(limit) };
+export function goalsFor(
+  goals: readonly Goal[] | undefined,
+  isPro: boolean,
+  limit: number,
+  reached: (g: Goal) => boolean,
+): { open: Goal[]; locked: Goal[]; taken: number } {
+  const open: Goal[] = [];
+  const locked: Goal[] = [];
+  let taken = 0;
+  for (const g of activeGoals(goals)) {
+    if (reached(g)) { open.push(g); continue; }
+    taken += 1;
+    if (isPro || taken <= limit) open.push(g);
+    else locked.push(g);
+  }
+  return { open, locked, taken };
+}
+
+/** The goals as the goal screens see them (goalBoard). */
+export interface GoalBoard {
+  /** The active goals' progress; archived ones have no say here. */
+  progress: Map<string, GoalProgress>;
+  /** Reached (`achieved`, and it stays so): done — folded, no slot; the main goal only when every goal is reached. */
+  reached: (g: Goal) => boolean;
+  /** Active goals open on this plan, reached ones included; `locked` — the rest (Free). */
+  open: Goal[];
+  locked: Goal[];
+  /** The first open goal still to reach (with every goal reached — the first). */
+  main: Goal | undefined;
+  /** Free has no slot left for one more goal still to reach. */
+  full: boolean;
+}
+
+/**
+ * The goals as the list, one goal's screen and the bets screen's header button
+ * see them — one rule, so the button and the list never disagree about which
+ * goal is the main one, which are open on Free, or whether a slot is left.
+ * Active goals only: the header button runs this on every bet write.
+ */
+export function goalBoard(
+  goals: readonly Goal[] | undefined,
+  bets: Bet[],
+  transactions: BankrollTransaction[],
+  isPro: boolean,
+  limit: number,
+  now: Date = new Date(),
+): GoalBoard {
+  const progress = new Map(activeGoals(goals).map((g) => [g.id, calcGoalProgress(g, bets, transactions, now)] as const));
+  const reached = (g: Goal) => progress.get(g.id)?.achieved ?? false;
+  const { open, locked, taken } = goalsFor(goals, isPro, limit, reached);
+  return { progress, reached, open, locked, main: mainGoal(open, reached), full: !isPro && taken >= limit };
+}
+
+/**
+ * Whether saving `goal` — new, edited or back from the archive — keeps Free
+ * within its slots: it may not raise the slots taken past the limit (nor
+ * further past it, when a trial that ended left goals locked). Editing a
+ * reached goal's target up makes it a goal to reach again; restoring one adds
+ * a goal — both checked against the goal AS SAVED, not as stored before.
+ */
+export function goalFitsPlan(
+  goal: Goal,
+  goals: readonly Goal[],
+  bets: Bet[],
+  transactions: BankrollTransaction[],
+  isPro: boolean,
+  limit: number,
+  now: Date = new Date(),
+): boolean {
+  if (isPro) return true;
+  const seen = new Map<Goal, boolean>();
+  const reached = (g: Goal) => {
+    let hit = seen.get(g);
+    if (hit === undefined) { hit = calcGoalProgress(g, bets, transactions, now).achieved; seen.set(g, hit); }
+    return hit;
+  };
+  const before = goalsFor(goals, false, limit, reached).taken;
+  const after = goalsFor([...goals.filter((g) => g.id !== goal.id), goal], false, limit, reached).taken;
+  return after <= Math.max(limit, before);
 }
 
 export interface GoalPoint { date: string; value: number }
@@ -89,6 +176,13 @@ export interface GoalProgress {
   ratio: number;
   /** What is left to the target; `lossCap` — room left under the cap. Never negative. */
   remaining: number;
+  /**
+   * Reached: since the start, a day ended at the target — or the measure is
+   * there now. Once reached, it stays reached when the measure drops back (a
+   * loss, the withdrawal the card itself suggests): the goal is done — folded,
+   * no Free slot — and taking the slot back would lock another goal and move
+   * the header button. Never before the start day; never for a loss cap.
+   */
   achieved: boolean;
   /** The start day has come. A goal set to start later counts nothing yet. */
   started: boolean;
@@ -126,6 +220,22 @@ export interface GoalProgress {
   capState: 'ok' | 'near' | 'over' | null;
   /** `lossCap`: the bets in play would take the month past the cap if they all lost. */
   wouldExceed: boolean;
+  /**
+   * The day the measure FIRST stood at the target at the end of a day — when
+   * the goal was reached. Null for a goal never reached, a loss cap, a goal not
+   * started — and for a bank reached only by what the day series cannot place
+   * (a bet with an unreadable date): "today" would move forward every day.
+   */
+  reachedOn: string | null;
+  /** Days from the start to `reachedOn`, both counted (reached on the start day — 1). */
+  reachedInDays: number | null;
+  /**
+   * The bets' result per day from the start to `reachedOn` — what the goal
+   * took, looking back. The bets only, for every kind: a deposit is not a
+   * result (the same rule as the bank goal's pace). Never a quota for a goal
+   * still open: "win X a day" grows after every loss and reads as "chase".
+   */
+  pnlPerDayToReach: number | null;
   /** Where the measure stood just before the start — the plan line starts here. */
   startValue: number;
   /** The measure at the end of each day from the start to today, for the chart. */
@@ -168,6 +278,11 @@ export function calcGoalProgress(
   // made the goal read 90 000 where Bankroll said 105 000.
   const bank = goal.kind === 'bank' ? currentBank(transactions, bets) : 0;
   const current = goal.kind === 'bank' ? bank : started ? series[series.length - 1]?.value ?? 0 : 0;
+  const target = goal.target;
+  // When it was reached: the first DAY that ended at the target — read before
+  // the last point becomes `current`, which for the bank counts bets no day
+  // holds (and would make the date "today", every day).
+  const reachedOn = started && target > 0 ? series.find((pt) => pt.value >= target)?.date ?? null : null;
   // The chart's "now" dot is the number on the card.
   if (series.length > 0) series[series.length - 1] = { date: series[series.length - 1]!.date, value: current };
 
@@ -184,10 +299,14 @@ export function calcGoalProgress(
     const first = days.find((d) => d.date === start);
     startValue = first ? first.balance - first.pnl - first.adjustments : start < firstDay ? 0 : bank;
   }
-  const target = goal.target;
-  const achieved = target > 0 && current >= target;
+  const achieved = started && target > 0 && (reachedOn !== null || current >= target);
   const remaining = Math.max(0, target - current);
   const ratio = target > 0 ? Math.min(1, Math.max(0, current / target)) : 0;
+
+  const reachedInDays = reachedOn ? daysBetween(start, reachedOn) + 1 : null;
+  let pnlToReach = 0;
+  if (reachedOn) for (const d of days) if (d.date >= start && d.date <= reachedOn) pnlToReach += d.pnl;
+  const pnlPerDayToReach = reachedInDays ? pnlToReach / reachedInDays : null;
 
   // The recent pace: the last PACE_WINDOW_DAYS, never reaching before the start.
   const windowStart = started
@@ -250,7 +369,7 @@ export function calcGoalProgress(
     pendingCount: goal.kind === 'profit' ? pendingCount : 0,
     inPlayStake: goal.kind === 'profit' ? inPlayStake : 0,
     pendingStake: goal.kind === 'profit' ? pendingStake : 0,
-    capState: null, wouldExceed: false, startValue, series,
+    capState: null, wouldExceed: false, reachedOn, reachedInDays, pnlPerDayToReach, startValue, series,
   };
 }
 
@@ -298,6 +417,7 @@ function lossCapProgress(goal: Goal, bets: Bet[], today: string): GoalProgress {
     // The month's net loss if every bet in play lost — a month in plus has room:
     // +5 000 won and 12 000 in play is at worst −7 000, under a 10 000 cap.
     wouldExceed: capState !== 'over' && target > 0 && Math.max(0, pendingStake - pnl) > target,
+    reachedOn: null, reachedInDays: null, pnlPerDayToReach: null,
     startValue: 0,
     series: [],
   };

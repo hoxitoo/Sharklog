@@ -4,7 +4,7 @@ import { useNavigation, useRoute, type RouteProp } from '@react-navigation/nativ
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import {
-  activeGoals, addDays, parseMoneyInput, toYmd, FREE_LIMITS, GOAL_KINDS, type Goal, type GoalKind,
+  addDays, goalFitsPlan, parseMoneyInput, toYmd, FREE_LIMITS, GOAL_KINDS, type Goal, type GoalKind,
 } from '@sharklog/core';
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
 import { FilterPicker } from '../../components/FilterPicker';
@@ -31,9 +31,11 @@ const PRESET_MONTHS = [3, 6, 12, 36];
 const amountText = (kopecks: number) => String(Math.round(kopecks) / 100);
 
 /**
- * A goal's form. `goalId` edits that goal; none — a new one. The Free limit is
- * checked where a goal is added (the goals screen) and where an archived one
- * would come back — the two ways the active count grows.
+ * A goal's form. `goalId` edits that goal; none — a new one. The Free limit —
+ * one goal still to reach; a reached one takes no slot — is checked where a
+ * goal is added (the goals screen) and here, on the goal as SAVED: an archived
+ * one coming back, and an edit that makes a reached goal one to reach again
+ * (a higher target) — the ways the slots taken grow.
  */
 export function GoalEditScreen() {
   const navigation = useNavigation<Nav>();
@@ -42,7 +44,6 @@ export function GoalEditScreen() {
   const currency = useCurrencySymbol();
   const bottomPad = useBottomPad(SPACE.xxl);
   const goals = useBetsStore((s) => s.goals);
-  const isPro = useBetsStore((s) => s.settings.isPro);
   const saveGoal = useBetsStore((s) => s.saveGoal);
   const deleteGoal = useBetsStore((s) => s.deleteGoal);
 
@@ -109,9 +110,19 @@ export function GoalEditScreen() {
     };
   }
 
+  /** Free keeps its slots after saving `goal` (goalFitsPlan) — read from the store at the moment, not subscribed. */
+  function fits(goal: Goal): boolean {
+    const st = useBetsStore.getState();
+    return goalFitsPlan(goal, st.goals, st.bets, st.bankroll.transactions, st.settings.isPro, FREE_LIMITS.MAX_GOALS);
+  }
+
   function save() {
     const goal = read();
     if (!goal) return;
+    if (existing && !fits(goal)) {
+      Alert.alert(t('goals.freeLimitTitle'), t('goals.freeLimitEditMsg'));
+      return;
+    }
     saveGoal(goal);
     navigation.goBack();
   }
@@ -121,12 +132,14 @@ export function GoalEditScreen() {
     const goal = read();
     if (!goal) return;
     if (existing.archived) {
-      // Coming back from the archive adds an active goal — the same limit as adding one.
-      if (!isPro && activeGoals(goals).length >= FREE_LIMITS.MAX_GOALS) {
+      // Coming back from the archive adds a goal — the same limit as adding
+      // one, checked on the goal as restored (an edited target included); a
+      // goal already reached takes no slot.
+      const { archived: _was, ...back } = goal;
+      if (!fits(back)) {
         Alert.alert(t('goals.freeLimitTitle'), t('goals.freeLimitMsg'));
         return;
       }
-      const { archived: _was, ...back } = goal;
       // Back at the END: in its old place it could land before the main goal
       // and silently take over the header button.
       deleteGoal(back.id);
@@ -134,7 +147,10 @@ export function GoalEditScreen() {
     } else {
       saveGoal({ ...goal, archived: true });
     }
-    navigation.goBack();
+    // Back to the list in one move: opened from a goal's own screen, a plain
+    // goBack showed that screen empty for the length of the transition, and
+    // then it went back again by itself.
+    navigation.navigate('Goals');
   }
 
   function remove() {
@@ -144,7 +160,7 @@ export function GoalEditScreen() {
       {
         text: t('common.delete'),
         style: 'destructive',
-        onPress: () => { deleteGoal(existing.id); navigation.goBack(); },
+        onPress: () => { deleteGoal(existing.id); navigation.navigate('Goals'); },
       },
     ]);
   }

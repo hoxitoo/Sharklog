@@ -11,6 +11,7 @@ import { PendingScreen } from '../screens/PendingScreen';
 import { BetsFilterScreen } from '../screens/BetsFilterScreen';
 import { GoalsScreen } from '../screens/GoalsScreen';
 import { GoalEditScreen } from '../screens/GoalEditScreen';
+import { GoalScreen } from '../screens/GoalScreen';
 import { BetsQueryProvider } from '../components/BetsQueryContext';
 import { DrawerNavigator } from './DrawerNavigator';
 
@@ -25,6 +26,8 @@ export type RootStackParamList = {
   Pending: undefined;
   BetsFilter: undefined;
   Goals: undefined;
+  /** One goal, whole — what a reached goal's folded line opens. */
+  Goal: { goalId: string };
   /** `goalId` edits that goal; none — a new one. */
   GoalEdit: { goalId?: string };
 };
@@ -79,6 +82,11 @@ export function RootNavigator() {
         name="Goals"
         component={GoalsScreen}
         options={{ headerShown: true, ...headerOpts, title: t('nav.goals') }}
+      />
+      <Stack.Screen
+        name="Goal"
+        component={GoalScreen}
+        options={{ headerShown: true, ...headerOpts, title: t('goals.detailTitle') }}
       />
       <Stack.Screen
         name="GoalEdit"

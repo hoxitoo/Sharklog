@@ -1,12 +1,10 @@
-import { useMemo } from 'react';
 import { View, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
-import { calcGoalProgress, mainGoal, toYmd } from '@sharklog/core';
 import { AppText as Text } from './AppText';
 import { AppIcon } from './icons/AppIcon';
-import { useBetsStore } from '../store/betsStore';
+import { useGoalBoard } from '../utils/useGoalBoard';
 import { useCompactMoney } from '../utils/useFormatMoney';
 import { goalPercent } from '../utils/goalText';
 import { colors } from '../theme/colors';
@@ -27,17 +25,10 @@ export function GoalPill() {
   const navigation = useNavigation<Nav>();
   const { t } = useTranslation();
   const compact = useCompactMoney();
-  const goals = useBetsStore((s) => s.goals);
-  const bets = useBetsStore((s) => s.bets);
-  const transactions = useBetsStore((s) => s.bankroll.transactions);
-  const goal = mainGoal(goals);
-  // The day is in the key: a month's loss cap must reset at midnight even when
-  // no bet was saved since (the bets screen stays mounted for hours).
-  const today = toYmd(new Date());
-  const p = useMemo(
-    () => (goal ? calcGoalProgress(goal, bets, transactions) : null),
-    [goal, bets, transactions, today], // `today`: re-run after midnight
-  );
+  // The goals screen's main goal: the first OPEN one still to reach — a
+  // reached goal is done and folded at the bottom there, so the button moves on.
+  const { main: goal, progress } = useGoalBoard();
+  const p = goal ? progress.get(goal.id) ?? null : null;
 
   const open = () => navigation.navigate('Goals');
 

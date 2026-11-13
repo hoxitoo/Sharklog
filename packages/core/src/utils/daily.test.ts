@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calcDailyBreakdown, summarizeDays, toYmd } from './daily';
+import { calcDailyBreakdown, parseClock, summarizeDays, toYmd } from './daily';
 import type { Bet, BankrollTransaction } from '../types/bet';
 
 let _id = 0;
@@ -26,6 +26,22 @@ function makeBet(o: Partial<Bet> & { status: Bet['status'] }): Bet {
 function tx(date: string, type: 'deposit' | 'withdrawal', amount: number): BankrollTransaction {
   return { id: String(++_id), type, amount, date };
 }
+
+describe('parseClock — a time typed into the bet form', () => {
+  it('reads HH:MM and H:MM, and a dot for the colon', () => {
+    expect(parseClock('21:30')).toBe('21:30');
+    expect(parseClock(' 9:05 ')).toBe('09:05');
+    expect(parseClock('21.30')).toBe('21:30');
+    expect(parseClock('00:00')).toBe('00:00');
+    expect(parseClock('23:59')).toBe('23:59');
+  });
+
+  it('refuses what is not a time — the reminder is timed by it', () => {
+    for (const bad of ['', '21', '2130', '21:', '21:3', '24:00', '12:60', '21:30:00', '9:05pm', '-1:00', 'abc']) {
+      expect(parseClock(bad)).toBeNull();
+    }
+  });
+});
 
 describe('toYmd', () => {
   it('formats as LOCAL date (no UTC shift)', () => {
