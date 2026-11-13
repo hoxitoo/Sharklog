@@ -305,6 +305,16 @@ describe('the goal list', () => {
     expect(goalsFor(goals, true, 1).locked).toEqual([]);
   });
 
+  it('gives a reached goal no slot — on Free the next goal opens beside it', () => {
+    const goals = [goal({ id: 'a' }), goal({ id: 'b' }), goal({ id: 'c' })];
+    const reached = new Set(['a']);
+    const free = goalsFor(goals, false, 1, (g) => reached.has(g.id));
+    expect([free.open.map((g) => g.id), free.locked.map((g) => g.id), free.taken]).toEqual([['a', 'b'], ['c'], 2]);
+    // Every goal reached: nothing taken, nothing locked.
+    expect(goalsFor(goals, false, 1, () => true)).toEqual({ open: goals, locked: [], taken: 0 });
+    expect(goalsFor(goals, true, 1, (g) => reached.has(g.id)).taken).toBe(2);
+  });
+
   it('counts days on the calendar, not in hours', () => {
     expect(daysBetween('2026-03-28', '2026-03-30')).toBe(2); // across a DST change
     expect(addDays('2026-12-31', 1)).toBe('2027-01-01');

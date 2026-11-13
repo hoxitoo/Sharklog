@@ -3,12 +3,13 @@ import { View, ScrollView, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
-import { activeGoals, calcGoalProgress, goalsFor, isInTilt, mainGoal, toYmd, FREE_LIMITS, type Goal, type GoalProgress } from '@sharklog/core';
+import { activeGoals, isInTilt } from '@sharklog/core';
 import { AppText as Text } from '../../components/AppText';
 import { AppIcon } from '../../components/icons/AppIcon';
 import { PaywallSheet } from '../../components/PaywallSheet';
 import { useBetsStore, effectiveTiltThreshold } from '../../store/betsStore';
 import { useBottomPad } from '../../utils/useBottomPad';
+import { useGoalBoard } from '../../utils/useGoalBoard';
 import { useFormatMoney } from '../../utils/useFormatMoney';
 import { colors, signalInk, signalTint } from '../../theme/colors';
 import { themedStyles } from '../../theme/themed';
@@ -24,8 +25,8 @@ type Nav = NativeStackNavigationProp<RootStackParamList>;
  * The first goal still to reach is the main one (mainGoal) — on the bets
  * screen's header button, with the chart. A reached goal is done: it folds to
  * one line at the bottom, and a tap opens it whole on its own screen (when it
- * was reached, what it took). Free keeps one active goal; more goals, the pace
- * and the reality check are Pro.
+ * was reached, what it took) — and takes no slot. Free keeps one goal still to
+ * reach; more goals, the pace and the reality check are Pro.
  */
 export function GoalsScreen() {
   const navigation = useNavigation<Nav>();
@@ -34,7 +35,6 @@ export function GoalsScreen() {
   const bottomPad = useBottomPad(SPACE.xxl);
   const goals = useBetsStore((s) => s.goals);
   const bets = useBetsStore((s) => s.bets);
-  const transactions = useBetsStore((s) => s.bankroll.transactions);
   const isPro = useBetsStore((s) => s.settings.isPro);
   const tiltThreshold = useBetsStore((s) => effectiveTiltThreshold(s.settings));
   const makeMainGoal = useBetsStore((s) => s.makeMainGoal);
@@ -43,25 +43,18 @@ export function GoalsScreen() {
   const closePaywall = useCallback(() => setPaywall(false), []);
 
   const active = useMemo(() => activeGoals(goals), [goals]);
-  // Free opens one goal; the rest stay stored, locked — a trial that ended or a
-  // Pro phone's backup must not leave every goal open (goalsFor).
-  const { open, locked } = useMemo(() => goalsFor(goals, isPro, FREE_LIMITS.MAX_GOALS), [goals, isPro]);
+  // Free opens one goal still to reach; the rest stay stored, locked — a trial
+  // that ended or a Pro phone's backup must not leave every goal open. Reached
+  // goals take no slot (useGoalBoard → goalsFor).
+  const { progress, reached: isReached, open, locked, main, full } = useGoalBoard();
   const archived = useMemo(() => goals.filter((g) => g.archived), [goals]);
-  const today = toYmd(new Date());
-  const progress = useMemo(() => {
-    const out = new Map<string, GoalProgress>();
-    for (const g of goals) out.set(g.id, calcGoalProgress(g, bets, transactions));
-    return out;
-  }, [goals, bets, transactions, today]); // `today`: re-run after midnight
   const inTilt = useMemo(() => isInTilt(bets, tiltThreshold), [bets, tiltThreshold]);
   // Still to reach — full cards, the main one first; reached — one line each, below.
-  const { main, going, reached } = useMemo(() => {
-    const isReached = (g: Goal) => progress.get(g.id)!.achieved;
-    return { main: mainGoal(open, isReached), going: open.filter((g) => !isReached(g)), reached: open.filter(isReached) };
-  }, [open, progress]);
+  const going = useMemo(() => open.filter((g) => !isReached(g)), [open, isReached]);
+  const reached = useMemo(() => open.filter(isReached), [open, isReached]);
 
   function addGoal() {
-    if (!isPro && active.length >= FREE_LIMITS.MAX_GOALS) {
+    if (full) {
       setPaywall(true);
       return;
     }
@@ -139,7 +132,7 @@ export function GoalsScreen() {
 
         <TouchableOpacity style={s.addBtn} onPress={addGoal} activeOpacity={0.8} accessibilityRole="button">
           <Text style={s.addText}>＋ {t('goals.add')}</Text>
-          {!isPro && active.length >= FREE_LIMITS.MAX_GOALS ? <Text style={s.proBadge}>{t('common.pro')}</Text> : null}
+          {full ? <Text style={s.proBadge}>{t('common.pro')}</Text> : null}
         </TouchableOpacity>
 
         {archived.length > 0 ? (

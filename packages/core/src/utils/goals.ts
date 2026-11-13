@@ -75,15 +75,32 @@ export function mainGoal(goals: readonly Goal[] | undefined, reached?: (g: Goal)
 }
 
 /**
- * Which active goals are open on this plan. Free keeps `limit` of them (the
- * first, so the header button's goal is always open); the rest stay stored but
- * locked — not deleted. Pro bought during the trial and lost, or a backup from a
- * Pro phone, must not leave a Free user with every goal: limited is what is
- * SHOWN, as with the tilt threshold, never what is kept.
+ * Which active goals are open on this plan. A goal still to reach takes a
+ * slot: Free keeps `limit` of them (the first, so the header button's goal is
+ * open) and the rest stay stored but locked — not deleted. Pro bought during
+ * the trial and lost, or a backup from a Pro phone, must not leave a Free user
+ * with every goal: limited is what is SHOWN, as with the tilt threshold, never
+ * what is kept. A REACHED goal takes no slot — it is done, like an archived
+ * one (owner's decision 2026-11-13): it stays open, folded at the bottom of
+ * the list, and a Free user can set the next goal without archiving it.
+ * `taken` — the slots in use: active goals still to reach, locked ones too.
  */
-export function goalsFor(goals: readonly Goal[] | undefined, isPro: boolean, limit: number): { open: Goal[]; locked: Goal[] } {
-  const active = activeGoals(goals);
-  return isPro ? { open: active, locked: [] } : { open: active.slice(0, limit), locked: active.slice(limit) };
+export function goalsFor(
+  goals: readonly Goal[] | undefined,
+  isPro: boolean,
+  limit: number,
+  reached: (g: Goal) => boolean = () => false,
+): { open: Goal[]; locked: Goal[]; taken: number } {
+  const open: Goal[] = [];
+  const locked: Goal[] = [];
+  let taken = 0;
+  for (const g of activeGoals(goals)) {
+    if (reached(g)) { open.push(g); continue; }
+    taken += 1;
+    if (isPro || taken <= limit) open.push(g);
+    else locked.push(g);
+  }
+  return { open, locked, taken };
 }
 
 export interface GoalPoint { date: string; value: number }

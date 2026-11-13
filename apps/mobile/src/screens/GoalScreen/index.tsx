@@ -3,10 +3,11 @@ import { View, ScrollView } from 'react-native';
 import { useIsFocused, useNavigation, useRoute, type RouteProp } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
-import { calcGoalProgress, goalsFor, isInTilt, mainGoal, toYmd, FREE_LIMITS } from '@sharklog/core';
+import { isInTilt } from '@sharklog/core';
 import { PaywallSheet } from '../../components/PaywallSheet';
 import { useBetsStore, effectiveTiltThreshold } from '../../store/betsStore';
 import { useBottomPad } from '../../utils/useBottomPad';
+import { useGoalBoard } from '../../utils/useGoalBoard';
 import { colors } from '../../theme/colors';
 import { themedStyles } from '../../theme/themed';
 import { SPACE } from '../../theme/layout';
@@ -26,9 +27,7 @@ export function GoalScreen() {
   const focused = useIsFocused();
   const { t } = useTranslation();
   const bottomPad = useBottomPad(SPACE.xxl);
-  const goals = useBetsStore((s) => s.goals);
   const bets = useBetsStore((s) => s.bets);
-  const transactions = useBetsStore((s) => s.bankroll.transactions);
   const isPro = useBetsStore((s) => s.settings.isPro);
   const tiltThreshold = useBetsStore((s) => effectiveTiltThreshold(s.settings));
   const makeMainGoal = useBetsStore((s) => s.makeMainGoal);
@@ -37,14 +36,8 @@ export function GoalScreen() {
 
   // Only a goal the goals screen shows: deleted or archived from its edit
   // form, or locked when Pro ended, it is not this screen's any more.
-  const { open } = useMemo(() => goalsFor(goals, isPro, FREE_LIMITS.MAX_GOALS), [goals, isPro]);
+  const { progress, open, main } = useGoalBoard();
   const goal = open.find((g) => g.id === route.params.goalId);
-  const today = toYmd(new Date());
-  const progress = useMemo(
-    () => new Map(open.map((g) => [g.id, calcGoalProgress(g, bets, transactions)] as const)),
-    [open, bets, transactions, today], // `today`: re-run after midnight
-  );
-  const main = useMemo(() => mainGoal(open, (g) => progress.get(g.id)!.achieved), [open, progress]);
   // On a losing streak the card hides the pace block (the goals screen says why).
   const inTilt = useMemo(() => isInTilt(bets, tiltThreshold), [bets, tiltThreshold]);
 

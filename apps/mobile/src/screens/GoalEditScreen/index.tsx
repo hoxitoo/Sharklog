@@ -4,7 +4,7 @@ import { useNavigation, useRoute, type RouteProp } from '@react-navigation/nativ
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import {
-  activeGoals, addDays, parseMoneyInput, toYmd, FREE_LIMITS, GOAL_KINDS, type Goal, type GoalKind,
+  addDays, parseMoneyInput, toYmd, GOAL_KINDS, type Goal, type GoalKind,
 } from '@sharklog/core';
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
 import { FilterPicker } from '../../components/FilterPicker';
@@ -12,6 +12,7 @@ import { DateField } from '../../components/DateField';
 import { Field, inputStyle } from '../../components/FormField';
 import { addMonths, followStart } from '../../utils/calendar';
 import { useBetsStore } from '../../store/betsStore';
+import { useGoalBoard } from '../../utils/useGoalBoard';
 import { useBottomPad } from '../../utils/useBottomPad';
 import { useCurrencySymbol } from '../../utils/useFormatMoney';
 import { uuid } from '../../utils/uuid';
@@ -42,7 +43,7 @@ export function GoalEditScreen() {
   const currency = useCurrencySymbol();
   const bottomPad = useBottomPad(SPACE.xxl);
   const goals = useBetsStore((s) => s.goals);
-  const isPro = useBetsStore((s) => s.settings.isPro);
+  const board = useGoalBoard();
   const saveGoal = useBetsStore((s) => s.saveGoal);
   const deleteGoal = useBetsStore((s) => s.deleteGoal);
 
@@ -121,8 +122,9 @@ export function GoalEditScreen() {
     const goal = read();
     if (!goal) return;
     if (existing.archived) {
-      // Coming back from the archive adds an active goal — the same limit as adding one.
-      if (!isPro && activeGoals(goals).length >= FREE_LIMITS.MAX_GOALS) {
+      // Coming back from the archive adds an active goal — the same limit as
+      // adding one; a goal already reached takes no slot (useGoalBoard).
+      if (board.full && !board.reached(existing)) {
         Alert.alert(t('goals.freeLimitTitle'), t('goals.freeLimitMsg'));
         return;
       }

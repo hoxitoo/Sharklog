@@ -15,6 +15,8 @@ const card = read('screens/GoalsScreen/GoalCard.tsx');
 const detail = read('screens/GoalScreen/index.tsx');
 const pill = read('components/GoalPill.tsx');
 const nav = read('navigation/RootNavigator.tsx');
+const edit = read('screens/GoalEditScreen/index.tsx');
+const board = read('utils/useGoalBoard.ts');
 
 describe('reached goals', () => {
   it('fold to a line that opens the goal on its own screen', () => {
@@ -35,7 +37,15 @@ describe('reached goals', () => {
   });
 
   it('leave the main goal to the first one still to reach — on the list and on the header button alike', () => {
-    for (const src of [list, detail, pill]) expect(src).toMatch(/mainGoal\(open, /);
-    expect(pill).toContain('goalsFor(goals, isPro, FREE_LIMITS.MAX_GOALS)');
+    // One computation for every goal screen (useGoalBoard), not a copy each.
+    for (const src of [list, detail, pill, edit]) expect(src).toContain('useGoalBoard()');
+    expect(board).toMatch(/goalsFor\(goals, isPro, FREE_LIMITS\.MAX_GOALS, reached\)/);
+    expect(board).toContain('main: mainGoal(open, reached)');
+  });
+
+  it('take no slot: Free adds or restores a goal beside a reached one (owner, 2026-11-13)', () => {
+    expect(board).toContain('full: !isPro && taken >= FREE_LIMITS.MAX_GOALS');
+    expect(list).toMatch(/function addGoal\(\) \{\s*if \(full\)/);
+    expect(edit).toContain('if (board.full && !board.reached(existing))');
   });
 });

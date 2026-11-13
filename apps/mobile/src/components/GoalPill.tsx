@@ -1,12 +1,10 @@
-import { useMemo } from 'react';
 import { View, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
-import { calcGoalProgress, goalsFor, mainGoal, toYmd, FREE_LIMITS, type Goal, type GoalProgress } from '@sharklog/core';
 import { AppText as Text } from './AppText';
 import { AppIcon } from './icons/AppIcon';
-import { useBetsStore } from '../store/betsStore';
+import { useGoalBoard } from '../utils/useGoalBoard';
 import { useCompactMoney } from '../utils/useFormatMoney';
 import { goalPercent } from '../utils/goalText';
 import { colors } from '../theme/colors';
@@ -27,26 +25,10 @@ export function GoalPill() {
   const navigation = useNavigation<Nav>();
   const { t } = useTranslation();
   const compact = useCompactMoney();
-  const goals = useBetsStore((s) => s.goals);
-  const bets = useBetsStore((s) => s.bets);
-  const transactions = useBetsStore((s) => s.bankroll.transactions);
-  const isPro = useBetsStore((s) => s.settings.isPro);
-  // The day is in the key: a month's loss cap must reset at midnight even when
-  // no bet was saved since (the bets screen stays mounted for hours).
-  const today = toYmd(new Date());
   // The goals screen's main goal: the first OPEN one still to reach — a
   // reached goal is done and folded at the bottom there, so the button moves on.
-  const { goal, p } = useMemo(() => {
-    const seen = new Map<string, GoalProgress>();
-    const of = (g: Goal) => {
-      let hit = seen.get(g.id);
-      if (!hit) { hit = calcGoalProgress(g, bets, transactions); seen.set(g.id, hit); }
-      return hit;
-    };
-    const { open } = goalsFor(goals, isPro, FREE_LIMITS.MAX_GOALS);
-    const main = mainGoal(open, (g) => of(g).achieved);
-    return { goal: main, p: main ? of(main) : null };
-  }, [goals, isPro, bets, transactions, today]); // `today`: re-run after midnight
+  const { main: goal, progress } = useGoalBoard();
+  const p = goal ? progress.get(goal.id) ?? null : null;
 
   const open = () => navigation.navigate('Goals');
 
