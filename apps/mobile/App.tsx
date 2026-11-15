@@ -20,7 +20,7 @@ import { OnboardingScreen } from './src/screens/OnboardingScreen';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { AnimatedSplash } from './src/components/AnimatedSplash';
 import { StorageErrorScreen } from './src/components/StorageErrorScreen';
-import { useBetsStore, effectiveReminderHour, resyncBetReminders } from './src/store/betsStore';
+import { useBetsStore, effectiveReminderHour, resyncBetReminders, settleGoalFreezes } from './src/store/betsStore';
 import { colors, applyTheme, currentTheme } from './src/theme/colors';
 import { PALETTES, THEME_META } from './src/theme/palettes';
 import * as Notifications from 'expo-notifications';
@@ -216,6 +216,8 @@ function AppRoot() {
     if (!isLoaded) return;
     const sub = AppState.addEventListener('change', (state) => {
       if (state === 'active') resyncBetReminders();
+      // A goal can become reached by the clock alone (its start day arriving).
+      if (state === 'active') settleGoalFreezes();
     });
     return () => sub.remove();
   }, [isLoaded]);

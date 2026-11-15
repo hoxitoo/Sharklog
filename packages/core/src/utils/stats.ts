@@ -139,17 +139,33 @@ export interface DashboardStats {
  * One rule for both apps' stores: `addBet` passes no `prev`.
  */
 export function stampSettlement(prev: Bet | undefined, next: Bet, now: string): Bet {
+  // When a result FIRST went in: kept through corrections and a return to
+  // pending (see Bet.firstSettledAt); a bet settled before the field existed
+  // takes its own stamp as it stood.
+  const first = next.firstSettledAt ?? prev?.firstSettledAt
+    ?? (prev && prev.status !== 'pending' ? prev.settledAt ?? legacySettledAt(prev) : undefined);
+  const out: Bet = { ...next };
+  if (first !== undefined) out.firstSettledAt = first;
   if (next.status === 'pending') {
-    if (next.settledAt === undefined) return next;
-    const out = { ...next };
     delete out.settledAt;
+    // Put back in play after a result: the stretch starts (Bet.unsettledAt).
+    if (prev && prev.status !== 'pending' && first !== undefined) {
+      out.unsettledAt = now;
+      delete out.resettledAt;
+    }
     return out;
   }
   const resultChanged = !prev || prev.status !== next.status
     || (next.status === 'cashout' && prev.cashoutAmount !== next.cashoutAmount);
-  if (resultChanged) return { ...next, settledAt: now };
-  if (prev.settledAt !== undefined) return { ...next, settledAt: prev.settledAt };
-  return { ...next, settledAt: legacySettledAt(prev) };
+  if (resultChanged) {
+    out.settledAt = now;
+    if (first === undefined) out.firstSettledAt = now;
+    // A result again after a stretch in play: the stretch ends.
+    if (prev && prev.status === 'pending' && out.unsettledAt !== undefined) out.resettledAt = now;
+    return out;
+  }
+  out.settledAt = prev.settledAt ?? legacySettledAt(prev);
+  return out;
 }
 
 /** Local midnight after a `YYYY-MM-DD` day, in ms; NaN for any other string. */

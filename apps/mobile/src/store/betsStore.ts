@@ -4,7 +4,7 @@ import type { Bet, AppSettings, Bankroll, DiaryEntry, Goal, Team } from '@sharkl
 import {
   migrate, CURRENT_SCHEMA_VERSION, FREE_LIMITS, DEFAULT_BANKROLL_NAME, calcCurrentStreak, parseEventTeams,
   preselectedBookmakers, sanitizeBets, sanitizeBankroll, sanitizeDiary, sanitizeTeams, sanitizeGoals,
-  cleanTeamNames, upsertTeams, stampSettlement,
+  cleanTeamNames, upsertTeams, stampSettlement, freezeReachedGoals,
 } from '@sharklog/core';
 import {
   sendTiltNotification, scheduleBetResultReminder,
@@ -861,6 +861,39 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
     return settings.isPro || bets.length < FREE_LIMITS.MAX_BETS;
   },
 }));
+
+// A goal is frozen the moment it is reached, and a freeze the book of its
+// moment no longer supports is lifted (core freezeReachedGoals): later bets
+// must not move a reached goal — a loss once took one back under 100% and out
+// of «Достигнутые» (report from a phone) — but a mis-tap that reached it must
+// not freeze it for good. Written only on a change; the write it causes is
+// not looked at again (`settling`), so it cannot feed itself.
+let settling = false;
+export function settleGoalFreezes(): void {
+  const s = useBetsStore.getState();
+  if (settling || !s.isLoaded || s.loadError) return;
+  settling = true;
+  try {
+    const next = freezeReachedGoals(s.goals, s.bets, s.bankroll.transactions);
+    if (!next) return;
+    useBetsStore.setState({ goals: next });
+    useBetsStore.getState().persist();
+  } catch (e) {
+    // This runs inside the store's subscription, i.e. inside whatever write
+    // triggered it: a throw here would surface from addBet or updateBet as if
+    // the bet had not been saved. A freeze can wait for the next look.
+    if (typeof __DEV__ !== 'undefined' && __DEV__) console.warn('settleGoalFreezes', e);
+  } finally {
+    settling = false;
+  }
+}
+// After load and on every change of bets, transfers or goals. App.tsx also
+// calls it on coming back to the app: a goal can become reached by the clock
+// alone (its start day arriving).
+useBetsStore.subscribe((state, prev) => {
+  if (prev.isLoaded && state.bets === prev.bets && state.bankroll === prev.bankroll && state.goals === prev.goals) return;
+  settleGoalFreezes();
+});
 
 // Saving trusts that a bet is never changed in place (`committedBets`): a field
 // written straight into a stored bet would show on screen and be gone after a

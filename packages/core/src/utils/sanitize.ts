@@ -128,6 +128,9 @@ export function sanitizeBet(raw: unknown, mode: SanitizeMode = 'import'): Bet | 
   };
   optional(b, out, {
     settledAt: okTs,
+    firstSettledAt: okTs,
+    unsettledAt: okTs,
+    resettledAt: okTs,
     closingOdds: (v) => num(v) && (!strict || v > 0),
     cashoutAmount: (v) => num(v) && (!strict || v >= 0),
     isFreebet: (v) => typeof v === 'boolean',
@@ -270,6 +273,13 @@ export function sanitizeGoals(raw: unknown, mode: SanitizeMode = 'import'): Sani
     const deadline = day(r['deadline']);
     if (deadline) out['deadline'] = deadline;
     optional(r, out, { note: str, archived: (v) => typeof v === 'boolean' });
+    // A freeze that does not read is dropped alone: the goal stays, and is
+    // frozen again if it is still reached.
+    const rc = r['reached'];
+    if (isObj(rc) && isTimestamp(rc['at'])) {
+      const reachedDay = day(rc['day']);
+      out['reached'] = reachedDay ? { at: rc['at'], day: reachedDay } : { at: rc['at'] };
+    }
     if (mode === 'import') {
       clipText(out, ['title'], TEXT_LIMITS.FIELD);
       clipText(out, ['note'], TEXT_LIMITS.NOTE);

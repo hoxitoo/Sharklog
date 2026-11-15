@@ -1,9 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import type { Bet, BankrollTransaction, Goal } from '../types/bet';
 import {
-  calcGoalProgress, activeGoals, mainGoal, goalsFor, goalFitsPlan, goalBoard, addDays, daysBetween, MONTH_DAYS, PACE_WINDOW_DAYS, GOAL_ROI_MIN_BETS,
+  calcGoalProgress, activeGoals, mainGoal, goalsFor, goalFitsPlan, goalBoard, freezeReachedGoals, keepReached, recordedAt, addDays, daysBetween, MONTH_DAYS, PACE_WINDOW_DAYS, GOAL_ROI_MIN_BETS,
 } from '../utils/goals';
-import { currentBank } from '../utils/stats';
+import { currentBank, stampSettlement } from '../utils/stats';
 import { sanitizeGoals } from '../utils/sanitize';
 import { toYmd } from '../utils/daily';
 
@@ -276,6 +276,258 @@ describe('the goal board — what the list, a goal\'s screen and the header butt
   it('makes the first goal main when every goal is reached', () => {
     const b = goalBoard([done, goal({ id: 'done2', target: 20_000_00 })], bets, [], false, 1, NOW);
     expect([b.main?.id, b.locked.length, b.full]).toEqual(['done', 0, false]);
+  });
+});
+
+describe('a reached goal is frozen — what is recorded later does not move it', () => {
+  // Reached, then a loss took it back under 100% and out of «Достигнутые»
+  // (report from a phone): «при достижении замораживаем». The goal counts the
+  // book as recorded at the moment of the freeze.
+  const AT = new Date(2026, 9, 31, 10).toISOString();                   // the freeze, today 10:00
+  const before = new Date(2026, 9, 30, 20).toISOString();               // recorded before it
+  const after = new Date(2026, 9, 31, 11).toISOString();                // recorded after it
+  const winA = bet({ id: 'A', date: day(-21), status: 'won', stake: 30_000_00, settledAt: before });
+  const winB = bet({ id: 'B', date: day(-20), status: 'won', stake: 30_000_00, settledAt: before }); // 60 000: reached
+  const frozen = goal({ target: 50_000_00, reached: { at: AT, day: TODAY } });
+  const hold = (g: Goal, bets: Bet[], txs: BankrollTransaction[] = [], now = NOW) => freezeReachedGoals([g], bets, txs, now) === null;
+
+  it('is frozen at the moment it is reached, with the day it was reached on', () => {
+    const [g] = freezeReachedGoals([goal({ target: 50_000_00 })], [winA, winB], [], NOW)!;
+    expect(g!.reached).toEqual({ at: NOW.toISOString(), day: TODAY });
+  });
+
+  it('does not move for a loss, a win or an old bet recorded after the freeze', () => {
+    const later = [
+      bet({ date: day(-1), status: 'lost', stake: 40_000_00, settledAt: after }),
+      bet({ date: day(-1), status: 'won', stake: 90_000_00, settledAt: after }),
+      bet({ date: day(-25), status: 'lost', stake: 50_000_00, settledAt: after }), // backdated, entered late
+    ];
+    const p = calcGoalProgress(frozen, [winA, winB, ...later], [], NOW);
+    expect([p.achieved, p.current, p.ratio, p.reachedOn]).toEqual([true, 60_000_00, 1, day(-20)]);
+    expect(p.series.at(-1)?.value).toBe(60_000_00);
+    expect(hold(frozen, [winA, winB, ...later])).toBe(true);
+  });
+
+  it('is shown live when a result it stood on is corrected or deleted — a mis-tap must not freeze a goal for good', () => {
+    // «Выиграла» by mistake, corrected to lost after the freeze: the bet stays in
+    // the book of then (its result was first recorded before it) — as a loss.
+    const corrected = stampSettlement(winB, { ...winB, status: 'lost' }, after);
+    expect([corrected.settledAt, corrected.firstSettledAt]).toEqual([after, before]);
+    expect(calcGoalProgress(frozen, [winA, corrected], [], NOW).achieved).toBe(false);
+    // Back to «in play», deleted — out of the book.
+    const undone = stampSettlement(winB, { ...winB, status: 'pending' }, after);
+    expect(calcGoalProgress(frozen, [winA, undone], [], NOW).achieved).toBe(false);
+    expect(calcGoalProgress(frozen, [winA], [], NOW).achieved).toBe(false);
+    // A stake corrected down (no new result) counts back to then.
+    expect(calcGoalProgress(frozen, [winA, { ...winB, stake: 10_000_00 }], [], NOW).achieved).toBe(false);
+    // The freeze is kept (nothing to write): the undo below brings it back.
+    expect(hold(frozen, [winA, corrected])).toBe(true);
+  });
+
+  it('comes back when the mistake is undone — a lift is not for good (review)', () => {
+    // Frozen at 60 000; a loss of 20 000 since. W corrected to lost, then back
+    // to won: with the freeze dropped on the way, the live book (40 000) left
+    // the goal open for good.
+    const loss = bet({ date: day(-1), status: 'lost', stake: 20_000_00, settledAt: after });
+    const wrong = stampSettlement(winB, { ...winB, status: 'lost' }, after);
+    expect(hold(frozen, [winA, wrong, loss])).toBe(true);
+    const right = stampSettlement(wrong, { ...wrong, status: 'won' }, new Date(2026, 9, 31, 11, 30).toISOString());
+    const p = calcGoalProgress(frozen, [winA, right, loss], [], NOW);
+    expect([p.achieved, p.current]).toEqual([true, 60_000_00]);
+    // Through «in play» and back, too.
+    const back = stampSettlement(stampSettlement(winB, { ...winB, status: 'pending' }, after), { ...winB, status: 'won' }, after);
+    expect(calcGoalProgress(frozen, [winA, back, loss], [], NOW).current).toBe(60_000_00);
+  });
+
+  it('re-counts a corrected result rather than dropping it — a small fix does not unfreeze the goal', () => {
+    // Review: B corrected from won (+30 000) to a cash-out of +25 000. Dropping
+    // B from the book of then left 30 000 — the goal, live again, took every
+    // loss recorded since: out of «Достигнутые».
+    const cashedOut = stampSettlement(winB, { ...winB, status: 'cashout', cashoutAmount: 55_000_00 }, after);
+    const loss = bet({ date: day(-1), status: 'lost', stake: 40_000_00, settledAt: after });
+    expect(hold(frozen, [winA, cashedOut, loss])).toBe(true);
+    const p = calcGoalProgress(frozen, [winA, cashedOut, loss], [], NOW);
+    expect([p.achieved, p.current]).toEqual([true, 55_000_00]);
+  });
+
+  it('is frozen anew when it is reached as the book stands now', () => {
+    // B corrected to lost: the book of then has 0; a win recorded since brings
+    // it to 60 000 now — frozen again, at this moment.
+    const corrected = stampSettlement(winB, { ...winB, status: 'lost' }, after);
+    const win = bet({ date: day(-1), status: 'won', stake: 60_000_00, settledAt: after });
+    const later = new Date(2026, 9, 31, 12, 30);
+    expect(freezeReachedGoals([frozen], [winA, corrected, win], [], later)![0]!.reached).toEqual({ at: later.toISOString(), day: TODAY });
+  });
+
+  it('counts a withdrawal made at the freeze, not one made after it', () => {
+    // A bank goal: a withdrawal after the freeze does not take it back under.
+    const dep = { id: 'd', type: 'deposit' as const, amount: 100_000_00, date: new Date(2026, 9, 1, 10).toISOString() };
+    const bank = goal({ kind: 'bank', target: 150_000_00, reached: { at: AT, day: TODAY } });
+    const later = { id: 'w2', type: 'withdrawal' as const, amount: 80_000_00, date: after };
+    const p = calcGoalProgress(bank, [winA, winB], [dep, later], NOW); // 160 000, then 80 000 out
+    expect([p.achieved, p.current]).toEqual([true, 160_000_00]);
+    expect(hold(bank, [winA, winB], [dep, later])).toBe(true);
+    // A withdrawal goal reached by a withdrawal entered at the very moment of the freeze.
+    const out = goal({ kind: 'withdraw', target: 30_000_00, reached: { at: AT, day: TODAY } });
+    const atFreeze = { id: 'w1', type: 'withdrawal' as const, amount: 40_000_00, date: AT };
+    expect(calcGoalProgress(out, [], [atFreeze], NOW).current).toBe(40_000_00);
+    // Entered a minute later, it is not in the book of the freeze: live (and
+    // frozen anew, since it is reached now).
+    const late = { ...atFreeze, date: new Date(Date.parse(AT) + 60_000).toISOString() };
+    expect(freezeReachedGoals([out], [], [late], NOW)![0]!.reached).toEqual({ at: NOW.toISOString(), day: TODAY });
+  });
+
+  it('counts a result whose moment does not read as recorded long ago', () => {
+    const odd = { ...winB, settledAt: 'soon', createdAt: 'x', updatedAt: 'y' };
+    const loss = bet({ date: day(-1), status: 'lost', stake: 40_000_00, settledAt: after });
+    expect(calcGoalProgress(frozen, [winA, odd, loss], [], NOW).current).toBe(60_000_00);
+  });
+
+  it('shows a bank goal at its reaching day when a bet no day can place took the bank back under', () => {
+    const txs = [{ id: 't', type: 'deposit' as const, amount: 90_000_00, date: new Date(2026, 9, 20, 10).toISOString() }];
+    const win = bet({ date: day(-5), status: 'won', stake: 20_000_00, settledAt: before });          // bank 110 000
+    const odd = bet({ date: '5.11.2026', status: 'lost', stake: 15_000_00, settledAt: before });    // bank 95 000, on no day
+    const p = calcGoalProgress(goal({ kind: 'bank', target: 100_000_00, reached: { at: AT, day: TODAY } }), [win, odd], txs, NOW);
+    expect([p.achieved, p.current]).toEqual([true, 110_000_00]);
+  });
+
+  it('ends the chart on the day of the freeze and counts the deadline from today', () => {
+    const weekOn = new Date(2026, 10, 7, 12);
+    const p = calcGoalProgress({ ...frozen, deadline: '2026-11-30' }, [winA, winB], [], weekOn);
+    expect(p.series.at(-1)).toEqual({ date: TODAY, value: 60_000_00 });
+    expect([p.daysLeft, p.expired]).toEqual([23, false]);
+  });
+
+  it('is counted with the day it was reached on as «today» — not moved by a clock set back or another time zone', () => {
+    // Review: counted with the phone's «today», a clock set to the evening
+    // before took the reaching bets past «today» and lifted the freeze.
+    const loss = bet({ date: day(-1), status: 'lost', stake: 20_000_00, settledAt: after });
+    const todays = bet({ date: TODAY, status: 'won', stake: 60_000_00, settledAt: before });
+    const g = goal({ target: 50_000_00, reached: { at: AT, day: TODAY } });
+    const eveningBefore = new Date(2026, 9, 30, 23);
+    expect(calcGoalProgress(g, [todays, loss], [], eveningBefore).current).toBe(60_000_00);
+    expect(hold(g, [todays, loss], [], eveningBefore)).toBe(true);
+    expect(calcGoalProgress(frozen, [winA, winB, loss], [], new Date(2026, 8, 1)).achieved).toBe(true); // before the start
+    // Reached in a zone already on 1 November, with a bet dated that day; the
+    // phone is back where it is still 31 October.
+    const early = bet({ date: day(1), status: 'won', stake: 60_000_00, settledAt: before });
+    const east = goal({ target: 50_000_00, reached: { at: AT, day: day(1) } });
+    const p = calcGoalProgress(east, [early], [], NOW);
+    expect([p.achieved, p.reachedOn, p.series.at(-1)?.date]).toEqual([true, day(1), day(1)]);
+    expect(hold(east, [early])).toBe(true);
+    // A freeze saved without its day: the local day of its moment.
+    expect(calcGoalProgress(goal({ target: 50_000_00, reached: { at: AT } }), [winA, winB, loss], [], NOW).current).toBe(60_000_00);
+  });
+
+  it('is frozen no earlier than the latest record — a clock set back cannot make it freeze again forever', () => {
+    const future = new Date(2026, 10, 2, 9).toISOString(); // recorded «after now»
+    const winLate = { ...winB, settledAt: future };
+    const [g] = freezeReachedGoals([goal({ target: 50_000_00 })], [winA, winLate], [], NOW)!;
+    expect(g!.reached).toEqual({ at: new Date(future).toISOString(), day: TODAY });
+    expect(hold(g!, [winA, winLate])).toBe(true);
+  });
+
+  it('takes in a result given again «after now» when that is what reached the goal — or it would freeze again on every look', () => {
+    // X won, put back in play, then given its result again with the clock
+    // since set back: at «now» it reads as still in play.
+    const x = { ...winB, unsettledAt: new Date(2026, 9, 31, 8).toISOString(), resettledAt: new Date(2026, 10, 2, 9).toISOString() };
+    const [g] = freezeReachedGoals([goal({ target: 50_000_00 })], [winA, x], [], NOW)!;
+    expect(g!.reached!.at).toBe(x.resettledAt);
+    expect(hold(g!, [winA, x])).toBe(true);
+  });
+
+  it('does not freeze at a record a clock set forward stamped far ahead — the goal would stay live till then', () => {
+    const y2027 = new Date(2027, 5, 1).toISOString();
+    const stray = bet({ date: day(-3), status: 'lost', stake: 1_00, settledAt: y2027 });
+    const [g] = freezeReachedGoals([goal({ target: 50_000_00 })], [winA, winB, stray], [], NOW)!;
+    expect(g!.reached).toEqual({ at: NOW.toISOString(), day: TODAY });
+    // A record a few minutes ahead (the clock adjusted) is «recorded by now».
+    const soon = new Date(NOW.getTime() + 5 * 60_000).toISOString();
+    const nudged = bet({ date: day(-3), status: 'lost', stake: 1_00, settledAt: soon });
+    expect(freezeReachedGoals([goal({ target: 50_000_00 })], [winA, winB, nudged], [], NOW)![0]!.reached).toEqual({ at: soon, day: TODAY });
+  });
+
+  it('leaves out a bet that was back in play at the freeze — a mis-tap undone before it (review)', () => {
+    // 08:30 X tapped «Выиграла» by mistake, 08:31 back in play; the goal froze
+    // at 10:00 on A and B; 11:00 X lost. X was in play at the freeze: its loss
+    // is recorded after it.
+    const at = (h: number, m = 0) => new Date(2026, 9, 31, h, m).toISOString();
+    const x0 = bet({ id: 'X', date: TODAY, status: 'pending', stake: 25_000_00 });
+    const tapped = stampSettlement(x0, { ...x0, status: 'won' }, at(8, 30));
+    const undone = stampSettlement(tapped, { ...tapped, status: 'pending' }, at(8, 31));
+    expect([undone.firstSettledAt, undone.unsettledAt]).toEqual([at(8, 30), at(8, 31)]);
+    const lost = stampSettlement(undone, { ...undone, status: 'lost' }, at(11));
+    expect(lost.resettledAt).toBe(at(11));
+    const p = calcGoalProgress(frozen, [winA, winB, lost], [], NOW);
+    expect([p.achieved, p.current]).toEqual([true, 60_000_00]);
+    expect(hold(frozen, [winA, winB, lost])).toBe(true);
+    // Corrected again later: still recorded after the freeze.
+    const fixed = stampSettlement(lost, { ...lost, status: 'won' }, at(12));
+    expect(calcGoalProgress(frozen, [winA, winB, fixed], [], NOW).current).toBe(60_000_00);
+  });
+
+  it('is not moved by bets a backup brings in — recorded in this book now (recordedAt)', () => {
+    // Review: «Добавить к текущим» kept the other phone's moments, and a loss
+    // dated before the reaching day fell into the book of a freeze made here.
+    const fromBackup = [bet({ id: 'old', date: day(-22), status: 'lost', stake: 30_000_00, settledAt: before, firstSettledAt: before })];
+    expect(calcGoalProgress(frozen, [winA, winB, ...fromBackup], [], NOW).achieved).toBe(false);
+    const { bets: merged } = recordedAt(fromBackup, [], after);
+    expect([merged[0]!.firstSettledAt, merged[0]!.settledAt]).toEqual([after, before]); // the bank it stood on stays its own
+    expect(calcGoalProgress(frozen, [winA, winB, ...merged], [], NOW).current).toBe(60_000_00);
+    // A bet in play drops the other phone's stamps: settled here, it is recorded here.
+    const inPlay = bet({ status: 'pending', firstSettledAt: before, unsettledAt: before });
+    const [clean] = recordedAt([inPlay], [], after).bets;
+    expect([clean!.firstSettledAt, clean!.unsettledAt]).toEqual([undefined, undefined]);
+    const lostHere = stampSettlement(clean, { ...clean!, status: 'lost', stake: 30_000_00, date: day(-22) }, new Date(2026, 9, 31, 12).toISOString());
+    expect(calcGoalProgress(frozen, [winA, winB, lostHere], [], NOW).current).toBe(60_000_00);
+  });
+
+  it('keeps a goal frozen on the other phone counting what it counted there (review)', () => {
+    // Phone A: +30 000 on the 20th, +30 000 on the 21st, frozen on the 22nd,
+    // a loss on the 23rd. Added to this phone on the 31st, stamped with that
+    // moment alone, the goal's book held none of A's bets and it reopened.
+    const t = (d: number) => new Date(2026, 9, d, 12).toISOString();
+    const a = [
+      bet({ id: 'a1', date: day(-11), status: 'won', stake: 30_000_00, settledAt: t(20) }),
+      bet({ id: 'a2', date: day(-10), status: 'won', stake: 30_000_00, settledAt: t(21) }),
+      bet({ id: 'a3', date: day(-8), status: 'lost', stake: 40_000_00, settledAt: t(23) }),
+    ];
+    const theirs = goal({ id: 'gA', target: 50_000_00, reached: { at: t(22), day: day(-9) } });
+    const merged = recordedAt(a, [theirs], after);
+    const [g] = merged.goals;
+    expect(g!.reached).toEqual({ at: new Date(Date.parse(after) + 2).toISOString(), day: day(-9) });
+    const book = [winA, winB, ...merged.bets];
+    // Theirs: this phone's bets (all recorded before) and a1, a2 — not a3.
+    expect(calcGoalProgress(g!, book, [], NOW).current).toBe(120_000_00);
+    // Ours, frozen here at 10:00, is not moved by any of them.
+    expect(calcGoalProgress(frozen, book, [], NOW).current).toBe(60_000_00);
+    expect(freezeReachedGoals([frozen, g!], book, [], NOW)).toBeNull();
+  });
+
+  it('freezes nothing else: not reached, archived — and says so', () => {
+    const goals = [goal({ id: 'open', target: 500_000_00 }), goal({ id: 'arch', target: 1_00, archived: true })];
+    expect(freezeReachedGoals(goals, [winA, winB], [], NOW)).toBeNull();
+  });
+
+  it('keeps the freeze through an edit of the name or the amount — the amount checked against the book of then', () => {
+    expect(keepReached(frozen, { ...frozen, title: 'x' }).reached).toEqual(frozen.reached);
+    const lower = keepReached(frozen, { ...frozen, target: 55_000_00 });
+    expect(calcGoalProgress(lower, [winA, winB], [], NOW).achieved).toBe(true);
+    const higher = keepReached(frozen, { ...frozen, target: 90_000_00 });
+    expect(higher.reached).toEqual(frozen.reached);
+    expect(calcGoalProgress(higher, [winA, winB], [], NOW).achieved).toBe(false);
+    expect(hold(higher, [winA, winB])).toBe(true);
+    // The amount brought back down: frozen again at the same moment, losses since ignored.
+    const loss = bet({ date: day(-1), status: 'lost', stake: 20_000_00, settledAt: after });
+    const restored = keepReached(higher, { ...higher, target: 50_000_00 });
+    expect(restored.reached).toEqual(frozen.reached);
+    expect(calcGoalProgress(restored, [winA, winB, loss], [], NOW).current).toBe(60_000_00);
+  });
+
+  it('drops the freeze with a new kind or start — a new goal', () => {
+    expect(keepReached(frozen, { ...frozen, kind: 'bank' }).reached).toBeUndefined();
+    expect(keepReached(frozen, { ...frozen, startDate: day(-10) }).reached).toBeUndefined();
+    expect(keepReached(undefined, frozen).reached).toBeUndefined();
   });
 });
 

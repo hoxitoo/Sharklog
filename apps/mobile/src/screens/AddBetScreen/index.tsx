@@ -23,7 +23,7 @@ import { DateField } from '../../components/DateField';
 import { useFormatMoney, useCurrencySymbol } from '../../utils/useFormatMoney';
 import { useOddsFormat, useFormatOddsRange, oddsKeyboard } from '../../utils/useOdds';
 import { oddsFieldText, readOddsField, readLegField, legFieldText, oddsExample } from '../../utils/oddsField';
-import { sportLabel, betTypeLabel, strategyLabel, disciplineLabel } from '../../utils/labels';
+import { sportLabel, betTypeLabel, strategyLabel, disciplineLabel, teamSportLabel } from '../../utils/labels';
 import { colors, signalTint, signalInk } from '../../theme/colors';
 import { useBetsStore, effectiveDailyLimit } from '../../store/betsStore';
 import { askForRemindersOnce, remindersCanCome } from '../../utils/reminderPermission';
@@ -148,33 +148,33 @@ function SingleTeamInput({
       />
       {focused && suggestions.length > 0 && (
         <View style={ac.dropdown}>
-          {suggestions.map((team) => (
-            <TouchableOpacity
-              key={team.id}
-              style={ac.item}
-              onPress={() => {
-                onChange(team.name);
-                onPickTeam(team);
-                setFocused(false);
-                onSubmitEditing?.();
-              }}
-              activeOpacity={0.7}
-            >
-              <Text style={ac.name}>{team.name}</Text>
-              <View style={ac.right}>
-                {team.sport === 'esports' && team.discipline ? (
-                  <View style={ac.badge}>
-                    <Text style={ac.badgeText}>{disciplineLabel(t, team.discipline)}</Text>
-                  </View>
-                ) : team.sport !== undefined && team.sport !== sport ? (
-                  <View style={ac.badge}>
-                    <Text style={ac.badgeText}>{sportLabel(t, team.sport)}</Text>
-                  </View>
-                ) : null}
-                <Text style={ac.count}>{team.usageCount}×</Text>
-              </View>
-            </TouchableOpacity>
-          ))}
+          {suggestions.map((team) => {
+            const badge = teamSportLabel(t, team);
+            return (
+              <TouchableOpacity
+                key={team.id}
+                style={ac.item}
+                onPress={() => {
+                  onChange(team.name);
+                  onPickTeam(team);
+                  setFocused(false);
+                  onSubmitEditing?.();
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={ac.name}>{team.name}</Text>
+                <View style={ac.right}>
+                  {/* Every known sport, the form's own too (teamSportLabel). */}
+                  {badge ? (
+                    <View style={ac.badge}>
+                      <Text style={ac.badgeText} numberOfLines={1}>{badge}</Text>
+                    </View>
+                  ) : null}
+                  <Text style={ac.count}>{team.usageCount}×</Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
         </View>
       )}
     </View>
@@ -207,7 +207,8 @@ const ac = themedStyles(() => ({
     borderBottomColor: colors.border,
   },
   name: { fontSize: SIZE.body, color: colors.textPrimary, flex: 1 },
-  right: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs },
+  // Every row has a badge now: a gap from the name, and a long discipline stays one line.
+  right: { flexDirection: 'row', alignItems: 'center', gap: SPACE.xs, marginLeft: SPACE.sm },
   badge: {
     backgroundColor: colors.purpleDim,
     paddingHorizontal: SPACE.xs,

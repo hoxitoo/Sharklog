@@ -40,6 +40,14 @@ describe('sanitizeBet', () => {
     expect(b.tournament).toBe('РПЛ');
   });
 
+  it('keeps the moments a result went into the book, and drops one that does not read', () => {
+    const at = '2026-10-01T19:30:00.000Z';
+    const b = sanitizeBet({ ...good, status: 'won', settledAt: at, firstSettledAt: at, unsettledAt: at, resettledAt: at })!;
+    expect([b.settledAt, b.firstSettledAt, b.unsettledAt, b.resettledAt]).toEqual([at, at, at, at]);
+    const odd = sanitizeBet({ ...good, status: 'won', settledAt: 7, firstSettledAt: 'soon', unsettledAt: {}, resettledAt: 'later' })!;
+    for (const k of ['settledAt', 'firstSettledAt', 'unsettledAt', 'resettledAt']) expect(odd).not.toHaveProperty(k);
+  });
+
   it('keeps an unknown sport or strategy — screens show those as stored', () => {
     expect(sanitizeBet({ ...good, sport: 'mma', strategy: 'gut' })?.sport).toBe('mma');
   });
@@ -155,5 +163,21 @@ describe('sanitizeDiary and sanitizeTeams', () => {
     // A normal accumulator's event and pick are far inside the limit.
     const express = Array.from({ length: 20 }, (_, i) => `Команда ${i} vs Соперник ${i}`).join(' | ');
     expect(sanitizeBet({ ...good, event: express }, 'import')!.event).toBe(express);
+  });
+});
+
+describe('sanitizeGoals — a frozen reach', () => {
+  const base = { id: 'g', title: 'Цель', kind: 'profit', target: 5_000_000, startDate: '2026-11-01', createdAt: '2026-11-01T00:00:00.000Z' };
+  it('keeps a freeze whose moment reads, and drops any other — the goal stays', () => {
+    const at = '2026-11-14T15:30:00.000Z';
+    for (const mode of ['import', 'stored'] as const) {
+      expect(sanitizeGoals([{ ...base, reached: { at } }], mode).items[0]!.reached).toEqual({ at });
+      expect(sanitizeGoals([{ ...base, reached: { at, day: '2026-11-14' } }], mode).items[0]!.reached).toEqual({ at, day: '2026-11-14' });
+      // A day that is not a day goes alone — the local day of the moment stands in.
+      expect(sanitizeGoals([{ ...base, reached: { at, day: 14 } }], mode).items[0]!.reached).toEqual({ at });
+      // An older shape, a moment that does not read: refrozen if still reached.
+      expect(sanitizeGoals([{ ...base, reached: { on: '2026-11-07', value: 1 } }], mode).items[0]!.reached).toBeUndefined();
+      expect(sanitizeGoals([{ ...base, reached: { at: 'вчера' } }], mode).items[0]!.reached).toBeUndefined();
+    }
   });
 });

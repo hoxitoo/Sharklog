@@ -4,7 +4,7 @@ import { useNavigation, useRoute, type RouteProp } from '@react-navigation/nativ
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useTranslation } from 'react-i18next';
 import {
-  addDays, goalFitsPlan, parseMoneyInput, toYmd, FREE_LIMITS, GOAL_KINDS, type Goal, type GoalKind,
+  addDays, goalFitsPlan, keepReached, parseMoneyInput, toYmd, FREE_LIMITS, GOAL_KINDS, type Goal, type GoalKind,
 } from '@sharklog/core';
 import { AppText as Text, AppTextInput as TextInput } from '../../components/AppText';
 import { FilterPicker } from '../../components/FilterPicker';
@@ -97,7 +97,11 @@ export function GoalEditScreen() {
     const end = !isCap && deadline ? deadline : null;
     if (end && end <= startDay) { Alert.alert(t('common.error'), t('goals.errDeadline')); return null; }
     const text = note.trim();
-    return {
+    // A reached goal stays frozen through an edit of its name, note or amount
+    // (a new amount is checked on the book of the freeze — the store lifts the
+    // freeze if it is not reached there); a new kind or start is a new goal
+    // (keepReached).
+    return keepReached(existing, {
       id: existing?.id ?? uuid(),
       title: name,
       kind,
@@ -107,7 +111,7 @@ export function GoalEditScreen() {
       ...(text ? { note: text } : {}),
       createdAt: existing?.createdAt ?? new Date().toISOString(),
       ...(existing?.archived ? { archived: true } : {}),
-    };
+    });
   }
 
   /** Free keeps its slots after saving `goal` (goalFitsPlan) — read from the store at the moment, not subscribed. */

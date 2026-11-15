@@ -59,6 +59,25 @@ export interface Bet {
    * results a bet entered later could already have seen.
    */
   settledAt?: string;
+  /**
+   * ISO-8601: when a result first went into the book. Unlike `settledAt` it
+   * does not move when the result is corrected, nor go when the bet goes back
+   * to pending. A frozen goal counts the bets whose result was first recorded
+   * by its freeze, with the result they have now: a result corrected since is
+   * re-counted, not dropped (`GoalReached`). None on bets settled before the
+   * field existed — `settledAt` (or `legacySettledAt`) stands in.
+   */
+  firstSettledAt?: string;
+  /**
+   * ISO-8601: the last stretch the bet spent back «in play» after it had a
+   * result — from `unsettledAt` (put back to pending) to `resettledAt` (a
+   * result again). A frozen goal leaves the bet out of the book of a moment
+   * inside it: «Выиграла» tapped by mistake and put back in play before the
+   * freeze must not bring the result it gets later into that book. Only the
+   * last stretch is kept.
+   */
+  unsettledAt?: string;
+  resettledAt?: string;
   date: string;            // YYYY-MM-DD
   time: string;            // HH:MM
   sport: Sport;
@@ -141,6 +160,34 @@ export interface Goal {
   createdAt: string;
   /** Kept, out of the way: not on the main screen, not counted against the Free limit. */
   archived?: boolean;
+  /**
+   * Frozen when it was reached (freezeReachedGoals): its numbers are the book
+   * as it was recorded at that moment, so nothing recorded later moves it — a
+   * loss once took a reached goal back under 100% and out of «Достигнутые»
+   * (report from a phone).
+   */
+  reached?: GoalReached;
+}
+
+/** A reached goal, frozen. */
+export interface GoalReached {
+  /**
+   * ISO moment of the freeze. The goal counts the bets whose result was first
+   * recorded by it (`firstSettledAt`), with the result they carry now, and the
+   * transfers entered by it (a transfer's `date`); nothing recorded after. A
+   * result corrected since is counted as corrected, a bet deleted or back in
+   * play is not counted: if the goal no longer reaches its target there, it is
+   * shown live — a mis-tap on «Выиграла» must not freeze a goal for good — and
+   * the freeze is kept, so undoing the change brings it back.
+   */
+  at: string;
+  /**
+   * The day it was reached on (YYYY-MM-DD, the phone's local day then): the
+   * frozen book is counted with it as "today", so neither a clock set back
+   * nor another time zone pushes the reaching bets past "today". A freeze
+   * without one (saved before the field) uses the local day of `at`.
+   */
+  day?: string;
 }
 
 export type StrategyGoal = 'income' | 'hobby' | 'professional';

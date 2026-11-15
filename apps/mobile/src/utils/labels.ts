@@ -12,7 +12,8 @@ import { ESPORTS_DISCIPLINES, BET_TYPES, PICK, TX_NOTE } from '@sharklog/core';
  * `__tests__/i18n.test.ts` keeps it that way.
  */
 
-export const sportLabel = (t: TFunction, s: Sport): string => t(`sports.${s}`);
+// An unknown value (an old or hand-edited bet: 'mma') shows as stored, not as the raw key «sports.mma».
+export const sportLabel = (t: TFunction, s: Sport): string => t(`sports.${s}`, { defaultValue: String(s) });
 export const betTypeLabel = (t: TFunction, b: BetType): string => t(`betTypes.${b}`);
 export const strategyLabel = (t: TFunction, s: Strategy): string => t(`strategies.${s}`);
 
@@ -27,6 +28,20 @@ export function disciplineLabel(t: TFunction, d: EsportsDiscipline | string): st
   return Object.prototype.hasOwnProperty.call(ESPORTS_DISCIPLINES, d)
     ? ESPORTS_DISCIPLINES[d as EsportsDiscipline]
     : d;
+}
+
+/**
+ * What a team suggestion in the bet form is badged with: an esports team's
+ * discipline (CS2, Dota 2), any other team's sport — ALWAYS, the form's own
+ * sport too. Shown only when it differed from the form, «Трактор» on a hockey
+ * form had no badge under «Navi · CS2» and read as a team of unknown sport
+ * (report from a phone). Null only for a team whose sport the bets do not say
+ * (a later leg of an accumulator — teamsFromBets).
+ */
+export function teamSportLabel(t: TFunction, team: { sport?: Sport; discipline?: EsportsDiscipline }): string | null {
+  if (team.sport === undefined) return null;
+  if (team.sport === 'esports' && team.discipline) return disciplineLabel(t, team.discipline);
+  return sportLabel(t, team.sport);
 }
 
 /** Stored pick token → its display key. Longest-first is not needed: no token is a prefix of another. */

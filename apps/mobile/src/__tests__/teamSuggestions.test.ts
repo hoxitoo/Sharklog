@@ -1,5 +1,7 @@
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import type { TFunction } from 'i18next';
+import { teamSportLabel } from '../utils/labels';
 
 /*
  * The bet form's team suggestions come from the bets as they are
@@ -28,5 +30,34 @@ describe('team suggestions on the bet form', () => {
     expect(src).toContain("useRef<PickSource | undefined>(source ? 'user' : undefined)");
     expect(src.match(/sportFrom(?:\.current = |: )'user'/g)?.length).toBeGreaterThanOrEqual(3);
     expect(src.match(/disciplineFrom(?:\.current = |: )'user'/g)?.length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe('the sport on a team suggestion', () => {
+  const words: Record<string, string> = { 'sports.hockey': 'Хоккей', 'sports.esports': 'Киберспорт', 'sports.other': 'Другое' };
+  const t = ((key: string, opts?: { defaultValue?: string }) => words[key] ?? opts?.defaultValue ?? key) as unknown as TFunction;
+  // The block that draws one suggestion row.
+  const row = src
+    .slice(src.indexOf('{suggestions.map((team) => {'), src.indexOf('})}', src.indexOf('{suggestions.map((team) => {')))
+    .replace(/\{\/\*[\s\S]*?\*\/\}/g, '');
+
+  it('is shown for every team whose sport is known — the form\'s own sport too', () => {
+    // «Трактор» on a hockey form had no badge under «Navi · CS2» and read as
+    // a team of unknown sport (report from a phone).
+    expect(teamSportLabel(t, { sport: 'hockey' })).toBe('Хоккей');
+    expect(teamSportLabel(t, { sport: 'esports', discipline: 'csgo' })).toBe('CS2');
+    expect(teamSportLabel(t, { sport: 'esports' })).toBe('Киберспорт');
+    expect(teamSportLabel(t, { sport: 'other' })).toBe('Другое');
+    // The row does not look at the form's sport at all — only at the team's.
+    expect(row).toContain('const badge = teamSportLabel(t, team);');
+    expect(row).not.toMatch(/(?<![.\w])(sport|discipline)\b/);
+  });
+
+  it('shows an unknown sport as stored, not as a raw key', () => {
+    expect(teamSportLabel(t, { sport: 'mma' as never })).toBe('mma');
+  });
+
+  it('is nothing only when the bets do not say the sport (a later leg of an accumulator)', () => {
+    expect(teamSportLabel(t, {})).toBeNull();
   });
 });

@@ -17,6 +17,7 @@ const pill = read('components/GoalPill.tsx');
 const nav = read('navigation/RootNavigator.tsx');
 const edit = read('screens/GoalEditScreen/index.tsx');
 const board = read('utils/useGoalBoard.ts');
+const settings = read('screens/SettingsScreen/index.tsx');
 
 describe('reached goals', () => {
   it('fold to a line that opens the goal on its own screen — below the locked ones', () => {
@@ -56,5 +57,14 @@ describe('reached goals', () => {
   it('close their own screen once the goal is gone — only while that screen is on top', () => {
     expect(detail).toContain('const focused = useIsFocused();');
     expect(detail).toMatch(/if \(!goal && focused\) navigation\.goBack\(\);/);
+  });
+
+  it('are not moved by the bets a backup adds — they go into this book now (review)', () => {
+    // Kept with the other phone's moments, a loss dated before the reaching
+    // day fell into the book of a freeze made here (core recordedAt, tested there).
+    const append = settings.slice(settings.indexOf("text: t('settings.restoreAppend')"), settings.indexOf("text: t('settings.restoreReplace')"));
+    expect(append).toMatch(/const \{ bets: fresh, goals: newGoals \} = recordedAt\(\s*backup\.bets\.filter\([\s\S]*?\(backup\.goals \?\? \[\]\)\.filter\(/);
+    expect(append).toMatch(/goals: \[\.\.\.store\.goals, \.\.\.newGoals\]/);
+    expect(append).toMatch(/bets: \[\.\.\.fresh, \.\.\.store\.bets\]/);
   });
 });
