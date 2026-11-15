@@ -142,22 +142,24 @@ export interface Goal {
   /** Kept, out of the way: not on the main screen, not counted against the Free limit. */
   archived?: boolean;
   /**
-   * Frozen the moment it was reached (freezeReachedGoals): the day, the
-   * measure at the end of that day, and the bets' result per day up to it.
-   * From then on later bets do not move it — a loss once took a reached goal
-   * back under 100% and out of «Достигнутые» (report from a phone).
+   * Frozen when it was reached (freezeReachedGoals): its numbers are the book
+   * as it was recorded at that moment, so nothing recorded later moves it — a
+   * loss once took a reached goal back under 100% and out of «Достигнутые»
+   * (report from a phone).
    */
   reached?: GoalReached;
 }
 
-/** A reached goal, frozen. Hundredths. */
+/** A reached goal, frozen. */
 export interface GoalReached {
-  /** YYYY-MM-DD — the first day that ended at the target. */
-  on: string;
-  /** The measure at the end of that day. */
-  value: number;
-  /** The bets' result per day from the start to `on`; none when no day held it. */
-  pnlPerDay?: number;
+  /**
+   * ISO moment of the freeze. The goal counts the results, transfers and
+   * corrections recorded up to it (`settledAt`, a transfer's `date`) and none
+   * after. A result recorded before it and corrected or deleted since leaves
+   * the book of that moment: if the goal no longer reaches its target there,
+   * the freeze is lifted — a mis-tap on «Выиграла» must not freeze a goal for good.
+   */
+  at: string;
 }
 
 export type StrategyGoal = 'income' | 'hobby' | 'professional';

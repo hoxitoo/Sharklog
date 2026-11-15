@@ -862,18 +862,32 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
   },
 }));
 
-// A goal is frozen the moment it is reached (core freezeReachedGoals): later
-// bets must not move it — a loss once took a reached goal back under 100% and
-// out of «Достигнутые» (report from a phone). Looked at after load and on every
-// change of bets, transfers or goals; written only when something froze, so
-// the write it causes finds nothing more to freeze.
+// A goal is frozen the moment it is reached, and a freeze the book of its
+// moment no longer supports is lifted (core freezeReachedGoals): later bets
+// must not move a reached goal — a loss once took one back under 100% and out
+// of «Достигнутые» (report from a phone) — but a mis-tap that reached it must
+// not freeze it for good. Written only on a change; the write it causes is
+// not looked at again (`settling`), so it cannot feed itself.
+let settling = false;
+export function settleGoalFreezes(): void {
+  const s = useBetsStore.getState();
+  if (settling || !s.isLoaded || s.loadError) return;
+  settling = true;
+  try {
+    const next = freezeReachedGoals(s.goals, s.bets, s.bankroll.transactions);
+    if (!next) return;
+    useBetsStore.setState({ goals: next });
+    useBetsStore.getState().persist();
+  } finally {
+    settling = false;
+  }
+}
+// After load and on every change of bets, transfers or goals. App.tsx also
+// calls it on coming back to the app: a goal can become reached by the clock
+// alone (its start day arriving).
 useBetsStore.subscribe((state, prev) => {
-  if (!state.isLoaded || state.loadError) return;
   if (prev.isLoaded && state.bets === prev.bets && state.bankroll === prev.bankroll && state.goals === prev.goals) return;
-  const next = freezeReachedGoals(state.goals, state.bets, state.bankroll.transactions);
-  if (!next) return;
-  useBetsStore.setState({ goals: next });
-  useBetsStore.getState().persist();
+  settleGoalFreezes();
 });
 
 // Saving trusts that a bet is never changed in place (`committedBets`): a field

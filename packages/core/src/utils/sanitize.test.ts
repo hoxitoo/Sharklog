@@ -160,14 +160,13 @@ describe('sanitizeDiary and sanitizeTeams', () => {
 
 describe('sanitizeGoals — a frozen reach', () => {
   const base = { id: 'g', title: 'Цель', kind: 'profit', target: 5_000_000, startDate: '2026-11-01', createdAt: '2026-11-01T00:00:00.000Z' };
-  it('keeps a frozen reach that reads, and only that', () => {
-    const [ok] = sanitizeGoals([{ ...base, reached: { on: '2026-11-07', value: 5_306_600, pnlPerDay: 758_085 } }], 'import').items;
-    expect(ok!.reached).toEqual({ on: '2026-11-07', value: 5_306_600, pnlPerDay: 758_085 });
-    const [noDay] = sanitizeGoals([{ ...base, reached: { value: 5_306_600 } }], 'import').items;
-    expect(noDay!.reached).toBeUndefined();
-    const [noValue] = sanitizeGoals([{ ...base, reached: { on: '2026-11-07', value: 'x' } }], 'import').items;
-    expect(noValue!.reached).toBeUndefined();
-    const [noPerDay] = sanitizeGoals([{ ...base, reached: { on: '2026-11-07', value: 1 } }], 'stored').items;
-    expect(noPerDay!.reached).toEqual({ on: '2026-11-07', value: 1 });
+  it('keeps a freeze whose moment reads, and drops any other — the goal stays', () => {
+    const at = '2026-11-14T15:30:00.000Z';
+    for (const mode of ['import', 'stored'] as const) {
+      expect(sanitizeGoals([{ ...base, reached: { at } }], mode).items[0]!.reached).toEqual({ at });
+      // An older shape, a moment that does not read: refrozen if still reached.
+      expect(sanitizeGoals([{ ...base, reached: { on: '2026-11-07', value: 1 } }], mode).items[0]!.reached).toBeUndefined();
+      expect(sanitizeGoals([{ ...base, reached: { at: 'вчера' } }], mode).items[0]!.reached).toBeUndefined();
+    }
   });
 });

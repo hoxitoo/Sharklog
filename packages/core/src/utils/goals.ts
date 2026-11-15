@@ -1,5 +1,5 @@
-import type { Bet, BankrollTransaction, Goal, GoalKind } from '../types/bet';
-import { betPnl, currentBank } from './stats';
+import type { Bet, BankrollTransaction, Goal, GoalKind, GoalReached } from '../types/bet';
+import { betPnl, currentBank, legacySettledAt } from './stats';
 import { calcDailyBreakdown, toYmd } from './daily';
 
 /*
@@ -230,6 +230,12 @@ export interface GoalProgress {
   /** Days from the start to `reachedOn`, both counted (reached on the start day — 1). */
   reachedInDays: number | null;
   /**
+   * The measure when it was reached: at the end of `reachedOn`, or now when
+   * no day holds it. A frozen bank goal shows this when a bet no day can place
+   * took `current` back under the target.
+   */
+  reachedValue: number | null;
+  /**
    * The bets' result per day from the start to `reachedOn` — what the goal
    * took, looking back. The bets only, for every kind: a deposit is not a
    * result (the same rule as the bank goal's pace). Never a quota for a goal
@@ -257,6 +263,11 @@ export function calcGoalProgress(
 ): GoalProgress {
   const today = toYmd(now);
   if (goal.kind === 'lossCap') return lossCapProgress(goal, bets, today);
+  if (goal.reached) {
+    const frozen = frozenProgress(goal, goal.reached, bets, transactions, now);
+    if (frozen) return frozen;
+    // Not reached in the book of that moment any more: live, until refrozen.
+  }
 
   const start = goal.startDate;
   const started = start <= today;
@@ -282,7 +293,9 @@ export function calcGoalProgress(
   // When it was reached: the first DAY that ended at the target — read before
   // the last point becomes `current`, which for the bank counts bets no day
   // holds (and would make the date "today", every day).
-  const reachedOn = started && target > 0 ? series.find((pt) => pt.value >= target)?.date ?? null : null;
+  const reachedPoint = started && target > 0 ? series.find((pt) => pt.value >= target) : undefined;
+  const reachedOn = reachedPoint?.date ?? null;
+  const reachedDayValue = reachedPoint?.value ?? null;
   // The chart's "now" dot is the number on the card.
   if (series.length > 0) series[series.length - 1] = { date: series[series.length - 1]!.date, value: current };
 
@@ -299,7 +312,6 @@ export function calcGoalProgress(
     const first = days.find((d) => d.date === start);
     startValue = first ? first.balance - first.pnl - first.adjustments : start < firstDay ? 0 : bank;
   }
-  if (goal.reached) return frozenProgress(goal, goal.reached, series, startValue, today);
   const achieved = started && target > 0 && (reachedOn !== null || current >= target);
   const remaining = Math.max(0, target - current);
   const ratio = target > 0 ? Math.min(1, Math.max(0, current / target)) : 0;
@@ -370,42 +382,81 @@ export function calcGoalProgress(
     pendingCount: goal.kind === 'profit' ? pendingCount : 0,
     inPlayStake: goal.kind === 'profit' ? inPlayStake : 0,
     pendingStake: goal.kind === 'profit' ? pendingStake : 0,
-    capState: null, wouldExceed: false, reachedOn, reachedInDays, pnlPerDayToReach, startValue, series,
-  };
-}
-
-/**
- * A goal frozen when it was reached: its numbers are the reaching day's, and
- * nothing after moves them — a loss does not take it back under 100%, a win
- * does not grow it. The chart ends on that day.
- */
-function frozenProgress(goal: Goal, r: NonNullable<Goal['reached']>, live: GoalPoint[], startValue: number, today: string): GoalProgress {
-  const series = live.filter((pt) => pt.date <= r.on);
-  if (series.length > 0) series[series.length - 1] = { date: series[series.length - 1]!.date, value: r.value };
-  const target = goal.target;
-  return {
-    kind: goal.kind, current: r.value, target,
-    ratio: target > 0 ? Math.min(1, Math.max(0, r.value / target)) : 0,
-    remaining: Math.max(0, target - r.value),
-    achieved: true, started: true,
-    daysLeft: goal.deadline ? daysBetween(today, goal.deadline) : null,
-    expired: false,
-    needPerMonth: null, pacePerMonth: null, paceDays: 0, projectedDays: null, onTrack: null,
-    roiNeeded: null, roiNow: null, roiBets: 0,
-    pendingCount: 0, inPlayStake: 0, pendingStake: 0,
-    capState: null, wouldExceed: false,
-    reachedOn: r.on, reachedInDays: daysBetween(goal.startDate, r.on) + 1, pnlPerDayToReach: r.pnlPerDay ?? null,
+    capState: null, wouldExceed: false, reachedOn, reachedInDays, pnlPerDayToReach,
+    reachedValue: reachedDayValue ?? (achieved ? current : null),
     startValue, series,
   };
 }
 
+type Book = { bets: Bet[]; transactions: BankrollTransaction[] };
+const asOfCache = new WeakMap<readonly Bet[], WeakMap<readonly BankrollTransaction[], Map<string, Book>>>();
+
 /**
- * Freeze every goal reached since the last look: its day, its value at the end
- * of that day, the bets' result per day up to it (owner's decision
- * 2026-11-15: «при достижении замораживаем»). Run on every change of bets,
- * transfers or goals and after load — the store does. Not a loss cap, not an
- * archived goal, not one already frozen. Null when nothing changed, so the
- * caller writes only then.
+ * The book as it was recorded by `at`: results by their `settledAt` (a bet
+ * saved before the field — legacySettledAt), transfers by their `date` (the
+ * moment one is entered). A bet still in play counts nothing either way. A
+ * moment that does not read counts as recorded long ago. Cached per arrays and
+ * moment — the same arrays give the same book, so the day series' cache holds.
+ */
+function bookAsOf(bets: Bet[], transactions: BankrollTransaction[], at: string): Book {
+  let byTx = asOfCache.get(bets);
+  if (!byTx) { byTx = new WeakMap(); asOfCache.set(bets, byTx); }
+  let byAt = byTx.get(transactions);
+  if (!byAt) { byAt = new Map(); byTx.set(transactions, byAt); }
+  const hit = byAt.get(at);
+  if (hit) return hit;
+  const t = Date.parse(at);
+  const by = (iso: string) => { const m = Date.parse(iso); return Number.isNaN(m) || m <= t; };
+  const book = {
+    bets: bets.filter((b) => b.status !== 'pending' && by(b.settledAt ?? legacySettledAt(b))),
+    transactions: transactions.filter((x) => by(x.date)),
+  };
+  byAt.set(at, book);
+  return book;
+}
+
+/**
+ * A goal frozen when it was reached: counted on the book as it was recorded
+ * at that moment, so nothing recorded later moves it — not a loss, not a win,
+ * not an old bet entered late. Null when that book no longer reaches the
+ * target (a result recorded before it corrected, a bet deleted, the target
+ * raised): the goal is live again until it is refrozen. The chart ends on the
+ * day of the freeze.
+ */
+function frozenProgress(goal: Goal, r: GoalReached, bets: Bet[], transactions: BankrollTransaction[], now: Date): GoalProgress | null {
+  const at = new Date(r.at);
+  if (Number.isNaN(at.getTime())) return null;
+  const book = bookAsOf(bets, transactions, r.at);
+  const { reached: _frozen, ...plain } = goal;
+  const p = calcGoalProgress(plain, book.bets, book.transactions, at);
+  if (!p.achieved) return null;
+  // A bank whose day reached the target and whose bets no day can place took
+  // it back under: the reaching day's value, not a frozen "95% — reached".
+  const shown = p.current >= p.target ? p.current : p.reachedValue ?? p.current;
+  const series = p.series.slice();
+  if (series.length > 0) series[series.length - 1] = { date: series[series.length - 1]!.date, value: shown };
+  return {
+    ...p,
+    current: shown,
+    ratio: p.target > 0 ? Math.min(1, Math.max(0, shown / p.target)) : 0,
+    remaining: Math.max(0, p.target - shown),
+    daysLeft: goal.deadline ? daysBetween(toYmd(now), goal.deadline) : null,
+    expired: false,
+    needPerMonth: null, pacePerMonth: null, paceDays: 0, projectedDays: null, onTrack: null,
+    roiNeeded: null, roiNow: null, roiBets: 0,
+    pendingCount: 0, inPlayStake: 0, pendingStake: 0,
+    series,
+  };
+}
+
+/**
+ * Freeze every goal reached since the last look, at this moment (owner's
+ * decision 2026-11-15: «при достижении замораживаем»), and lift a freeze the
+ * book of its moment no longer supports — then the goal is checked as it is
+ * now and frozen anew if it is reached. Run after load, on every change of
+ * bets, transfers or goals, and when the app comes back — the store does. Not
+ * a loss cap, not an archived goal. Null when nothing changed, so the caller
+ * writes only then.
  */
 export function freezeReachedGoals(
   goals: readonly Goal[],
@@ -414,28 +465,42 @@ export function freezeReachedGoals(
   now: Date = new Date(),
 ): Goal[] | null {
   let changed = false;
-  const out = goals.map((g) => {
-    if (g.reached || g.archived || g.kind === 'lossCap') return g;
-    const p = calcGoalProgress(g, bets, transactions, now);
-    if (!p.achieved) return g;
+  // The moment of a freeze: now — or the latest record, if a clock set back
+  // stamped one later: the book of the freeze must hold what reached it, or
+  // the next look would lift the freeze and set it again without end.
+  let latest = now.getTime();
+  for (const b of bets) {
+    if (b.status === 'pending') continue;
+    const m = Date.parse(b.settledAt ?? legacySettledAt(b));
+    if (m > latest) latest = m;
+  }
+  for (const x of transactions) {
+    const m = Date.parse(x.date);
+    if (m > latest) latest = m;
+  }
+  const at = new Date(latest).toISOString();
+  const out = goals.map((g): Goal => {
+    if (g.archived || g.kind === 'lossCap') return g;
+    if (g.reached && frozenProgress(g, g.reached, bets, transactions, now)) return g;
+    const { reached: was, ...plain } = g;
+    const reachedNow = calcGoalProgress(plain, bets, transactions, now).achieved;
+    if (!was && !reachedNow) return g;
     changed = true;
-    const on = p.reachedOn ?? toYmd(now);
-    const value = p.reachedOn ? p.series.find((pt) => pt.date === on)?.value ?? p.current : p.current;
-    const perDay = p.pnlPerDayToReach === null ? {} : { pnlPerDay: Math.round(p.pnlPerDayToReach) };
-    return { ...g, reached: { on, value, ...perDay } };
+    return reachedNow ? { ...plain, reached: { at } } : plain;
   });
   return changed ? out : null;
 }
 
 /**
- * The goal as edited, frozen as before only while it measures the same thing:
- * a new kind, amount or start is a new goal — the freeze goes, and the goal is
- * frozen again if it is still reached.
+ * The goal as edited keeps its freeze while it measures the same thing — the
+ * same kind from the same start. A new amount is checked against the book of
+ * the freeze's moment (frozenProgress): still reached there, it stays frozen;
+ * not, it is live again. A new kind or start is a new goal: the freeze goes.
  */
 export function keepReached(before: Goal | undefined, edited: Goal): Goal {
+  const { reached: _stale, ...plain } = edited;
   const r = before?.reached;
-  const same = r && before.kind === edited.kind && before.target === edited.target && before.startDate === edited.startDate;
-  return same ? { ...edited, reached: r } : edited;
+  return r && before.kind === plain.kind && before.startDate === plain.startDate ? { ...plain, reached: r } : plain;
 }
 
 /** Lose no more than the cap this calendar month — counted from the start day if that is later. */
@@ -482,7 +547,7 @@ function lossCapProgress(goal: Goal, bets: Bet[], today: string): GoalProgress {
     // The month's net loss if every bet in play lost — a month in plus has room:
     // +5 000 won and 12 000 in play is at worst −7 000, under a 10 000 cap.
     wouldExceed: capState !== 'over' && target > 0 && Math.max(0, pendingStake - pnl) > target,
-    reachedOn: null, reachedInDays: null, pnlPerDayToReach: null,
+    reachedOn: null, reachedInDays: null, pnlPerDayToReach: null, reachedValue: null,
     startValue: 0,
     series: [],
   };

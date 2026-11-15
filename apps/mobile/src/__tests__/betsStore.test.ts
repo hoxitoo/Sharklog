@@ -304,22 +304,49 @@ describe('effectiveTiltThreshold', () => {
 
 describe('a reached goal', () => {
   afterEach(() => useBetsStore.setState({ goals: [] }));
+  const today = toYmd(new Date());
+  const profitGoal = { id: 'g', title: 'Плюс', kind: 'profit' as const, target: 50_000_00, startDate: addDays(today, -5), createdAt: new Date().toISOString() };
+  const later = () => new Date(Date.now() + 60_000).toISOString();
 
-  it('is frozen by the store the moment a bet reaches it — and a loss after does not move it', () => {
+  it('is frozen by the store the moment a bet reaches it — and a loss recorded after does not move it', () => {
     // Reached, then a loss took it back under 100% and out of «Достигнутые»
     // (report from a phone).
-    const today = toYmd(new Date());
-    useBetsStore.setState({
-      goals: [{ id: 'g', title: 'Плюс', kind: 'profit', target: 50_000_00, startDate: addDays(today, -5), createdAt: new Date().toISOString() }],
-    });
-    const { addBet } = useBetsStore.getState();
-    addBet(makeBet({ id: 'w', date: today, status: 'won', odds: 2, stake: 60_000_00 }));
-    const frozen = useBetsStore.getState().goals[0]!;
-    expect(frozen.reached).toEqual(expect.objectContaining({ on: today, value: 60_000_00 }));
+    useBetsStore.setState({ goals: [profitGoal] });
+    useBetsStore.getState().addBet(makeBet({ id: 'w', date: today, status: 'won', odds: 2, stake: 60_000_00 }));
+    expect(useBetsStore.getState().goals[0]!.reached).toEqual({ at: expect.any(String) });
 
-    addBet(makeBet({ id: 'l', date: today, status: 'lost', stake: 40_000_00 }));
+    const loss = makeBet({ id: 'l', date: today, status: 'lost', stake: 40_000_00, settledAt: later() });
+    useBetsStore.setState((s) => ({ bets: [...s.bets, loss] }));
     const { goals, bets, bankroll } = useBetsStore.getState();
+    expect(goals[0]!.reached).toBeDefined();
     const p = calcGoalProgress(goals[0]!, bets, bankroll.transactions);
     expect([p.achieved, p.current]).toEqual([true, 60_000_00]);
+  });
+
+  it('is lifted when the bet that reached it is deleted', () => {
+    useBetsStore.setState({ goals: [profitGoal] });
+    useBetsStore.getState().addBet(makeBet({ id: 'w', date: today, status: 'won', odds: 2, stake: 60_000_00 }));
+    expect(useBetsStore.getState().goals[0]!.reached).toBeDefined();
+    useBetsStore.getState().deleteBet('w');
+    expect(useBetsStore.getState().goals[0]!.reached).toBeUndefined();
+  });
+
+  it('is frozen by a transfer too — a bank goal reached by a deposit', () => {
+    useBetsStore.setState({ goals: [{ ...profitGoal, kind: 'bank', target: 100_000_00 }] });
+    useBetsStore.getState().updateBankroll({
+      transactions: [{ id: 't', type: 'deposit', amount: 120_000_00, date: new Date().toISOString() }],
+    });
+    expect(useBetsStore.getState().goals[0]!.reached).toBeDefined();
+  });
+
+  it('is frozen right after load — a goal reached before this version', () => {
+    useBetsStore.setState({
+      isLoaded: false,
+      goals: [profitGoal],
+      bets: [makeBet({ id: 'w', date: today, status: 'won', odds: 2, stake: 60_000_00 })],
+    });
+    expect(useBetsStore.getState().goals[0]!.reached).toBeUndefined();
+    useBetsStore.setState({ isLoaded: true });
+    expect(useBetsStore.getState().goals[0]!.reached).toBeDefined();
   });
 });
