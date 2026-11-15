@@ -270,6 +270,13 @@ export function sanitizeGoals(raw: unknown, mode: SanitizeMode = 'import'): Sani
     const deadline = day(r['deadline']);
     if (deadline) out['deadline'] = deadline;
     optional(r, out, { note: str, archived: (v) => typeof v === 'boolean' });
+    // A frozen reach that does not read is dropped alone: the goal stays, and
+    // is frozen again if it is still reached.
+    const rc = r['reached'];
+    const on = isObj(rc) ? day(rc['on']) : null;
+    if (isObj(rc) && on && num(rc['value'])) {
+      out['reached'] = { on, value: rc['value'], ...(num(rc['pnlPerDay']) ? { pnlPerDay: rc['pnlPerDay'] } : {}) };
+    }
     if (mode === 'import') {
       clipText(out, ['title'], TEXT_LIMITS.FIELD);
       clipText(out, ['note'], TEXT_LIMITS.NOTE);

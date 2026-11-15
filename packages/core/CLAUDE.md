@@ -8,7 +8,7 @@
 ## Структура core (packages/core/src/)
 
 ```
-types/bet.ts          — Bet.settledAt — когда записан результат (не матч); BetStatus: 'pending'|'won'|'lost'|'refund'|'cashout'
+types/bet.ts          — Goal.reached (GoalReached: on, value, pnlPerDay?) — достигнутая цель, замороженная; Bet.settledAt — когда записан результат (не матч); BetStatus: 'pending'|'won'|'lost'|'refund'|'cashout'
                         BankrollTxType: 'deposit'|'withdrawal'|'adjustment' (у последнего amount ЗНАКОВЫЙ)
                         Bet: + tournament?: string, + closingOdds?: number (для CLV)
                         AppSettings: + generatedStrategy?: GeneratedStrategy, + roundAmounts: boolean, + disableChecklist?: boolean
@@ -72,6 +72,8 @@ utils/
                         goalsFor(цели, isPro, лимит, достигнута) → open/locked/taken — достигнутые слот не занимают;
                         goalBoard(…) — сводка экранов целей (главная, открытые, full); goalFitsPlan(цель как сохраняемая, …)
                         — проверка Free при сохранении; activeGoals / mainGoal(цели, достигнута);
+                        freezeReachedGoals(цели, ставки, переводы) — заморозить достигнутые (null — нечего); у цели с
+                        `reached` calcGoalProgress отдаёт замороженное (frozenProgress); keepReached(было, стало) — правка
                         addDays / daysBetween (календарные дни, без DST)
   teams.ts            — upsertTeams(список, имена, спорт, дисциплина, newId) / cleanTeamNames — список команд обоих сторов
                         teamsFromBets(bets) → TeamSuggestion[] — подсказки команд из самих ставок (спорт и дисциплина —

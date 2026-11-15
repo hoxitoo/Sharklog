@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { Bet, BankrollTransaction, Goal } from '../types/bet';
 import {
-  calcGoalProgress, activeGoals, mainGoal, goalsFor, goalFitsPlan, goalBoard, addDays, daysBetween, MONTH_DAYS, PACE_WINDOW_DAYS, GOAL_ROI_MIN_BETS,
+  calcGoalProgress, activeGoals, mainGoal, goalsFor, goalFitsPlan, goalBoard, freezeReachedGoals, keepReached, addDays, daysBetween, MONTH_DAYS, PACE_WINDOW_DAYS, GOAL_ROI_MIN_BETS,
 } from '../utils/goals';
 import { currentBank } from '../utils/stats';
 import { sanitizeGoals } from '../utils/sanitize';
@@ -276,6 +276,50 @@ describe('the goal board — what the list, a goal\'s screen and the header butt
   it('makes the first goal main when every goal is reached', () => {
     const b = goalBoard([done, goal({ id: 'done2', target: 20_000_00 })], bets, [], false, 1, NOW);
     expect([b.main?.id, b.locked.length, b.full]).toEqual(['done', 0, false]);
+  });
+});
+
+describe('a reached goal is frozen — later bets do not move it', () => {
+  // Reached, then a loss took it back under 100% and out of «Достигнутые»
+  // (report from a phone): «при достижении замораживаем».
+  const reachedBets = [
+    bet({ date: day(-30), status: 'won', stake: 30_000_00 }),   // +30 000
+    bet({ date: day(-21), status: 'won', stake: 30_000_00 }),   // +30 000 → 60 000: reached
+  ];
+
+  it('freezes the reaching day, its value at the end of that day and the result per day', () => {
+    const later = [...reachedBets, bet({ date: day(-5), status: 'won', stake: 10_000_00 })]; // grew to 70 000 since
+    const [g] = freezeReachedGoals([goal({ target: 50_000_00 })], later, [], NOW)!;
+    expect(g!.reached).toEqual({ on: day(-21), value: 60_000_00, pnlPerDay: 60_000_00 / 10 });
+  });
+
+  it('shows the frozen numbers whatever comes after — a loss, a win', () => {
+    const frozen = goal({ target: 50_000_00, reached: { on: day(-21), value: 60_000_00, pnlPerDay: 6_000_00 } });
+    const after = [...reachedBets, bet({ date: day(-5), status: 'lost', stake: 40_000_00 })]; // live: 20 000
+    const p = calcGoalProgress(frozen, after, [], NOW);
+    expect([p.achieved, p.current, p.ratio, p.reachedOn, p.reachedInDays, p.pnlPerDayToReach]).toEqual([true, 60_000_00, 1, day(-21), 10, 6_000_00]);
+    // The chart ends on the reaching day, at the frozen value.
+    expect(p.series.at(-1)).toEqual({ date: day(-21), value: 60_000_00 });
+    expect(calcGoalProgress(frozen, [...reachedBets, bet({ date: day(-5), status: 'won', stake: 90_000_00 })], [], NOW).current).toBe(60_000_00);
+  });
+
+  it('freezes nothing else: not reached, a loss cap, archived, already frozen — and says so', () => {
+    const goals = [
+      goal({ id: 'open', target: 500_000_00 }),
+      goal({ id: 'cap', kind: 'lossCap', target: 10_00 }),
+      goal({ id: 'arch', target: 1_00, archived: true }),
+      goal({ id: 'done', target: 1_00, reached: { on: day(-30), value: 30_000_00 } }),
+    ];
+    expect(freezeReachedGoals(goals, reachedBets, [], NOW)).toBeNull();
+  });
+
+  it('keeps the freeze through an edit of the name, not of what it measures', () => {
+    const frozen = goal({ target: 50_000_00, reached: { on: day(-21), value: 60_000_00 } });
+    expect(keepReached(frozen, { ...frozen, reached: undefined, title: 'x' } as never).reached).toEqual(frozen.reached);
+    const { reached: _r, ...bare } = frozen;
+    expect(keepReached(frozen, { ...bare, target: 90_000_00 }).reached).toBeUndefined();
+    expect(keepReached(frozen, { ...bare, startDate: day(-10) }).reached).toBeUndefined();
+    expect(keepReached(undefined, bare).reached).toBeUndefined();
   });
 });
 

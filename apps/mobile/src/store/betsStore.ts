@@ -4,7 +4,7 @@ import type { Bet, AppSettings, Bankroll, DiaryEntry, Goal, Team } from '@sharkl
 import {
   migrate, CURRENT_SCHEMA_VERSION, FREE_LIMITS, DEFAULT_BANKROLL_NAME, calcCurrentStreak, parseEventTeams,
   preselectedBookmakers, sanitizeBets, sanitizeBankroll, sanitizeDiary, sanitizeTeams, sanitizeGoals,
-  cleanTeamNames, upsertTeams, stampSettlement,
+  cleanTeamNames, upsertTeams, stampSettlement, freezeReachedGoals,
 } from '@sharklog/core';
 import {
   sendTiltNotification, scheduleBetResultReminder,
@@ -861,6 +861,20 @@ export const useBetsStore = create<BetsStore>((set, get) => ({
     return settings.isPro || bets.length < FREE_LIMITS.MAX_BETS;
   },
 }));
+
+// A goal is frozen the moment it is reached (core freezeReachedGoals): later
+// bets must not move it — a loss once took a reached goal back under 100% and
+// out of «Достигнутые» (report from a phone). Looked at after load and on every
+// change of bets, transfers or goals; written only when something froze, so
+// the write it causes finds nothing more to freeze.
+useBetsStore.subscribe((state, prev) => {
+  if (!state.isLoaded || state.loadError) return;
+  if (prev.isLoaded && state.bets === prev.bets && state.bankroll === prev.bankroll && state.goals === prev.goals) return;
+  const next = freezeReachedGoals(state.goals, state.bets, state.bankroll.transactions);
+  if (!next) return;
+  useBetsStore.setState({ goals: next });
+  useBetsStore.getState().persist();
+});
 
 // Saving trusts that a bet is never changed in place (`committedBets`): a field
 // written straight into a stored bet would show on screen and be gone after a

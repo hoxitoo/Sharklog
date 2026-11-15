@@ -157,3 +157,17 @@ describe('sanitizeDiary and sanitizeTeams', () => {
     expect(sanitizeBet({ ...good, event: express }, 'import')!.event).toBe(express);
   });
 });
+
+describe('sanitizeGoals — a frozen reach', () => {
+  const base = { id: 'g', title: 'Цель', kind: 'profit', target: 5_000_000, startDate: '2026-11-01', createdAt: '2026-11-01T00:00:00.000Z' };
+  it('keeps a frozen reach that reads, and only that', () => {
+    const [ok] = sanitizeGoals([{ ...base, reached: { on: '2026-11-07', value: 5_306_600, pnlPerDay: 758_085 } }], 'import').items;
+    expect(ok!.reached).toEqual({ on: '2026-11-07', value: 5_306_600, pnlPerDay: 758_085 });
+    const [noDay] = sanitizeGoals([{ ...base, reached: { value: 5_306_600 } }], 'import').items;
+    expect(noDay!.reached).toBeUndefined();
+    const [noValue] = sanitizeGoals([{ ...base, reached: { on: '2026-11-07', value: 'x' } }], 'import').items;
+    expect(noValue!.reached).toBeUndefined();
+    const [noPerDay] = sanitizeGoals([{ ...base, reached: { on: '2026-11-07', value: 1 } }], 'stored').items;
+    expect(noPerDay!.reached).toEqual({ on: '2026-11-07', value: 1 });
+  });
+});

@@ -141,6 +141,23 @@ export interface Goal {
   createdAt: string;
   /** Kept, out of the way: not on the main screen, not counted against the Free limit. */
   archived?: boolean;
+  /**
+   * Frozen the moment it was reached (freezeReachedGoals): the day, the
+   * measure at the end of that day, and the bets' result per day up to it.
+   * From then on later bets do not move it — a loss once took a reached goal
+   * back under 100% and out of «Достигнутые» (report from a phone).
+   */
+  reached?: GoalReached;
+}
+
+/** A reached goal, frozen. Hundredths. */
+export interface GoalReached {
+  /** YYYY-MM-DD — the first day that ended at the target. */
+  on: string;
+  /** The measure at the end of that day. */
+  value: number;
+  /** The bets' result per day from the start to `on`; none when no day held it. */
+  pnlPerDay?: number;
 }
 
 export type StrategyGoal = 'income' | 'hobby' | 'professional';

@@ -1,7 +1,7 @@
 import { useBetsStore, defaultSettings, defaultBankroll, effectiveTiltThreshold, effectiveDailyLimit } from '../store/betsStore';
 import { sendTiltNotification } from '../utils/notifications';
 import type { Bet } from '@sharklog/core';
-import { toYmd } from '@sharklog/core';
+import { toYmd, calcGoalProgress, addDays } from '@sharklog/core';
 
 function makeBet(overrides: Partial<Bet> = {}): Bet {
   const now = new Date().toISOString();
@@ -297,5 +297,29 @@ describe('effectiveTiltThreshold', () => {
       .filter((l) => /settings\.tiltThreshold/.test(l) && !/value=\{settings\.tiltThreshold\}/.test(l))
       .map((l) => `${path.relative(root, p)}: ${l.trim()}`));
     expect(raw).toEqual([]);
+  });
+});
+
+// ─── reached goals freeze ─────────────────────────────────────────────────────
+
+describe('a reached goal', () => {
+  afterEach(() => useBetsStore.setState({ goals: [] }));
+
+  it('is frozen by the store the moment a bet reaches it — and a loss after does not move it', () => {
+    // Reached, then a loss took it back under 100% and out of «Достигнутые»
+    // (report from a phone).
+    const today = toYmd(new Date());
+    useBetsStore.setState({
+      goals: [{ id: 'g', title: 'Плюс', kind: 'profit', target: 50_000_00, startDate: addDays(today, -5), createdAt: new Date().toISOString() }],
+    });
+    const { addBet } = useBetsStore.getState();
+    addBet(makeBet({ id: 'w', date: today, status: 'won', odds: 2, stake: 60_000_00 }));
+    const frozen = useBetsStore.getState().goals[0]!;
+    expect(frozen.reached).toEqual(expect.objectContaining({ on: today, value: 60_000_00 }));
+
+    addBet(makeBet({ id: 'l', date: today, status: 'lost', stake: 40_000_00 }));
+    const { goals, bets, bankroll } = useBetsStore.getState();
+    const p = calcGoalProgress(goals[0]!, bets, bankroll.transactions);
+    expect([p.achieved, p.current]).toEqual([true, 60_000_00]);
   });
 });
