@@ -12,7 +12,8 @@ import { ESPORTS_DISCIPLINES, BET_TYPES, PICK, TX_NOTE } from '@sharklog/core';
  * `__tests__/i18n.test.ts` keeps it that way.
  */
 
-export const sportLabel = (t: TFunction, s: Sport): string => t(`sports.${s}`);
+// An unknown value (an old or hand-edited bet: 'mma') shows as stored, not as the raw key «sports.mma».
+export const sportLabel = (t: TFunction, s: Sport): string => t(`sports.${s}`, { defaultValue: String(s) });
 export const betTypeLabel = (t: TFunction, b: BetType): string => t(`betTypes.${b}`);
 export const strategyLabel = (t: TFunction, s: Strategy): string => t(`strategies.${s}`);
 
