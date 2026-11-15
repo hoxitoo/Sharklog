@@ -68,6 +68,16 @@ export interface Bet {
    * field existed — `settledAt` (or `legacySettledAt`) stands in.
    */
   firstSettledAt?: string;
+  /**
+   * ISO-8601: the last stretch the bet spent back «in play» after it had a
+   * result — from `unsettledAt` (put back to pending) to `resettledAt` (a
+   * result again). A frozen goal leaves the bet out of the book of a moment
+   * inside it: «Выиграла» tapped by mistake and put back in play before the
+   * freeze must not bring the result it gets later into that book. Only the
+   * last stretch is kept.
+   */
+  unsettledAt?: string;
+  resettledAt?: string;
   date: string;            // YYYY-MM-DD
   time: string;            // HH:MM
   sport: Sport;

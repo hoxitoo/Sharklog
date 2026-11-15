@@ -490,4 +490,20 @@ describe('stampSettlement — when a result went into the book', () => {
     // A bet first settled after it was pending: the settle is the first.
     expect(stampSettlement(pending, { ...pending, status: 'won' }, now).firstSettledAt).toBe(now);
   });
+
+  it('marks the last stretch back in play after a result — from the return to pending to the next result', () => {
+    const t = (h: number) => `2026-08-02T${String(h).padStart(2, '0')}:00:00.000Z`;
+    // A bet that never had a result has no stretch.
+    expect(stampSettlement(pending, { ...pending, notes: 'x' }, t(9)).unsettledAt).toBeUndefined();
+    const won = stampSettlement(pending, { ...pending, status: 'won' }, t(10));
+    const back = stampSettlement(won, { ...won, status: 'pending' }, t(11));
+    expect([back.unsettledAt, back.resettledAt]).toEqual([t(11), undefined]);
+    const again = stampSettlement(back, { ...back, status: 'lost' }, t(12));
+    expect([again.unsettledAt, again.resettledAt]).toEqual([t(11), t(12)]);
+    // A correction keeps it; a second return starts a new one.
+    const fixed = stampSettlement(again, { ...again, status: 'won' }, t(13));
+    expect([fixed.unsettledAt, fixed.resettledAt]).toEqual([t(11), t(12)]);
+    const twice = stampSettlement(fixed, { ...fixed, status: 'pending' }, t(14));
+    expect([twice.unsettledAt, twice.resettledAt]).toEqual([t(14), undefined]);
+  });
 });

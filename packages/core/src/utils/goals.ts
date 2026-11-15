@@ -391,18 +391,34 @@ export function calcGoalProgress(
 type Book = { bets: Bet[]; transactions: BankrollTransaction[] };
 
 /**
- * When a bet's result first went into the book (Bet.firstSettledAt; a bet
- * settled before the field — settledAt, or legacySettledAt). NaN when it does
- * not read. Cached per bet object: the stores replace a bet, never edit it.
+ * A bet's moments for the book of a freeze: when its result first went in
+ * (Bet.firstSettledAt; a bet settled before the field — settledAt, or
+ * legacySettledAt; NaN when it does not read), and its last stretch back in
+ * play (Bet.unsettledAt → resettledAt; NaN when there is none). Cached per
+ * bet object: the stores replace a bet, never edit it.
  */
-const momentCache = new WeakMap<Bet, number>();
-function firstRecorded(b: Bet): number {
+type Moments = { first: number; from: number; to: number };
+const momentCache = new WeakMap<Bet, Moments>();
+function momentsOf(b: Bet): Moments {
   let m = momentCache.get(b);
-  if (m === undefined) {
-    m = Date.parse(b.firstSettledAt ?? b.settledAt ?? legacySettledAt(b));
+  if (!m) {
+    const from = b.unsettledAt === undefined ? NaN : Date.parse(b.unsettledAt);
+    m = {
+      first: Date.parse(b.firstSettledAt ?? b.settledAt ?? legacySettledAt(b)),
+      from,
+      to: Number.isNaN(from) ? NaN : Date.parse(b.resettledAt ?? b.settledAt ?? ''),
+    };
     momentCache.set(b, m);
   }
   return m;
+}
+const firstRecorded = (b: Bet) => momentsOf(b).first;
+
+/** Was the bet's result in the book at `t`? (It has one now.) */
+function inBookAt(b: Bet, t: number): boolean {
+  const m = momentsOf(b);
+  if (!(Number.isNaN(m.first) || m.first <= t)) return false;
+  return !(m.from <= t && t < m.to); // back in play then
 }
 
 /**
@@ -436,7 +452,7 @@ function bookAsOf(bets: Bet[], transactions: BankrollTransaction[], at: string):
   const t = Date.parse(at);
   const by = (m: number) => Number.isNaN(m) || m <= t;
   let book: Book = {
-    bets: bets.filter((b) => b.status !== 'pending' && by(firstRecorded(b))),
+    bets: bets.filter((b) => b.status !== 'pending' && inBookAt(b, t)),
     transactions: transactions.filter((x) => by(Date.parse(x.date))),
   };
   const prev = lastBook.get(at);
@@ -531,7 +547,12 @@ function freezeMoment(goal: Goal, bets: Bet[], transactions: BankrollTransaction
     if (m <= t + CLOCK_SLACK_MS && m > near) near = m;
     if (m > far) far = m;
   };
-  for (const b of bets) if (b.status !== 'pending') see(firstRecorded(b));
+  for (const b of bets) {
+    if (b.status === 'pending') continue;
+    const m = momentsOf(b);
+    see(m.first);
+    see(m.to);
+  }
   for (const x of transactions) see(Date.parse(x.date));
   const at = new Date(near).toISOString();
   if (far === near || frozenProgress(goal, { at, day }, bets, transactions, now)) return { at, day };
@@ -566,6 +587,47 @@ export function freezeReachedGoals(
     return { ...plain, reached: freezeMoment(plain, bets, transactions, now) };
   });
   return changed ? out : null;
+}
+
+/**
+ * A backup added to this book («Добавить к текущим»): its bets go in as
+ * recorded NOW, so a goal frozen here is not moved by them, like any old bet
+ * entered late. Their moments — and the freezes of the goals that come with
+ * them — are moved to `at` in their own order (a millisecond apart), so a
+ * goal frozen on the other phone still counts the bets it counted there:
+ * stamped with the import moment alone, its book held none of them and it
+ * reopened (review). `settledAt` stays: the bank each bet stood on is its own
+ * history (bankAtBetTime). A bet in play loses its old stamps — it gets new
+ * ones when it is settled here. The goals' `day` stays theirs.
+ */
+export function recordedAt(bets: Bet[], goals: Goal[], at: string): { bets: Bet[]; goals: Goal[] } {
+  const base = Date.parse(at);
+  const ms = (iso: string | undefined) => (iso === undefined ? NaN : Date.parse(iso));
+  const firstOf = (b: Bet) => { const f = firstRecorded(b); return Number.isNaN(f) ? -Infinity : f; };
+  const seen = new Set<number>();
+  for (const b of bets) {
+    if (b.status === 'pending') continue;
+    seen.add(firstOf(b));
+    const m = momentsOf(b);
+    if (!Number.isNaN(m.from) && !Number.isNaN(m.to)) { seen.add(m.from); seen.add(m.to); }
+  }
+  for (const g of goals) { const r = ms(g.reached?.at); if (!Number.isNaN(r)) seen.add(r); }
+  const rank = new Map([...seen].sort((a, b) => a - b).map((m, i) => [m, i] as const));
+  const moved = (m: number) => new Date(base + (rank.get(m) ?? 0)).toISOString();
+  return {
+    bets: bets.map((b) => {
+      const { firstSettledAt: _first, unsettledAt: _from, resettledAt: _to, ...rest } = b;
+      if (b.status === 'pending') return rest;
+      const out: Bet = { ...rest, firstSettledAt: moved(firstOf(b)) };
+      const m = momentsOf(b);
+      if (!Number.isNaN(m.from) && !Number.isNaN(m.to)) { out.unsettledAt = moved(m.from); out.resettledAt = moved(m.to); }
+      return out;
+    }),
+    goals: goals.map((g) => {
+      const r = ms(g.reached?.at);
+      return g.reached && !Number.isNaN(r) ? { ...g, reached: { ...g.reached, at: moved(r) } } : g;
+    }),
+  };
 }
 
 /**

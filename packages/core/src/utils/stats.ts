@@ -144,38 +144,34 @@ export function stampSettlement(prev: Bet | undefined, next: Bet, now: string): 
   // takes its own stamp as it stood.
   const first = next.firstSettledAt ?? prev?.firstSettledAt
     ?? (prev && prev.status !== 'pending' ? prev.settledAt ?? legacySettledAt(prev) : undefined);
-  const withFirst = (b: Bet, fallback?: string): Bet => {
-    const f = first ?? fallback;
-    return f === undefined || b.firstSettledAt === f ? b : { ...b, firstSettledAt: f };
-  };
+  const out: Bet = { ...next };
+  if (first !== undefined) out.firstSettledAt = first;
   if (next.status === 'pending') {
-    if (next.settledAt === undefined) return withFirst(next);
-    const out = { ...next };
     delete out.settledAt;
-    return withFirst(out);
+    // Put back in play after a result: the stretch starts (Bet.unsettledAt).
+    if (prev && prev.status !== 'pending' && first !== undefined) {
+      out.unsettledAt = now;
+      delete out.resettledAt;
+    }
+    return out;
   }
   const resultChanged = !prev || prev.status !== next.status
     || (next.status === 'cashout' && prev.cashoutAmount !== next.cashoutAmount);
-  if (resultChanged) return withFirst({ ...next, settledAt: now }, now);
-  if (prev.settledAt !== undefined) return withFirst({ ...next, settledAt: prev.settledAt });
-  return withFirst({ ...next, settledAt: legacySettledAt(prev) });
+  if (resultChanged) {
+    out.settledAt = now;
+    if (first === undefined) out.firstSettledAt = now;
+    // A result again after a stretch in play: the stretch ends.
+    if (prev && prev.status === 'pending' && out.unsettledAt !== undefined) out.resettledAt = now;
+    return out;
+  }
+  out.settledAt = prev.settledAt ?? legacySettledAt(prev);
+  return out;
 }
 
 /** Local midnight after a `YYYY-MM-DD` day, in ms; NaN for any other string. */
 export function dayEndMs(ymd: string): number {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(ymd);
   return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]) + 1).getTime() : NaN;
-}
-
-/**
- * Bets brought in from elsewhere now (a backup added to the current book):
- * their results go into THIS book at `at`, whatever moment the other phone
- * recorded them at — so a goal frozen here is not moved by them, like any old
- * bet entered late (Goal.reached). `settledAt` stays: the bank each bet stood
- * on is its own history (bankAtBetTime). A bet in play is left as it is.
- */
-export function recordedAt(bets: Bet[], at: string): Bet[] {
-  return bets.map((b) => (b.status === 'pending' ? b : { ...b, firstSettledAt: at }));
 }
 
 /**

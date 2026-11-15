@@ -42,11 +42,10 @@ describe('sanitizeBet', () => {
 
   it('keeps the moments a result went into the book, and drops one that does not read', () => {
     const at = '2026-10-01T19:30:00.000Z';
-    const b = sanitizeBet({ ...good, status: 'won', settledAt: at, firstSettledAt: at })!;
-    expect([b.settledAt, b.firstSettledAt]).toEqual([at, at]);
-    const odd = sanitizeBet({ ...good, status: 'won', settledAt: 7, firstSettledAt: 'soon' })!;
-    expect(odd).not.toHaveProperty('settledAt');
-    expect(odd).not.toHaveProperty('firstSettledAt');
+    const b = sanitizeBet({ ...good, status: 'won', settledAt: at, firstSettledAt: at, unsettledAt: at, resettledAt: at })!;
+    expect([b.settledAt, b.firstSettledAt, b.unsettledAt, b.resettledAt]).toEqual([at, at, at, at]);
+    const odd = sanitizeBet({ ...good, status: 'won', settledAt: 7, firstSettledAt: 'soon', unsettledAt: {}, resettledAt: 'later' })!;
+    for (const k of ['settledAt', 'firstSettledAt', 'unsettledAt', 'resettledAt']) expect(odd).not.toHaveProperty(k);
   });
 
   it('keeps an unknown sport or strategy — screens show those as stored', () => {

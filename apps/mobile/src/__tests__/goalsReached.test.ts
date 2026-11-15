@@ -63,7 +63,8 @@ describe('reached goals', () => {
     // Kept with the other phone's moments, a loss dated before the reaching
     // day fell into the book of a freeze made here (core recordedAt, tested there).
     const append = settings.slice(settings.indexOf("text: t('settings.restoreAppend')"), settings.indexOf("text: t('settings.restoreReplace')"));
-    expect(append).toMatch(/const fresh = recordedAt\(backup\.bets\.filter\(/);
+    expect(append).toMatch(/const \{ bets: fresh, goals: newGoals \} = recordedAt\(\s*backup\.bets\.filter\([\s\S]*?\(backup\.goals \?\? \[\]\)\.filter\(/);
+    expect(append).toMatch(/goals: \[\.\.\.store\.goals, \.\.\.newGoals\]/);
     expect(append).toMatch(/bets: \[\.\.\.fresh, \.\.\.store\.bets\]/);
   });
 });
