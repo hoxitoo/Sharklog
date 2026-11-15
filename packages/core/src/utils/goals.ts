@@ -455,9 +455,10 @@ function bookAsOf(bets: Bet[], transactions: BankrollTransaction[], at: string):
  * not an old bet entered late. Null when that book no longer reaches the
  * target (a result recorded before it corrected, a bet deleted, the target
  * raised): the goal is live again until it is refrozen. Counted with today as
- * "today" (the day of a moment depends on the phone's time zone, and a trip
- * east of it would push the reaching bets past "today"); the chart ends on
- * the day of the freeze.
+ * "today" (the day of a moment depends on the phone's time zone: after a trip
+ * west the freeze's own day reads a day earlier, and the bets of that day fell
+ * past "today" — the freeze lifted by itself); the chart ends on the day of
+ * the freeze.
  */
 function frozenProgress(goal: Goal, r: GoalReached, bets: Bet[], transactions: BankrollTransaction[], now: Date): GoalProgress | null {
   const at = new Date(r.at);

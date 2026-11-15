@@ -8,7 +8,8 @@
 ## Структура core (packages/core/src/)
 
 ```
-types/bet.ts          — Goal.reached (GoalReached: at — момент заморозки достигнутой цели); Bet.settledAt — когда записан результат (не матч); BetStatus: 'pending'|'won'|'lost'|'refund'|'cashout'
+types/bet.ts          — Goal.reached (GoalReached: at — момент заморозки достигнутой цели); Bet.settledAt — когда записан результат (не матч),
+                        Bet.firstSettledAt — когда результат записан ВПЕРВЫЕ (исправление и «ожидание» его не двигают; учёт замороженной цели); BetStatus: 'pending'|'won'|'lost'|'refund'|'cashout'
                         BankrollTxType: 'deposit'|'withdrawal'|'adjustment' (у последнего amount ЗНАКОВЫЙ)
                         Bet: + tournament?: string, + closingOdds?: number (для CLV)
                         AppSettings: + generatedStrategy?: GeneratedStrategy, + roundAmounts: boolean, + disableChecklist?: boolean
@@ -49,7 +50,7 @@ utils/
                         createdAt (результаты по settledAt, выводы и сверки по моменту ввода;
                         депозиты — всегда); внесённая после конца своего дня — начало дня, ничего не вычитая; новая
                         (без id и createdAt) — «сейчас»; голый день — начало дня. Все ставки разом — дерево Фенвика. Общий для плана, карточки, формы и Келли
-                        stampSettlement(prev, next, now) (stats.ts) — settledAt в шаг с результатом; оба стора;
+                        stampSettlement(prev, next, now) (stats.ts) — settledAt в шаг с результатом, firstSettledAt — первый; оба стора;
                         legacySettledAt — запасной момент для старых данных (не позже конца дня ставки, не раньше её ввода)
                         betBankShare / calcBankShares — сколько % банка ставка принесла/забрала
                         calcPlanCompliance(bets, txs, limitPct) — доля ставок сверх лимита плана,
@@ -74,8 +75,10 @@ utils/
                         — проверка Free при сохранении; activeGoals / mainGoal(цели, достигнута);
                         freezeReachedGoals(цели, ставки, переводы) — заморозить достигнутые и снять заморозку, которую учёт
                         её момента больше не держит (null — нечего); у цели с `reached` calcGoalProgress считает по учёту,
-                        записанному к `reached.at` (bookAsOf: settledAt/legacySettledAt, момент ввода перевода; кэш на массивы),
-                        reachedValue — сумма дня достижения; keepReached(было, стало) — правка: вид и начало снимают
+                        записанному к `reached.at` (bookAsOf: ставки по firstSettledAt ?? settledAt ?? legacySettledAt — с результатом
+                        сейчас, переводы по моменту ввода; кэш на массивы, тот же учёт старого момента — тем же объектом), «сегодня» —
+                        сегодня, график — до дня заморозки; freezeMoment — «сейчас» (+10 мин), запись далеко впереди — только если цель
+                        достигла она; reachedValue — сумма дня достижения; keepReached(было, стало) — правка: вид и начало снимают
                         addDays / daysBetween (календарные дни, без DST)
   teams.ts            — upsertTeams(список, имена, спорт, дисциплина, newId) / cleanTeamNames — список команд обоих сторов
                         teamsFromBets(bets) → TeamSuggestion[] — подсказки команд из самих ставок (спорт и дисциплина —
