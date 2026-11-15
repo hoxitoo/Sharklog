@@ -168,6 +168,17 @@ export function dayEndMs(ymd: string): number {
 }
 
 /**
+ * Bets brought in from elsewhere now (a backup added to the current book):
+ * their results go into THIS book at `at`, whatever moment the other phone
+ * recorded them at — so a goal frozen here is not moved by them, like any old
+ * bet entered late (Goal.reached). `settledAt` stays: the bank each bet stood
+ * on is its own history (bankAtBetTime). A bet in play is left as it is.
+ */
+export function recordedAt(bets: Bet[], at: string): Bet[] {
+  return bets.map((b) => (b.status === 'pending' ? b : { ...b, firstSettledAt: at }));
+}
+
+/**
  * When a settled bet saved before `settledAt` existed got its result: its last
  * edit (`updatedAt`), but never past the end of its own day — and never before
  * the bet itself went into the book (`createdAt`). A note or closing odds

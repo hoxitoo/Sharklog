@@ -173,6 +173,9 @@ describe('sanitizeGoals — a frozen reach', () => {
     const at = '2026-11-14T15:30:00.000Z';
     for (const mode of ['import', 'stored'] as const) {
       expect(sanitizeGoals([{ ...base, reached: { at } }], mode).items[0]!.reached).toEqual({ at });
+      expect(sanitizeGoals([{ ...base, reached: { at, day: '2026-11-14' } }], mode).items[0]!.reached).toEqual({ at, day: '2026-11-14' });
+      // A day that is not a day goes alone — the local day of the moment stands in.
+      expect(sanitizeGoals([{ ...base, reached: { at, day: 14 } }], mode).items[0]!.reached).toEqual({ at });
       // An older shape, a moment that does not read: refrozen if still reached.
       expect(sanitizeGoals([{ ...base, reached: { on: '2026-11-07', value: 1 } }], mode).items[0]!.reached).toBeUndefined();
       expect(sanitizeGoals([{ ...base, reached: { at: 'вчера' } }], mode).items[0]!.reached).toBeUndefined();

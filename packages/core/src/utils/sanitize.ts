@@ -274,7 +274,10 @@ export function sanitizeGoals(raw: unknown, mode: SanitizeMode = 'import'): Sani
     // A freeze that does not read is dropped alone: the goal stays, and is
     // frozen again if it is still reached.
     const rc = r['reached'];
-    if (isObj(rc) && isTimestamp(rc['at'])) out['reached'] = { at: rc['at'] };
+    if (isObj(rc) && isTimestamp(rc['at'])) {
+      const reachedDay = day(rc['day']);
+      out['reached'] = reachedDay ? { at: rc['at'], day: reachedDay } : { at: rc['at'] };
+    }
     if (mode === 'import') {
       clipText(out, ['title'], TEXT_LIMITS.FIELD);
       clipText(out, ['note'], TEXT_LIMITS.NOTE);

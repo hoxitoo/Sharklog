@@ -162,13 +162,22 @@ export interface Goal {
 /** A reached goal, frozen. */
 export interface GoalReached {
   /**
-   * ISO moment of the freeze. The goal counts the results, transfers and
-   * corrections recorded up to it (`settledAt`, a transfer's `date`) and none
-   * after. A result recorded before it and corrected or deleted since leaves
-   * the book of that moment: if the goal no longer reaches its target there,
-   * the freeze is lifted — a mis-tap on «Выиграла» must not freeze a goal for good.
+   * ISO moment of the freeze. The goal counts the bets whose result was first
+   * recorded by it (`firstSettledAt`), with the result they carry now, and the
+   * transfers entered by it (a transfer's `date`); nothing recorded after. A
+   * result corrected since is counted as corrected, a bet deleted or back in
+   * play is not counted: if the goal no longer reaches its target there, it is
+   * shown live — a mis-tap on «Выиграла» must not freeze a goal for good — and
+   * the freeze is kept, so undoing the change brings it back.
    */
   at: string;
+  /**
+   * The day it was reached on (YYYY-MM-DD, the phone's local day then): the
+   * frozen book is counted with it as "today", so neither a clock set back
+   * nor another time zone pushes the reaching bets past "today". A freeze
+   * without one (saved before the field) uses the local day of `at`.
+   */
+  day?: string;
 }
 
 export type StrategyGoal = 'income' | 'hobby' | 'professional';

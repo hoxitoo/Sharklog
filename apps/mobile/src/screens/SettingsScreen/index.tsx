@@ -11,7 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import {
-  FREE_LIMITS, CURRENT_SCHEMA_VERSION, CURRENCIES, CURRENCY_CODES, ODDS_FORMATS, formatOddsAs, isCurrencyCode,
+  FREE_LIMITS, CURRENT_SCHEMA_VERSION, CURRENCIES, CURRENCY_CODES, ODDS_FORMATS, formatOddsAs, isCurrencyCode, recordedAt,
 } from '@sharklog/core';
 import { FilterPicker } from '../../components/FilterPicker';
 import { useOddsFormat } from '../../utils/useOdds';
@@ -467,7 +467,9 @@ export function SettingsScreen() {
             // The same backup restored twice must not double every bet: two
             // records under one id make each edit hit both.
             const have = new Set(store.bets.map((b) => b.id));
-            const fresh = backup.bets.filter((b) => !have.has(b.id));
+            // Recorded in this book now: a goal frozen here is not moved by
+            // them, as by any old bet entered late (recordedAt, core).
+            const fresh = recordedAt(backup.bets.filter((b) => !have.has(b.id)), new Date().toISOString());
             // Goals the phone does not have yet come along; its own stay first.
             const haveGoals = new Set(store.goals.map((g) => g.id));
             const newGoals = (backup.goals ?? []).filter((g) => !haveGoals.has(g.id));
