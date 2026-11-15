@@ -139,17 +139,26 @@ export interface DashboardStats {
  * One rule for both apps' stores: `addBet` passes no `prev`.
  */
 export function stampSettlement(prev: Bet | undefined, next: Bet, now: string): Bet {
+  // When a result FIRST went in: kept through corrections and a return to
+  // pending (see Bet.firstSettledAt); a bet settled before the field existed
+  // takes its own stamp as it stood.
+  const first = next.firstSettledAt ?? prev?.firstSettledAt
+    ?? (prev && prev.status !== 'pending' ? prev.settledAt ?? legacySettledAt(prev) : undefined);
+  const withFirst = (b: Bet, fallback?: string): Bet => {
+    const f = first ?? fallback;
+    return f === undefined || b.firstSettledAt === f ? b : { ...b, firstSettledAt: f };
+  };
   if (next.status === 'pending') {
-    if (next.settledAt === undefined) return next;
+    if (next.settledAt === undefined) return withFirst(next);
     const out = { ...next };
     delete out.settledAt;
-    return out;
+    return withFirst(out);
   }
   const resultChanged = !prev || prev.status !== next.status
     || (next.status === 'cashout' && prev.cashoutAmount !== next.cashoutAmount);
-  if (resultChanged) return { ...next, settledAt: now };
-  if (prev.settledAt !== undefined) return { ...next, settledAt: prev.settledAt };
-  return { ...next, settledAt: legacySettledAt(prev) };
+  if (resultChanged) return withFirst({ ...next, settledAt: now }, now);
+  if (prev.settledAt !== undefined) return withFirst({ ...next, settledAt: prev.settledAt });
+  return withFirst({ ...next, settledAt: legacySettledAt(prev) });
 }
 
 /** Local midnight after a `YYYY-MM-DD` day, in ms; NaN for any other string. */

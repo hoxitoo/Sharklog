@@ -878,6 +878,11 @@ export function settleGoalFreezes(): void {
     if (!next) return;
     useBetsStore.setState({ goals: next });
     useBetsStore.getState().persist();
+  } catch (e) {
+    // This runs inside the store's subscription, i.e. inside whatever write
+    // triggered it: a throw here would surface from addBet or updateBet as if
+    // the bet had not been saved. A freeze can wait for the next look.
+    if (typeof __DEV__ !== 'undefined' && __DEV__) console.warn('settleGoalFreezes', e);
   } finally {
     settling = false;
   }

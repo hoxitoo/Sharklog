@@ -59,6 +59,15 @@ export interface Bet {
    * results a bet entered later could already have seen.
    */
   settledAt?: string;
+  /**
+   * ISO-8601: when a result first went into the book. Unlike `settledAt` it
+   * does not move when the result is corrected, nor go when the bet goes back
+   * to pending. A frozen goal counts the bets whose result was first recorded
+   * by its freeze, with the result they have now: a result corrected since is
+   * re-counted, not dropped (`GoalReached`). None on bets settled before the
+   * field existed — `settledAt` (or `legacySettledAt`) stands in.
+   */
+  firstSettledAt?: string;
   date: string;            // YYYY-MM-DD
   time: string;            // HH:MM
   sport: Sport;

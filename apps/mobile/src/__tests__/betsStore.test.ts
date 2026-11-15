@@ -339,6 +339,25 @@ describe('a reached goal', () => {
     expect(useBetsStore.getState().goals[0]!.reached).toBeDefined();
   });
 
+  it('stays frozen through a small correction of the bet that reached it — re-counted, not dropped', () => {
+    useBetsStore.setState({ goals: [profitGoal] });
+    useBetsStore.getState().addBet(makeBet({ id: 'w', date: today, status: 'won', odds: 2, stake: 60_000_00 }));
+    const frozenAt = useBetsStore.getState().goals[0]!.reached;
+    expect(frozenAt).toBeDefined();
+    // Won +60 000 → cashed out for +55 000: still over 50 000 in the book of then.
+    useBetsStore.getState().updateBet('w', { status: 'cashout', cashoutAmount: 115_000_00 });
+    const w = useBetsStore.getState().bets.find((b) => b.id === 'w')!;
+    expect(w.firstSettledAt).toBe(w.createdAt);
+    expect(useBetsStore.getState().goals[0]!.reached).toEqual(frozenAt);
+  });
+
+  it('a goal that cannot be counted does not break the save that triggered the check', () => {
+    const broken = { ...profitGoal, get kind(): 'profit' { throw new Error('bad goal'); } };
+    useBetsStore.setState({ goals: [broken] });
+    expect(() => useBetsStore.getState().addBet(makeBet({ id: 'x', date: today, status: 'won' }))).not.toThrow();
+    expect(useBetsStore.getState().bets.some((b) => b.id === 'x')).toBe(true);
+  });
+
   it('is frozen right after load — a goal reached before this version', () => {
     useBetsStore.setState({
       isLoaded: false,

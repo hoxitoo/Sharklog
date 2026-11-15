@@ -470,4 +470,24 @@ describe('stampSettlement — when a result went into the book', () => {
     const back = stampSettlement(old, { ...old, status: 'pending', settledAt: at('2026-08-01', '15:00') }, now);
     expect('settledAt' in back).toBe(false);
   });
+
+  it('keeps when a result FIRST went in — through corrections and a return to pending', () => {
+    const entered = bet({ status: 'won' });
+    const first = stampSettlement(undefined, entered, entered.createdAt);
+    expect(first.firstSettledAt).toBe(entered.createdAt);
+    expect(stampSettlement(undefined, pending, now).firstSettledAt).toBeUndefined();
+    const fixed = stampSettlement(first, { ...first, status: 'lost' }, now);
+    expect([fixed.settledAt, fixed.firstSettledAt]).toEqual([now, entered.createdAt]);
+    const back = stampSettlement(fixed, { ...fixed, status: 'pending' }, now);
+    expect(['settledAt' in back, back.firstSettledAt]).toEqual([false, entered.createdAt]);
+    const again = stampSettlement(back, { ...back, status: 'won' }, '2026-08-03T10:00:00.000Z');
+    expect(again.firstSettledAt).toBe(entered.createdAt);
+    // Settled before the field existed: its own stamp as it stood.
+    const old = { ...pending, status: 'lost' as const, settledAt: '2026-08-01T12:00:00.000Z' };
+    expect(stampSettlement(old, { ...old, status: 'won' }, now).firstSettledAt).toBe(old.settledAt);
+    const older = { ...pending, status: 'lost' as const, updatedAt: at('2026-08-01', '15:00') };
+    expect(stampSettlement(older, { ...older, notes: 'x' }, now).firstSettledAt).toBe(at('2026-08-01', '15:00'));
+    // A bet first settled after it was pending: the settle is the first.
+    expect(stampSettlement(pending, { ...pending, status: 'won' }, now).firstSettledAt).toBe(now);
+  });
 });

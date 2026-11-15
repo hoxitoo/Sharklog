@@ -40,6 +40,15 @@ describe('sanitizeBet', () => {
     expect(b.tournament).toBe('РПЛ');
   });
 
+  it('keeps the moments a result went into the book, and drops one that does not read', () => {
+    const at = '2026-10-01T19:30:00.000Z';
+    const b = sanitizeBet({ ...good, status: 'won', settledAt: at, firstSettledAt: at })!;
+    expect([b.settledAt, b.firstSettledAt]).toEqual([at, at]);
+    const odd = sanitizeBet({ ...good, status: 'won', settledAt: 7, firstSettledAt: 'soon' })!;
+    expect(odd).not.toHaveProperty('settledAt');
+    expect(odd).not.toHaveProperty('firstSettledAt');
+  });
+
   it('keeps an unknown sport or strategy — screens show those as stored', () => {
     expect(sanitizeBet({ ...good, sport: 'mma', strategy: 'gut' })?.sport).toBe('mma');
   });

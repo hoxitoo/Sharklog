@@ -389,16 +389,44 @@ export function calcGoalProgress(
 }
 
 type Book = { bets: Bet[]; transactions: BankrollTransaction[] };
-const asOfCache = new WeakMap<readonly Bet[], WeakMap<readonly BankrollTransaction[], Map<string, Book>>>();
 
 /**
- * The book as it was recorded by `at`: results by their `settledAt` (a bet
- * saved before the field — legacySettledAt), transfers by their `date` (the
- * moment one is entered). A bet still in play counts nothing either way. A
- * moment that does not read counts as recorded long ago. Cached per arrays and
- * moment — the same arrays give the same book, so the day series' cache holds.
+ * When a bet's result first went into the book (Bet.firstSettledAt; a bet
+ * settled before the field — settledAt, or legacySettledAt). NaN when it does
+ * not read. Cached per bet object: the stores replace a bet, never edit it.
  */
+const momentCache = new WeakMap<Bet, number>();
+function firstRecorded(b: Bet): number {
+  let m = momentCache.get(b);
+  if (m === undefined) {
+    m = Date.parse(b.firstSettledAt ?? b.settledAt ?? legacySettledAt(b));
+    momentCache.set(b, m);
+  }
+  return m;
+}
+
+/**
+ * The last book built for each moment. A write makes new arrays, but most
+ * writes (a pending bet, a later result, a note) leave the book of an old
+ * moment as it was: then the same arrays come back, and the day series built
+ * on them is a cache hit rather than ~7 ms per frozen goal on every save.
+ */
+const lastBook = new Map<string, Book>();
+const sameItems = <T,>(a: readonly T[], b: readonly T[]) => a.length === b.length && a.every((x, i) => x === b[i]);
+
+/**
+ * The book as it was recorded by `at`, with the results the bets carry NOW:
+ * a bet counts when its result was FIRST recorded by then (a result corrected
+ * since counts as corrected — "won" by mistake, fixed to "lost", is a loss,
+ * not a bet that vanished), transfers by their `date` (the moment one is
+ * entered). A bet in play counts nothing; a bet recorded after `at` — a later
+ * result, an old bet entered late — is not in it. A moment that does not read
+ * counts as recorded long ago.
+ */
+const asOfCache = new WeakMap<readonly Bet[], WeakMap<readonly BankrollTransaction[], Map<string, Book>>>();
+
 function bookAsOf(bets: Bet[], transactions: BankrollTransaction[], at: string): Book {
+  // The same arrays and moment — the store's pass, then every goal screen's.
   let byTx = asOfCache.get(bets);
   if (!byTx) { byTx = new WeakMap(); asOfCache.set(bets, byTx); }
   let byAt = byTx.get(transactions);
@@ -406,11 +434,17 @@ function bookAsOf(bets: Bet[], transactions: BankrollTransaction[], at: string):
   const hit = byAt.get(at);
   if (hit) return hit;
   const t = Date.parse(at);
-  const by = (iso: string) => { const m = Date.parse(iso); return Number.isNaN(m) || m <= t; };
-  const book = {
-    bets: bets.filter((b) => b.status !== 'pending' && by(b.settledAt ?? legacySettledAt(b))),
-    transactions: transactions.filter((x) => by(x.date)),
+  const by = (m: number) => Number.isNaN(m) || m <= t;
+  let book: Book = {
+    bets: bets.filter((b) => b.status !== 'pending' && by(firstRecorded(b))),
+    transactions: transactions.filter((x) => by(Date.parse(x.date))),
   };
+  const prev = lastBook.get(at);
+  if (prev && sameItems(prev.bets, book.bets) && sameItems(prev.transactions, book.transactions)) book = prev;
+  else {
+    if (lastBook.size >= 32) lastBook.clear();
+    lastBook.set(at, book);
+  }
   byAt.set(at, book);
   return book;
 }
@@ -420,33 +454,65 @@ function bookAsOf(bets: Bet[], transactions: BankrollTransaction[], at: string):
  * at that moment, so nothing recorded later moves it — not a loss, not a win,
  * not an old bet entered late. Null when that book no longer reaches the
  * target (a result recorded before it corrected, a bet deleted, the target
- * raised): the goal is live again until it is refrozen. The chart ends on the
- * day of the freeze.
+ * raised): the goal is live again until it is refrozen. Counted with today as
+ * "today" (the day of a moment depends on the phone's time zone, and a trip
+ * east of it would push the reaching bets past "today"); the chart ends on
+ * the day of the freeze.
  */
 function frozenProgress(goal: Goal, r: GoalReached, bets: Bet[], transactions: BankrollTransaction[], now: Date): GoalProgress | null {
   const at = new Date(r.at);
   if (Number.isNaN(at.getTime())) return null;
   const book = bookAsOf(bets, transactions, r.at);
   const { reached: _frozen, ...plain } = goal;
-  const p = calcGoalProgress(plain, book.bets, book.transactions, at);
+  const p = calcGoalProgress(plain, book.bets, book.transactions, now);
   if (!p.achieved) return null;
   // A bank whose day reached the target and whose bets no day can place took
   // it back under: the reaching day's value, not a frozen "95% — reached".
   const shown = p.current >= p.target ? p.current : p.reachedValue ?? p.current;
-  const series = p.series.slice();
+  // The day series runs on to today; the chart stops where the goal froze
+  // (or on the day it was reached, if a time zone puts that later).
+  const lastDay = p.reachedOn && p.reachedOn > toYmd(at) ? p.reachedOn : toYmd(at);
+  const series = p.series.filter((pt) => pt.date <= lastDay);
   if (series.length > 0) series[series.length - 1] = { date: series[series.length - 1]!.date, value: shown };
   return {
     ...p,
     current: shown,
     ratio: p.target > 0 ? Math.min(1, Math.max(0, shown / p.target)) : 0,
     remaining: Math.max(0, p.target - shown),
-    daysLeft: goal.deadline ? daysBetween(toYmd(now), goal.deadline) : null,
     expired: false,
     needPerMonth: null, pacePerMonth: null, paceDays: 0, projectedDays: null, onTrack: null,
     roiNeeded: null, roiNow: null, roiBets: 0,
     pendingCount: 0, inPlayStake: 0, pendingStake: 0,
     series,
   };
+}
+
+/** How far ahead of the clock a record may be and still be "recorded by now". */
+const CLOCK_SLACK_MS = 10 * 60_000;
+
+/**
+ * The moment a goal freezes at: now — taking in records stamped a little ahead
+ * of the clock (it was adjusted) — or, if the book of that moment does not
+ * reach the goal because what reached it is stamped further ahead (the clock
+ * set back since), the latest record: the book of a freeze must hold what
+ * reached it, or the next look would lift the freeze and set it again without
+ * end. Not the latest record always: one stamped in 2027 by a clock set
+ * forward would keep the goal live — counting everything — for a year.
+ */
+function freezeMoment(goal: Goal, bets: Bet[], transactions: BankrollTransaction[], now: Date): string {
+  const t = now.getTime();
+  let near = t;
+  let far = t;
+  const see = (m: number) => {
+    if (Number.isNaN(m) || m <= t) return;
+    if (m <= t + CLOCK_SLACK_MS && m > near) near = m;
+    if (m > far) far = m;
+  };
+  for (const b of bets) if (b.status !== 'pending') see(firstRecorded(b));
+  for (const x of transactions) see(Date.parse(x.date));
+  const at = new Date(near).toISOString();
+  if (far === near || frozenProgress(goal, { at }, bets, transactions, now)) return at;
+  return new Date(far).toISOString();
 }
 
 /**
@@ -465,20 +531,6 @@ export function freezeReachedGoals(
   now: Date = new Date(),
 ): Goal[] | null {
   let changed = false;
-  // The moment of a freeze: now — or the latest record, if a clock set back
-  // stamped one later: the book of the freeze must hold what reached it, or
-  // the next look would lift the freeze and set it again without end.
-  let latest = now.getTime();
-  for (const b of bets) {
-    if (b.status === 'pending') continue;
-    const m = Date.parse(b.settledAt ?? legacySettledAt(b));
-    if (m > latest) latest = m;
-  }
-  for (const x of transactions) {
-    const m = Date.parse(x.date);
-    if (m > latest) latest = m;
-  }
-  const at = new Date(latest).toISOString();
   const out = goals.map((g): Goal => {
     if (g.archived || g.kind === 'lossCap') return g;
     if (g.reached && frozenProgress(g, g.reached, bets, transactions, now)) return g;
@@ -486,7 +538,7 @@ export function freezeReachedGoals(
     const reachedNow = calcGoalProgress(plain, bets, transactions, now).achieved;
     if (!was && !reachedNow) return g;
     changed = true;
-    return reachedNow ? { ...plain, reached: { at } } : plain;
+    return reachedNow ? { ...plain, reached: { at: freezeMoment(plain, bets, transactions, now) } } : plain;
   });
   return changed ? out : null;
 }

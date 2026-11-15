@@ -97,8 +97,10 @@ export function GoalEditScreen() {
     const end = !isCap && deadline ? deadline : null;
     if (end && end <= startDay) { Alert.alert(t('common.error'), t('goals.errDeadline')); return null; }
     const text = note.trim();
-    // A reached goal stays frozen through an edit of its name or note; a new
-    // kind, amount or start is a new goal (keepReached).
+    // A reached goal stays frozen through an edit of its name, note or amount
+    // (a new amount is checked on the book of the freeze — the store lifts the
+    // freeze if it is not reached there); a new kind or start is a new goal
+    // (keepReached).
     return keepReached(existing, {
       id: existing?.id ?? uuid(),
       title: name,
